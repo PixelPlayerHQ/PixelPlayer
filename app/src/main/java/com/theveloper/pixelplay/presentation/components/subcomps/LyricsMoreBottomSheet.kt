@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +61,8 @@ fun LyricsMoreBottomSheet(
     onToggleSyncControls: () -> Unit,
     isImmersiveTemporarilyDisabled: Boolean,
     onSetImmersiveTemporarilyDisabled: (Boolean) -> Unit,
+    keepScreenOnForLyrics: Boolean,
+    onKeepScreenOnForLyricsChange: (Boolean) -> Unit,
     // BottomToggleRow params
     isShuffleEnabled: Boolean,
     repeatMode: Int,
@@ -159,6 +162,52 @@ fun LyricsMoreBottomSheet(
                     colors = ListItemDefaults.colors(
                         containerColor = Color.Transparent,
                         headlineColor = contentColor,
+                        leadingIconColor = contentColor
+                    )
+                )
+            }
+
+            // Keep Screen On toggle
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 6.dp, bottom = 6.dp),
+                    text = stringResource(R.string.display),
+                    color = accentColor,
+                    style = MaterialTheme.typography.bodyLargeEmphasized
+                )
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.keep_screen_on)) },
+                    supportingContent = { Text(stringResource(R.string.keep_screen_on_description)) },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Rounded.LightMode,
+                            contentDescription = null
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = keepScreenOnForLyrics,
+                            onCheckedChange = onKeepScreenOnForLyricsChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = onAccentColor,
+                                checkedTrackColor = accentColor,
+                                uncheckedThumbColor = contentColor,
+                                uncheckedTrackColor = contentColor.copy(alpha = 0.3f)
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(itemBackgroundColor),
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                        headlineColor = contentColor,
+                        supportingColor = contentColor.copy(alpha = 0.6f),
                         leadingIconColor = contentColor
                     )
                 )

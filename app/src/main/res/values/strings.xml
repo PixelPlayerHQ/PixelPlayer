@@ -106,4 +106,7 @@
     <string name="widget_control_4x2_desc">Full controls with shuffle and repeat</string>
     <string name="widget_grid_2x2_desc">Minimalist square player</string>
     <string name="service_processing_action">Processing playback action…</string>
+    <string name="display">Display</string>
+    <string name="keep_screen_on">Keep screen on</string>
+    <string name="keep_screen_on_description">Prevents the display from sleeping while lyrics are open.</string>
 </resources>

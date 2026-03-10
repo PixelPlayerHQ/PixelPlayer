@@ -210,6 +210,7 @@ fun FullPlayerContent(
     val immersiveLyricsEnabled = fullPlayerSlice.immersiveLyricsEnabled
     val immersiveLyricsTimeout = fullPlayerSlice.immersiveLyricsTimeout
     val isImmersiveTemporarilyDisabled = fullPlayerSlice.isImmersiveTemporarilyDisabled
+    val keepScreenOnForLyrics = fullPlayerSlice.keepScreenOnForLyrics
     val isRemotePlaybackActive = fullPlayerSlice.isRemotePlaybackActive
     val selectedRouteName = fullPlayerSlice.selectedRouteName
     val isBluetoothEnabled = fullPlayerSlice.isBluetoothEnabled
@@ -896,6 +897,8 @@ fun FullPlayerContent(
             immersiveLyricsTimeout = immersiveLyricsTimeout,
             isImmersiveTemporarilyDisabled = isImmersiveTemporarilyDisabled,
             onSetImmersiveTemporarilyDisabled = { playerViewModel.setImmersiveTemporarilyDisabled(it) },
+            keepScreenOnForLyrics = keepScreenOnForLyrics,
+            onKeepScreenOnForLyricsChange = { playerViewModel.setKeepScreenOnForLyrics(it) },
             isShuffleEnabled = isShuffleEnabled,
             repeatMode = repeatMode,
             isFavoriteProvider = isFavoriteProvider,

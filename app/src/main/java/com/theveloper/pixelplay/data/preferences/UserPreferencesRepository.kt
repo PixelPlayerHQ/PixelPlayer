@@ -195,6 +195,7 @@ constructor(
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val IMMERSIVE_LYRICS_ENABLED = booleanPreferencesKey("immersive_lyrics_enabled")
         val IMMERSIVE_LYRICS_TIMEOUT = longPreferencesKey("immersive_lyrics_timeout")
+        val KEEP_SCREEN_ON_FOR_LYRICS = booleanPreferencesKey("keep_screen_on_for_lyrics")
         val USE_ANIMATED_LYRICS = booleanPreferencesKey("use_animated_lyrics")
         val ANIMATED_LYRICS_BLUR_ENABLED = booleanPreferencesKey("animated_lyrics_blur_enabled")
         val ANIMATED_LYRICS_BLUR_STRENGTH = androidx.datastore.preferences.core.floatPreferencesKey("animated_lyrics_blur_strength")
@@ -561,6 +562,17 @@ constructor(
     suspend fun setImmersiveLyricsTimeout(timeout: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IMMERSIVE_LYRICS_TIMEOUT] = timeout
+        }
+    }
+
+    val keepScreenOnForLyricsFlow: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.KEEP_SCREEN_ON_FOR_LYRICS] ?: false
+            }
+
+    suspend fun setKeepScreenOnForLyrics(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.KEEP_SCREEN_ON_FOR_LYRICS] = enabled
         }
     }
 

@@ -482,6 +482,15 @@ class PlayerViewModel @Inject constructor(
         _isImmersiveTemporarilyDisabled.value = disabled
     }
 
+    private val keepScreenOnForLyrics: StateFlow<Boolean> = userPreferencesRepository.keepScreenOnForLyricsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setKeepScreenOnForLyrics(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setKeepScreenOnForLyrics(enabled)
+        }
+    }
+
     val albumArtQuality: StateFlow<AlbumArtQuality> = userPreferencesRepository.albumArtQualityFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AlbumArtQuality.MEDIUM)
 
@@ -819,6 +828,7 @@ class PlayerViewModel @Inject constructor(
         val immersiveLyricsEnabled: Boolean = false,
         val immersiveLyricsTimeout: Long = 4000L,
         val isImmersiveTemporarilyDisabled: Boolean = false,
+        val keepScreenOnForLyrics: Boolean = false,
         val isRemotePlaybackActive: Boolean = false,
         val selectedRouteName: String? = null,
         val isBluetoothEnabled: Boolean = false,
@@ -847,13 +857,14 @@ class PlayerViewModel @Inject constructor(
     private val fullPlayerSlicePart2 = combine(
         immersiveLyricsEnabled,
         immersiveLyricsTimeout,
-        isImmersiveTemporarilyDisabled,
+        combine(isImmersiveTemporarilyDisabled, keepScreenOnForLyrics) { dis, screenOn -> dis to screenOn },
         isRemotePlaybackActive,
         combine(selectedRouteName, bluetoothSlice) { route, bt -> route to bt }
-    ) { immersive: Boolean, immersiveTimeout: Long, immersiveDisabled: Boolean,
+    ) { immersive: Boolean, immersiveTimeout: Long, immersiveAndScreenOn: Pair<Boolean, Boolean>,
         remotePb: Boolean, routeAndBt: Pair<String?, BluetoothSlice> ->
+        val (immersiveDisabled, screenOn) = immersiveAndScreenOn
         val (routeName, bt) = routeAndBt
-        FullPlayerSlicePart2(immersive, immersiveTimeout, immersiveDisabled, remotePb, routeName, bt.enabled, bt.name)
+        FullPlayerSlicePart2(immersive, immersiveTimeout, immersiveDisabled, screenOn, remotePb, routeName, bt.enabled, bt.name)
     }
 
     private data class FullPlayerSlicePart1(
@@ -868,6 +879,7 @@ class PlayerViewModel @Inject constructor(
         val immersiveLyricsEnabled: Boolean,
         val immersiveLyricsTimeout: Long,
         val isImmersiveTemporarilyDisabled: Boolean,
+        val keepScreenOnForLyrics: Boolean,
         val isRemotePlaybackActive: Boolean,
         val selectedRouteName: String?,
         val isBluetoothEnabled: Boolean,
@@ -887,6 +899,7 @@ class PlayerViewModel @Inject constructor(
             immersiveLyricsEnabled = p2.immersiveLyricsEnabled,
             immersiveLyricsTimeout = p2.immersiveLyricsTimeout,
             isImmersiveTemporarilyDisabled = p2.isImmersiveTemporarilyDisabled,
+            keepScreenOnForLyrics = p2.keepScreenOnForLyrics,
             isRemotePlaybackActive = p2.isRemotePlaybackActive,
             selectedRouteName = p2.selectedRouteName,
             isBluetoothEnabled = p2.isBluetoothEnabled,

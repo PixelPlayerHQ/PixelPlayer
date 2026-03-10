@@ -165,6 +165,8 @@ fun LyricsSheet(
     immersiveLyricsTimeout: Long,
     isImmersiveTemporarilyDisabled: Boolean,
     onSetImmersiveTemporarilyDisabled: (Boolean) -> Unit,
+    keepScreenOnForLyrics: Boolean,
+    onKeepScreenOnForLyricsChange: (Boolean) -> Unit,
     // BottomToggleRow Params
     isShuffleEnabled: Boolean,
     repeatMode: Int,
@@ -181,6 +183,20 @@ fun LyricsSheet(
     BackHandler { onBackClick() }
     val stablePlayerState by stablePlayerStateFlow.collectAsStateWithLifecycle()
     val playbackPosition by playbackPositionFlow.collectAsStateWithLifecycle(initialValue = 0L)
+
+    // Keep screen on while lyrics are visible and the preference is enabled
+    val activity = LocalContext.current as? android.app.Activity
+    DisposableEffect(activity, keepScreenOnForLyrics) {
+        val shouldKeep = keepScreenOnForLyrics && activity != null
+        if (shouldKeep) {
+            activity!!.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            if (shouldKeep) {
+                activity!!.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+    }
 
     val isLoadingLyrics by remember { derivedStateOf { stablePlayerState.isLoadingLyrics } }
     val lyrics by remember { derivedStateOf { stablePlayerState.lyrics } }
@@ -791,6 +807,8 @@ fun LyricsSheet(
                         resetImmersiveTimer()
                         onSetImmersiveTemporarilyDisabled(it)
                     },
+                    keepScreenOnForLyrics = keepScreenOnForLyrics,
+                    onKeepScreenOnForLyricsChange = onKeepScreenOnForLyricsChange,
                     isShuffleEnabled = isShuffleEnabled,
                     repeatMode = repeatMode,
                     isFavoriteProvider = isFavoriteProvider,

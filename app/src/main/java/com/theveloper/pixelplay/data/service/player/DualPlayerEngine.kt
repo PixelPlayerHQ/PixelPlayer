@@ -7,6 +7,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -14,14 +15,10 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-import androidx.media3.common.Format
-import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import android.os.Handler
-import kotlin.math.max
 //import androidx.media3.exoplayer.ffmpeg.FfmpegAudioRenderer
 import com.theveloper.pixelplay.data.model.TransitionSettings
 import com.theveloper.pixelplay.utils.envelope
@@ -280,42 +277,59 @@ class DualPlayerEngine @Inject constructor(
                 eventListener: AudioRendererEventListener,
                 out: ArrayList<Renderer>
             ) {
-                // Use provided sink or create one with Float output enabled
-                // Note: We use the provided audioSink if it works, but here we want to enforce config.
-                // Since super.buildAudioRenderers takes the sink, we can just pass our configured one.
-                // But wait, the parameter 'audioSink' is passed IN. 
-                // We should probably ignore the passed one if we want to enforce ours, OR configure ours and pass it to super.
-                
-                val sink = DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(false) // Disable Float output to fix CCodec/Hardware errors on some devices
+                val defaultSink = DefaultAudioSink.Builder(context)
+                    // Float output required: FFmpeg decodes hi-res FLAC to PCM_FLOAT; without
+                    // this the sink force-converts float→16-bit before our resampler can run.
+                    .setEnableFloatOutput(true)
                     .setAudioProcessorChain(
-                        // Custom downmix processor for 6 channel or 8 channel to 2 channel (stereo)
-                        DefaultAudioSink.DefaultAudioProcessorChain(SurroundDownmixProcessor())
+                        DefaultAudioSink.DefaultAudioProcessorChain(
+                            // Downmix 5.1/7.1 surround (16-bit PCM) to stereo.
+                            // HighResSamplerAudioProcessor is NOT here — it lives inside
+                            // DownsamplingAudioSink which intercepts configure() before
+                            // DefaultAudioSink (and AudioTrack) ever see the 384 kHz rate.
+                            SurroundDownmixProcessor()
+                        )
                     )
                     .build()
 
-                out.add(object : MediaCodecAudioRenderer(
-                    context,
-                    mediaCodecSelector,
-                    enableDecoderFallback,
-                    eventHandler,
-                    eventListener,
-                    sink
-                ) {
-                    override fun getCodecMaxInputSize(
-                        codecInfo: MediaCodecInfo,
-                        format: Format,
-                        streamFormats: Array<Format>
-                    ): Int {
-                        // Force minimum 512KB buffer for FLAC/High-res audio
-                        return max(super.getCodecMaxInputSize(codecInfo, format, streamFormats), 512 * 1024)
-                    }
-                })
+                // Wrap the sink so configure() caps sample rates > 192 kHz before
+                // AudioTrack is created. In Media3 1.9.x the processor chain no longer
+                // gates the AudioTrack sample rate, so interception must happen here.
+                // supportsFormat() is also overridden so FfmpegAudioRenderer correctly
+                // reports FORMAT_HANDLED for 384 kHz FLAC (see DownsamplingAudioSink).
+                val sink = DownsamplingAudioSink(defaultSink)
 
-                super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback, sink, eventHandler, eventListener, out)
+                // Custom selector: return an empty codec list for lossless formats (FLAC,
+                // ALAC) so MediaCodecAudioRenderer reports FORMAT_UNSUPPORTED for them.
+                // This forces ExoPlayer to select FfmpegAudioRenderer instead.
+                //
+                // Reason: hardware FLAC/ALAC MediaCodec decoders claim FORMAT_HANDLED for
+                // any sample rate (including 384 kHz+) but silently hang when the rate
+                // exceeds what the chip firmware actually supports. DefaultTrackSelector
+                // prefers hardware renderers when both claim equal support, so without this
+                // block the hardware decoder wins and playback stalls indefinitely.
+                val hiResAwareSelector = MediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
+                    if (mimeType == MimeTypes.AUDIO_FLAC ||
+                        mimeType == "audio/alac" ||
+                        mimeType == "audio/x-alac"
+                    ) {
+                        emptyList()
+                    } else {
+                        mediaCodecSelector.getDecoderInfos(
+                            mimeType, requiresSecureDecoder, requiresTunnelingDecoder
+                        )
+                    }
+                }
+
+                super.buildAudioRenderers(
+                    context, extensionRendererMode, hiResAwareSelector,
+                    enableDecoderFallback, sink, eventHandler, eventListener, out
+                )
             }
-        }.setEnableAudioFloatOutput(false) // Disable Float output helper
-         .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        }   // PREFER: FFmpeg renderer is inserted before MediaCodecAudioRenderer in the list.
+            // For 384kHz FLAC, the hardware decoder claims FORMAT_HANDLED but silently hangs;
+            // FFmpeg correctly decodes it to PCM_FLOAT and feeds it to DownsamplingAudioSink.
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
 
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)

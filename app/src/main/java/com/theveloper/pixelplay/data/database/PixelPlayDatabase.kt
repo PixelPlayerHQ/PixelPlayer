@@ -22,11 +22,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NeteaseSongEntity::class,
         NeteasePlaylistEntity::class,
         GDriveSongEntity::class,
-        GDriveFolderEntity::class
+        GDriveFolderEntity::class,
+        PlaylistEntity::class,
+        PlaylistSongEntity::class,
+        QqMusicSongEntity::class,
+        QqMusicPlaylistEntity::class,
+        NavidromeSongEntity::class,
+        NavidromePlaylistEntity::class
     ],
-    version = 24, // Incremented for query performance indexes
+    version = 30, // Fix Navidrome playlist_id affinity drift
 
-    exportSchema = false
+    exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun albumArtThemeDao(): AlbumArtThemeDao
@@ -39,6 +45,9 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun lyricsDao(): LyricsDao
     abstract fun neteaseDao(): NeteaseDao
     abstract fun gdriveDao(): GDriveDao
+    abstract fun localPlaylistDao(): LocalPlaylistDao
+    abstract fun qqmusicDao(): QqMusicDao
+    abstract fun navidromeDao(): NavidromeDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -449,15 +458,628 @@ abstract class PixelPlayDatabase : RoomDatabase() {
 
         /**
          * Add missing indexes for frequently filtered and sorted queries.
+         *
+         * Safety: the `date_added` column may be absent on databases that were
+         * created before it was part of the songs schema and later restored via
+         * Android auto-backup, so we repair the table defensively before indexing.
          */
         val MIGRATION_23_24 = object : Migration(23, 24) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_content_uri_string ON songs(content_uri_string)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_date_added ON songs(date_added)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_duration ON songs(duration)")
+                ensureSongsTableHasDateAdded(db)
+                createSongsEntityIndexes(db)
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_favorites_timestamp ON favorites(timestamp)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_song_engagements_play_count ON song_engagements(play_count)")
             }
+        }
+
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Lyrics are already persisted in the dedicated lyrics table. Keeping a duplicate
+                // copy in songs rows makes broad SELECTs vulnerable to CursorWindow overflows.
+                db.execSQL("UPDATE songs SET lyrics = NULL WHERE lyrics IS NOT NULL AND lyrics != ''")
+            }
+        }
+
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Cloud/source tables: add query indexes.
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_songs_chat_id ON telegram_songs(chat_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_songs_message_id ON telegram_songs(message_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_songs_file_id ON telegram_songs(file_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_songs_chat_id_message_id ON telegram_songs(chat_id, message_id)")
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_netease_songs_netease_id ON netease_songs(netease_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_netease_songs_playlist_id ON netease_songs(playlist_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_netease_songs_playlist_id_date_added ON netease_songs(playlist_id, date_added)")
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gdrive_songs_drive_file_id ON gdrive_songs(drive_file_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gdrive_songs_folder_id ON gdrive_songs(folder_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_gdrive_songs_folder_id_date_added ON gdrive_songs(folder_id, date_added)")
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_album_art_themes_albumArtUriString_paletteStyle ON album_art_themes(albumArtUriString, paletteStyle)")
+
+                // favorites table is the source of truth; keep songs.is_favorite mirrored by trigger.
+                db.execSQL(
+                    """
+                        UPDATE songs
+                        SET is_favorite = CASE
+                            WHEN id IN (SELECT songId FROM favorites WHERE isFavorite = 1) THEN 1
+                            ELSE 0
+                        END
+                    """.trimIndent()
+                )
+                installFavoriteSyncTriggers(db)
+
+                recreatePlaylistsTable(db)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlists_last_modified ON playlists(last_modified)")
+
+                recreatePlaylistSongsTable(db)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_playlist_id_sort_order ON playlist_songs(playlist_id, sort_order)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_song_id ON playlist_songs(song_id)")
+            }
+        }
+
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                recreatePlaylistsTable(db)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlists_last_modified ON playlists(last_modified)")
+
+                recreatePlaylistSongsTable(db)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_playlist_id_sort_order ON playlist_songs(playlist_id, sort_order)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_song_id ON playlist_songs(song_id)")
+                installFavoriteSyncTriggers(db)
+            }
+        }
+
+        private fun ensureSongsTableHasDateAdded(db: SupportSQLiteDatabase) {
+            if (!tableExists(db, "songs")) {
+                recreateSongsTable(db)
+                return
+            }
+
+            if ("date_added" in getTableColumns(db, "songs")) {
+                return
+            }
+
+            try {
+                db.execSQL("ALTER TABLE songs ADD COLUMN date_added INTEGER NOT NULL DEFAULT 0")
+            } catch (_: Exception) {
+                // Some restored databases report the right version but still carry
+                // a drifted songs table. If ALTER TABLE did not stick, rebuild it.
+            }
+
+            if ("date_added" !in getTableColumns(db, "songs")) {
+                recreateSongsTable(db)
+            }
+        }
+
+        private fun recreateSongsTable(db: SupportSQLiteDatabase) {
+            val songsTableExists = tableExists(db, "songs")
+            val columns = if (songsTableExists) getTableColumns(db, "songs") else emptySet()
+
+            db.execSQL("DROP TABLE IF EXISTS songs_new")
+            db.execSQL(
+                """
+                    CREATE TABLE songs_new (
+                        id INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        artist_name TEXT NOT NULL,
+                        artist_id INTEGER NOT NULL,
+                        album_artist TEXT,
+                        album_name TEXT NOT NULL,
+                        album_id INTEGER NOT NULL,
+                        content_uri_string TEXT NOT NULL,
+                        album_art_uri_string TEXT,
+                        duration INTEGER NOT NULL,
+                        genre TEXT,
+                        file_path TEXT NOT NULL,
+                        parent_directory_path TEXT NOT NULL,
+                        is_favorite INTEGER NOT NULL DEFAULT 0,
+                        lyrics TEXT DEFAULT null,
+                        track_number INTEGER NOT NULL DEFAULT 0,
+                        year INTEGER NOT NULL DEFAULT 0,
+                        date_added INTEGER NOT NULL DEFAULT 0,
+                        mime_type TEXT,
+                        bitrate INTEGER,
+                        sample_rate INTEGER,
+                        telegram_chat_id INTEGER,
+                        telegram_file_id INTEGER,
+                        PRIMARY KEY(id),
+                        FOREIGN KEY(album_id) REFERENCES albums(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(artist_id) REFERENCES artists(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent()
+            )
+
+            val requiredColumns = setOf(
+                "id",
+                "title",
+                "artist_name",
+                "artist_id",
+                "album_name",
+                "album_id",
+                "content_uri_string",
+                "duration",
+                "file_path"
+            )
+
+            // If the restored table still has the core song columns, preserve rows.
+            // Otherwise prefer a clean empty table over another migration-time crash.
+            if (songsTableExists && requiredColumns.all(columns::contains)) {
+                val albumArtistExpr = columnExpr(columns, "album_artist", "NULL")
+                val albumArtUriExpr = columnExpr(columns, "album_art_uri_string", "NULL")
+                val genreExpr = columnExpr(columns, "genre", "NULL")
+                val parentDirectoryPathExpr = columnExpr(columns, "parent_directory_path", "''")
+                val isFavoriteExpr = columnExpr(columns, "is_favorite", "0")
+                val lyricsExpr = columnExpr(columns, "lyrics", "NULL")
+                val trackNumberExpr = columnExpr(columns, "track_number", "0")
+                val yearExpr = columnExpr(columns, "year", "0")
+                val dateAddedExpr = columnExpr(columns, "date_added", "0")
+                val mimeTypeExpr = columnExpr(columns, "mime_type", "NULL")
+                val bitrateExpr = columnExpr(columns, "bitrate", "NULL")
+                val sampleRateExpr = columnExpr(columns, "sample_rate", "NULL")
+                val telegramChatIdExpr = columnExpr(columns, "telegram_chat_id", "NULL")
+                val telegramFileIdExpr = columnExpr(columns, "telegram_file_id", "NULL")
+
+                db.execSQL(
+                    """
+                        INSERT OR REPLACE INTO songs_new (
+                            id,
+                            title,
+                            artist_name,
+                            artist_id,
+                            album_artist,
+                            album_name,
+                            album_id,
+                            content_uri_string,
+                            album_art_uri_string,
+                            duration,
+                            genre,
+                            file_path,
+                            parent_directory_path,
+                            is_favorite,
+                            lyrics,
+                            track_number,
+                            year,
+                            date_added,
+                            mime_type,
+                            bitrate,
+                            sample_rate,
+                            telegram_chat_id,
+                            telegram_file_id
+                        )
+                        SELECT
+                            id,
+                            title,
+                            artist_name,
+                            artist_id,
+                            $albumArtistExpr,
+                            album_name,
+                            album_id,
+                            content_uri_string,
+                            $albumArtUriExpr,
+                            duration,
+                            $genreExpr,
+                            file_path,
+                            $parentDirectoryPathExpr,
+                            $isFavoriteExpr,
+                            $lyricsExpr,
+                            $trackNumberExpr,
+                            $yearExpr,
+                            $dateAddedExpr,
+                            $mimeTypeExpr,
+                            $bitrateExpr,
+                            $sampleRateExpr,
+                            $telegramChatIdExpr,
+                            $telegramFileIdExpr
+                        FROM songs
+                        WHERE id IS NOT NULL
+                          AND title IS NOT NULL
+                          AND artist_name IS NOT NULL
+                          AND artist_id IS NOT NULL
+                          AND album_name IS NOT NULL
+                          AND album_id IS NOT NULL
+                          AND content_uri_string IS NOT NULL
+                          AND duration IS NOT NULL
+                          AND file_path IS NOT NULL
+                    """.trimIndent()
+                )
+            }
+
+            if (songsTableExists) {
+                db.execSQL("DROP TABLE songs")
+            }
+
+            db.execSQL("ALTER TABLE songs_new RENAME TO songs")
+            createSongsEntityIndexes(db)
+        }
+
+        private fun createSongsEntityIndexes(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_title ON songs(title)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_album_id ON songs(album_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_artist_id ON songs(artist_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_artist_name ON songs(artist_name)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_genre ON songs(genre)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_parent_directory_path ON songs(parent_directory_path)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_content_uri_string ON songs(content_uri_string)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_date_added ON songs(date_added)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_duration ON songs(duration)")
+        }
+
+        private fun recreatePlaylistsTable(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS playlists_new")
+            db.execSQL(
+                """
+                    CREATE TABLE playlists_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        last_modified INTEGER NOT NULL,
+                        is_ai_generated INTEGER NOT NULL,
+                        is_queue_generated INTEGER NOT NULL,
+                        cover_image_uri TEXT,
+                        cover_color_argb INTEGER,
+                        cover_icon_name TEXT,
+                        cover_shape_type TEXT,
+                        cover_shape_detail_1 REAL,
+                        cover_shape_detail_2 REAL,
+                        cover_shape_detail_3 REAL,
+                        cover_shape_detail_4 REAL,
+                        source TEXT NOT NULL
+                    )
+                """.trimIndent()
+            )
+
+            if (tableExists(db, "playlists")) {
+                val columns = getTableColumns(db, "playlists")
+                if ("id" in columns && "name" in columns) {
+                    val nowMs = "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
+                    val createdAtExpr = columnExpr(columns, "created_at", nowMs)
+                    val lastModifiedExpr = columnExpr(columns, "last_modified", createdAtExpr)
+                    val isAiGeneratedExpr = columnExpr(columns, "is_ai_generated", "0")
+                    val isQueueGeneratedExpr = columnExpr(columns, "is_queue_generated", "0")
+                    val coverImageUriExpr = columnExpr(columns, "cover_image_uri", "NULL")
+                    val coverColorArgbExpr = columnExpr(columns, "cover_color_argb", "NULL")
+                    val coverIconNameExpr = columnExpr(columns, "cover_icon_name", "NULL")
+                    val coverShapeTypeExpr = columnExpr(columns, "cover_shape_type", "NULL")
+                    val coverShapeDetail1Expr = columnExpr(columns, "cover_shape_detail_1", "NULL")
+                    val coverShapeDetail2Expr = columnExpr(columns, "cover_shape_detail_2", "NULL")
+                    val coverShapeDetail3Expr = columnExpr(columns, "cover_shape_detail_3", "NULL")
+                    val coverShapeDetail4Expr = columnExpr(columns, "cover_shape_detail_4", "NULL")
+                    val sourceExpr = columnExpr(columns, "source", "'LOCAL'")
+
+                    db.execSQL(
+                        """
+                            INSERT OR REPLACE INTO playlists_new (
+                                id,
+                                name,
+                                created_at,
+                                last_modified,
+                                is_ai_generated,
+                                is_queue_generated,
+                                cover_image_uri,
+                                cover_color_argb,
+                                cover_icon_name,
+                                cover_shape_type,
+                                cover_shape_detail_1,
+                                cover_shape_detail_2,
+                                cover_shape_detail_3,
+                                cover_shape_detail_4,
+                                source
+                            )
+                            SELECT
+                                id,
+                                name,
+                                $createdAtExpr,
+                                $lastModifiedExpr,
+                                $isAiGeneratedExpr,
+                                $isQueueGeneratedExpr,
+                                $coverImageUriExpr,
+                                $coverColorArgbExpr,
+                                $coverIconNameExpr,
+                                $coverShapeTypeExpr,
+                                $coverShapeDetail1Expr,
+                                $coverShapeDetail2Expr,
+                                $coverShapeDetail3Expr,
+                                $coverShapeDetail4Expr,
+                                $sourceExpr
+                            FROM playlists
+                            WHERE id IS NOT NULL AND name IS NOT NULL
+                        """.trimIndent()
+                    )
+                }
+                db.execSQL("DROP TABLE playlists")
+            }
+
+            db.execSQL("ALTER TABLE playlists_new RENAME TO playlists")
+        }
+
+        private fun recreatePlaylistSongsTable(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS playlist_songs_new")
+            db.execSQL(
+                """
+                    CREATE TABLE playlist_songs_new (
+                        playlist_id TEXT NOT NULL,
+                        song_id TEXT NOT NULL,
+                        sort_order INTEGER NOT NULL,
+                        PRIMARY KEY(playlist_id, song_id)
+                    )
+                """.trimIndent()
+            )
+
+            if (tableExists(db, "playlist_songs")) {
+                val columns = getTableColumns(db, "playlist_songs")
+                if ("playlist_id" in columns && "song_id" in columns) {
+                    val sortOrderExpr = columnExpr(columns, "sort_order", "0")
+                    db.execSQL(
+                        """
+                            INSERT OR REPLACE INTO playlist_songs_new (
+                                playlist_id,
+                                song_id,
+                                sort_order
+                            )
+                            SELECT
+                                playlist_id,
+                                song_id,
+                                $sortOrderExpr
+                            FROM playlist_songs
+                            WHERE playlist_id IS NOT NULL AND song_id IS NOT NULL
+                        """.trimIndent()
+                    )
+                }
+                db.execSQL("DROP TABLE playlist_songs")
+            }
+
+            db.execSQL("ALTER TABLE playlist_songs_new RENAME TO playlist_songs")
+        }
+
+        private fun tableExists(db: SupportSQLiteDatabase, tableName: String): Boolean {
+            db.query(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                arrayOf(tableName)
+            ).use { cursor ->
+                return cursor.moveToFirst()
+            }
+        }
+
+        private fun getTableColumns(db: SupportSQLiteDatabase, tableName: String): Set<String> {
+            val columns = mutableSetOf<String>()
+            db.query("PRAGMA table_info(`$tableName`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                if (nameIndex == -1) return columns
+                while (cursor.moveToNext()) {
+                    columns += cursor.getString(nameIndex)
+                }
+            }
+            return columns
+        }
+
+        private fun columnExpr(columns: Set<String>, columnName: String, fallbackExpr: String): String {
+            return if (columnName in columns) {
+                "COALESCE($columnName, $fallbackExpr)"
+            } else {
+                fallbackExpr
+            }
+        }
+
+        fun installFavoriteSyncTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TRIGGER IF EXISTS trg_favorites_insert_sync_song")
+            db.execSQL("DROP TRIGGER IF EXISTS trg_favorites_update_sync_song")
+            db.execSQL("DROP TRIGGER IF EXISTS trg_favorites_delete_sync_song")
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_favorites_insert_sync_song
+                    AFTER INSERT ON favorites
+                    BEGIN
+                        UPDATE songs SET is_favorite = NEW.isFavorite WHERE id = NEW.songId;
+                    END
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_favorites_update_sync_song
+                    AFTER UPDATE ON favorites
+                    BEGIN
+                        UPDATE songs SET is_favorite = NEW.isFavorite WHERE id = NEW.songId;
+                    END
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_favorites_delete_sync_song
+                    AFTER DELETE ON favorites
+                    BEGIN
+                        UPDATE songs SET is_favorite = 0 WHERE id = OLD.songId;
+                    END
+                """.trimIndent()
+            )
+        }
+
+        /**
+         * Add QQ Music support tables.
+         */
+        val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS qqmusic_playlists (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        cover_url TEXT,
+                        song_count INTEGER NOT NULL,
+                        last_sync_time INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS qqmusic_songs (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        song_mid TEXT NOT NULL,
+                        playlist_id INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        artist TEXT NOT NULL,
+                        album TEXT NOT NULL,
+                        album_mid TEXT,
+                        duration INTEGER NOT NULL,
+                        album_art_url TEXT,
+                        mime_type TEXT NOT NULL,
+                        bitrate INTEGER,
+                        date_added INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        /**
+         * Add Navidrome/Subsonic support tables.
+         */
+        val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS navidrome_playlists (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        comment TEXT,
+                        owner TEXT,
+                        cover_art_id TEXT,
+                        song_count INTEGER NOT NULL,
+                        duration INTEGER NOT NULL,
+                        public INTEGER NOT NULL,
+                        last_sync_time INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                recreateNavidromeSongsTable(db)
+            }
+        }
+
+        /**
+         * Reconcile older Navidrome caches that were created with playlist_id stored as INTEGER.
+         */
+        val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                recreateNavidromeSongsTable(db)
+            }
+        }
+
+        private fun recreateNavidromeSongsTable(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS navidrome_songs_new")
+            db.execSQL(
+                """
+                    CREATE TABLE navidrome_songs_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        navidrome_id TEXT NOT NULL,
+                        playlist_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        artist TEXT NOT NULL,
+                        artist_id TEXT,
+                        album TEXT NOT NULL,
+                        album_id TEXT,
+                        cover_art_id TEXT,
+                        duration INTEGER NOT NULL,
+                        track_number INTEGER NOT NULL,
+                        disc_number INTEGER NOT NULL,
+                        year INTEGER NOT NULL,
+                        genre TEXT,
+                        bitRate INTEGER,
+                        mime_type TEXT,
+                        suffix TEXT,
+                        path TEXT NOT NULL,
+                        date_added INTEGER NOT NULL
+                    )
+                """.trimIndent()
+            )
+
+            if (tableExists(db, "navidrome_songs")) {
+                val columns = getTableColumns(db, "navidrome_songs")
+                val requiredColumns = setOf(
+                    "id",
+                    "navidrome_id",
+                    "playlist_id",
+                    "title",
+                    "artist",
+                    "album",
+                    "duration",
+                    "track_number",
+                    "disc_number",
+                    "year",
+                    "path",
+                    "date_added"
+                )
+
+                if (requiredColumns.all(columns::contains)) {
+                    val artistIdExpr = columnExpr(columns, "artist_id", "NULL")
+                    val albumIdExpr = columnExpr(columns, "album_id", "NULL")
+                    val coverArtIdExpr = columnExpr(columns, "cover_art_id", "NULL")
+                    val genreExpr = columnExpr(columns, "genre", "NULL")
+                    val bitRateExpr = columnExpr(columns, "bitRate", "NULL")
+                    val mimeTypeExpr = columnExpr(columns, "mime_type", "NULL")
+                    val suffixExpr = columnExpr(columns, "suffix", "NULL")
+
+                    db.execSQL(
+                        """
+                            INSERT OR REPLACE INTO navidrome_songs_new (
+                                id,
+                                navidrome_id,
+                                playlist_id,
+                                title,
+                                artist,
+                                artist_id,
+                                album,
+                                album_id,
+                                cover_art_id,
+                                duration,
+                                track_number,
+                                disc_number,
+                                year,
+                                genre,
+                                bitRate,
+                                mime_type,
+                                suffix,
+                                path,
+                                date_added
+                            )
+                            SELECT
+                                id,
+                                navidrome_id,
+                                CAST(playlist_id AS TEXT),
+                                title,
+                                artist,
+                                $artistIdExpr,
+                                album,
+                                $albumIdExpr,
+                                $coverArtIdExpr,
+                                duration,
+                                track_number,
+                                disc_number,
+                                year,
+                                $genreExpr,
+                                $bitRateExpr,
+                                $mimeTypeExpr,
+                                $suffixExpr,
+                                path,
+                                date_added
+                            FROM navidrome_songs
+                            WHERE id IS NOT NULL
+                              AND navidrome_id IS NOT NULL
+                              AND playlist_id IS NOT NULL
+                              AND title IS NOT NULL
+                              AND artist IS NOT NULL
+                              AND album IS NOT NULL
+                              AND path IS NOT NULL
+                        """.trimIndent()
+                    )
+                }
+
+                db.execSQL("DROP TABLE navidrome_songs")
+            }
+
+            db.execSQL("ALTER TABLE navidrome_songs_new RENAME TO navidrome_songs")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_navidrome_id ON navidrome_songs(navidrome_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id ON navidrome_songs(playlist_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id_date_added ON navidrome_songs(playlist_id, date_added)")
         }
     }
 }

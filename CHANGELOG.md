@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-beta] - 2026-03-05
+
+### Added
+- Added Android Auto support through Media3 `MediaLibraryService`.
+- Added Wear OS companion support, including watch transfer and playback controls.
+- Added cloud provider expansions: Telegram playlist management, NetEase sync improvements, QQ Music integration, Subsonic/Navidrome, and Google Drive streaming (WIP).
+- Added a modernized backup/restore system (v3), account management, and persistent queue restoration.
+- Added smarter lyrics workflows (manual fallback search + storage refactor), Recently Played, and new multi-selection flows (songs/albums/playlists).
+- Added home and UI customization features: collage patterns, quick settings tiles, expressive scrollbar refinements, and new widget styles.
+
+### Changed
+- Reworked player architecture and interaction model (unified player sheet refactors, predictive back handling, gesture tuning).
+- Redesigned key surfaces including Lyrics, Cast, Artist, Genre, and Daily Mix experiences.
+- Refined library/search/navigation behavior with safer navigation APIs and better state restoration.
+- Improved audio compatibility and metadata handling (JAudioTagger fallback, URI handling, surround/noisy behavior).
+- Expanded integration UX across Telegram/NetEase/QQ login and sync flows.
+
+### Fixed
+- Fixed multiple queue/shuffle edge cases (anchored shuffle, start-at-zero shuffle, queue synchronization).
+- Fixed playback interruption behavior when headphones disconnect and resolved foreground service start restrictions.
+- Fixed Cast-related crash cases and improved cast reliability.
+- Fixed Sleep Timer UI issues, files tab navigation, album artist crash, and state-sync regressions in settings/reorder flows.
+- Fixed release build stability (`R8`) and numerous UI polish issues across bottom sheets and controls.
+
+### Performance
+- Reduced recompositions and state overhead across Player, Library, Queue, and detail screens.
+- Improved startup behavior (eliminated blank flash and deferred heavy Telegram native loading off main thread).
+- Optimized folder/genre/artist loading, bottom navigation responsiveness, and gesture fluidity.
+- Reduced CPU/main-thread pressure and improved service/widget runtime efficiency.
+- Reduced APK size using ABI splits, downloadable fonts, and SDK cleanup.
+
+### New Contributors
+- @ThatOneCalculator
+- @ryan7zoom
+- @LarveyOfficial
+- @Dv1101
+- @Sincere-Bhattarai
+
 ## [0.5.0-beta] - 2026-01-14
 
 ### Added

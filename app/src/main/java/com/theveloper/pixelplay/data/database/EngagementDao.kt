@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -65,4 +66,10 @@ interface EngagementDao {
      */
     @Query("SELECT * FROM song_engagements WHERE last_played_timestamp > 0 ORDER BY last_played_timestamp DESC LIMIT :limit")
     suspend fun getRecentlyPlayedSongs(limit: Int): List<SongEngagementEntity>
+
+    @Transaction
+    suspend fun replaceAll(engagements: List<SongEngagementEntity>) {
+        clearAllEngagements()
+        if (engagements.isNotEmpty()) upsertEngagements(engagements)
+    }
 }

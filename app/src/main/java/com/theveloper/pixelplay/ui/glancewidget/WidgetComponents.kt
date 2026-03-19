@@ -1,7 +1,9 @@
 package com.theveloper.pixelplay.ui.glancewidget
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ import timber.log.Timber
 fun AlbumArtImage(
     modifier: GlanceModifier = GlanceModifier,
     bitmapData: ByteArray?,
+    albumArtUri: String? = null,
     size: Dp,
     context: Context,
     cornerRadius: Dp
@@ -69,6 +72,18 @@ fun AlbumArtImage(
             }
         }
         bitmap?.let { ImageProvider(it) }
+    } ?: albumArtUri?.let { rawUri ->
+        val cacheKey = "uri:$rawUri"
+        var bitmap = AlbumArtBitmapCache.getBitmap(cacheKey)
+        if (bitmap == null) {
+            bitmap = decodeAlbumArtFromUri(
+                context = context,
+                rawUri = rawUri,
+                requestedSize = size
+            )
+            bitmap?.let { AlbumArtBitmapCache.putBitmap(cacheKey, it) }
+        }
+        bitmap?.let { ImageProvider(it) }
     }
 
     Box(
@@ -101,6 +116,44 @@ fun AlbumArtImage(
                 )
             }
         }
+    }
+}
+
+private fun decodeAlbumArtFromUri(
+    context: Context,
+    rawUri: String,
+    requestedSize: Dp,
+): Bitmap? {
+    return try {
+        val uri = Uri.parse(rawUri)
+        val targetPx = (requestedSize.value * context.resources.displayMetrics.density)
+            .toInt()
+            .coerceAtLeast(64)
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, bounds)
+        } ?: return null
+
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var inSampleSize = 1
+        while (bounds.outWidth / inSampleSize > targetPx * 2 ||
+            bounds.outHeight / inSampleSize > targetPx * 2
+        ) {
+            inSampleSize *= 2
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            this.inSampleSize = inSampleSize
+            inJustDecodeBounds = false
+        }
+
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, decodeOptions)
+        }
+    } catch (_: Exception) {
+        null
     }
 }
 

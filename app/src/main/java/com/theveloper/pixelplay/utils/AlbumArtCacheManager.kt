@@ -56,6 +56,12 @@ object AlbumArtCacheManager {
      * Minimum interval between cleanups (5 minutes)
      */
     private const val MIN_CLEANUP_INTERVAL_MS = 5 * 60 * 1000L
+
+    private data class CacheEvictionCandidate(
+        val file: File,
+        val lastModifiedSnapshot: Long,
+        val absolutePathSnapshot: String
+    )
     
     /**
      * Cleans the cache if it exceeds the maximum size.
@@ -92,10 +98,13 @@ object AlbumArtCacheManager {
             
             Log.d(TAG, "Cache size ${currentSize / 1024 / 1024}MB exceeds limit, cleaning...")
             
-            // Sort by lastModified (oldest first) and delete oldest 25%
-            val filesToDelete = artFiles
-                .sortedBy { it.lastModified() }
-                .take((artFiles.size * CLEANUP_PERCENTAGE).toInt().coerceAtLeast(1))
+            // Snapshot lastModified before sorting. The timestamp is mutated elsewhere to
+            // implement LRU reads, so re-reading it during TimSort can violate comparator
+            // transitivity and crash with "Comparison method violates its general contract!".
+            val filesToDelete = snapshotFilesForCleanup(
+                artFiles = artFiles,
+                cleanupPercentage = CLEANUP_PERCENTAGE
+            )
             
             var deletedCount = 0
             var freedBytes = 0L
@@ -218,6 +227,31 @@ object AlbumArtCacheManager {
             file.name.startsWith(CACHE_PREFIX) &&
             !file.name.contains(NO_ART_SUFFIX)
         }?.toList() ?: emptyList()
+    }
+
+    internal fun snapshotFilesForCleanup(
+        artFiles: List<File>,
+        cleanupPercentage: Double
+    ): List<File> {
+        if (artFiles.isEmpty()) return emptyList()
+
+        val deleteCount = (artFiles.size * cleanupPercentage).toInt().coerceAtLeast(1)
+
+        return artFiles.asSequence()
+            .map { file ->
+                CacheEvictionCandidate(
+                    file = file,
+                    lastModifiedSnapshot = file.lastModified(),
+                    absolutePathSnapshot = file.absolutePath
+                )
+            }
+            .sortedWith(
+                compareBy<CacheEvictionCandidate> { it.lastModifiedSnapshot }
+                    .thenBy { it.absolutePathSnapshot }
+            )
+            .take(deleteCount)
+            .map(CacheEvictionCandidate::file)
+            .toList()
     }
     
     /**

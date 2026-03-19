@@ -44,7 +44,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,8 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
-import com.linc.audiowaveform.AudioWaveform
-import com.linc.audiowaveform.model.WaveformAlignment
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.SmartImage
@@ -213,15 +210,12 @@ private fun DeckUi(
                         Text(deckState.song?.title ?: "No song loaded", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(deckState.song?.artist ?: "...", style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(8.dp))
-                        AudioWaveform(
-                            amplitudes = deckState.stemWaveforms["main"] ?: emptyList(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(40.dp),
-                            progress = deckState.progress,
-                            onProgressChange = { onSeek(it) },
-                            waveformAlignment = WaveformAlignment.Center,
-                            progressBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                        Slider(
+                            value = deckState.progress,
+                            onValueChange = onSeek,
+                            valueRange = 0f..1f,
+                            enabled = deckState.song != null,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

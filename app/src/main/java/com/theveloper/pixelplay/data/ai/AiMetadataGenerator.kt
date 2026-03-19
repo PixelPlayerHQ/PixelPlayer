@@ -2,7 +2,7 @@ package com.theveloper.pixelplay.data.ai
 
 import com.theveloper.pixelplay.data.model.Song
 import kotlinx.serialization.SerializationException
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import kotlinx.coroutines.flow.first
@@ -20,7 +20,7 @@ data class SongMetadata(
 )
 
 class AiMetadataGenerator @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val aiPreferencesRepository: AiPreferencesRepository,
     private val aiClientFactory: AiClientFactory,
     private val json: Json
 ) {
@@ -38,13 +38,13 @@ class AiMetadataGenerator @Inject constructor(
     ): Result<SongMetadata> {
         return try {
             // Get AI provider and create client
-            val providerName = userPreferencesRepository.aiProvider.first()
+            val providerName = aiPreferencesRepository.aiProvider.first()
             val provider = AiProvider.fromString(providerName)
             
             // Get API key based on provider
             val apiKey = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiApiKey.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekApiKey.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiApiKey.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekApiKey.first()
             }
             
             if (apiKey.isBlank()) {
@@ -56,14 +56,14 @@ class AiMetadataGenerator @Inject constructor(
             
             // Get model based on provider
             val selectedModel = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiModel.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekModel.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiModel.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekModel.first()
             }
             val modelName = selectedModel.ifBlank { aiClient.getDefaultModel() }
 
             val customSystemPrompt = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiSystemPrompt.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekSystemPrompt.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiSystemPrompt.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekSystemPrompt.first()
             }
 
             val fieldsJson = fieldsToComplete.joinToString(separator = ", ") { "\"$it\"" }

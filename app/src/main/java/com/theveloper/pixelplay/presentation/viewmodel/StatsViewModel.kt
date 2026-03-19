@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ class StatsViewModel @Inject constructor(
     data class StatsUiState(
         val selectedRange: StatsTimeRange = StatsTimeRange.WEEK,
         val isLoading: Boolean = true,
+        val isRefreshing: Boolean = false,
         val summary: PlaybackStatsSummary? = null,
         val availableRanges: List<StatsTimeRange> = StatsTimeRange.entries
     )
@@ -42,15 +45,23 @@ class StatsViewModel @Inject constructor(
     private var cachedSongs: List<Song>? = null
 
     init {
-        refreshWeeklyOverview()
-        refreshRange(StatsTimeRange.WEEK)
+        observeStatsRefreshFlow()
+        refreshRange(
+            range = StatsTimeRange.WEEK,
+            showLoading = true,
+            updateWeeklyOverview = true
+        )
     }
 
     fun onRangeSelected(range: StatsTimeRange) {
         if (range == _uiState.value.selectedRange && !_uiState.value.isLoading) {
             return
         }
-        refreshRange(range)
+        refreshRange(
+            range = range,
+            showLoading = true,
+            updateWeeklyOverview = range == StatsTimeRange.WEEK
+        )
     }
 
     fun refreshWeeklyOverview() {
@@ -69,18 +80,32 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    private fun refreshRange(range: StatsTimeRange) {
+    private fun refreshRange(
+        range: StatsTimeRange,
+        showLoading: Boolean = true,
+        updateWeeklyOverview: Boolean = false
+    ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, selectedRange = range) }
+            if (showLoading) {
+                _uiState.update { it.copy(isLoading = true, isRefreshing = false, selectedRange = range) }
+            } else {
+                _uiState.update { it.copy(isRefreshing = true, selectedRange = range) }
+            }
             val summary = runCatching {
                 withContext(Dispatchers.IO) {
                     val songs = loadSongs()
                     playbackStatsRepository.loadSummary(range, songs)
                 }
             }
+            summary.getOrNull()?.let { loaded ->
+                if (updateWeeklyOverview) {
+                    _weeklyOverview.value = loaded
+                }
+            }
             _uiState.update { current ->
                 current.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     summary = summary.getOrNull(),
                     selectedRange = range
                 )
@@ -89,10 +114,31 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    private fun observeStatsRefreshFlow() {
+        viewModelScope.launch {
+            playbackStatsRepository.refreshFlow
+                .drop(1)
+                .collectLatest {
+                    val selectedRange = _uiState.value.selectedRange
+                    refreshRange(
+                        range = selectedRange,
+                        showLoading = false,
+                        updateWeeklyOverview = selectedRange == StatsTimeRange.WEEK
+                    )
+                    if (selectedRange != StatsTimeRange.WEEK) {
+                        refreshWeeklyOverview()
+                    }
+                }
+        }
+    }
+
+    fun requestStatsRefresh() {
+        playbackStatsRepository.requestRefresh()
+    }
+
     fun forceRegenerateStats() {
         cachedSongs = null
-        refreshWeeklyOverview()
-        refreshRange(_uiState.value.selectedRange)
+        playbackStatsRepository.requestRefresh()
     }
 
     private suspend fun loadSongs(): List<Song> {

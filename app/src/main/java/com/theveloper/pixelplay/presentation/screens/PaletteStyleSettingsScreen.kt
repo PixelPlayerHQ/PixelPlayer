@@ -566,6 +566,5 @@ private fun AlbumArtPaletteStyle.description(): String {
         AlbumArtPaletteStyle.VIBRANT -> "High saturation accents."
         AlbumArtPaletteStyle.EXPRESSIVE -> "Bold hue shifts and contrast."
         AlbumArtPaletteStyle.FRUIT_SALAD -> "Playful rotated accents."
-        AlbumArtPaletteStyle.MONOCHROME -> "Near-neutral interpretation."
     }
 }

@@ -2,11 +2,20 @@ package com.theveloper.pixelplay.data.database
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.theveloper.pixelplay.data.model.Song
 import kotlin.math.absoluteValue
 
-@Entity(tableName = "telegram_songs")
+@Entity(
+    tableName = "telegram_songs",
+    indices = [
+        Index(value = ["chat_id"]),
+        Index(value = ["message_id"]),
+        Index(value = ["file_id"]),
+        Index(value = ["chat_id", "message_id"])
+    ]
+)
 data class TelegramSongEntity(
     @PrimaryKey
     @ColumnInfo(name = "id") val id: String, // format: "chatId_messageId"

@@ -89,7 +89,7 @@ fun TimerOptionsBottomSheet(
         label = "boxCornerRadiusAnimation"
     )
 
-    LaunchedEffect(activeTimerValueDisplay) {
+    LaunchedEffect(activeTimerValueDisplay, playCount) {
         timerSliderPosition = when {
             activeTimerValueDisplay == null -> 0f // Off
             activeTimerValueDisplay == "End of Track" -> 0f // Slider shows 'Off' as EOT is a separate control
@@ -102,6 +102,10 @@ fun TimerOptionsBottomSheet(
             }
         }
         counterSliderPosition = playCount
+        // Restore counter mode if play count was previously set
+        if (playCount > 1f) {
+            isTimerMode = false
+        }
     }
 
     ModalBottomSheet(
@@ -283,6 +287,7 @@ fun TimerOptionsBottomSheet(
                     ) // Apply animated corner radius for clipping
                     .background(color = boxBackgroundColor)   // Apply animated background color
                     .clickable(
+                        enabled = isTimerMode || counterSliderPosition == 1f,
                         onClick = {
                             onSetEndOfTrackTimer(!isSwitchEnabled)
                         }

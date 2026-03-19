@@ -6,7 +6,7 @@ import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +27,7 @@ class AiStateHolder @Inject constructor(
     private val aiPlaylistGenerator: AiPlaylistGenerator,
     private val aiMetadataGenerator: AiMetadataGenerator,
     private val dailyMixManager: DailyMixManager,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder
 ) {
     // State
@@ -108,7 +108,7 @@ class AiStateHolder @Inject constructor(
             _aiError.value = null
 
             try {
-                val existingPlaylistNames = userPreferencesRepository.userPlaylistsFlow.first()
+                val existingPlaylistNames = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .map { it.name.trim() }
                     .filter { it.isNotEmpty() }
                     .toSet()
@@ -137,7 +137,7 @@ class AiStateHolder @Inject constructor(
                                 existingNames = existingPlaylistNames
                             )
                             val songIds = generatedSongs.map { it.id }
-                            userPreferencesRepository.createPlaylist(
+                            playlistPreferencesRepository.createPlaylist(
                                 name = resolvedPlaylistName,
                                 songIds = songIds,
                                 isAiGenerated = true

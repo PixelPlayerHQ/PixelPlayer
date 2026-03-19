@@ -15,7 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
@@ -28,18 +30,31 @@ fun ExpressiveTopBarContent(
     subtitle: String? = null,
     collapsedTitleStartPadding: Dp = 56.dp, // Default safe for standard Nav Icon
     expandedTitleStartPadding: Dp = 16.dp,
+    collapsedTitleEndPadding: Dp = 24.dp,
+    expandedTitleEndPadding: Dp = 24.dp,
     containerHeightRange: Pair<Dp, Dp> = 88.dp to 56.dp,
     collapsedTitleVerticalBias: Float = -1f,
+    titleStyle: TextStyle = MaterialTheme.typography.headlineMedium,
+    titleScaleRange: Pair<Float, Float> = 1.2f to 0.8f,
+    titleFontSizeRange: Pair<TextUnit, TextUnit>? = null,
     maxLines: Int = 2,
+    collapsedSubtitleMaxLines: Int = 1,
+    expandedSubtitleMaxLines: Int = 1,
     contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    subtitleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    fadeSubtitleOnCollapse: Boolean = true,
     supportingContent: (@Composable () -> Unit)? = null
 ) {
     val clampedFraction = collapseFraction.coerceIn(0f, 1f)
-    val titleScale = lerp(1.2f, 0.8f, clampedFraction)
+    val titleScale = lerp(titleScaleRange.first, titleScaleRange.second, clampedFraction)
     val titlePaddingStart = lerp(expandedTitleStartPadding, collapsedTitleStartPadding, clampedFraction)
+    val titlePaddingEnd = lerp(expandedTitleEndPadding, collapsedTitleEndPadding, clampedFraction)
     val titleVerticalBias = lerp(1f, collapsedTitleVerticalBias, clampedFraction)
     val animatedTitleAlignment = BiasAlignment(horizontalBias = -1f, verticalBias = titleVerticalBias)
     val titleContainerHeight = lerp(containerHeightRange.first, containerHeightRange.second, clampedFraction)
+    val subtitleAlpha = if (fadeSubtitleOnCollapse) 1f - clampedFraction else 1f
+    val subtitleMaxLines = if (clampedFraction < 0.5f) expandedSubtitleMaxLines else collapsedSubtitleMaxLines
+    val titleFontSize = titleFontSizeRange?.let { lerp(it.first, it.second, clampedFraction) } ?: titleStyle.fontSize
 
     Box(modifier = modifier.fillMaxSize()) {
         Box(
@@ -47,19 +62,19 @@ fun ExpressiveTopBarContent(
                 .align(animatedTitleAlignment)
                 .height(titleContainerHeight)
                 .fillMaxWidth()
-                .padding(start = titlePaddingStart, end = 24.dp)
+                .padding(start = titlePaddingStart, end = titlePaddingEnd)
         ) {
             Column(
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = titleStyle.copy(fontSize = titleFontSize),
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
                     maxLines = maxLines,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    lineHeight = MaterialTheme.typography.headlineMedium.fontSize * 1.1f, // Slight breathing room
+                    lineHeight = titleFontSize * 1.1f,
                     modifier = Modifier.graphicsLayer {
                         scaleX = titleScale
                         scaleY = titleScale
@@ -70,8 +85,10 @@ fun ExpressiveTopBarContent(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.alpha(1f - clampedFraction)
+                        color = subtitleColor,
+                        maxLines = subtitleMaxLines,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.alpha(subtitleAlpha)
                     )
                 }
                 if (supportingContent != null) {

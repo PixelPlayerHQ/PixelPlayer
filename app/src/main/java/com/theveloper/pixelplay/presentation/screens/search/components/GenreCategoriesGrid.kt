@@ -20,8 +20,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.ViewList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -128,8 +128,8 @@ fun GenreCategoriesGrid(
                     ),
                     shape = RoundedCornerShape(shape.value.dp)
                 ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = if (isGridView) Icons.Rounded.ViewList else Icons.Rounded.GridView,
+                androidx.compose.material3.Icon(
+                        imageVector = if (isGridView) Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
                         contentDescription = "Toggle Grid/List View"
                     )
                 }

@@ -10,7 +10,11 @@ import com.theveloper.pixelplay.data.database.EngagementDao
 import com.theveloper.pixelplay.data.database.SongEngagementEntity
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import java.io.File
 import java.util.Calendar
 import java.util.LinkedHashSet
@@ -29,6 +33,12 @@ class DailyMixManager @Inject constructor(
     private val fileLock = Any()
     private val statsType = object : TypeToken<MutableMap<String, SongEngagementStats>>() {}.type
 
+    // P2-2: Async migration scope — migration runs on IO without blocking the main thread.
+    private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Deferred result: null if no migration needed, completes when done.
+    private val migrationDeferred: Deferred<Unit>
+
     // Flag to track if we've migrated legacy data
     private var legacyMigrationComplete = false
 
@@ -39,27 +49,33 @@ class DailyMixManager @Inject constructor(
     )
 
     init {
-        // Migrate legacy JSON data to Room on first access
-        migrateLegacyDataIfNeeded()
+        // P2-2: Launch migration asynchronously — does NOT block the calling thread.
+        // Any method that needs migrated data should call migrationDeferred.await() first.
+        migrationDeferred = managerScope.async {
+            migrateLegacyDataIfNeeded()
+        }
     }
 
     /**
      * Migrates engagements from legacy JSON file to Room database.
      * This runs once on startup if the legacy file exists.
+     * P2-2: This is now a suspend fun running on an IO coroutine, so no runBlocking needed.
+     * The synchronized block only guards the file read (no suspension points inside).
      */
-    private fun migrateLegacyDataIfNeeded() {
+    private suspend fun migrateLegacyDataIfNeeded() {
         if (legacyMigrationComplete || !legacyScoresFile.exists()) {
             legacyMigrationComplete = true
             return
         }
 
-        synchronized(fileLock) {
-            if (legacyMigrationComplete) return
+        // Read legacy data within the lock (only file I/O —  no suspend calls allowed inside synchronized)
+        val entitiesToInsert: List<SongEngagementEntity>? = synchronized(fileLock) {
+            if (legacyMigrationComplete) return@synchronized null
 
             try {
                 val legacyData = readLegacyEngagementsLocked()
                 if (legacyData.isNotEmpty()) {
-                    val entities = legacyData.map { (songId, stats) ->
+                    legacyData.map { (songId, stats) ->
                         SongEngagementEntity(
                             songId = songId,
                             playCount = stats.playCount.coerceAtLeast(0),
@@ -67,28 +83,37 @@ class DailyMixManager @Inject constructor(
                             lastPlayedTimestamp = stats.lastPlayedTimestamp.coerceAtLeast(0L)
                         )
                     }
-                    // Insert into Room - blocking is acceptable during init
-                    runBlocking {
-                        engagementDao.upsertEngagements(entities)
-                    }
-                    Log.i(TAG, "Migrated ${entities.size} engagement records from JSON to Room")
-                    
-                    // Rename legacy file as backup instead of deleting
-                    val backupFile = File(context.filesDir, "song_scores.json.bak")
-                    legacyScoresFile.renameTo(backupFile)
-                }
+                } else null
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to migrate legacy engagement data", e)
+                Log.e(TAG, "Failed to read legacy engagement data", e)
+                null
             }
-
-            legacyMigrationComplete = true
         }
+
+        // Perform the suspend DB call outside the synchronized block
+        if (entitiesToInsert != null) {
+            try {
+                engagementDao.upsertEngagements(entitiesToInsert)
+                Log.i(TAG, "Migrated ${entitiesToInsert.size} engagement records from JSON to Room")
+
+                // Rename legacy file as backup instead of deleting
+                val backupFile = File(context.filesDir, "song_scores.json.bak")
+                legacyScoresFile.renameTo(backupFile)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to insert legacy engagement data into Room", e)
+            }
+        }
+
+        legacyMigrationComplete = true
     }
 
     /**
      * Reads engagements from Room database.
+     * P2-2: Awaits migration completion before querying, ensuring data consistency
+     * without blocking any thread at startup.
      */
     private suspend fun readEngagements(): Map<String, SongEngagementStats> {
+        migrationDeferred.await() // Only waits if migration is still running
         return engagementDao.getAllEngagements().associate { entity ->
             entity.songId to SongEngagementStats(
                 playCount = entity.playCount,
@@ -320,8 +345,8 @@ class DailyMixManager @Inject constructor(
 
             RankedSong(
                 song = song,
-                finalScore = finalScore,
-                discoveryScore = discoveryScore,
+                finalScore = if (finalScore.isNaN() || finalScore.isInfinite()) 0.0 else finalScore,
+                discoveryScore = if (discoveryScore.isNaN() || discoveryScore.isInfinite()) 0.0 else discoveryScore,
                 affinityScore = affinityScore,
                 recencyScore = recencyScore,
                 noveltyScore = noveltyScore,

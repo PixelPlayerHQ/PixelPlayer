@@ -112,8 +112,10 @@ class TransitionController @Inject constructor(
     }
 
     private fun scheduleTransitionFor(currentMediaItem: MediaItem) {
-        // Cancel any existing job first
+        // Cancel any existing job first and reset pauseAtEnd so a stale `true`
+        // from the previous job doesn't cause an unexpected pause.
         transitionSchedulerJob?.cancel()
+        engine.setPauseAtEndOfMediaItems(false)
 
         transitionSchedulerJob = scope.launch {
             // WAIT for any active transition to finish.

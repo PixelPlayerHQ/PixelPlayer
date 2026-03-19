@@ -713,7 +713,8 @@ fun GeminiApiKeyItem(
                 onValueChange = { localApiKey = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Enter API Key") },
-                singleLine = true
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(

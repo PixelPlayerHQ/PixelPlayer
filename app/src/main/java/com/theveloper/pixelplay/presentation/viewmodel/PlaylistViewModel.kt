@@ -6,11 +6,13 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.model.Playlist
+import com.theveloper.pixelplay.data.model.SmartPlaylistRule
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.playlist.M3uManager
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,10 +37,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class PlaylistUiState(
     val playlists: List<Playlist> = emptyList(),
+    val showTelegramCloudPlaylists: Boolean = true,
     val currentPlaylistSongs: List<Song> = emptyList(),
     val currentPlaylistDetails: Playlist? = null,
     val isLoading: Boolean = false,
@@ -68,8 +72,9 @@ sealed class PlaylistSongsOrderMode {
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val musicRepository: MusicRepository,
+    private val dailyMixManager: DailyMixManager,
     private val aiPlaylistGenerator: com.theveloper.pixelplay.data.ai.AiPlaylistGenerator,
     private val m3uManager: M3uManager,
     @ApplicationContext private val context: Context
@@ -89,6 +94,7 @@ class PlaylistViewModel @Inject constructor(
             100 // Cargar 100 canciones a la vez para el selector
         const val FOLDER_PLAYLIST_PREFIX = "folder_playlist:"
         private const val MANUAL_ORDER_MODE = "manual"
+        private const val SMART_PLAYLIST_MAX_ITEMS = 100
     }
 
     // Helper function to resolve stored playlist sort keys
@@ -102,13 +108,14 @@ class PlaylistViewModel @Inject constructor(
 
     init {
         loadPlaylistsAndInitialSortOption()
+        observeTelegramCloudPlaylistVisibility()
         loadMoreSongsForSelection(isInitialLoad = true)
         observePlaylistOrderModes()
     }
 
     private fun observePlaylistOrderModes() {
         viewModelScope.launch {
-            userPreferencesRepository.playlistSongOrderModesFlow.collect { storedModes ->
+            playlistPreferencesRepository.playlistSongOrderModesFlow.collect { storedModes ->
                 val resolvedModes = storedModes.mapValues { (_, value) ->
                     decodeOrderMode(value)
                 }
@@ -120,12 +127,12 @@ class PlaylistViewModel @Inject constructor(
     private fun loadPlaylistsAndInitialSortOption() {
         viewModelScope.launch {
             // First, get the initial sort option
-            val initialSortOptionName = userPreferencesRepository.playlistsSortOptionFlow.first()
+            val initialSortOptionName = playlistPreferencesRepository.playlistsSortOptionFlow.first()
             val initialSortOption = resolvePlaylistSortOption(initialSortOptionName)
             _uiState.update { it.copy(currentPlaylistSortOption = initialSortOption) }
 
             // Then, collect playlists and apply the sort option
-            userPreferencesRepository.userPlaylistsFlow.collect { playlists ->
+            playlistPreferencesRepository.userPlaylistsFlow.collect { playlists ->
                 val currentSortOption =
                     _uiState.value.currentPlaylistSortOption // Use the most up-to-date sort option
                 val sortedPlaylists = when (currentSortOption) {
@@ -139,12 +146,20 @@ class PlaylistViewModel @Inject constructor(
         }
         // Collect subsequent changes to sort option from preferences
         viewModelScope.launch {
-            userPreferencesRepository.playlistsSortOptionFlow.collect { optionName ->
+            playlistPreferencesRepository.playlistsSortOptionFlow.collect { optionName ->
                 val newSortOption = resolvePlaylistSortOption(optionName)
                 if (_uiState.value.currentPlaylistSortOption != newSortOption) {
                     // If the option from preferences is different, re-sort the current list
                     sortPlaylists(newSortOption)
                 }
+            }
+        }
+    }
+
+    private fun observeTelegramCloudPlaylistVisibility() {
+        viewModelScope.launch {
+            playlistPreferencesRepository.showTelegramCloudPlaylistsFlow.collect { show ->
+                _uiState.update { it.copy(showTelegramCloudPlaylists = show) }
             }
         }
     }
@@ -278,7 +293,7 @@ class PlaylistViewModel @Inject constructor(
                     }
                 } else {
                     // Obtener la playlist de las preferencias del usuario
-                        val playlist = userPreferencesRepository.userPlaylistsFlow.first()
+                        val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
                             .find { it.id == playlistId }
 
                     if (playlist != null) {
@@ -351,7 +366,8 @@ class PlaylistViewModel @Inject constructor(
         coverShapeDetail2: Float? = null,
         coverShapeDetail3: Float? = null,
         coverShapeDetail4: Float? = null,
-        source: String = "LOCAL" // Mark source
+        source: String = "LOCAL", // Mark source
+        smartRuleKey: String? = null
     ) {
         viewModelScope.launch {
             var savedCoverPath: String? = null
@@ -368,9 +384,23 @@ class PlaylistViewModel @Inject constructor(
                 )
             }
 
-            userPreferencesRepository.createPlaylist(
+            val resolvedSmartRule = SmartPlaylistRule.fromStorageKey(smartRuleKey)
+            val resolvedSongIds = if (resolvedSmartRule != null) {
+                buildSmartPlaylistSongIds(
+                    rule = resolvedSmartRule,
+                    limit = SMART_PLAYLIST_MAX_ITEMS
+                )
+            } else {
+                songIds
+            }
+            val resolvedSource = when {
+                resolvedSmartRule != null && source == "LOCAL" -> "SMART"
+                else -> source
+            }
+
+            playlistPreferencesRepository.createPlaylist(
                 name = name,
-                songIds = songIds, // Use passed songIds
+                songIds = resolvedSongIds,
                 isAiGenerated = isAiGenerated,
                 isQueueGenerated = isQueueGenerated,
                 coverImageUri = savedCoverPath,
@@ -381,10 +411,82 @@ class PlaylistViewModel @Inject constructor(
                 coverShapeDetail2 = coverShapeDetail2,
                 coverShapeDetail3 = coverShapeDetail3,
                 coverShapeDetail4 = coverShapeDetail4,
-                source = source // Set source
+                source = resolvedSource
             )
             _playlistCreationEvent.emit(true)
         }
+    }
+
+    private suspend fun buildSmartPlaylistSongIds(
+        rule: SmartPlaylistRule,
+        limit: Int
+    ): List<String> {
+        val allSongs = musicRepository.getAudioFiles().first()
+        if (allSongs.isEmpty()) return emptyList()
+
+        val engagements = dailyMixManager.getAllEngagementStats()
+        val now = System.currentTimeMillis()
+        val songById = allSongs.associateBy { it.id }
+        val favoriteIds = musicRepository.getFavoriteSongIdsOnce()
+        val safeLimit = limit.coerceAtLeast(1).coerceAtMost(allSongs.size)
+
+        val pickedSongs = when (rule) {
+            SmartPlaylistRule.TOP_PLAYED -> {
+                engagements.entries
+                    .sortedWith(
+                        compareByDescending<Map.Entry<String, DailyMixManager.SongEngagementStats>> { it.value.playCount }
+                            .thenByDescending { it.value.totalPlayDurationMs }
+                            .thenByDescending { it.value.lastPlayedTimestamp }
+                    )
+                    .mapNotNull { (songId, _) -> songById[songId] }
+                    .take(safeLimit)
+            }
+
+            SmartPlaylistRule.RECENTLY_PLAYED -> {
+                engagements.entries
+                    .filter { it.value.lastPlayedTimestamp > 0L }
+                    .sortedByDescending { it.value.lastPlayedTimestamp }
+                    .mapNotNull { (songId, _) -> songById[songId] }
+                    .take(safeLimit)
+            }
+
+            SmartPlaylistRule.FORGOTTEN_FAVORITES -> {
+                val staleThreshold = now - TimeUnit.DAYS.toMillis(30)
+                allSongs
+                    .asSequence()
+                    .filter { favoriteIds.contains(it.id) }
+                    .sortedWith(
+                        compareBy<Song> { engagements[it.id]?.lastPlayedTimestamp ?: 0L }
+                            .thenBy { it.title.lowercase() }
+                    )
+                    .filter { song ->
+                        (engagements[song.id]?.lastPlayedTimestamp ?: 0L) < staleThreshold
+                    }
+                    .take(safeLimit)
+                    .toList()
+            }
+
+            SmartPlaylistRule.NEW_GEMS -> {
+                allSongs
+                    .asSequence()
+                    .sortedWith(
+                        compareByDescending<Song> { it.dateAdded }
+                            .thenBy { engagements[it.id]?.playCount ?: 0 }
+                    )
+                    .filter { song -> (engagements[song.id]?.playCount ?: 0) <= 2 }
+                    .take(safeLimit)
+                    .toList()
+            }
+        }
+
+        if (pickedSongs.isNotEmpty()) {
+            return pickedSongs.map { it.id }.distinct()
+        }
+
+        return allSongs
+            .sortedByDescending { it.dateAdded }
+            .take(safeLimit)
+            .map { it.id }
     }
 
 
@@ -479,7 +581,7 @@ class PlaylistViewModel @Inject constructor(
     fun deletePlaylist(playlistId: String) {
         if (isFolderPlaylistId(playlistId)) return
         viewModelScope.launch {
-            userPreferencesRepository.deletePlaylist(playlistId)
+            playlistPreferencesRepository.deletePlaylist(playlistId)
         }
     }
 
@@ -488,7 +590,7 @@ class PlaylistViewModel @Inject constructor(
             try {
                 val (name, songIds) = m3uManager.parseM3u(uri)
                 if (songIds.isNotEmpty()) {
-                    userPreferencesRepository.createPlaylist(name, songIds)
+                    playlistPreferencesRepository.createPlaylist(name, songIds)
                 }
             } catch (e: Exception) {
                 Log.e("PlaylistViewModel", "Error importing M3U", e)
@@ -515,7 +617,7 @@ class PlaylistViewModel @Inject constructor(
     fun renamePlaylist(playlistId: String, newName: String) {
         if (isFolderPlaylistId(playlistId)) return
         viewModelScope.launch {
-            userPreferencesRepository.renamePlaylist(playlistId, newName)
+            playlistPreferencesRepository.renamePlaylist(playlistId, newName)
             if (_uiState.value.currentPlaylistDetails?.id == playlistId) {
                 _uiState.update {
                     it.copy(
@@ -614,14 +716,14 @@ class PlaylistViewModel @Inject constructor(
                 it.copy(currentPlaylistDetails = updatedPlaylist)
             }
 
-            userPreferencesRepository.updatePlaylist(updatedPlaylist)
+            playlistPreferencesRepository.updatePlaylist(updatedPlaylist)
         }
     }
 
     fun addSongsToPlaylist(playlistId: String, songIdsToAdd: List<String>) {
         if (isFolderPlaylistId(playlistId)) return
         viewModelScope.launch {
-            userPreferencesRepository.addSongsToPlaylist(playlistId, songIdsToAdd)
+            playlistPreferencesRepository.addSongsToPlaylist(playlistId, songIdsToAdd)
             if (_uiState.value.currentPlaylistDetails?.id == playlistId) {
                 loadPlaylistDetails(playlistId)
             }
@@ -638,7 +740,7 @@ class PlaylistViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val removedFromPlaylists =
-                userPreferencesRepository.addOrRemoveSongFromPlaylists(songId, playlistIds)
+                playlistPreferencesRepository.addOrRemoveSongFromPlaylists(songId, playlistIds)
             if (currentPlaylistId != null && removedFromPlaylists.contains (currentPlaylistId)) {
                 removeSongFromPlaylist(currentPlaylistId, songId)
             }
@@ -648,7 +750,7 @@ class PlaylistViewModel @Inject constructor(
     fun addSongsToPlaylists(songIds: List<String>, playlistIds: List<String>) {
         viewModelScope.launch {
             playlistIds.forEach { playlistId ->
-                userPreferencesRepository.addSongsToPlaylist(playlistId, songIds)
+                playlistPreferencesRepository.addSongsToPlaylist(playlistId, songIds)
             }
         }
     }
@@ -656,7 +758,7 @@ class PlaylistViewModel @Inject constructor(
     fun removeSongFromPlaylist(playlistId: String, songIdToRemove: String) {
         if (isFolderPlaylistId(playlistId)) return
         viewModelScope.launch {
-            userPreferencesRepository.removeSongFromPlaylist(playlistId, songIdToRemove)
+            playlistPreferencesRepository.removeSongFromPlaylist(playlistId, songIdToRemove)
             if (_uiState.value.currentPlaylistDetails?.id == playlistId) {
                 _uiState.update {
                     it.copy(currentPlaylistSongs = it.currentPlaylistSongs.filterNot { s -> s.id == songIdToRemove })
@@ -673,8 +775,8 @@ class PlaylistViewModel @Inject constructor(
                 val item = currentSongs.removeAt(fromIndex)
                 currentSongs.add(toIndex, item)
                 val newSongOrderIds = currentSongs.map { it.id }
-                userPreferencesRepository.reorderSongsInPlaylist(playlistId, newSongOrderIds)
-                userPreferencesRepository.setPlaylistSongOrderMode(
+                playlistPreferencesRepository.reorderSongsInPlaylist(playlistId, newSongOrderIds)
+                playlistPreferencesRepository.setPlaylistSongOrderMode(
                     playlistId,
                     MANUAL_ORDER_MODE
                 )
@@ -705,7 +807,16 @@ class PlaylistViewModel @Inject constructor(
         _uiState.update { it.copy(playlists = sortedPlaylists) }
 
         viewModelScope.launch {
-            userPreferencesRepository.setPlaylistsSortOption(sortOption.storageKey)
+            playlistPreferencesRepository.setPlaylistsSortOption(sortOption.storageKey)
+        }
+    }
+
+    fun setShowTelegramCloudPlaylists(show: Boolean) {
+        if (_uiState.value.showTelegramCloudPlaylists == show) return
+
+        _uiState.update { it.copy(showTelegramCloudPlaylists = show) }
+        viewModelScope.launch {
+            playlistPreferencesRepository.setShowTelegramCloudPlaylists(show)
         }
     }
 
@@ -717,7 +828,7 @@ class PlaylistViewModel @Inject constructor(
             if (playlistId != null) {
                 viewModelScope.launch {
                     // Set order mode to Manual (which preserves original order)
-                    userPreferencesRepository.setPlaylistSongOrderMode(
+                    playlistPreferencesRepository.setPlaylistSongOrderMode(
                         playlistId,
                         MANUAL_ORDER_MODE
                     )
@@ -755,7 +866,7 @@ class PlaylistViewModel @Inject constructor(
 
         if (playlistId != null) {
             viewModelScope.launch {
-                userPreferencesRepository.setPlaylistSongOrderMode(
+                playlistPreferencesRepository.setPlaylistSongOrderMode(
                     playlistId,
                     sortOption.storageKey
                 )
@@ -831,7 +942,7 @@ class PlaylistViewModel @Inject constructor(
                     // Create Playlist
                     val playlistName = "AI: $prompt".take(50) 
                     
-                    userPreferencesRepository.createPlaylist(
+                    playlistPreferencesRepository.createPlaylist(
                         name = playlistName,
                         songIds = selectedSongs.map { it.id },
                         isAiGenerated = true,
@@ -866,7 +977,7 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             playlistIds.forEach { playlistId ->
                 if (!isFolderPlaylistId(playlistId)) {
-                    userPreferencesRepository.deletePlaylist(playlistId)
+                    playlistPreferencesRepository.deletePlaylist(playlistId)
                 }
             }
         }
@@ -890,7 +1001,7 @@ class PlaylistViewModel @Inject constructor(
 
                 if (mergedSongIds.isNotEmpty()) {
                     // Create new playlist with merged songs
-                    userPreferencesRepository.createPlaylist(newPlaylistName, mergedSongIds)
+                    playlistPreferencesRepository.createPlaylist(newPlaylistName, mergedSongIds)
                     _playlistCreationEvent.emit(true)
                 }
             } catch (e: Exception) {
@@ -1027,7 +1138,7 @@ class PlaylistViewModel @Inject constructor(
                     isQueueGenerated = false
                 )
 
-                userPreferencesRepository.createPlaylist(
+                playlistPreferencesRepository.createPlaylist(
                     name = newPlaylistName,
                     songIds = allSongs.toList(),
                     isAiGenerated = false,

@@ -40,10 +40,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
@@ -60,6 +63,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  * @param isCurrentSong Whether this is the current song in the queue (may be paused)
  * @param isLoading Whether to show loading shimmer state
  * @param showAlbumArt Whether to show the album art
+ * @param albumArtSize Size of the album art thumbnail when shown
  * @param customShape Optional custom shape for the surface
  * @param isSelected Whether this item is selected in multi-selection mode
  * @param isSelectionMode Whether multi-selection mode is active
@@ -76,14 +80,19 @@ fun EnhancedSongListItem(
     isCurrentSong: Boolean = false,
     isLoading: Boolean = false,
     showAlbumArt: Boolean = true,
+    albumArtSize: Dp = 50.dp,
     customShape: androidx.compose.ui.graphics.Shape? = null,
+    containerColorOverride: Color? = null,
     isSelected: Boolean = false,
     selectionIndex: Int? = null,
     isSelectionMode: Boolean = false,
+    showMoreOptionsButton: Boolean = true,
     onLongPress: () -> Unit = {},
     onMoreOptionsClick: (Song) -> Unit,
     onClick: () -> Unit
 ) {
+    val albumArtTargetSizePx = with(LocalDensity.current) { albumArtSize.roundToPx() * 3 }
+
     // Animate corner radius based on current song state
     val animatedCornerRadius by animateDpAsState(
         targetValue = if (isCurrentSong && !isLoading) 50.dp else 22.dp,
@@ -92,7 +101,7 @@ fun EnhancedSongListItem(
     )
 
     val animatedAlbumCornerRadius by animateDpAsState(
-        targetValue = if (isCurrentSong && !isLoading) 50.dp else 12.dp,
+        targetValue = if (isCurrentSong && !isLoading) 50.dp else 10.dp,
         animationSpec = tween(durationMillis = 400),
         label = "albumCornerRadiusAnimation"
     )
@@ -119,31 +128,11 @@ fun EnhancedSongListItem(
             customShape
         } else {
             RoundedCornerShape(animatedCornerRadius)
-//            AbsoluteSmoothCornerShape(
-//                cornerRadiusTL = animatedCornerRadius,
-//                smoothnessAsPercentTR = 60,
-//                cornerRadiusTR = animatedCornerRadius,
-//                smoothnessAsPercentBR = 60,
-//                cornerRadiusBL = animatedCornerRadius,
-//                smoothnessAsPercentBL = 60,
-//                cornerRadiusBR = animatedCornerRadius,
-//                smoothnessAsPercentTL = 60
-//            )
         }
     }
 
     val albumShape = remember(animatedAlbumCornerRadius) {
         RoundedCornerShape(animatedAlbumCornerRadius)
-//        AbsoluteSmoothCornerShape(
-//            cornerRadiusTL = animatedAlbumCornerRadius,
-//            smoothnessAsPercentTR = 60,
-//            cornerRadiusTR = animatedAlbumCornerRadius,
-//            smoothnessAsPercentBR = 60,
-//            cornerRadiusBL = animatedAlbumCornerRadius,
-//            smoothnessAsPercentBL = 60,
-//            cornerRadiusBR = animatedAlbumCornerRadius,
-//            smoothnessAsPercentTL = 60
-//        )
     }
 
     val colors = MaterialTheme.colorScheme
@@ -153,7 +142,7 @@ fun EnhancedSongListItem(
         targetValue = when {
             isSelected -> colors.secondaryContainer
             isCurrentSong && !isLoading -> colors.primaryContainer
-            else -> colors.surfaceContainerLow
+            else -> containerColorOverride ?: colors.surfaceContainerLow
         },
         animationSpec = tween(durationMillis = 300),
         label = "containerColorAnimation"
@@ -186,7 +175,7 @@ fun EnhancedSongListItem(
                 .fillMaxWidth()
                 .clip(surfaceShape),
             shape = surfaceShape,
-            color = colors.surfaceContainerLow,
+            color = containerColorOverride ?: colors.surfaceContainerLow,
         ) {
             Row(
                 modifier = Modifier
@@ -197,7 +186,7 @@ fun EnhancedSongListItem(
                 if(showAlbumArt) {
                     ShimmerBox(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(albumArtSize)
                             .clip(CircleShape)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -294,14 +283,14 @@ fun EnhancedSongListItem(
                 if (showAlbumArt) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(albumArtSize)
                             .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                     ) {
                         SmartImage(
                             model = song.albumArtUriString,
                             contentDescription = song.title,
                             shape = albumShape,
-                            targetSize = Size(168, 168),
+                            targetSize = Size(albumArtTargetSizePx, albumArtTargetSizePx),
                             modifier = Modifier.fillMaxSize()
                         )
                         
@@ -318,7 +307,7 @@ fun EnhancedSongListItem(
                             ) {
                                 if (selectionIndex != null && selectionIndex >= 0) {
                                     Text(
-                                        text = "${selectionIndex + 1}",
+                                        text = "$selectionIndex",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.onPrimary
@@ -371,7 +360,10 @@ fun EnhancedSongListItem(
                     )
                 }
                 
-                if (isCurrentSong && !isSelectionMode) {
+                val showPlayingIndicator = isCurrentSong && !isSelectionMode
+                val showTrailingAction = showMoreOptionsButton && !isSelectionMode
+
+                if (showPlayingIndicator) {
                      PlayingEqIcon(
                          modifier = Modifier
                              .padding(start = 8.dp)
@@ -380,11 +372,12 @@ fun EnhancedSongListItem(
                          isPlaying = isPlaying
                      )
                 }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                // Hide more options button in selection mode
-                if (!isSelectionMode) {
+
+                if (showPlayingIndicator || showTrailingAction) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                if (showTrailingAction) {
                     FilledIconButton(
                         onClick = { onMoreOptionsClick(song) },
                         colors = IconButtonDefaults.filledIconButtonColors(

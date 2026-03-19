@@ -50,8 +50,8 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 @Composable
 fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val issuesUrl = "https://github.com/theovilardo/PixelPlay/issues"
-    val reportUrl = "https://github.com/theovilardo/PixelPlay/issues/new/choose"
+    val issuesUrl = "https://github.com/theovilardo/PixelPlayer/issues"
+    val reportUrl = "https://github.com/theovilardo/PixelPlayer/issues/new/choose"
 
     val fabCornerRadius = 18.dp
 
@@ -139,12 +139,12 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "Welcome to the first 0.6.0 beta!",
+                                text = "Welcome to PixelPlayer 0.6.0-beta",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "This huge update brings a complete UI overhaul, 10-band Equalizer, and AI powers.",
+                                text = "This beta is now focused on stability, performance, and cross-device playback while shipping major new integrations.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -189,22 +189,22 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             )
                         }
                         Text(
-                            text = "Material 3 Expressive UI refresh across Settings, Player, and Bottom Sheets.",
+                            text = "Faster daily use: smoother startup, navigation, and player interactions across the app.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "New 10-band Equalizer with effects, plus AI integration for smarter playlists.",
+                            text = "Broader device support: Android Auto, Wear OS upgrades, and stronger Cast reliability.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Rebuilt Library Sync for reliability and linear progress reporting.",
+                            text = "Expanded cloud ecosystem: Telegram playlists, NetEase sync, QQ Music, and Google Drive streaming updates.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Major fixes for Casting, Queue stability, and lyrics synchronization.",
+                            text = "Large reliability pass: queue/shuffle logic, background playback behavior, and many UI fixes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -248,7 +248,7 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             )
                         }
                         Text(
-                            text = "Share steps to reproduce, what you expected, what happened, and your device/OS. A quick clip or screenshot helps a ton.",
+                            text = "Share steps to reproduce, expected result, actual result, and your device/OS details. A short screen recording is very helpful.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

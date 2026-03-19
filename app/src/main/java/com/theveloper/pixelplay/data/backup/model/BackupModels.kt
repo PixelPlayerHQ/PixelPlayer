@@ -27,7 +27,8 @@ data class PlaybackHistoryBackupEntry(
 
 data class ArtistImageBackupEntry(
     val artistName: String,
-    val imageUrl: String
+    val imageUrl: String,
+    val customImageBase64: String? = null
 )
 
 data class BackupHistoryEntry(

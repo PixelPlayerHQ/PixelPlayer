@@ -22,7 +22,9 @@ import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -93,6 +95,7 @@ import com.theveloper.pixelplay.data.github.GitHubAnnouncementPropertiesService
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
+import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.MusicService
 import com.theveloper.pixelplay.data.worker.SyncManager
@@ -155,9 +158,12 @@ class MainActivity : ComponentActivity() {
 
     private val playerViewModel: PlayerViewModel by viewModels()
     private val mainViewModel: MainViewModel by viewModels()
+    private var isUIVisiblyReady = false
     private var mediaControllerFuture: ListenableFuture<MediaController>? = null
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository // Inject here
+    @Inject
+    lateinit var themePreferencesRepository: ThemePreferencesRepository
     // For handling shortcut navigation - using StateFlow so composables can observe changes
     private val _pendingPlaylistNavigation = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val _pendingShuffleAll = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -185,23 +191,22 @@ class MainActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
 
-        // Keep splash screen visible until DataStore has emitted the initial setup state,
-        // preventing the blank-screen flash between splash and first frame.
-        splashScreen.setKeepOnScreenCondition { mainViewModel.isSetupComplete.value == null }
+        // MD3 Optimization: Release Splash Screen immediately to render UI skeleton.
+        // Data loading is handled via optimistic UI and smooth transitions.
+        splashScreen.setKeepOnScreenCondition { false }
 
         // LEER SEÑAL DE BENCHMARK
         val isBenchmarkMode = intent.getBooleanExtra("is_benchmark", false)
 
         setContent {
             val systemDarkTheme = isSystemInDarkTheme()
-            val appThemeMode by userPreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
+            val appThemeMode by themePreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
                 AppThemeMode.LIGHT -> false
                 else -> systemDarkTheme
             }
             val isSetupComplete by mainViewModel.isSetupComplete.collectAsStateWithLifecycle()
-            var showSetupScreen by remember { mutableStateOf<Boolean?>(null) }
             
             // Crash report dialog state
             var showCrashReportDialog by remember { mutableStateOf(false) }
@@ -220,15 +225,12 @@ class MainActivity : ComponentActivity() {
 
             // Determine if we need to show Setup based on completion OR missing permissions
             val permissionsValid = permissionState.allPermissionsGranted && !needsAllFilesAccess
-
-            LaunchedEffect(isSetupComplete, permissionsValid, isBenchmarkMode) {
-                if (isBenchmarkMode) {
-                    showSetupScreen = false
-                    return@LaunchedEffect
+            val showSetupScreen = remember(isSetupComplete, permissionsValid, isBenchmarkMode) {
+                when {
+                    isBenchmarkMode -> false
+                    isSetupComplete == null -> null
+                    else -> !isSetupComplete!! || !permissionsValid
                 }
-
-                val setupComplete = isSetupComplete ?: return@LaunchedEffect
-                showSetupScreen = !setupComplete || !permissionsValid
             }
 
             // Sync Trigger: When we are NOT showing setup (meaning permissions are good and setup is done)
@@ -250,36 +252,50 @@ class MainActivity : ComponentActivity() {
             PixelPlayTheme(
                 darkTheme = useDarkTheme
             ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    if (showSetupScreen != null) {
+                var contentVisible by remember { mutableStateOf(false) }
+                val contentAlpha by animateFloatAsState(
+                    targetValue = if (contentVisible) 1f else 0f,
+                    animationSpec = tween(600, easing = LinearOutSlowInEasing),
+                    label = "AppContentAlpha"
+                )
+
+                LaunchedEffect(Unit) {
+                    // Delay slightly to ensure first frame layout is done behind Splash
+                    delay(100)
+                    contentVisible = true
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }, 
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    if (showSetupScreen == null) {
+                        SetupGateLoadingScreen()
+                    } else {
                         AnimatedContent(
                             targetState = showSetupScreen,
                             transitionSpec = {
-                                if (targetState == false) {
-                                    // Transition from Setup to Main App
-                                    scaleIn(initialScale = 0.8f, animationSpec = tween(400)) + fadeIn(animationSpec = tween(400)) togetherWith
-                                            slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) + fadeOut(animationSpec = tween(400))
-                                } else {
-                                    // Placeholder for other transitions, e.g., Main App to Setup
+                                if (targetState) {
+                                    // Transition to Setup
                                     fadeIn(animationSpec = tween(400)) togetherWith fadeOut(animationSpec = tween(400))
+                                } else {
+                                    // Transition from Setup to Main App
+                                    scaleIn(initialScale = 0.95f, animationSpec = tween(450)) + fadeIn(animationSpec = tween(450)) togetherWith
+                                            slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(450)) + fadeOut(animationSpec = tween(450))
                                 }
                             },
                             label = "SetupTransition"
-                        ) { targetState ->
-                            if (targetState == true) {
+                        ) { shouldShowSetup ->
+                            if (shouldShowSetup) {
                                 SetupScreen(onSetupComplete = {
-                                    // Re-check permissions on completion.
-                                    // If permissions are still missing despite setup "completing" (e.g. user skipped or ignored?), 
-                                    // the LaunchedEffect(permissionsValid) above handles state, 
-                                    // but we explicitly update local state here too.
-                                    showSetupScreen = false
+                                    // Repository-backed setup completion updates the gate automatically.
                                 })
                             } else {
                                 MainAppContent(playerViewModel, mainViewModel)
                             }
                         }
                     }
-                    
+
                     // Show crash report dialog if needed
                     if (showCrashReportDialog && crashLogData != null) {
                         CrashReportDialog(
@@ -427,6 +443,29 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Composable
+    private fun SetupGateLoadingScreen() {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularWavyProgressIndicator()
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = "Preparing setup…",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+
     @androidx.annotation.OptIn(UnstableApi::class)
     @Composable
     private fun MainAppContent(playerViewModel: PlayerViewModel, mainViewModel: MainViewModel) {
@@ -554,7 +593,8 @@ class MainActivity : ComponentActivity() {
                 Screen.DelimiterConfig.route,
                 Screen.PaletteStyle.route,
                 Screen.RecentlyPlayed.route,
-                Screen.DeviceCapabilities.route
+                Screen.DeviceCapabilities.route,
+                Screen.EasterEgg.route
             )
         }
         val shouldHideNavigationBar by remember(currentRoute, isSearchBarActive) {
@@ -576,6 +616,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val navBarStyle by playerViewModel.navBarStyle.collectAsStateWithLifecycle()
+        val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
         val hapticsEnabled by playerViewModel.hapticsEnabled.collectAsStateWithLifecycle()
         val rootView = LocalView.current
         val platformHapticFeedback = LocalHapticFeedback.current
@@ -661,7 +702,6 @@ class MainActivity : ComponentActivity() {
                                 .distinctUntilChanged()
                         }.collectAsStateWithLifecycle(initialValue = null)
                         val showPlayerContentArea = currentSongId != null
-                        val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
                         val navBarElevation = 3.dp
 
                         val playerContentActualBottomRadiusTargetValue by remember(
@@ -698,8 +738,14 @@ class MainActivity : ComponentActivity() {
                         val navBarHideFraction = if (showPlayerContentArea) playerContentExpansionFraction else 0f
                         val navBarHideFractionClamped = navBarHideFraction.coerceIn(0f, 1f)
 
-                        val actualShape = remember(playerContentActualBottomRadius, showPlayerContentArea, navBarStyle, navBarCornerRadius) {
-                            val bottomRadius = if (navBarStyle == NavBarStyle.FULL_WIDTH) 0.dp else navBarCornerRadius.dp
+                        val animatedNavBarCornerRadius by animateDpAsState(
+                            targetValue = navBarCornerRadius.dp,
+                            animationSpec = tween(400),
+                            label = "NavBarCornerRadius"
+                        )
+
+                        val actualShape = remember(playerContentActualBottomRadius, showPlayerContentArea, navBarStyle, animatedNavBarCornerRadius) {
+                            val bottomRadius = if (navBarStyle == NavBarStyle.FULL_WIDTH) 0.dp else animatedNavBarCornerRadius
                             AbsoluteSmoothCornerShape(
                                 cornerRadiusTL = playerContentActualBottomRadius,
                                 smoothnessAsPercentBR = 60,
@@ -712,7 +758,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        val bottomBarPadding = if (navBarStyle == NavBarStyle.FULL_WIDTH) 0.dp else systemNavBarInset
+                        val animatedBottomBarPadding by animateDpAsState(
+                            targetValue = if (navBarStyle == NavBarStyle.FULL_WIDTH) 0.dp else systemNavBarInset,
+                            animationSpec = tween(400),
+                            label = "BottomBarPadding"
+                        )
+                        val bottomBarPadding = animatedBottomBarPadding
 
                         var componentHeightPx by remember { mutableStateOf(0) }
                         val density = LocalDensity.current

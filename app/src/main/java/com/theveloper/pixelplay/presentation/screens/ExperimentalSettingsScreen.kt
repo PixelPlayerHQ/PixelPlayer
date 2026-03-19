@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Rectangle
 import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material.icons.rounded.ViewCarousel
+import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -235,6 +236,95 @@ fun ExperimentalSettingsScreen(
                                     )
                                 }
                             )
+
+                            AnimatedVisibility(
+                                visible = uiState.useAnimatedLyrics,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    SwitchSettingItem(
+                                        title = "Lyric Blur Effect",
+                                        subtitle = "Applies a depth-of-field blur to inactive lyrics.",
+                                        checked = uiState.animatedLyricsBlurEnabled,
+                                        onCheckedChange = settingsViewModel::setAnimatedLyricsBlurEnabled,
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.BlurOn,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.secondary
+                                            )
+                                        }
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = uiState.animatedLyricsBlurEnabled,
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut() + shrinkVertically()
+                                    ) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surfaceContainer,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.LinearScale,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.secondary
+                                                    )
+
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = "Blur Strength",
+                                                                style = MaterialTheme.typography.titleMedium,
+                                                                color = MaterialTheme.colorScheme.onSurface,
+                                                                modifier = Modifier.padding(end = 8.dp)
+                                                            )
+                                                            Surface(
+                                                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                                                shape = RoundedCornerShape(16.dp),
+                                                                modifier = Modifier.height(24.dp)
+                                                            ) {
+                                                                val strengthText = String.format(java.util.Locale.US, "%.1fx", uiState.animatedLyricsBlurStrength)
+                                                                Text(
+                                                                    text = strengthText,
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = "Adjust the intensity of the blur effect.",
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Slider(
+                                                    value = uiState.animatedLyricsBlurStrength,
+                                                    onValueChange = { settingsViewModel.setAnimatedLyricsBlurStrength(it) },
+                                                    valueRange = 0.1f..2.0f,
+                                                    steps = 10
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceContainer,

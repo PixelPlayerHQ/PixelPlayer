@@ -1,8 +1,8 @@
 package com.theveloper.pixelplay.presentation.components.brickbreaker
 
+import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +29,8 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -43,7 +44,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -74,8 +75,11 @@ import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.performAppHapticFeedback
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sign
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 // --- Data Models ---
@@ -103,6 +107,11 @@ private data class Particle(
     val life: Float = 1.0f // 1.0 to 0.0
 )
 
+private const val EasterEggPrefsName = "pixelplayer_easter_egg"
+private const val EasterEggHighScoreKey = "brick_breaker_high_score"
+private const val FixedPhysicsStepSeconds = 1f / 180f
+private const val MaxPhysicsStepsPerFrame = 8
+
 // --- Composable ---
 
 @Composable
@@ -113,9 +122,13 @@ fun BrickBreakerOverlay(
     onClose: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
     val density = LocalDensity.current
     val view = androidx.compose.ui.platform.LocalView.current
     val appHapticsConfig = LocalAppHapticsConfig.current
+    val preferences = remember(context) {
+        context.getSharedPreferences(EasterEggPrefsName, Context.MODE_PRIVATE)
+    }
 
     // Game Physics Constants
     val baseBallVelocity = 800f
@@ -138,8 +151,13 @@ fun BrickBreakerOverlay(
     var ballLaunched by remember { mutableStateOf(false) }
     var lives by remember { mutableIntStateOf(3) }
     var score by remember { mutableIntStateOf(0) }
+    var highScore by remember {
+        mutableIntStateOf(preferences.getInt(EasterEggHighScoreKey, 0))
+    }
+    var hasGameStarted by remember { mutableStateOf(false) }
     var hasWon by remember { mutableStateOf(false) }
     var isGameOver by remember { mutableStateOf(false) }
+    var physicsAccumulator by remember { mutableFloatStateOf(0f) }
 
     val bricks = remember { mutableStateListOf<BrickState>() }
     val particles = remember { mutableStateListOf<Particle>() }
@@ -187,6 +205,12 @@ fun BrickBreakerOverlay(
                 )
             )
         }
+    }
+
+    fun updateHighScoreIfNeeded(value: Int = score) {
+        if (value <= highScore) return
+        highScore = value
+        preferences.edit().putInt(EasterEggHighScoreKey, value).apply()
     }
 
     fun generateLevel(lvl: Int) {
@@ -262,12 +286,14 @@ fun BrickBreakerOverlay(
         isGameOver = false
         hasWon = false
         ballLaunched = false
+        physicsAccumulator = 0f
         particles.clear()
 
         if (fullReset) {
             score = 0
             lives = 3
             level = 1
+            hasGameStarted = false
         }
 
         generateLevel(level)
@@ -279,6 +305,7 @@ fun BrickBreakerOverlay(
         level++
         ballLaunched = false
         hasWon = false
+        physicsAccumulator = 0f
         generateLevel(level)
         centerPaddle()
         attachBallToPaddle()
@@ -305,151 +332,167 @@ fun BrickBreakerOverlay(
     }
 
     // Game Loop
-    LaunchedEffect(ballLaunched, lives, hasWon, isGameOver, areaSize) {
+    LaunchedEffect(ballLaunched, hasWon, isGameOver, areaSize) {
         if (areaSize == IntSize.Zero || isGameOver || hasWon) return@LaunchedEffect
-        
-        // Loop runs even if ball not launched to update particles
+
         var lastFrameNanos = withFrameNanos { it }
 
         while (isActive) {
             val frameNanos = withFrameNanos { it }
-            val deltaTime = ((frameNanos - lastFrameNanos) / 1_000_000_000f).coerceAtMost(0.04f)
+            val deltaTime = ((frameNanos - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.05f)
             lastFrameNanos = frameNanos
 
-            // --- Update Particles ---
             val particleIterator = particles.listIterator()
             while (particleIterator.hasNext()) {
                 val p = particleIterator.next()
                 if (p.life <= 0) {
                     particleIterator.remove()
                 } else {
-                    val newLife = p.life - deltaTime * 1.5f // Fade out speed
-                    val grav = 800f // Gravity
+                    val newLife = p.life - deltaTime * 1.5f
+                    val grav = 800f
                     val newVy = p.velocity.y + grav * deltaTime
                     val newPos = p.position + Offset(p.velocity.x * deltaTime, newVy * deltaTime)
                     particleIterator.set(p.copy(position = newPos, velocity = Offset(p.velocity.x, newVy), life = newLife))
                 }
             }
 
-            if (!ballLaunched) continue
-
-            var nextPos = ballPosition + ballVelocity * deltaTime
-            var nextVelocity = ballVelocity
-
-            // --- Wall Collisions ---
-            // Left
-            if (nextPos.x - ballRadius <= 0) {
-                nextPos = nextPos.copy(x = ballRadius)
-                nextVelocity = nextVelocity.copy(x = abs(nextVelocity.x))
-            }
-            // Right
-            if (nextPos.x + ballRadius >= areaSize.width) {
-                nextPos = nextPos.copy(x = areaSize.width - ballRadius)
-                nextVelocity = nextVelocity.copy(x = -abs(nextVelocity.x))
-            }
-            // Top
-            if (nextPos.y - ballRadius <= 0) {
-                nextPos = nextPos.copy(y = ballRadius)
-                nextVelocity = nextVelocity.copy(y = abs(nextVelocity.y))
+            if (!ballLaunched) {
+                physicsAccumulator = 0f
+                continue
             }
 
-            // --- Paddle Collision ---
-            val paddleTop = areaSize.height - paddleBottomInset - paddleHeightPx
-            val paddleRect = Rect(paddleX, paddleTop, paddleX + paddleWidthPx, paddleTop + paddleHeightPx)
+            physicsAccumulator = (physicsAccumulator + deltaTime).coerceAtMost(0.2f)
 
-            if (nextVelocity.y > 0 && circleIntersectsRect(nextPos, ballRadius, paddleRect)) {
-                val hitPoint = ((nextPos.x - paddleRect.center.x) / (paddleWidthPx / 2f)).coerceIn(-1f, 1f)
-                val currentSpeed = nextVelocity.getDistance()
-                val newSpeed = (currentSpeed * 1.03f).coerceAtMost(baseBallVelocity * 3f)
-                val deflectionFactor = 0.6f
-                val newVx = newSpeed * hitPoint * deflectionFactor
-                val vyComponent = -kotlin.math.sqrt(max(0f, (newSpeed * newSpeed) - (newVx * newVx)))
+            var steps = 0
+            while (physicsAccumulator >= FixedPhysicsStepSeconds && steps < MaxPhysicsStepsPerFrame) {
+                physicsAccumulator -= FixedPhysicsStepSeconds
+                steps++
 
-                nextVelocity = Offset(newVx, vyComponent)
-                nextPos = nextPos.copy(y = paddleRect.top - ballRadius - 1f)
-                
-                // Haptic on paddle hit
-                view.performAppHapticFeedback(
-                    appHapticsConfig,
-                    android.view.HapticFeedbackConstants.KEYBOARD_TAP
-                )
-            }
+                var nextPos = ballPosition
+                var nextVelocity = ballVelocity
+                var ballLostThisStep = false
+                var levelClearedThisStep = false
+                var brickResolvedThisStep = false
 
-            // --- Brick Collisions ---
-            val bricksIterator = bricks.listIterator()
+                val stepDistance = (nextVelocity * FixedPhysicsStepSeconds).getDistance()
+                val minTravelPerSubStep = max(ballRadius * 0.45f, 1f)
+                val subSteps = max(1, ceil(stepDistance / minTravelPerSubStep).toInt()).coerceAtMost(8)
+                val subDelta = FixedPhysicsStepSeconds / subSteps
 
-            while (bricksIterator.hasNext()) {
-                val index = bricksIterator.nextIndex()
-                val brick = bricksIterator.next()
+                repeat(subSteps) {
+                    if (ballLostThisStep || levelClearedThisStep) return@repeat
 
-                if (brick.hitsRemaining <= 0 && brick.type != BrickType.Solid) continue
+                    val previousPos = nextPos
+                    var candidatePos = previousPos + nextVelocity * subDelta
 
-                if (circleIntersectsRect(nextPos, ballRadius, brick.rect)) {
-                    // Collision Logic
-                    val overlapLeft = nextPos.x - brick.rect.left
-                    val overlapRight = brick.rect.right - nextPos.x
-                    val overlapTop = nextPos.y - brick.rect.top
-                    val overlapBottom = brick.rect.bottom - nextPos.y
-
-                    val minOverlapX = min(abs(overlapLeft), abs(overlapRight))
-                    val minOverlapY = min(abs(overlapTop), abs(overlapBottom))
-
-                    if (minOverlapX < minOverlapY) {
-                        nextVelocity = nextVelocity.copy(x = -nextVelocity.x)
-                    } else {
-                        nextVelocity = nextVelocity.copy(y = -nextVelocity.y)
+                    if (candidatePos.x - ballRadius <= 0f) {
+                        candidatePos = candidatePos.copy(x = ballRadius)
+                        nextVelocity = nextVelocity.copy(x = abs(nextVelocity.x))
+                    }
+                    if (candidatePos.x + ballRadius >= areaSize.width) {
+                        candidatePos = candidatePos.copy(x = areaSize.width - ballRadius)
+                        nextVelocity = nextVelocity.copy(x = -abs(nextVelocity.x))
+                    }
+                    if (candidatePos.y - ballRadius <= 0f) {
+                        candidatePos = candidatePos.copy(y = ballRadius)
+                        nextVelocity = nextVelocity.copy(y = abs(nextVelocity.y))
                     }
 
-                    // Haptic on impact
-                    view.performAppHapticFeedback(
-                        appHapticsConfig,
-                        android.view.HapticFeedbackConstants.CLOCK_TICK
-                    )
+                    val paddleTop = areaSize.height - paddleBottomInset - paddleHeightPx
+                    val paddleRect = Rect(paddleX, paddleTop, paddleX + paddleWidthPx, paddleTop + paddleHeightPx)
 
-                    if (brick.type != BrickType.Solid) {
-                        val newHits = brick.hitsRemaining - 1
-                        
-                        // Spawn particles
-                        spawnParticles(brick.rect, brick.color)
+                    if (nextVelocity.y > 0f && circleIntersectsRect(candidatePos, ballRadius, paddleRect)) {
+                        val hitPoint =
+                            ((candidatePos.x - paddleRect.center.x) / (paddleWidthPx / 2f)).coerceIn(-1f, 1f)
+                        val currentSpeed = max(nextVelocity.getDistance(), baseBallVelocity * 0.85f)
+                        val newSpeed = (currentSpeed * 1.015f).coerceAtMost(baseBallVelocity * 3f)
+                        val newVx = newSpeed * hitPoint * 0.82f
+                        val newVyMagnitude =
+                            sqrt(max(0f, (newSpeed * newSpeed) - (newVx * newVx))).coerceAtLeast(newSpeed * 0.35f)
 
-                        if (newHits > 0) {
-                            // Update brick color for visual damage (e.g., secondary -> tertiary)
-                             val newColor = if (newHits == 1) colorScheme.tertiary else brick.color
-                            bricks[index] = brick.copy(hitsRemaining = newHits, color = newColor)
+                        nextVelocity = Offset(newVx, -newVyMagnitude)
+                        candidatePos = candidatePos.copy(y = paddleRect.top - ballRadius - 1f)
+
+                        view.performAppHapticFeedback(
+                            appHapticsConfig,
+                            android.view.HapticFeedbackConstants.KEYBOARD_TAP
+                        )
+                    }
+
+                    val hitIndex = if (brickResolvedThisStep) {
+                        null
+                    } else {
+                        bricks.indices.firstOrNull { index ->
+                            val brick = bricks[index]
+                            (brick.hitsRemaining > 0 || brick.type == BrickType.Solid) &&
+                                circleIntersectsRect(candidatePos, ballRadius, brick.rect)
+                        }
+                    }
+
+                    if (hitIndex != null) {
+                        val brick = bricks[hitIndex]
+                        brickResolvedThisStep = true
+                        val normal = collisionNormalForRect(
+                            previousCenter = previousPos,
+                            currentCenter = candidatePos,
+                            rect = brick.rect
+                        )
+                        nextVelocity = enforceMinimumVerticalSpeed(reflectVelocity(nextVelocity, normal))
+                        candidatePos = resolveCircleFromRect(candidatePos, ballRadius, brick.rect, normal)
+
+                        view.performAppHapticFeedback(
+                            appHapticsConfig,
+                            android.view.HapticFeedbackConstants.CLOCK_TICK
+                        )
+
+                        if (brick.type != BrickType.Solid) {
+                            val newHits = brick.hitsRemaining - 1
+                            spawnParticles(brick.rect, brick.color)
+
+                            if (newHits > 0) {
+                                val newColor = if (newHits == 1) colorScheme.tertiary else brick.color
+                                bricks[hitIndex] = brick.copy(hitsRemaining = newHits, color = newColor)
+                            } else {
+                                bricks[hitIndex] = brick.copy(hitsRemaining = newHits)
+                                score += if (brick.type == BrickType.Hard) 100 else 50
+                                updateHighScoreIfNeeded(score)
+                                view.performAppHapticFeedback(
+                                    appHapticsConfig,
+                                    android.view.HapticFeedbackConstants.LONG_PRESS
+                                )
+                            }
+
+                            nextVelocity = enforceMinimumVerticalSpeed(nextVelocity * 1.01f)
+                            if (bricks.none { it.type != BrickType.Solid && it.hitsRemaining > 0 }) {
+                                hasWon = true
+                                ballLaunched = false
+                                levelClearedThisStep = true
+                                updateHighScoreIfNeeded(score)
+                            }
                         } else {
-                            bricks[index] = brick.copy(hitsRemaining = newHits) // Will be skipped next frame
-                            score += if (brick.type == BrickType.Hard) 100 else 50
-                            
-                            // Stronger haptic on break
-                            view.performAppHapticFeedback(
-                                appHapticsConfig,
-                                android.view.HapticFeedbackConstants.LONG_PRESS
-                            )
+                            spawnParticles(brick.rect, Color.Gray, 3)
                         }
-                        
-                        nextVelocity = nextVelocity * 1.015f
-
-                        if (bricks.none { it.type != BrickType.Solid && it.hitsRemaining > 0 }) {
-                            hasWon = true
-                            ballLaunched = false
-                        }
-                    } else {
-                        // Solid hit particles (grey)
-                        spawnParticles(brick.rect, Color.Gray, 3)
                     }
+
+                    if (candidatePos.y - ballRadius > areaSize.height) {
+                        lives -= 1
+                        ballLaunched = false
+                        physicsAccumulator = 0f
+                        if (lives <= 0) {
+                            isGameOver = true
+                            updateHighScoreIfNeeded(score)
+                        }
+                        attachBallToPaddle()
+                        ballLostThisStep = true
+                    } else {
+                        nextPos = candidatePos
+                    }
+                }
+
+                if (ballLostThisStep || levelClearedThisStep) {
                     break
                 }
-            }
 
-            // --- Death Condition ---
-            if (nextPos.y - ballRadius > areaSize.height) {
-                lives -= 1
-                if (lives <= 0) {
-                    isGameOver = true
-                }
-                ballLaunched = false
-                attachBallToPaddle()
-            } else {
                 ballPosition = nextPos
                 ballVelocity = nextVelocity
             }
@@ -491,15 +534,32 @@ fun BrickBreakerOverlay(
                     )
                 }
 
-                IconButton(
-                    onClick = onClose,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = colorScheme.surfaceContainerHigh,
-                        contentColor = colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.size(32.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
+                    Surface(
+                        color = colorScheme.tertiaryContainer,
+                        shape = CircleShape
+                    ) {
+                        Text(
+                            text = "HIGH $highScore",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    IconButton(
+                        onClick = onClose,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = colorScheme.surfaceContainerHigh,
+                            contentColor = colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
+                    }
                 }
             }
 
@@ -554,11 +614,13 @@ fun BrickBreakerOverlay(
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = {
+                                    if (!hasGameStarted) return@detectDragGestures
                                     if (!ballLaunched && !isGameOver && !hasWon) {
                                         ballLaunched = true
                                     }
                                 },
                                 onDrag = { change, dragAmount ->
+                                    if (!hasGameStarted) return@detectDragGestures
                                     change.consume()
                                     if (areaSize != IntSize.Zero) {
                                         paddleX = (paddleX + dragAmount.x)
@@ -574,6 +636,7 @@ fun BrickBreakerOverlay(
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = {
+                                    if (!hasGameStarted) return@detectTapGestures
                                     if (!ballLaunched && !isGameOver && !hasWon) {
                                         ballLaunched = true
                                     }
@@ -617,7 +680,17 @@ fun BrickBreakerOverlay(
                 }
 
                 // ... (Overlays remain same) ...
-                 if (isGameOver || hasWon) {
+                 if (!hasGameStarted) {
+                    PreLaunchMenu(
+                        highScore = highScore,
+                        onPlayClick = {
+                            resetGame(fullReset = true)
+                            hasGameStarted = true
+                            ballLaunched = true
+                        },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else if (isGameOver || hasWon) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -658,7 +731,11 @@ fun BrickBreakerOverlay(
 
                             androidx.compose.material3.Button(
                                 onClick = {
-                                    if (hasWon) nextLevel() else resetGame(true)
+                                    if (hasWon) {
+                                        nextLevel()
+                                    } else {
+                                        resetGame(fullReset = true)
+                                    }
                                 },
                                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                                     containerColor = colorScheme.primaryContainer,
@@ -670,14 +747,23 @@ fun BrickBreakerOverlay(
                         }
                     }
                 } else if (!ballLaunched) {
-                    Text(
-                        text = "TAP TO LAUNCH",
-                        modifier = Modifier.align(Alignment.Center).padding(bottom = 100.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(bottom = 100.dp),
+                        color = colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
+                        shape = CircleShape,
+                        shadowElevation = 4.dp,
+                    ) {
+                        Text(
+                            text = "TAP TO RELAUNCH",
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp
+                        )
+                    }
                 }
             }
             
@@ -750,6 +836,74 @@ private fun GameStat(label: String, value: String, isLives: Boolean = false) {
     }
 }
 
+@Composable
+private fun PreLaunchMenu(
+    highScore: Int,
+    onPlayClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.97f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = "Brick Breaker",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+            )
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                shape = CircleShape
+            ) {
+                Text(
+                    text = "HIGH SCORE  $highScore",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Button(
+                onClick = onPlayClick,
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Play",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Text(
+                text = "Drag to move the paddle",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 private fun DrawScope.drawBrick(brick: BrickState) {
     val cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
 
@@ -769,6 +923,81 @@ private fun DrawScope.drawBrick(brick: BrickState) {
             center = brick.rect.center
         )
     }
+}
+
+private fun reflectVelocity(velocity: Offset, normal: Offset): Offset {
+    val normalizedNormal = normal.normalizedOrNull() ?: return velocity
+    val dot = velocity.x * normalizedNormal.x + velocity.y * normalizedNormal.y
+    if (dot >= 0f) return velocity
+    return velocity - normalizedNormal * (2f * dot)
+}
+
+private fun collisionNormalForRect(
+    previousCenter: Offset,
+    currentCenter: Offset,
+    rect: Rect,
+): Offset {
+    val closestX = currentCenter.x.coerceIn(rect.left, rect.right)
+    val closestY = currentCenter.y.coerceIn(rect.top, rect.bottom)
+    val dx = currentCenter.x - closestX
+    val dy = currentCenter.y - closestY
+    val outsideNormal = Offset(dx, dy).normalizedOrNull()
+    if (outsideNormal != null) return outsideNormal
+
+    val leftDistance = abs(currentCenter.x - rect.left)
+    val rightDistance = abs(rect.right - currentCenter.x)
+    val topDistance = abs(currentCenter.y - rect.top)
+    val bottomDistance = abs(rect.bottom - currentCenter.y)
+    val minDistance = min(min(leftDistance, rightDistance), min(topDistance, bottomDistance))
+
+    return when (minDistance) {
+        leftDistance -> Offset(-1f, 0f)
+        rightDistance -> Offset(1f, 0f)
+        topDistance -> Offset(0f, -1f)
+        else -> Offset(0f, 1f)
+    }.let { axisNormal ->
+        val toCurrent = currentCenter - previousCenter
+        if (toCurrent.x * axisNormal.x + toCurrent.y * axisNormal.y < 0f) axisNormal else axisNormal * -1f
+    }
+}
+
+private fun resolveCircleFromRect(
+    center: Offset,
+    radius: Float,
+    rect: Rect,
+    normal: Offset,
+): Offset {
+    val normalizedNormal = normal.normalizedOrNull() ?: return center
+    val closestX = center.x.coerceIn(rect.left, rect.right)
+    val closestY = center.y.coerceIn(rect.top, rect.bottom)
+    val fromClosest = center - Offset(closestX, closestY)
+    val distance = fromClosest.getDistance()
+
+    if (distance > 0.0001f) {
+        val pushOut = radius - distance
+        if (pushOut > 0f) return center + normalizedNormal * (pushOut + 0.5f)
+        return center
+    }
+
+    return center + normalizedNormal * (radius + 0.5f)
+}
+
+private fun enforceMinimumVerticalSpeed(velocity: Offset, ratio: Float = 0.22f): Offset {
+    val speed = velocity.getDistance()
+    if (speed <= 0f) return velocity
+
+    val minVy = speed * ratio
+    val signY = if (velocity.y == 0f) -1f else sign(velocity.y)
+    val clampedVy = if (abs(velocity.y) < minVy) signY * minVy else velocity.y
+    val vxSign = if (velocity.x == 0f) 1f else sign(velocity.x)
+    val adjustedVx = vxSign * sqrt(max(0f, speed * speed - clampedVy * clampedVy))
+    return Offset(adjustedVx, clampedVy)
+}
+
+private fun Offset.normalizedOrNull(): Offset? {
+    val length = getDistance()
+    if (length <= 0.0001f) return null
+    return Offset(x / length, y / length)
 }
 
 private fun circleIntersectsRect(center: Offset, radius: Float, rect: Rect): Boolean {

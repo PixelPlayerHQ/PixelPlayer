@@ -6,6 +6,9 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -17,7 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class MediaStoreObserver @Inject constructor(
     @ApplicationContext private val context: Context
-) : ContentObserver(Handler(Looper.getMainLooper())) {
+) : ContentObserver(Handler(Looper.getMainLooper())), DefaultLifecycleObserver {
 
     private val _mediaStoreChanges = MutableSharedFlow<Unit>(
         replay = 1,
@@ -25,16 +28,40 @@ class MediaStoreObserver @Inject constructor(
     )
     val mediaStoreChanges: SharedFlow<Unit> = _mediaStoreChanges.asSharedFlow()
 
+    @Volatile
+    private var isRegistered: Boolean = false
+
+    init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+    }
+
     fun register() {
+        if (isRegistered) return
         context.contentResolver.registerContentObserver(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             true,
             this
         )
+        isRegistered = true
     }
 
     fun unregister() {
+        if (!isRegistered) return
         context.contentResolver.unregisterContentObserver(this)
+        isRegistered = false
+    }
+
+    override fun onStart(owner: LifecycleOwner) {
+        register()
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        unregister()
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        unregister()
+        owner.lifecycle.removeObserver(this)
     }
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {

@@ -2,11 +2,19 @@ package com.theveloper.pixelplay.data.database
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.theveloper.pixelplay.data.model.Song
 import kotlin.math.absoluteValue
 
-@Entity(tableName = "gdrive_songs")
+@Entity(
+    tableName = "gdrive_songs",
+    indices = [
+        Index(value = ["drive_file_id"]),
+        Index(value = ["folder_id"]),
+        Index(value = ["folder_id", "date_added"])
+    ]
+)
 data class GDriveSongEntity(
     @PrimaryKey val id: String,                                    // "{folderId}_{driveFileId}"
     @ColumnInfo(name = "drive_file_id") val driveFileId: String,   // Google Drive file ID

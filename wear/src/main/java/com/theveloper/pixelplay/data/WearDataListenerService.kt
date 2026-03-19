@@ -14,6 +14,8 @@ import com.google.android.gms.wearable.WearableListenerService
 import com.theveloper.pixelplay.presentation.WearMainActivity
 import com.theveloper.pixelplay.shared.WearBrowseResponse
 import com.theveloper.pixelplay.shared.WearDataPaths
+import com.theveloper.pixelplay.shared.WearFavoriteSyncResponse
+import com.theveloper.pixelplay.shared.WearPlaybackResult
 import com.theveloper.pixelplay.shared.WearPlayerState
 import com.theveloper.pixelplay.shared.WearTransferMetadata
 import com.theveloper.pixelplay.shared.WearTransferProgress
@@ -28,8 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.Json
 import timber.log.Timber
-import java.nio.ByteBuffer
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 /**
@@ -53,6 +53,9 @@ class WearDataListenerService : WearableListenerService() {
 
     @Inject
     lateinit var transferRepository: WearTransferRepository
+
+    @Inject
+    lateinit var favoriteSyncRepository: WearFavoriteSyncRepository
 
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -134,7 +137,8 @@ class WearDataListenerService : WearableListenerService() {
     }
 
     private fun maybeAutoLaunchPlayer(playerState: WearPlayerState) {
-        val isNowPlaying = playerState.isPlaying && playerState.songId.isNotEmpty()
+        val playerIdentity = playerState.playerIdentity()
+        val isNowPlaying = playerState.isPlaying && playerIdentity.isNotEmpty()
         if (!isNowPlaying) {
             lastKnownPlaying = false
             return
@@ -145,7 +149,7 @@ class WearDataListenerService : WearableListenerService() {
         }
 
         val playbackJustStarted = !lastKnownPlaying
-        val songChangedWhilePlaying = playerState.songId != lastAutoLaunchSongId
+        val songChangedWhilePlaying = playerIdentity != lastAutoLaunchSongId
 
         val now = SystemClock.elapsedRealtime()
         val keepAliveExpired = now - lastAutoLaunchElapsedMs >= AUTO_LAUNCH_KEEP_ALIVE_MS
@@ -172,13 +176,20 @@ class WearDataListenerService : WearableListenerService() {
         runCatching {
             startActivity(intent)
             lastAutoLaunchElapsedMs = now
-            lastAutoLaunchSongId = playerState.songId
+            lastAutoLaunchSongId = playerIdentity
             lastKnownPlaying = true
             Timber.tag(TAG).d("Auto-opened Wear player for active phone playback")
         }.onFailure { e ->
             lastKnownPlaying = true
             Timber.tag(TAG).w(e, "Failed to auto-open Wear player")
         }
+    }
+
+    private fun WearPlayerState.playerIdentity(): String {
+        if (songId.isNotBlank()) return songId
+        val title = songTitle.trim()
+        if (title.isNotEmpty()) return "$title|${artistName.trim()}"
+        return ""
     }
 
     /**
@@ -207,16 +218,21 @@ class WearDataListenerService : WearableListenerService() {
             }
 
             WearDataPaths.TRANSFER_METADATA -> {
-                try {
-                    val metadataJson = String(messageEvent.data, Charsets.UTF_8)
-                    val metadata = json.decodeFromString<WearTransferMetadata>(metadataJson)
-                    transferRepository.onMetadataReceived(metadata)
-                    Timber.tag(TAG).d(
-                        "Received transfer metadata: ${metadata.title}, " +
-                            "fileSize=${metadata.fileSize}, requestId=${metadata.requestId}"
-                    )
-                } catch (e: Exception) {
-                    Timber.tag(TAG).e(e, "Failed to process transfer metadata")
+                scope.launch {
+                    try {
+                        val metadataJson = String(messageEvent.data, Charsets.UTF_8)
+                        val metadata = json.decodeFromString<WearTransferMetadata>(metadataJson)
+                        transferRepository.onMetadataReceived(
+                            metadata = metadata,
+                            sourceNodeId = messageEvent.sourceNodeId,
+                        )
+                        Timber.tag(TAG).d(
+                            "Received transfer metadata: ${metadata.title}, " +
+                                "fileSize=${metadata.fileSize}, requestId=${metadata.requestId}"
+                        )
+                    } catch (e: Exception) {
+                        Timber.tag(TAG).e(e, "Failed to process transfer metadata")
+                    }
                 }
             }
 
@@ -230,14 +246,61 @@ class WearDataListenerService : WearableListenerService() {
                 }
             }
 
+            WearDataPaths.PLAYBACK_RESULT -> {
+                try {
+                    val resultJson = String(messageEvent.data, Charsets.UTF_8)
+                    val result = json.decodeFromString<WearPlaybackResult>(resultJson)
+                    stateRepository.setPhoneConnected(true)
+                    stateRepository.publishPlaybackResult(result)
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Failed to process playback result")
+                }
+            }
+
+            WearDataPaths.FAVORITES_SYNC_STATE -> {
+                scope.launch {
+                    try {
+                        val responseJson = String(messageEvent.data, Charsets.UTF_8)
+                        val response = json.decodeFromString<WearFavoriteSyncResponse>(responseJson)
+                        favoriteSyncRepository.applyFavoriteSyncResponse(response)
+                        stateRepository.setPhoneConnected(true)
+                    } catch (e: Exception) {
+                        Timber.tag(TAG).e(e, "Failed to process favorite sync response")
+                    }
+                }
+            }
+
             WearDataPaths.TRANSFER_REQUEST -> {
                 try {
                     val requestJson = String(messageEvent.data, Charsets.UTF_8)
                     val request = json.decodeFromString<WearTransferRequest>(requestJson)
-                    transferRepository.requestTransfer(request.songId)
+                    transferRepository.requestTransfer(
+                        songId = request.songId,
+                        requestId = request.requestId,
+                        targetNodeId = messageEvent.sourceNodeId,
+                    )
                     Timber.tag(TAG).d("Received phone transfer request for songId=${request.songId}")
                 } catch (e: Exception) {
                     Timber.tag(TAG).e(e, "Failed to process transfer request")
+                }
+            }
+
+            WearDataPaths.TRANSFER_CANCEL -> {
+                try {
+                    val requestJson = String(messageEvent.data, Charsets.UTF_8)
+                    val request = json.decodeFromString<WearTransferRequest>(requestJson)
+                    transferRepository.cancelTransfer(
+                        requestId = request.requestId,
+                        notifyPhone = false,
+                    )
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Failed to process transfer cancel")
+                }
+            }
+
+            WearDataPaths.WATCH_LIBRARY_QUERY -> {
+                scope.launch {
+                    transferRepository.publishLibraryState(targetNodeId = messageEvent.sourceNodeId)
                 }
             }
 
@@ -248,6 +311,8 @@ class WearDataListenerService : WearableListenerService() {
                     stateRepository.updateVolumeState(
                         level = volumeState.level,
                         max = volumeState.max,
+                        routeType = volumeState.routeType,
+                        routeName = volumeState.routeName,
                     )
                 } catch (e: Exception) {
                     Timber.tag(TAG).e(e, "Failed to process volume state update")
@@ -261,54 +326,18 @@ class WearDataListenerService : WearableListenerService() {
     }
 
     /**
-     * Called when a ChannelClient channel is opened by the phone for audio file transfer.
-     * Reads the requestId header from the stream, then delegates to WearTransferRepository
-     * to write the audio data to local storage.
+     * Delegates opened channels to the repository so transfer work survives the listener lifecycle.
      */
     override fun onChannelOpened(channel: ChannelClient.Channel) {
         when (channel.path) {
             WearDataPaths.TRANSFER_CHANNEL -> {
                 Timber.tag(TAG).d("Audio transfer channel opened")
-                scope.launch {
-                    runCatching {
-                        val channelClient = Wearable.getChannelClient(this@WearDataListenerService)
-                        val inputStream = channelClient.getInputStream(channel).await()
-                        val requestId = readLengthPrefixedString(inputStream, "requestId")
-                        Timber.tag(TAG).d("Audio transfer channel: requestId=$requestId")
-                        transferRepository.onChannelOpened(requestId, inputStream)
-                    }.onFailure { e ->
-                        Timber.tag(TAG).e(e, "Failed to receive audio transfer channel")
-                    }
-                }
+                transferRepository.receiveAudioChannel(channel)
             }
 
             WearDataPaths.TRANSFER_ARTWORK_CHANNEL -> {
                 Timber.tag(TAG).d("Artwork transfer channel opened")
-                scope.launch {
-                    runCatching {
-                        val channelClient = Wearable.getChannelClient(this@WearDataListenerService)
-                        val inputStream = channelClient.getInputStream(channel).await()
-                        inputStream.use { stream ->
-                            val requestId = readLengthPrefixedString(stream, "requestId")
-                            val songId = readLengthPrefixedString(stream, "songId")
-                            val artworkBytes = stream.readBytesSafely()
-                            if (artworkBytes.isNotEmpty()) {
-                                transferRepository.onArtworkReceived(
-                                    requestId = requestId,
-                                    songId = songId,
-                                    artworkBytes = artworkBytes,
-                                )
-                                Timber.tag(TAG).d(
-                                    "Artwork received for requestId=$requestId, bytes=${artworkBytes.size}"
-                                )
-                            } else {
-                                Timber.tag(TAG).d("Artwork stream empty for requestId=$requestId")
-                            }
-                        }
-                    }.onFailure { e ->
-                        Timber.tag(TAG).e(e, "Failed to receive artwork transfer channel")
-                    }
-                }
+                transferRepository.receiveArtworkChannel(channel)
             }
 
             else -> {
@@ -320,44 +349,5 @@ class WearDataListenerService : WearableListenerService() {
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
-    }
-
-    private fun readLengthPrefixedString(inputStream: java.io.InputStream, label: String): String {
-        val lengthBytes = ByteArray(4)
-        var totalRead = 0
-        while (totalRead < 4) {
-            val read = inputStream.read(lengthBytes, totalRead, 4 - totalRead)
-            if (read == -1) throw Exception("Stream ended before $label length")
-            totalRead += read
-        }
-        val valueLength = ByteBuffer.wrap(lengthBytes).int
-        if (valueLength <= 0 || valueLength > 4096) {
-            throw Exception("Invalid $label length: $valueLength")
-        }
-
-        val valueBytes = ByteArray(valueLength)
-        totalRead = 0
-        while (totalRead < valueLength) {
-            val read = inputStream.read(valueBytes, totalRead, valueLength - totalRead)
-            if (read == -1) throw Exception("Stream ended before $label bytes")
-            totalRead += read
-        }
-        return String(valueBytes, Charsets.UTF_8)
-    }
-
-    private fun java.io.InputStream.readBytesSafely(maxBytes: Int = 2_000_000): ByteArray {
-        val output = ByteArrayOutputStream()
-        val buffer = ByteArray(8192)
-        var total = 0
-        while (true) {
-            val read = read(buffer)
-            if (read <= 0) break
-            total += read
-            if (total > maxBytes) {
-                throw Exception("Artwork payload exceeds $maxBytes bytes")
-            }
-            output.write(buffer, 0, read)
-        }
-        return output.toByteArray()
     }
 }

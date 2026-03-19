@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWearFoundationApi::class)
+
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.animation.animateColorAsState
@@ -11,13 +13,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -28,11 +29,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,12 +41,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
+import androidx.wear.compose.foundation.requestFocusOnHierarchyActive
+import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.google.android.horologist.audio.ui.VolumeUiState
+import com.google.android.horologist.audio.ui.volumeRotaryBehavior
+import com.theveloper.pixelplay.presentation.components.CurvedVolumeIndicator
 import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
-import com.theveloper.pixelplay.presentation.theme.radialBackgroundBrush
+import com.theveloper.pixelplay.presentation.theme.screenBackgroundColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerHighColor
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -74,20 +83,33 @@ fun VolumeScreen(
         animationSpec = spring(),
         label = "volumeProgress",
     )
-    val background = palette.radialBackgroundBrush()
+    val background = palette.screenBackgroundColor()
+    val rotaryFocusRequester = remember { FocusRequester() }
+    val rotaryVolumeUiState = remember(volumeState.level, volumeState.max) {
+        VolumeUiState(
+            current = volumeState.level.coerceAtLeast(0),
+            max = volumeState.max.coerceAtLeast(0),
+            min = 0,
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .requestFocusOnHierarchyActive()
+            .rotaryScrollable(
+                behavior = volumeRotaryBehavior(
+                    volumeUiStateProvider = { rotaryVolumeUiState },
+                    onRotaryVolumeInput = viewModel::setActiveVolume,
+                ),
+                focusRequester = rotaryFocusRequester,
+            )
             .background(background),
     ) {
         CurvedVolumeIndicator(
             progress = progress,
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxHeight(0.72f)
-                .size(186.dp)
-                .offset(x = (-62).dp),
+                .fillMaxSize(),
         )
 
         Column(
@@ -126,53 +148,6 @@ fun VolumeScreen(
 }
 
 @Composable
-private fun CurvedVolumeIndicator(
-    progress: Float,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalWearPalette.current
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = spring(),
-        label = "curvedVolumeIndicator",
-    )
-    val trackColor = palette.chipContainer.copy(alpha = 0.50f)
-    val progressColor = palette.controlContainer
-
-    Canvas(modifier = modifier) {
-        val strokeWidth = 7.dp.toPx()
-        val inset = strokeWidth / 2f + 2.dp.toPx()
-        val diameter = size.minDimension - (inset * 2f)
-        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
-        val topLeft = androidx.compose.ui.geometry.Offset(
-            x = (size.width - diameter) / 2f,
-            y = (size.height - diameter) / 2f,
-        )
-        val startAngle = 226f
-        val sweepAngle = -108f
-
-        drawArc(
-            color = trackColor,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
-            useCenter = false,
-            topLeft = topLeft,
-            size = arcSize,
-            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-        )
-        drawArc(
-            color = progressColor,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle * animatedProgress,
-            useCenter = false,
-            topLeft = topLeft,
-            size = arcSize,
-            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-        )
-    }
-}
-
-@Composable
 private fun VolumeValuePill(
     level: Int,
     percent: Int,
@@ -180,7 +155,7 @@ private fun VolumeValuePill(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalWearPalette.current
-    val container = palette.controlContainer.copy(alpha = 0.92f)
+    val container = palette.chipContent
     val icon = if (level <= 0) {
         Icons.AutoMirrored.Rounded.VolumeOff
     } else {
@@ -205,15 +180,9 @@ private fun VolumeValuePill(
         Spacer(modifier = Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.Start) {
             Text(
-                text = "$percent%",
+                text = deviceName,
                 color = palette.controlContent,
                 style = MaterialTheme.typography.title3,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = deviceName,
-                color = palette.controlContent.copy(alpha = 0.74f),
-                fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -230,7 +199,7 @@ private fun VolumeStepButton(
 ) {
     val palette = LocalWearPalette.current
     val container by animateColorAsState(
-        targetValue = palette.chipContainer.copy(alpha = 0.92f),
+        targetValue = palette.surfaceContainerColor().copy(alpha = 0.98f),
         animationSpec = spring(),
         label = "volumeStepContainer",
     )
@@ -239,7 +208,8 @@ private fun VolumeStepButton(
         modifier = modifier
             .width(92.dp)
             .height(42.dp)
-            .background(container, RoundedCornerShape(24.dp))
+            .clip(CircleShape)
+            .background(container, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

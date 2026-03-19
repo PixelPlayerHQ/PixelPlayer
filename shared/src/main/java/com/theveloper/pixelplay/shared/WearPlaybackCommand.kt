@@ -11,6 +11,8 @@ data class WearPlaybackCommand(
     val action: String,
     /** Optional song ID for PLAY_ITEM / PLAY_FROM_CONTEXT actions */
     val songId: String? = null,
+    /** Optional request ID for commands that expect an explicit result back on watch. */
+    val requestId: String? = null,
     /** Optional target state for idempotent toggle actions (favorite/shuffle). */
     val targetEnabled: Boolean? = null,
     /** Context type for PLAY_FROM_CONTEXT: "album", "artist", "playlist", "favorites", "all_songs" */

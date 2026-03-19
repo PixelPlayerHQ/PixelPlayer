@@ -32,7 +32,8 @@ import com.google.android.horologist.compose.layout.rememberResponsiveColumnStat
 import com.theveloper.pixelplay.presentation.components.AlwaysOnScalingPositionIndicator
 import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
-import com.theveloper.pixelplay.presentation.theme.radialBackgroundBrush
+import com.theveloper.pixelplay.presentation.theme.screenBackgroundColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.WearSleepTimerMode
 import androidx.compose.material.icons.Icons
@@ -56,7 +57,7 @@ fun TimerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.radialBackgroundBrush()),
+            .background(palette.screenBackgroundColor()),
     ) {
         ScalingLazyColumn(
             modifier = Modifier
@@ -176,7 +177,7 @@ private fun TimerOptionChip(
 ) {
     val palette = LocalWearPalette.current
     val container by animateColorAsState(
-        targetValue = if (active) activeColor.copy(alpha = 0.85f) else palette.chipContainer,
+        targetValue = if (active) activeColor.copy(alpha = 0.85f) else palette.surfaceContainerColor(),
         animationSpec = spring(),
         label = "timerOptionContainer",
     )

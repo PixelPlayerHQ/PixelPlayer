@@ -77,11 +77,11 @@ android {
         // Aquí es donde debes agregar freeCompilerArgs para los informes del compilador de Compose.
         freeCompilerArgs += listOf(
             "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${project.buildDir.absolutePath}/compose_compiler_reports"
+            "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_reports"
         )
         freeCompilerArgs += listOf(
             "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${project.buildDir.absolutePath}/compose_compiler_metrics"
+            "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_metrics"
         )
 
         //Stability
@@ -125,6 +125,19 @@ android {
     }
 }
 
+composeCompiler {
+    // Applies Compose's strong skipping optimization (skip composables whose parameters
+    // haven't changed) in Debug builds as well, making dev-mode performance more
+    // representative of Release and reducing unnecessary recompositions during development.
+    enableStrongSkippingMode = true
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+    arg("room.generateKotlin", "true")
+}
+
 dependencies {
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.paging.common)
@@ -134,18 +147,16 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.lifecycle:lifecycle-process:2.9.0")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
     // google.genai 1.11.0 — 新版统一 Gemini SDK
     implementation(libs.google.genai)
-    implementation(libs.androidx.mediarouter)
-    implementation(libs.play.services.cast.framework)
     implementation(libs.androidx.navigation.runtime.ktx)
-    implementation(libs.androidx.compose.material3)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.params)
     testRuntimeOnly(libs.junit.jupiter.engine)
@@ -165,6 +176,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    // Keep debug-only Compose tooling on the same version line as the runtime stack.
+    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
@@ -220,15 +233,18 @@ dependencies {
     //Animations
     implementation(libs.androidx.animation)
 
-    //Material3
-    implementation(libs.material3)
-    implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
-
     //Coil
     implementation(libs.coil.compose)
 
     //Capturable
-    implementation(libs.capturable) // Verifica la última versión en GitHub
+    implementation(libs.capturable) {
+        // Capturable brings its own loose Compose graph; keep it on the app's Compose line.
+        exclude(group = "androidx.compose.animation")
+        exclude(group = "androidx.compose.foundation")
+        exclude(group = "androidx.compose.material")
+        exclude(group = "androidx.compose.runtime")
+        exclude(group = "androidx.compose.ui")
+    }
 
     //Reorderable List/Drag and Drop
     // compose.dnd (mohamedrejeb) 未被使用，已删除
@@ -244,7 +260,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
-    implementation(libs.androidx.media.router)
+    implementation(libs.androidx.mediarouter)
     implementation(libs.google.play.services.cast.framework)
     implementation(libs.androidx.media3.exoplayer.ffmpeg)
 
@@ -285,14 +301,12 @@ dependencies {
     implementation(libs.accompanist.permissions)
 
     //Audio editing
-    // Spleeter para separación de audio y Amplituda para procesar formas de onda
+    // Spleeter para separación de audio
     //implementation(libs.tensorflow.lite)
     //implementation(libs.tensorflow.lite.support)
     ///implementation(libs.tensorflow.lite.select.tf.ops)
-    implementation(libs.amplituda)
 
     // Compose-audiowaveform para la UI
-    implementation(libs.compose.audiowaveform)
 
     // Media3 Transformer (ya debería estar, pero asegúrate)
     implementation(libs.androidx.media3.transformer)

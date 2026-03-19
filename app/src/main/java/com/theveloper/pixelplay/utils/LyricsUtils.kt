@@ -45,11 +45,11 @@ import kotlin.math.sin
 
 object LyricsUtils {
 
-    private val LRC_LINE_REGEX = Pattern.compile("^\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})](.*)$")
-    private val LRC_WORD_REGEX = Pattern.compile("<(\\d{2}):(\\d{2})\\.(\\d{2,3})>([^<]*)")
-    private val LRC_WORD_TAG_REGEX = Regex("<\\d{2}:\\d{2}\\.\\d{2,3}>")
-    private val LRC_WORD_SPLIT_REGEX = Regex("(?=<\\d{2}:\\d{2}\\.\\d{2,3}>)")
-    private val LRC_TIMESTAMP_TAG_REGEX = Regex("\\[\\d{1,2}:\\d{2}(?:\\.\\d{1,3})?]")
+    private val LRC_LINE_REGEX = Pattern.compile("^\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})](.*)$")
+    private val LRC_WORD_REGEX = Pattern.compile("<(\\d{2}):(\\d{2})[.:](\\d{2,3})>([^<]*)")
+    private val LRC_WORD_TAG_REGEX = Regex("<\\d{2}:\\d{2}[.:]\\d{2,3}>")
+    private val LRC_WORD_SPLIT_REGEX = Regex("(?=<\\d{2}:\\d{2}[.:]\\d{2,3}>)")
+    private val LRC_TIMESTAMP_TAG_REGEX = Regex("\\[\\d{1,2}:\\d{2}(?:[.:]\\d{1,3})?]")
 
     /**
      * Parsea un String que contiene una letra en formato LRC o texto plano.
@@ -157,11 +157,35 @@ object LyricsUtils {
 
         return if (isSynced && syncedLines.isNotEmpty()) {
             val sortedSyncedLines = syncedLines.sortedBy { it.time }
-            val plainVersion = sortedSyncedLines.map { it.line }
-            Lyrics(synced = sortedSyncedLines, plain = plainVersion)
+            val pairedLines = pairTranslationLines(sortedSyncedLines)
+            val plainVersion = pairedLines.map { it.line }
+            Lyrics(synced = pairedLines, plain = plainVersion)
         } else {
             Lyrics(plain = plainLines)
         }
+    }
+
+    /**
+     * Pairs consecutive synced lines that share the same timestamp.
+     * The second line is treated as a translation of the first.
+     * Only pairs one translation per original — a third line at the same timestamp stays separate.
+     */
+    internal fun pairTranslationLines(lines: List<SyncedLine>): List<SyncedLine> {
+        if (lines.size < 2) return lines
+        val result = mutableListOf<SyncedLine>()
+        var i = 0
+        while (i < lines.size) {
+            val current = lines[i]
+            val next = lines.getOrNull(i + 1)
+            if (next != null && next.time == current.time && current.translation == null && current.line.isNotBlank() && next.line.isNotBlank()) {
+                result.add(current.copy(translation = next.line))
+                i += 2 // skip the translation line
+            } else {
+                result.add(current)
+                i++
+            }
+        }
+        return result
     }
 
     internal fun stripLrcTimestamps(value: String): String {
@@ -177,13 +201,19 @@ object LyricsUtils {
      * @return A string in LRC format.
      */
     fun syncedToLrcString(syncedLines: List<SyncedLine>): String {
-        return syncedLines.sortedBy { it.time }.joinToString("\n") { line ->
+        return syncedLines.sortedBy { it.time }.flatMap { line ->
             val totalMs = line.time
             val minutes = totalMs / 60000
             val seconds = (totalMs % 60000) / 1000
             val hundredths = (totalMs % 1000) / 10
-            "[%02d:%02d.%02d]%s".format(minutes, seconds, hundredths, line.line)
-        }
+            val timestamp = "[%02d:%02d.%02d]".format(minutes, seconds, hundredths)
+            buildList {
+                add("$timestamp${line.line}")
+                if (!line.translation.isNullOrBlank()) {
+                    add("$timestamp${line.translation}")
+                }
+            }
+        }.joinToString("\n")
     }
 
     /**

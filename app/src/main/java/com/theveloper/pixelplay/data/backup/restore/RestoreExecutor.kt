@@ -31,9 +31,8 @@ class RestoreExecutor @Inject constructor(
         plan: RestorePlan,
         onProgress: (BackupTransferProgressUpdate) -> Unit
     ): RestoreResult = withContext(Dispatchers.IO) {
-        val selectedModules = plan.selectedModules.toList()
-        // 3 overhead steps: snapshot, validate, finalize
-        val totalSteps = selectedModules.size * 3 + 3
+        val selectedModules = plan.selectedModules.toList().sortedBy { it.key }
+        val totalSteps = selectedModules.size * 2 + 3
         var step = 0
 
         // ---- PHASE 1: SNAPSHOT ----
@@ -52,19 +51,25 @@ class RestoreExecutor @Inject constructor(
             return@withContext RestoreResult.TotalFailure("Failed to capture current state: ${e.message}")
         }
 
-        // ---- PHASE 2: READ & VALIDATE ----
-        reportProgress(onProgress, ++step, totalSteps, "Reading backup data", "Extracting and validating modules.")
+        // ---- PHASE 2: READ, VALIDATE, RESTORE ----
+        reportProgress(onProgress, ++step, totalSteps, "Preparing restore", "Selected modules will be processed one at a time.")
 
-        val modulePayloads = mutableMapOf<BackupSection, String>()
+        val restoredModules = mutableListOf<BackupSection>()
+        var currentSection: BackupSection? = null
         try {
-            val allPayloads = backupReader.readAllModulePayloads(uri).getOrThrow()
-
             selectedModules.forEach { section ->
-                val payload = allPayloads[section.key]
-                if (payload == null) {
-                    Log.w(TAG, "Module ${section.key} not found in backup, skipping")
-                    return@forEach
+                currentSection = section
+                val moduleInfo = plan.manifest.modules[section.key]
+                if (moduleInfo != null &&
+                    moduleInfo.sizeBytes > BackupReader.MAX_MODULE_PAYLOAD_BYTES
+                ) {
+                    throw IllegalStateException(
+                        "Backup payload for ${section.label} is ${moduleInfo.sizeBytes / (1024 * 1024)}MB, " +
+                            "which exceeds the ${BackupReader.MAX_MODULE_PAYLOAD_BYTES / (1024 * 1024)}MB restore safety limit."
+                    )
                 }
+
+                val payload = backupReader.readModulePayload(uri, section.key).getOrThrow()
 
                 // Validate each module payload
                 val validationResult = validationPipeline.validateModulePayload(
@@ -76,23 +81,13 @@ class RestoreExecutor @Inject constructor(
                     )
                 }
 
-                modulePayloads[section] = payload
                 reportProgress(
                     onProgress, ++step, totalSteps,
                     "Validated ${section.label}",
                     section.description,
                     section
                 )
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Validation phase failed", e)
-            return@withContext RestoreResult.TotalFailure("Validation failed: ${e.message}")
-        }
 
-        // ---- PHASE 3: RESTORE ----
-        val restoredModules = mutableSetOf<BackupSection>()
-        try {
-            modulePayloads.forEach { (section, payload) ->
                 reportProgress(
                     onProgress, ++step, totalSteps,
                     "Restoring ${section.label}",
@@ -106,10 +101,11 @@ class RestoreExecutor @Inject constructor(
                 restoredModules.add(section)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Restore failed at module, rolling back", e)
-            // ROLLBACK all already-restored modules
+            Log.e(TAG, "Restore failed while processing backup module, rolling back", e)
+            // Roll back in reverse restore order, including the module that failed mid-restore.
             var rollbackSuccess = true
-            restoredModules.forEach { section ->
+            val rollbackOrder = (restoredModules + listOfNotNull(currentSection)).distinct().asReversed()
+            rollbackOrder.forEach { section ->
                 try {
                     val snapshot = snapshots[section]
                     if (snapshot != null) {
@@ -121,15 +117,24 @@ class RestoreExecutor @Inject constructor(
                 }
             }
 
-            val failedSection = modulePayloads.keys.first { it !in restoredModules }
+            val failedReason = e.message ?: "Unknown error"
+            val failedSection = currentSection
+
+            if (rollbackSuccess) {
+                val failedLabel = failedSection?.label ?: "unknown module"
+                return@withContext RestoreResult.TotalFailure(
+                    "Restore failed at $failedLabel: $failedReason. All applied changes were rolled back."
+                )
+            }
+
             return@withContext RestoreResult.PartialFailure(
-                succeeded = emptySet(),
-                failed = mapOf(failedSection to (e.message ?: "Unknown error")),
-                rolledBack = rollbackSuccess
+                succeeded = restoredModules.toSet(),
+                failed = failedSection?.let { mapOf(it to failedReason) }.orEmpty(),
+                rolledBack = false
             )
         }
 
-        // ---- PHASE 4: FINALIZE ----
+        // ---- PHASE 3: FINALIZE ----
         reportProgress(onProgress, ++step, totalSteps, "Restore complete", "All selected modules were restored successfully.")
 
         RestoreResult.Success

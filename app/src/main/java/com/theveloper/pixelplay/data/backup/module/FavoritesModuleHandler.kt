@@ -32,10 +32,7 @@ class FavoritesModuleHandler @Inject constructor(
     override suspend fun restore(payload: String) = withContext(Dispatchers.IO) {
         val type = TypeToken.getParameterized(List::class.java, FavoritesEntity::class.java).type
         val favorites: List<FavoritesEntity> = gson.fromJson(payload, type)
-        favoritesDao.clearAll()
-        if (favorites.isNotEmpty()) {
-            favoritesDao.insertAll(favorites)
-        }
+        favoritesDao.replaceAll(favorites)
     }
 
     override suspend fun rollback(snapshot: String) = restore(snapshot)

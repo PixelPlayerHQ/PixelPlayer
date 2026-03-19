@@ -3,7 +3,6 @@ package com.theveloper.pixelplay.presentation.screens
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 
 import android.os.Trace
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,13 +22,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
@@ -39,8 +36,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -78,6 +73,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.stats.StatsTimeRange
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
+import com.theveloper.pixelplay.presentation.components.RecentlyPlayedRangeSelector
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
@@ -114,13 +110,13 @@ fun RecentlyPlayedScreen(
         playerViewModel.stablePlayerState.map { it.isPlaying }.distinctUntilChanged()
     }.collectAsStateWithLifecycle(initialValue = false)
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
+    val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
     val playlistUiState by playlistViewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedRange by rememberSaveable { mutableStateOf(StatsTimeRange.WEEK) }
     val lazyListState = rememberLazyListState()
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
-    var selectedSongForInfo by remember { mutableStateOf<Song?>(null) }
     val bottomBarHeightDp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     val recentlyPlayedSongs = remember(playbackHistory, allSongs, selectedRange) {
@@ -239,7 +235,7 @@ fun RecentlyPlayedScreen(
                                     )
                                 },
                                 onMoreOptionsClick = { song ->
-                                    selectedSongForInfo = song
+                                    playerViewModel.selectSongForInfo(song)
                                     showSongInfoBottomSheet = true
                                 }
                             )
@@ -260,7 +256,6 @@ fun RecentlyPlayedScreen(
                 onDismiss = {
                     showSongInfoBottomSheet = false
                     showPlaylistBottomSheet = false
-                    selectedSongForInfo = null
                 },
                 onPlaySong = {
                     if (queueSongs.isNotEmpty()) {
@@ -441,52 +436,6 @@ private fun rememberRecentlyPlayedTitleStyle(): TextStyle {
             lineHeight = 38.sp,
             letterSpacing = (-0.4).sp
         )
-    }
-}
-
-@Composable
-private fun RecentlyPlayedRangeSelector(
-    selected: StatsTimeRange,
-    onRangeSelected: (StatsTimeRange) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp)
-    ) {
-        items(StatsTimeRange.entries, key = { it.name }) { range ->
-            FilterChip(
-                modifier = Modifier.height(44.dp),
-                selected = selected == range,
-                onClick = { onRangeSelected(range) },
-                label = { Text(range.displayName) },
-                border = BorderStroke(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.tertiary
-                ),
-                shape = CircleShape,
-                leadingIcon = if (selected == range) {
-                    {
-                        Icon(
-                            imageVector = Icons.Outlined.History,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(FilterChipDefaults.IconSize)
-                        )
-                    }
-                } else {
-                    null
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onTertiary,
-                    labelColor = MaterialTheme.colorScheme.tertiary
-                )
-            )
-        }
     }
 }
 

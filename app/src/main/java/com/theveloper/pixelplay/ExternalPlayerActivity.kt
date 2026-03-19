@@ -19,7 +19,7 @@ import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import android.content.Intent.EXTRA_STREAM
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import javax.inject.Inject
 
 @UnstableApi
@@ -28,7 +28,7 @@ class ExternalPlayerActivity : ComponentActivity() {
 
     private val playerViewModel: PlayerViewModel by viewModels()
     @Inject
-    lateinit var userPreferencesRepository: UserPreferencesRepository
+    lateinit var themePreferencesRepository: ThemePreferencesRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -45,7 +45,7 @@ class ExternalPlayerActivity : ComponentActivity() {
 
         setContent {
             val systemDarkTheme = isSystemInDarkTheme()
-            val appThemeMode by userPreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
+            val appThemeMode by themePreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
                 AppThemeMode.LIGHT -> false

@@ -56,6 +56,7 @@ class BarWidget4x1 : GlanceAppWidget() {
         val artist = playerInfo.artistName.ifEmpty { "Tap to open" }
         val isPlaying = playerInfo.isPlaying
         val albumArtBitmapData = playerInfo.albumArtBitmapData
+        val albumArtUri = playerInfo.albumArtUri
 
         val colors = playerInfo.getWidgetColors()
 
@@ -80,6 +81,7 @@ class BarWidget4x1 : GlanceAppWidget() {
                 AlbumArtImage(
                     modifier = GlanceModifier.size(44.dp),
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     size = 44.dp,
                     context = context,
                     cornerRadius = albumArtCornerRadius

@@ -26,7 +26,8 @@ class PolygonShape(sides: Int, private val rotation: Float = 0f) : Shape {
         const val TWO_PI = 2 * PI
     }
 
-    private val STEPCOUNT = ((TWO_PI) / sides)
+    private val sideCount = sides.coerceAtLeast(3)
+    private val stepCount = TWO_PI / sideCount
 
     private val rotationDegree = (PI / 180) * rotation
 
@@ -42,20 +43,17 @@ class PolygonShape(sides: Int, private val rotation: Float = 0f) : Shape {
         val xCenter = size.width * .5f
         val yCenter = size.height * .5f
 
-        moveTo(xCenter, yCenter)
-
         var t = -rotationDegree
+        val startX = r * cos(t)
+        val startY = r * sin(t)
+        moveTo((startX + xCenter).toFloat(), (startY + yCenter).toFloat())
 
-        while (t <= TWO_PI) {
+        repeat(sideCount - 1) {
+            t += stepCount
             val x = r * cos(t)
             val y = r * sin(t)
             lineTo((x + xCenter).toFloat(), (y + yCenter).toFloat())
-
-            t += STEPCOUNT
         }
-
-        val x = r * cos(t)
-        val y = r * sin(t)
-        lineTo((x + xCenter).toFloat(), (y + yCenter).toFloat())
+        close()
     })
 }

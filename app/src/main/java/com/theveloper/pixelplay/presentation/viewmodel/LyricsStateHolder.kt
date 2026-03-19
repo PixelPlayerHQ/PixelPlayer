@@ -207,8 +207,8 @@ class LyricsStateHolder @Inject constructor(
                 musicRepository.getLyricsFromRemote(song)
                     .onSuccess { (lyrics, rawLyrics) ->
                         _searchUiState.value = LyricsSearchUiState.Success(lyrics)
-                        val updatedSong = song.copy(lyrics = rawLyrics)
-                        persistLyricsToFileMetadataIfPossible(updatedSong, rawLyrics)
+                        val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(song, rawLyrics)
+                        val updatedSong = song.withPersistedLyrics(rawLyrics, refreshedAlbumArtUri)
                         _songUpdates.emit(updatedSong to lyrics)
                     }
                     .onFailure { error ->
@@ -249,7 +249,6 @@ class LyricsStateHolder @Inject constructor(
     fun acceptLyricsSearchResult(result: LyricsSearchResult, currentSong: Song) {
         scope?.launch {
             _searchUiState.value = LyricsSearchUiState.Success(result.lyrics)
-            val updatedSong = currentSong.copy(lyrics = result.rawLyrics)
 
             // 1. Update DB cache
             currentSong.id.toLongOrNull()?.let { songId ->
@@ -257,7 +256,8 @@ class LyricsStateHolder @Inject constructor(
             }
 
             // 2. Attempt metadata write-back to the audio file
-            persistLyricsToFileMetadataIfPossible(updatedSong, result.rawLyrics)
+            val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, result.rawLyrics)
+            val updatedSong = currentSong.withPersistedLyrics(result.rawLyrics, refreshedAlbumArtUri)
 
             // 3. Notify
             _songUpdates.emit(updatedSong to result.lyrics)
@@ -273,8 +273,8 @@ class LyricsStateHolder @Inject constructor(
 
             if (currentSong != null && currentSong.id.toLongOrNull() == songId) {
                 val parsedLyrics = LyricsUtils.parseLyrics(lyricsContent)
-                val updatedSong = currentSong.copy(lyrics = lyricsContent)
-                persistLyricsToFileMetadataIfPossible(updatedSong, lyricsContent)
+                val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, lyricsContent)
+                val updatedSong = currentSong.withPersistedLyrics(lyricsContent, refreshedAlbumArtUri)
                 _songUpdates.emit(updatedSong to parsedLyrics.takeIf(::hasValidLyrics))
             }
 
@@ -319,12 +319,12 @@ class LyricsStateHolder @Inject constructor(
         }.getOrNull()
     }
 
-    private suspend fun persistLyricsToFileMetadataIfPossible(song: Song, rawLyrics: String) {
-        val songId = song.id.toLongOrNull() ?: return
+    private suspend fun persistLyricsToFileMetadataIfPossible(song: Song, rawLyrics: String): String? {
+        val songId = song.id.toLongOrNull() ?: return null
         val normalizedLyrics = rawLyrics.trim()
-        if (normalizedLyrics.isBlank()) return
+        if (normalizedLyrics.isBlank()) return null
 
-        withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             val existingArtwork = runCatching {
                 AudioMetadataReader.read(File(song.path))?.artwork
             }.getOrNull()
@@ -347,7 +347,7 @@ class LyricsStateHolder @Inject constructor(
                     newTrackNumber = song.trackNumber,
                     coverArtUpdate = coverArtUpdate
                 )
-            }
+            }.getOrNull()?.updatedAlbumArtUri
         }
     }
 
@@ -356,4 +356,13 @@ class LyricsStateHolder @Inject constructor(
         scope = null
         loadCallback = null
     }
+}
+
+internal fun Song.withPersistedLyrics(rawLyrics: String, refreshedAlbumArtUri: String?): Song {
+    return copy(
+        lyrics = rawLyrics,
+        // Lyrics writes can refresh the cached cover-art file path. Carry it forward immediately
+        // so the full player doesn't keep rendering a deleted image URI until the next app reload.
+        albumArtUriString = refreshedAlbumArtUri ?: albumArtUriString
+    )
 }

@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +48,7 @@ fun PlayerSeekBar(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val progressFraction = remember(currentPosition, totalDuration) {
         if (totalDuration > 0) {
             (currentPosition.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
@@ -56,6 +59,7 @@ fun PlayerSeekBar(
 
     var isUserSeeking by remember { mutableStateOf(false) }
     var seekFraction by remember { mutableFloatStateOf(progressFraction) }
+    val lastHapticStep = remember { intArrayOf(-1) }
 
     LaunchedEffect(progressFraction) {
         if (!isUserSeeking) {
@@ -94,6 +98,11 @@ fun PlayerSeekBar(
             onValueChange = { newFraction ->
                 isUserSeeking = true
                 seekFraction = newFraction
+                val quantized = (newFraction.coerceIn(0f, 1f) * 20f).toInt()
+                if (quantized != lastHapticStep[0]) {
+                    lastHapticStep[0] = quantized
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
             },
             onValueChangeFinished = {
                 onSeek((seekFraction * totalDuration).roundToLong())

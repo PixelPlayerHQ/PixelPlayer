@@ -212,49 +212,53 @@ fun SettingsScreen(
             item {
                 val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                 ExpressiveSettingsGroup {
-                    val orderedCategories = SettingsCategory.entries.filter {
-                        it != SettingsCategory.ABOUT
-                    }
-                    val totalTiles = orderedCategories.size + 2 // + Accounts + About
-
-                    fun tileShape(index: Int): RoundedCornerShape = when {
-                        totalTiles == 1 -> RoundedCornerShape(24.dp)
-                        index == 0 -> RoundedCornerShape(
-                            topStart = 24.dp,
-                            topEnd = 24.dp,
-                            bottomStart = 4.dp,
-                            bottomEnd = 4.dp
-                        )
-                        index == totalTiles - 1 -> RoundedCornerShape(
-                            topStart = 4.dp,
-                            topEnd = 4.dp,
-                            bottomStart = 24.dp,
-                            bottomEnd = 24.dp
-                        )
-                        else -> RoundedCornerShape(4.dp)
+                    val mainCategories = SettingsCategory.entries.filter {
+                        it != SettingsCategory.ABOUT && 
+                        it != SettingsCategory.DEVICE_CAPABILITIES
                     }
 
-                    var tileIndex = 0
-                    orderedCategories.forEach { category ->
+                    val totalItems = mainCategories.size + 3 // Device + Accounts + About
+                    fun shapeFor(index: Int) =
+                        when {
+                            totalItems == 1 -> RoundedCornerShape(24.dp)
+                            index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+                            index == totalItems - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+                            else -> RoundedCornerShape(4.dp)
+                        }
+
+                    var itemIndex = 0
+
+                    mainCategories.forEach { category ->
                         val colors = getCategoryColors(category, isDark)
 
                         ExpressiveCategoryItem(
                             category = category,
                             customColors = colors,
                             onClick = {
-                                when (category) {
-                                    SettingsCategory.EQUALIZER -> navController.navigateSafely(Screen.Equalizer.route)
-                                    SettingsCategory.DEVICE_CAPABILITIES -> navController.navigateSafely(Screen.DeviceCapabilities.route)
-                                    else -> navController.navigateSafely(Screen.SettingsCategory.createRoute(category.id))
+                                if (category == SettingsCategory.EQUALIZER) {
+                                    navController.navigateSafely(Screen.Equalizer.route)
+                                } else {
+                                    navController.navigateSafely(Screen.SettingsCategory.createRoute(category.id))
                                 }
                             },
-                            shape = tileShape(tileIndex)
+                            shape = shapeFor(itemIndex)
                         )
-                        tileIndex += 1
-                        if (tileIndex < totalTiles) {
+                        if (itemIndex < totalItems - 1) {
                             Spacer(modifier = Modifier.height(2.dp))
                         }
+                        itemIndex++
                     }
+
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.DEVICE_CAPABILITIES,
+                        customColors = getCategoryColors(SettingsCategory.DEVICE_CAPABILITIES, isDark),
+                        onClick = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
+                        shape = shapeFor(itemIndex)
+                    )
+                    if (itemIndex < totalItems - 1) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
+                    itemIndex++
 
                     ExpressiveNavigationItem(
                         title = "Accounts",
@@ -262,18 +266,18 @@ fun SettingsScreen(
                         icon = Icons.Rounded.AccountCircle,
                         colors = getAccountsColors(isDark),
                         onClick = { navController.navigateSafely(Screen.Accounts.route) },
-                        shape = tileShape(tileIndex)
+                        shape = shapeFor(itemIndex)
                     )
-                    tileIndex += 1
-                    if (tileIndex < totalTiles) {
+                    if (itemIndex < totalItems - 1) {
                         Spacer(modifier = Modifier.height(2.dp))
                     }
+                    itemIndex++
 
                     ExpressiveCategoryItem(
                         category = SettingsCategory.ABOUT,
                         customColors = getCategoryColors(SettingsCategory.ABOUT, isDark),
                         onClick = { navController.navigateSafely("about") },
-                        shape = tileShape(tileIndex)
+                        shape = shapeFor(itemIndex)
                     )
                 }
 

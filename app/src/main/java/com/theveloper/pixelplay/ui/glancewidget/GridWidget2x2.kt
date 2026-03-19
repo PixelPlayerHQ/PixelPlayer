@@ -52,6 +52,7 @@ class GridWidget2x2 : GlanceAppWidget() {
     ) {
         val isPlaying = playerInfo.isPlaying
         val albumArtBitmapData = playerInfo.albumArtBitmapData
+        val albumArtUri = playerInfo.albumArtUri
 
         val colors = playerInfo.getWidgetColors()
 
@@ -92,6 +93,7 @@ class GridWidget2x2 : GlanceAppWidget() {
                                 .defaultWeight()
                                 .fillMaxHeight(),
                             bitmapData = albumArtBitmapData,
+                            albumArtUri = albumArtUri,
                             size = albumArtSize, // Used for optimization and placeholder size
                             context = context,
                             cornerRadius = itemCornerRadius

@@ -5,6 +5,7 @@ import android.util.LruCache
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import com.google.android.material.color.utilities.DynamicScheme
 import com.google.android.material.color.utilities.Hct
@@ -12,12 +13,11 @@ import com.google.android.material.color.utilities.MathUtils
 import com.google.android.material.color.utilities.QuantizerCelebi
 import com.google.android.material.color.utilities.SchemeExpressive
 import com.google.android.material.color.utilities.SchemeFruitSalad
-import com.google.android.material.color.utilities.SchemeMonochrome
-import com.google.android.material.color.utilities.SchemeNeutral
 import com.google.android.material.color.utilities.SchemeTonalSpot
 import com.google.android.material.color.utilities.SchemeVibrant
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import androidx.core.graphics.scale
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -46,12 +46,13 @@ private data class ScoredHct(
 )
 
 private val extractedColorCache = LruCache<Int, Color>(32)
-private const val GRAYSCALE_CHROMA_THRESHOLD = 10.0
+private const val GRAYSCALE_CHROMA_THRESHOLD = 12.0
 private const val NEUTRAL_PIXEL_CHROMA_THRESHOLD = 8.0
 private const val HIGH_CHROMA_THRESHOLD = 18.0
 private const val REQUIRED_NEUTRAL_POPULATION = 0.92
 private const val MAX_HIGH_CHROMA_POPULATION = 0.03
 private const val MAX_WEIGHTED_CHROMA_FOR_NEUTRAL = 9.0
+private const val MAX_GRAYSCALE_CHANNEL_DELTA = 10
 
 fun clearExtractedColorCache() {
     extractedColorCache.evictAll()
@@ -82,10 +83,8 @@ fun extractSeedColor(
         val quantized = QuantizerCelebi.quantize(pixels, config.quantizerMaxColors)
         val mostlyNeutralArtwork = isMostlyNeutralArtwork(quantized)
 
-        if (mostlyNeutralArtwork) {
-            val avgHct = Hct.fromInt(fallbackArgb)
-            val neutralSeed = Hct.from(avgHct.hue, 0.0, avgHct.tone).toInt()
-            return@runCatching Color(neutralSeed)
+        if (mostlyNeutralArtwork && isArgbNearGrayscale(fallbackArgb)) {
+            return@runCatching Color(fallbackArgb)
         }
 
         val rankedSeeds = scoreQuantizedColors(
@@ -109,22 +108,28 @@ fun generateColorSchemeFromSeed(
     paletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.default
 ): ColorSchemePair {
     return runCatching {
-        val sourceHct = Hct.fromInt(seedColor.toArgb())
-        val shouldForceNeutral = sourceHct.chroma < GRAYSCALE_CHROMA_THRESHOLD
+        val seedArgb = seedColor.toArgb()
+        val sourceHct = Hct.fromInt(seedArgb)
+        val shouldForceNeutral = shouldUseNeutralArtworkScheme(seedArgb, sourceHct)
 
         val lightScheme = createDynamicScheme(
             sourceHct = sourceHct,
             paletteStyle = paletteStyle,
-            isDark = false,
-            forceNeutral = shouldForceNeutral
+            isDark = false
         ).toComposeColorScheme()
         val darkScheme = createDynamicScheme(
             sourceHct = sourceHct,
             paletteStyle = paletteStyle,
-            isDark = true,
-            forceNeutral = shouldForceNeutral
+            isDark = true
         ).toComposeColorScheme()
-        ColorSchemePair(lightScheme, darkScheme)
+        if (shouldForceNeutral) {
+            ColorSchemePair(
+                light = lightScheme.toGrayscaleColorScheme(),
+                dark = darkScheme.toGrayscaleColorScheme()
+            )
+        } else {
+            ColorSchemePair(lightScheme, darkScheme)
+        }
     }.getOrElse {
         ColorSchemePair(LightColorScheme, DarkColorScheme)
     }
@@ -215,19 +220,13 @@ private fun scoreQuantizedColors(
 private fun createDynamicScheme(
     sourceHct: Hct,
     paletteStyle: AlbumArtPaletteStyle,
-    isDark: Boolean,
-    forceNeutral: Boolean
+    isDark: Boolean
 ): DynamicScheme {
-    if (forceNeutral && paletteStyle != AlbumArtPaletteStyle.MONOCHROME) {
-        return SchemeNeutral(sourceHct, isDark, 0.0)
-    }
-
     return when (paletteStyle) {
         AlbumArtPaletteStyle.TONAL_SPOT -> SchemeTonalSpot(sourceHct, isDark, 0.0)
         AlbumArtPaletteStyle.VIBRANT -> SchemeVibrant(sourceHct, isDark, 0.0)
         AlbumArtPaletteStyle.EXPRESSIVE -> SchemeExpressive(sourceHct, isDark, 0.0)
         AlbumArtPaletteStyle.FRUIT_SALAD -> SchemeFruitSalad(sourceHct, isDark, 0.0)
-        AlbumArtPaletteStyle.MONOCHROME -> SchemeMonochrome(sourceHct, isDark, 0.0)
     }
 }
 
@@ -284,6 +283,83 @@ private fun isMostlyNeutralArtwork(colorsToPopulation: Map<Int, Int>): Boolean {
     return neutralRatio >= REQUIRED_NEUTRAL_POPULATION &&
         highChromaRatio <= MAX_HIGH_CHROMA_POPULATION &&
         meanChroma <= MAX_WEIGHTED_CHROMA_FOR_NEUTRAL
+}
+
+private fun shouldUseNeutralArtworkScheme(argb: Int, sourceHct: Hct): Boolean {
+    return sourceHct.chroma <= GRAYSCALE_CHROMA_THRESHOLD &&
+        isArgbNearGrayscale(argb)
+}
+
+private fun isArgbNearGrayscale(argb: Int): Boolean {
+    val red = (argb ushr 16) and 0xFF
+    val green = (argb ushr 8) and 0xFF
+    val blue = argb and 0xFF
+    return maxOf(
+        abs(red - green),
+        abs(green - blue),
+        abs(red - blue)
+    ) <= MAX_GRAYSCALE_CHANNEL_DELTA
+}
+
+private fun ColorScheme.toGrayscaleColorScheme(): ColorScheme {
+    fun convert(color: Color): Color {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(color.toArgb(), hsl)
+        hsl[0] = 0f
+        hsl[1] = 0f
+        return Color(ColorUtils.HSLToColor(hsl))
+    }
+
+    return copy(
+        primary = convert(primary),
+        onPrimary = convert(onPrimary),
+        primaryContainer = convert(primaryContainer),
+        onPrimaryContainer = convert(onPrimaryContainer),
+        inversePrimary = convert(inversePrimary),
+        secondary = convert(secondary),
+        onSecondary = convert(onSecondary),
+        secondaryContainer = convert(secondaryContainer),
+        onSecondaryContainer = convert(onSecondaryContainer),
+        tertiary = convert(tertiary),
+        onTertiary = convert(onTertiary),
+        tertiaryContainer = convert(tertiaryContainer),
+        onTertiaryContainer = convert(onTertiaryContainer),
+        background = convert(background),
+        onBackground = convert(onBackground),
+        surface = convert(surface),
+        onSurface = convert(onSurface),
+        surfaceVariant = convert(surfaceVariant),
+        onSurfaceVariant = convert(onSurfaceVariant),
+        surfaceTint = convert(surfaceTint),
+        inverseSurface = convert(inverseSurface),
+        inverseOnSurface = convert(inverseOnSurface),
+        error = convert(error),
+        onError = convert(onError),
+        errorContainer = convert(errorContainer),
+        onErrorContainer = convert(onErrorContainer),
+        outline = convert(outline),
+        outlineVariant = convert(outlineVariant),
+        scrim = convert(scrim),
+        surfaceBright = convert(surfaceBright),
+        surfaceDim = convert(surfaceDim),
+        surfaceContainer = convert(surfaceContainer),
+        surfaceContainerHigh = convert(surfaceContainerHigh),
+        surfaceContainerHighest = convert(surfaceContainerHighest),
+        surfaceContainerLow = convert(surfaceContainerLow),
+        surfaceContainerLowest = convert(surfaceContainerLowest),
+        primaryFixed = convert(primaryFixed),
+        primaryFixedDim = convert(primaryFixedDim),
+        onPrimaryFixed = convert(onPrimaryFixed),
+        onPrimaryFixedVariant = convert(onPrimaryFixedVariant),
+        secondaryFixed = convert(secondaryFixed),
+        secondaryFixedDim = convert(secondaryFixedDim),
+        onSecondaryFixed = convert(onSecondaryFixed),
+        onSecondaryFixedVariant = convert(onSecondaryFixedVariant),
+        tertiaryFixed = convert(tertiaryFixed),
+        tertiaryFixedDim = convert(tertiaryFixedDim),
+        onTertiaryFixed = convert(onTertiaryFixed),
+        onTertiaryFixedVariant = convert(onTertiaryFixedVariant)
+    )
 }
 
 private fun DynamicScheme.toComposeColorScheme(): ColorScheme {

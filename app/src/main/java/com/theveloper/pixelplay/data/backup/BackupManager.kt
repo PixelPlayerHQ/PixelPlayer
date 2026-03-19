@@ -102,8 +102,12 @@ class BackupManager @Inject constructor(
         runCatching {
             // Validate file first
             val fileValidation = validationPipeline.validateFile(uri)
+            val warnings = mutableListOf<String>()
             if (fileValidation is BackupValidationResult.Invalid && fileValidation.fatalErrors.isNotEmpty()) {
                 throw IllegalArgumentException(fileValidation.fatalErrors.first().message)
+            }
+            if (fileValidation is BackupValidationResult.Invalid) {
+                warnings.addAll(fileValidation.warnings.map { it.message })
             }
 
             // Build restore plan
@@ -111,12 +115,43 @@ class BackupManager @Inject constructor(
 
             // Validate manifest
             val manifestValidation = validationPipeline.validateManifest(plan.manifest)
-            val warnings = plan.warnings.toMutableList()
+            warnings.addAll(plan.warnings)
             if (manifestValidation is BackupValidationResult.Invalid) {
                 if (manifestValidation.fatalErrors.isNotEmpty()) {
                     throw IllegalArgumentException(manifestValidation.fatalErrors.first().message)
                 }
                 warnings.addAll(manifestValidation.warnings.map { it.message })
+            }
+
+            plan.availableModules.toList().sortedBy { it.key }.forEach { section ->
+                val moduleInfo = plan.manifest.modules[section.key]
+                if (moduleInfo != null && moduleInfo.sizeBytes > BackupReader.MAX_MODULE_PAYLOAD_BYTES) {
+                    warnings.add(
+                        "${section.label}: payload is ${moduleInfo.sizeBytes / (1024 * 1024)}MB, " +
+                            "so preview validation was skipped to avoid running out of memory."
+                    )
+                    return@forEach
+                }
+
+                val payload = backupReader.readModulePayload(uri, section.key).getOrThrow()
+
+                val moduleValidation = validationPipeline.validateModulePayload(
+                    section = section,
+                    payload = payload,
+                    manifest = plan.manifest
+                )
+                if (moduleValidation is BackupValidationResult.Invalid) {
+                    if (moduleValidation.fatalErrors.isNotEmpty()) {
+                        throw IllegalArgumentException(
+                            "${section.label}: ${moduleValidation.fatalErrors.first().message}"
+                        )
+                    }
+                    warnings.addAll(
+                        moduleValidation.warnings.map { warning ->
+                            "${section.label}: ${warning.message}"
+                        }
+                    )
+                }
             }
 
             plan.copy(warnings = warnings)

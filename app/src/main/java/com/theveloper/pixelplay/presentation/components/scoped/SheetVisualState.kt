@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
@@ -17,12 +18,15 @@ private const val PREDICTIVE_BACK_SWIPE_EDGE_RIGHT = 1
 
 internal data class SheetVisualState(
     val currentBottomPadding: Dp,
-    val playerContentAreaHeightDp: Dp,
-    val visualSheetTranslationY: Float,
+    /** Draw-phase provider: read this inside graphicsLayer to avoid layout relayout per frame. */
+    val playerContentAreaHeightPxProvider: () -> Float,
+    /** Layout-phase provider: read inside .offset { } to avoid recomposition per drag frame. */
+    val visualSheetTranslationYProvider: () -> Float,
     val overallSheetTopCornerRadius: Dp,
     val playerContentActualBottomRadius: Dp,
-    val currentHorizontalPaddingStart: Dp,
-    val currentHorizontalPaddingEnd: Dp
+    /** Draw-phase providers: read inside graphicsLayer to avoid layout relayout per frame. */
+    val currentHorizontalPaddingStartPxProvider: () -> Float,
+    val currentHorizontalPaddingEndPxProvider: () -> Float
 )
 
 @Composable
@@ -61,26 +65,33 @@ internal fun rememberSheetVisualState(
         }
     }
 
-    val playerContentAreaHeightDp by remember(
+    // Compute in px to be read inside graphicsLayer (draw phase) — zero relayout per drag frame.
+    val density = LocalDensity.current
+    val miniHeightPx = remember(density) { with(density) { com.theveloper.pixelplay.presentation.components.MiniPlayerHeight.toPx() } }
+    val containerHeightPx = remember(containerHeight, density) { with(density) { containerHeight.toPx() } }
+    val playerContentAreaHeightPxProvider: () -> Float = remember(
         showPlayerContentArea,
         playerContentExpansionFraction,
-        containerHeight
+        miniHeightPx,
+        containerHeightPx
     ) {
-        derivedStateOf {
+        {
             if (showPlayerContentArea) {
-                lerp(
-                    start = com.theveloper.pixelplay.presentation.components.MiniPlayerHeight,
-                    stop = containerHeight,
-                    fraction = playerContentExpansionFraction.value
-                )
+                androidx.compose.ui.util.lerp(miniHeightPx, containerHeightPx, playerContentExpansionFraction.value)
             } else {
-                0.dp
+                0f
             }
         }
     }
 
-    val visualSheetTranslationY by remember {
-        derivedStateOf {
+    // Lambda provider: read inside .offset { } block (layout phase) — avoids recomposition
+    // at ~60fps during drag gestures. The lambda captures Animatable refs and reads them at
+    // layout time, same pattern as the horizontal padding providers above.
+    val visualSheetTranslationYProvider: () -> Float = remember(
+        currentSheetTranslationY,
+        sheetCollapsedTargetY
+    ) {
+        {
             currentSheetTranslationY.value * (1f - predictiveBackCollapseProgress) +
                 (sheetCollapsedTargetY * predictiveBackCollapseProgress)
         }
@@ -186,92 +197,79 @@ internal fun rememberSheetVisualState(
 
     val actualCollapsedStateHorizontalPadding =
         if (navBarStyle == NavBarStyle.FULL_WIDTH) 14.dp else collapsedStateHorizontalPadding
-
-    val currentHorizontalPadding by remember(
-        showPlayerContentArea,
-        playerContentExpansionFraction,
-        actualCollapsedStateHorizontalPadding
-    ) {
-        derivedStateOf {
-            if (showPlayerContentArea) {
-                lerp(
-                    actualCollapsedStateHorizontalPadding,
-                    0.dp,
-                    playerContentExpansionFraction.value
-                )
-            } else {
-                actualCollapsedStateHorizontalPadding
-            }
-        }
+    val collapsedStateHorizontalPaddingPx = remember(actualCollapsedStateHorizontalPadding, density) {
+        with(density) { actualCollapsedStateHorizontalPadding.toPx() }
     }
 
-    val currentHorizontalPaddingStart by remember(
+    // Draw-phase lambda providers for horizontal padding — read inside graphicsLayer to avoid
+    // per-frame relayout. The lambda captures Animatable/Float refs and reads them at draw time.
+    val currentHorizontalPaddingStartPxProvider: () -> Float = remember(
         showPlayerContentArea,
         currentSheetContentState,
         predictiveBackCollapseProgress,
         predictiveBackSwipeEdge,
-        actualCollapsedStateHorizontalPadding,
-        currentHorizontalPadding
+        collapsedStateHorizontalPaddingPx,
+        playerContentExpansionFraction
     ) {
-        derivedStateOf {
+        {
+            val currentPadding = if (showPlayerContentArea) {
+                androidx.compose.ui.util.lerp(collapsedStateHorizontalPaddingPx, 0f, playerContentExpansionFraction.value)
+            } else {
+                collapsedStateHorizontalPaddingPx
+            }
             if (predictiveBackCollapseProgress > 0f &&
                 showPlayerContentArea &&
                 currentSheetContentState == PlayerSheetState.EXPANDED
             ) {
-                val gestureSidePadding = lerp(
-                    start = 0.dp,
-                    stop = actualCollapsedStateHorizontalPadding,
-                    fraction = predictiveBackCollapseProgress
-                )
-
+                val gestureSidePaddingPx = androidx.compose.ui.util.lerp(0f, collapsedStateHorizontalPaddingPx, predictiveBackCollapseProgress)
                 when (predictiveBackSwipeEdge) {
-                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> gestureSidePadding
-                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> 0.dp
-                    else -> currentHorizontalPadding
+                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> gestureSidePaddingPx
+                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> 0f
+                    else -> currentPadding
                 }
             } else {
-                currentHorizontalPadding
+                currentPadding
             }
         }
     }
 
-    val currentHorizontalPaddingEnd by remember(
+    val currentHorizontalPaddingEndPxProvider: () -> Float = remember(
         showPlayerContentArea,
         currentSheetContentState,
         predictiveBackCollapseProgress,
         predictiveBackSwipeEdge,
-        actualCollapsedStateHorizontalPadding,
-        currentHorizontalPadding
+        collapsedStateHorizontalPaddingPx,
+        playerContentExpansionFraction
     ) {
-        derivedStateOf {
+        {
+            val currentPadding = if (showPlayerContentArea) {
+                androidx.compose.ui.util.lerp(collapsedStateHorizontalPaddingPx, 0f, playerContentExpansionFraction.value)
+            } else {
+                collapsedStateHorizontalPaddingPx
+            }
             if (predictiveBackCollapseProgress > 0f &&
                 showPlayerContentArea &&
                 currentSheetContentState == PlayerSheetState.EXPANDED
             ) {
-                val gestureSidePadding = lerp(
-                    start = 0.dp,
-                    stop = actualCollapsedStateHorizontalPadding,
-                    fraction = predictiveBackCollapseProgress
-                )
-
+                val gestureSidePaddingPx = androidx.compose.ui.util.lerp(0f, collapsedStateHorizontalPaddingPx, predictiveBackCollapseProgress)
                 when (predictiveBackSwipeEdge) {
-                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> 0.dp
-                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> gestureSidePadding
-                    else -> currentHorizontalPadding
+                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> 0f
+                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> gestureSidePaddingPx
+                    else -> currentPadding
                 }
             } else {
-                currentHorizontalPadding
+                currentPadding
             }
         }
     }
 
     return SheetVisualState(
         currentBottomPadding = currentBottomPadding,
-        playerContentAreaHeightDp = playerContentAreaHeightDp,
-        visualSheetTranslationY = visualSheetTranslationY,
+        playerContentAreaHeightPxProvider = playerContentAreaHeightPxProvider,
+        visualSheetTranslationYProvider = visualSheetTranslationYProvider,
         overallSheetTopCornerRadius = overallSheetTopCornerRadius,
         playerContentActualBottomRadius = playerContentActualBottomRadius,
-        currentHorizontalPaddingStart = currentHorizontalPaddingStart,
-        currentHorizontalPaddingEnd = currentHorizontalPaddingEnd
+        currentHorizontalPaddingStartPxProvider = currentHorizontalPaddingStartPxProvider,
+        currentHorizontalPaddingEndPxProvider = currentHorizontalPaddingEndPxProvider
     )
 }

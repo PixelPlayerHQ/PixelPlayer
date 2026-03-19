@@ -7,8 +7,7 @@ enum class AlbumArtPaletteStyle(
     TONAL_SPOT("tonal_spot", "Tonal Spot"),
     VIBRANT("vibrant", "Vibrant"),
     EXPRESSIVE("expressive", "Expressive"),
-    FRUIT_SALAD("fruit_salad", "Fruit Salad"),
-    MONOCHROME("monochrome", "Monochrome");
+    FRUIT_SALAD("fruit_salad", "Fruit Salad");
 
     companion object {
         val default: AlbumArtPaletteStyle = TONAL_SPOT

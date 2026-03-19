@@ -2,19 +2,24 @@ package com.theveloper.pixelplay.presentation.screens
 
 import android.graphics.Bitmap
 import android.os.SystemClock
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,9 +27,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,43 +38,46 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -85,8 +93,11 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.pager.HorizontalPager
 import androidx.wear.compose.foundation.pager.rememberPagerState
+import androidx.wear.compose.foundation.requestFocusOnHierarchyActive
+import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
@@ -95,35 +106,47 @@ import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.HorizontalPageIndicator as M3HorizontalPageIndicator
 import androidx.wear.compose.material3.Icon as M3Icon
+import com.google.android.horologist.audio.ui.VolumeUiState
+import com.google.android.horologist.audio.ui.volumeRotaryBehavior
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.AlwaysOnScalingPositionIndicator
+import com.theveloper.pixelplay.presentation.components.CurvedVolumeIndicator
+import com.theveloper.pixelplay.presentation.components.outputRouteIcon
 import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.shapes.RoundedStarShape
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
 import com.theveloper.pixelplay.presentation.theme.radialBackgroundBrush
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import com.theveloper.pixelplay.shared.WearPlayerState
+import com.theveloper.pixelplay.shared.WearVolumeState
 import androidx.core.graphics.ColorUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
+import kotlin.math.abs
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun PlayerScreen(
-    onBrowseClick: () -> Unit = {},
+    onBrowseCategoryClick: (browseType: String, title: String) -> Unit = { _, _ -> },
     onVolumeClick: () -> Unit = {},
     onOutputClick: () -> Unit = {},
-    onQueueClick: () -> Unit = onBrowseClick,
+    onMoreClick: () -> Unit = {},
+    onQueueClick: () -> Unit = {},
     viewModel: WearPlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.playerState.collectAsState()
     val isPhoneConnected by viewModel.isPhoneConnected.collectAsState()
     val isWatchOutputSelected by viewModel.isWatchOutputSelected.collectAsState()
+    val activeOutputRouteType by viewModel.activeOutputRouteType.collectAsState()
+    val activeVolumeState by viewModel.activeVolumeState.collectAsState()
     val albumArt by viewModel.albumArt.collectAsState()
 
     PlayerContent(
@@ -131,15 +154,16 @@ fun PlayerScreen(
         albumArt = albumArt,
         isPhoneConnected = isPhoneConnected,
         isWatchOutputSelected = isWatchOutputSelected,
+        activeVolumeState = activeVolumeState,
         onTogglePlayPause = viewModel::togglePlayPause,
         onNext = viewModel::next,
         onPrevious = viewModel::previous,
-        onToggleFavorite = viewModel::toggleFavorite,
-        onToggleShuffle = viewModel::toggleShuffle,
-        onCycleRepeat = viewModel::cycleRepeat,
-        onBrowseClick = onBrowseClick,
+        onSetActiveVolume = viewModel::setActiveVolume,
+        activeOutputRouteType = activeOutputRouteType,
+        onBrowseCategoryClick = onBrowseCategoryClick,
         onVolumeClick = onVolumeClick,
         onOutputClick = onOutputClick,
+        onMoreClick = onMoreClick,
         onQueueClick = onQueueClick,
     )
 }
@@ -150,24 +174,29 @@ private fun PlayerContent(
     albumArt: Bitmap?,
     isPhoneConnected: Boolean,
     isWatchOutputSelected: Boolean = false,
+    activeVolumeState: WearVolumeState,
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onToggleShuffle: () -> Unit,
-    onCycleRepeat: () -> Unit,
-    onBrowseClick: () -> Unit,
+    onSetActiveVolume: (Int) -> Unit,
+    activeOutputRouteType: String,
+    onBrowseCategoryClick: (browseType: String, title: String) -> Unit,
     onVolumeClick: () -> Unit,
     onOutputClick: () -> Unit,
+    onMoreClick: () -> Unit,
     onQueueClick: () -> Unit,
 ) {
     val palette = LocalWearPalette.current
     val background = palette.radialBackgroundBrush()
 
-    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
-    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     var mainPageQueueReveal by remember { mutableFloatStateOf(0f) }
-    val hidePageIndicator = pagerState.currentPage == 1 && mainPageQueueReveal > 0.05f
+    var albumRevealProgress by remember { mutableFloatStateOf(0f) }
+    val isMainPlayerPage = pagerState.currentPage == 0
+    val isMainPlayerOverlayVisible =
+        mainPageQueueReveal > 0.05f || albumRevealProgress > 0.05f
+    val showPageIndicator =
+        !isMainPlayerPage || (pagerState.isScrollInProgress && !isMainPlayerOverlayVisible)
 
     Box(
         modifier = Modifier
@@ -181,64 +210,268 @@ private fun PlayerContent(
         ) { page ->
             when (page) {
                 0 -> {
-                    AlbumArtPage(
+                    PlayerMainPageHost(
                         state = state,
                         albumArt = albumArt,
-                        onTap = {
-                            scope.launch { pagerState.animateScrollToPage(1) }
-                        },
-                    )
-                }
-
-                1 -> {
-                    MainPlayerPage(
-                        state = state,
+                        isCurrentPage = pagerState.currentPage == 0,
                         isPhoneConnected = isPhoneConnected,
                         isWatchOutputSelected = isWatchOutputSelected,
+                        activeVolumeState = activeVolumeState,
                         onTogglePlayPause = onTogglePlayPause,
                         onNext = onNext,
                         onPrevious = onPrevious,
-                        onToggleFavorite = onToggleFavorite,
-                        onToggleShuffle = onToggleShuffle,
-                        onCycleRepeat = onCycleRepeat,
+                        onSetActiveVolume = onSetActiveVolume,
+                        activeOutputRouteType = activeOutputRouteType,
+                        onVolumeClick = onVolumeClick,
+                        onOutputClick = onOutputClick,
+                        onMoreClick = onMoreClick,
                         onQueueClick = onQueueClick,
                         onQueueShortcutRevealChanged = { mainPageQueueReveal = it },
+                        onAlbumRevealProgressChanged = { albumRevealProgress = it },
                     )
                 }
 
                 else -> {
-                    UtilityPage(
-                        enabled = true,
-                        onBrowseClick = onBrowseClick,
-                        onVolumeClick = onVolumeClick,
-                        onOutputClick = onOutputClick,
+                    BrowseScreen(
+                        onCategoryClick = onBrowseCategoryClick,
                     )
                 }
             }
         }
 
-        if (!hidePageIndicator) {
+        AnimatedVisibility(
+            visible = showPageIndicator,
+            enter = fadeIn(animationSpec = tween(durationMillis = 180)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 240)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .zIndex(6f),
+        ) {
             M3HorizontalPageIndicator(
                 pagerState = pagerState,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 10.dp)
-                    .zIndex(6f),
+                    .padding(bottom = 10.dp),
                 selectedColor = palette.textPrimary,
                 unselectedColor = palette.textPrimary.copy(alpha = 0.52f),
                 backgroundColor = Color.Transparent,
             )
         }
+    }
+}
 
-        if (pagerState.currentPage != 0) {
+@Composable
+private fun PlayerMainPageHost(
+    state: WearPlayerState,
+    albumArt: Bitmap?,
+    isCurrentPage: Boolean,
+    isPhoneConnected: Boolean,
+    isWatchOutputSelected: Boolean,
+    activeVolumeState: WearVolumeState,
+    onTogglePlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onSetActiveVolume: (Int) -> Unit,
+    activeOutputRouteType: String,
+    onVolumeClick: () -> Unit,
+    onOutputClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onQueueClick: () -> Unit,
+    onQueueShortcutRevealChanged: (Float) -> Unit,
+    onAlbumRevealProgressChanged: (Float) -> Unit,
+) {
+    val palette = LocalWearPalette.current
+    val density = LocalDensity.current
+    val canShowAlbumArt = !state.isEmpty
+    var isDraggingAlbumReveal by remember { mutableStateOf(false) }
+    var rawAlbumRevealProgress by remember { mutableFloatStateOf(0f) }
+    val albumRevealProgress by animateFloatAsState(
+        targetValue = rawAlbumRevealProgress,
+        animationSpec = if (isDraggingAlbumReveal) {
+            snap()
+        } else {
+            spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow,
+            )
+        },
+        label = "albumRevealProgress",
+    )
+
+    LaunchedEffect(canShowAlbumArt, isCurrentPage) {
+        if (!canShowAlbumArt || !isCurrentPage) {
+            isDraggingAlbumReveal = false
+            rawAlbumRevealProgress = 0f
+        }
+    }
+
+    SideEffect {
+        onAlbumRevealProgressChanged(albumRevealProgress)
+    }
+
+    BackHandler(enabled = albumRevealProgress > 0.01f) {
+        isDraggingAlbumReveal = false
+        rawAlbumRevealProgress = 0f
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val heightPx = with(density) { maxHeight.toPx().coerceAtLeast(1f) }
+        val revealDistancePx = heightPx * 0.62f
+        val overlayOffsetPx = -heightPx * (1f - albumRevealProgress)
+        val mainTranslationY = -heightPx * 0.08f * albumRevealProgress
+        val mainScale = 1f - (0.04f * albumRevealProgress)
+        val mainAlpha = 1f - (0.26f * albumRevealProgress)
+        val timeAlpha = (1f - (albumRevealProgress * 1.6f)).coerceIn(0f, 1f)
+
+        fun settleAlbumReveal(progress: Float, velocityY: Float = 0f) {
+            isDraggingAlbumReveal = false
+            rawAlbumRevealProgress = if (shouldOpenAlbumArtReveal(progress, velocityY)) 1f else 0f
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            MainPlayerPage(
+                state = state,
+                isPhoneConnected = isPhoneConnected,
+                isWatchOutputSelected = isWatchOutputSelected,
+                activeVolumeState = activeVolumeState,
+                onTogglePlayPause = onTogglePlayPause,
+                onNext = onNext,
+                onPrevious = onPrevious,
+                onSetActiveVolume = onSetActiveVolume,
+                rotaryEnabled = isCurrentPage && albumRevealProgress <= 0.01f,
+                activeOutputRouteType = activeOutputRouteType,
+                onVolumeClick = onVolumeClick,
+                onOutputClick = onOutputClick,
+                onMoreClick = onMoreClick,
+                onQueueClick = onQueueClick,
+                onQueueShortcutRevealChanged = onQueueShortcutRevealChanged,
+                modifier = Modifier.graphicsLayer {
+                    translationY = mainTranslationY
+                    scaleX = mainScale
+                    scaleY = mainScale
+                    alpha = mainAlpha
+                },
+            )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .albumArtRevealDragGesture(
+                        enabled = canShowAlbumArt && isCurrentPage,
+                        currentProgress = albumRevealProgress,
+                        revealDistancePx = revealDistancePx,
+                        onDragStart = {
+                            isDraggingAlbumReveal = true
+                            rawAlbumRevealProgress = albumRevealProgress
+                        },
+                        onProgressChange = { rawAlbumRevealProgress = it },
+                        onRelease = { progress, velocityY ->
+                            settleAlbumReveal(progress, velocityY)
+                        },
+                    )
+                    .clickable(enabled = canShowAlbumArt && isCurrentPage) {
+                        isDraggingAlbumReveal = false
+                        rawAlbumRevealProgress = 1f
+                    }
+                    .zIndex(5f),
+            )
+
             WearTopTimeText(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .zIndex(5f),
+                    .graphicsLayer { alpha = timeAlpha }
+                    .zIndex(6f),
                 color = palette.textPrimary,
             )
+
+            if (canShowAlbumArt || albumRevealProgress > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            translationY = overlayOffsetPx
+                            alpha = albumRevealProgress
+                        }
+                        .albumArtRevealDragGesture(
+                            enabled = isCurrentPage,
+                            currentProgress = albumRevealProgress,
+                            revealDistancePx = revealDistancePx,
+                            onDragStart = {
+                                isDraggingAlbumReveal = true
+                                rawAlbumRevealProgress = albumRevealProgress
+                            },
+                            onProgressChange = { rawAlbumRevealProgress = it },
+                            onRelease = { progress, velocityY ->
+                                settleAlbumReveal(progress, velocityY)
+                            },
+                        )
+                        .zIndex(8f),
+                ) {
+                    AlbumArtPage(
+                        state = state,
+                        albumArt = albumArt,
+                        onTap = {
+                            isDraggingAlbumReveal = false
+                            rawAlbumRevealProgress = 0f
+                        },
+                    )
+                }
+            }
         }
     }
+}
+
+private fun Modifier.albumArtRevealDragGesture(
+    enabled: Boolean,
+    currentProgress: Float,
+    revealDistancePx: Float,
+    onDragStart: () -> Unit,
+    onProgressChange: (Float) -> Unit,
+    onRelease: (Float, Float) -> Unit,
+): Modifier {
+    if (!enabled) return this
+
+    return this.pointerInput(enabled, currentProgress, revealDistancePx) {
+        val velocityTracker = VelocityTracker()
+        var dragProgress = currentProgress
+        var openingFromClosed = false
+        detectVerticalDragGestures(
+            onDragStart = {
+                velocityTracker.resetTracking()
+                dragProgress = currentProgress
+                openingFromClosed = currentProgress <= 0.01f
+                onDragStart()
+            },
+            onVerticalDrag = { change, dragAmount ->
+                change.consume()
+                velocityTracker.addPosition(change.uptimeMillis, change.position)
+                val progressDelta = if (openingFromClosed) {
+                    abs(dragAmount) / revealDistancePx
+                } else {
+                    -dragAmount / revealDistancePx
+                }
+                dragProgress = (dragProgress + progressDelta).coerceIn(0f, 1f)
+                onProgressChange(dragProgress)
+            },
+            onDragEnd = {
+                onRelease(dragProgress, velocityTracker.calculateVelocity().y)
+            },
+            onDragCancel = {
+                onRelease(dragProgress, 0f)
+            },
+        )
+    }
+}
+
+private fun shouldOpenAlbumArtReveal(
+    progress: Float,
+    velocityY: Float,
+): Boolean = when {
+    velocityY <= -900f -> true
+    velocityY >= 900f -> false
+    progress >= 0.34f -> true
+    else -> false
 }
 
 @Composable
@@ -751,20 +984,27 @@ private fun deriveClockTintFromAlbumArt(albumArt: Bitmap?, fallback: Color): Col
 }
 
 @Composable
+@OptIn(ExperimentalWearFoundationApi::class)
 private fun MainPlayerPage(
     state: WearPlayerState,
     isPhoneConnected: Boolean,
     isWatchOutputSelected: Boolean = false,
+    activeVolumeState: WearVolumeState,
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onToggleShuffle: () -> Unit,
-    onCycleRepeat: () -> Unit,
+    onSetActiveVolume: (Int) -> Unit,
+    rotaryEnabled: Boolean,
+    activeOutputRouteType: String,
+    onVolumeClick: () -> Unit,
+    onOutputClick: () -> Unit,
+    onMoreClick: () -> Unit,
     onQueueClick: () -> Unit,
     onQueueShortcutRevealChanged: (Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val palette = LocalWearPalette.current
+    val volumeEnabled = isPhoneConnected || isWatchOutputSelected
     val columnState = rememberResponsiveColumnState(
         contentPadding = {
             PaddingValues(
@@ -813,11 +1053,60 @@ private fun MainPlayerPage(
         animationSpec = tween(durationMillis = 220),
         label = "queueShortcutReveal",
     )
+    val rotaryFocusRequester = remember { FocusRequester() }
+    val rotaryVolumeUiState = remember(activeVolumeState.level, activeVolumeState.max) {
+        VolumeUiState(
+            current = activeVolumeState.level.coerceAtLeast(0),
+            max = activeVolumeState.max.coerceAtLeast(0),
+            min = 0,
+        )
+    }
+    var showVolumeOverlay by remember { mutableStateOf(false) }
+    var volumeOverlayInteractionTick by remember { mutableIntStateOf(0) }
+    val volumeProgress = if (activeVolumeState.max > 0) {
+        (activeVolumeState.level.toFloat() / activeVolumeState.max.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    LaunchedEffect(rotaryEnabled) {
+        if (!rotaryEnabled) {
+            showVolumeOverlay = false
+        }
+    }
+    LaunchedEffect(volumeOverlayInteractionTick, rotaryEnabled) {
+        if (!rotaryEnabled || volumeOverlayInteractionTick == 0) return@LaunchedEffect
+        showVolumeOverlay = true
+        delay(2_000L)
+        showVolumeOverlay = false
+    }
     LaunchedEffect(queueShortcutReveal) {
         onQueueShortcutRevealChanged(queueShortcutReveal)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val rotaryModifier = if (rotaryEnabled && volumeEnabled && activeVolumeState.max > 0) {
+        Modifier
+            .requestFocusOnHierarchyActive()
+            .rotaryScrollable(
+                behavior = volumeRotaryBehavior(
+                    volumeUiStateProvider = { rotaryVolumeUiState },
+                    onRotaryVolumeInput = { newVolume ->
+                        showVolumeOverlay = true
+                        volumeOverlayInteractionTick++
+                        onSetActiveVolume(newVolume)
+                    },
+                ),
+                focusRequester = rotaryFocusRequester,
+            )
+    } else {
+        Modifier
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .then(rotaryModifier)
+    ) {
         ScalingLazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -848,25 +1137,33 @@ private fun MainPlayerPage(
                 )
             }
 
-            if (!isWatchOutputSelected) {
-                item {
-                    SecondaryControlsRow(
-                        isFavorite = state.isFavorite,
-                        isShuffleEnabled = state.isShuffleEnabled,
-                        repeatMode = state.repeatMode,
-                        enabled = isPhoneConnected && !state.isEmpty,
-                        onToggleFavorite = onToggleFavorite,
-                        onToggleShuffle = onToggleShuffle,
-                        onCycleRepeat = onCycleRepeat,
-                        favoriteActiveColor = palette.favoriteActive,
-                        shuffleActiveColor = palette.shuffleActive,
-                        repeatActiveColor = palette.repeatActive,
-                    )
-                }
+            item {
+                SecondaryControlsRow(
+                    volumeEnabled = volumeEnabled,
+                    deviceEnabled = volumeEnabled,
+                    deviceRouteType = if (isWatchOutputSelected) {
+                        com.theveloper.pixelplay.shared.WearVolumeState.ROUTE_TYPE_WATCH
+                    } else {
+                        activeOutputRouteType
+                    },
+                    moreEnabled = !state.isEmpty,
+                    onVolumeClick = onVolumeClick,
+                    onOutputClick = onOutputClick,
+                    onMoreClick = onMoreClick,
+                    deviceActiveColor = palette.shuffleActive,
+                )
             }
 
             item { Spacer(modifier = Modifier.height(50.dp)) }
         }
+
+        PlayerCrownVolumeIndicator(
+            progress = volumeProgress,
+            visible = showVolumeOverlay,
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(2f),
+        )
 
         BottomQueueShortcut(
             revealProgress = queueShortcutReveal,
@@ -913,6 +1210,47 @@ private fun rememberLivePositionMs(state: WearPlayerState): androidx.compose.run
             if (next >= safeDuration) break
             delay(250L)
         }
+    }
+}
+
+@Composable
+private fun PlayerCrownVolumeIndicator(
+    progress: Float,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalWearPalette.current
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = if (visible) 180 else 220),
+        label = "playerVolumeOverlayAlpha",
+    )
+    val overlayScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.96f,
+        animationSpec = tween(durationMillis = if (visible) 180 else 220),
+        label = "playerVolumeOverlayScale",
+    )
+
+    if (overlayAlpha <= 0.01f && !visible) return
+
+    Box(
+        modifier = modifier.graphicsLayer {
+            alpha = overlayAlpha
+            scaleX = overlayScale
+            scaleY = overlayScale
+            transformOrigin = TransformOrigin(0f, 0.5f)
+        }
+    ) {
+        CurvedVolumeIndicator(
+            progress = progress,
+            modifier = Modifier.fillMaxSize(),
+            startAngle = 144f,
+            sweepAngle = 72f,
+            strokeWidth = 4.dp,
+            inset = 10.dp,
+            trackColor = palette.surfaceContainerColor().copy(alpha = 0.42f),
+            progressColor = palette.controlContainer.copy(alpha = 0.94f),
+        )
     }
 }
 
@@ -964,15 +1302,15 @@ private fun HeaderBlock(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (isWatchOutputSelected) {
-            Text(
-                text = "On watch",
-                style = MaterialTheme.typography.caption3,
-                color = palette.shuffleActive.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+//        if (isWatchOutputSelected) {
+//            Text(
+//                text = "On watch",
+//                style = MaterialTheme.typography.caption3,
+//                color = palette.shuffleActive.copy(alpha = 0.85f),
+//                textAlign = TextAlign.Center,
+//                modifier = Modifier.fillMaxWidth(),
+//            )
+//        }
     }
 }
 
@@ -1034,8 +1372,8 @@ private fun FlattenedControlButton(
     height: Dp,
 ) {
     val palette = LocalWearPalette.current
-    val container = if (enabled) palette.controlContainer else palette.controlDisabledContainer
-    val tint = if (enabled) palette.controlContent else palette.controlDisabledContent
+    val container = if (enabled) palette.transportContainer else palette.controlDisabledContainer
+    val tint = if (enabled) palette.transportContent else palette.controlDisabledContent
 
     Box(
         modifier = Modifier
@@ -1068,19 +1406,25 @@ private fun CenterPlayButton(
         animationSpec = spring(),
         label = "playStarCurve",
     )
-    val infiniteTransition = rememberInfiniteTransition(label = "playStarSpin")
-    val spinningRotation by infiniteTransition.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 13800,
-                easing = LinearEasing,
-            ),
-        ),
-        label = "playStarRotationInfinite",
-    )
-    val animatedRotation = if (isPlaying) spinningRotation else 0f
+    val rotation = remember { Animatable(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                val current = rotation.value
+                rotation.animateTo(
+                    targetValue = current + 360f,
+                    animationSpec = tween(
+                        durationMillis = 13800,
+                        easing = LinearEasing,
+                    ),
+                )
+                if (rotation.value >= 3600f) {
+                    rotation.snapTo(rotation.value % 360f)
+                }
+            }
+        }
+    }
+    val animatedRotation = rotation.value
     val animatedSize by animateDpAsState(
         targetValue = if (isPlaying) 60.dp else 56.dp,
         animationSpec = spring(),
@@ -1105,31 +1449,67 @@ private fun CenterPlayButton(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = 4.dp.toPx()
-            val diameter = size.minDimension - strokeWidth
-            val arcTopLeft = Offset(
-                x = (size.width - diameter) / 2f,
-                y = (size.height - diameter) / 2f,
+            val ringInset = (strokeWidth / 2f) + 1.5.dp.toPx()
+            val ringRadius = ((size.minDimension - (ringInset * 2f)) / 2f).coerceAtLeast(0f)
+            val ringPath = buildPlayButtonRingPath(
+                centerX = size.width / 2f,
+                centerY = size.height / 2f,
+                radius = ringRadius,
+                curve = animatedCurve,
+                rotation = animatedRotation,
             )
-            val arcSize = Size(diameter, diameter)
+            val ringStroke = Stroke(
+                width = strokeWidth,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            )
 
-            drawArc(
-                color = palette.chipContainer.copy(alpha = 0.62f),
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = arcTopLeft,
-                size = arcSize,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+            drawPath(
+                path = ringPath,
+                color = palette.surfaceContainerLowest, //.copy(alpha = 0.62f),
+                style = ringStroke,
             )
-            drawArc(
-                color = palette.controlContainer.copy(alpha = if (enabled) 1f else 0.95f),
-                startAngle = -90f,
-                sweepAngle = 360f * ringProgress,
-                useCenter = false,
-                topLeft = arcTopLeft,
-                size = arcSize,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-            )
+
+            val pathMeasure = PathMeasure().apply {
+                setPath(ringPath, forceClosed = true)
+            }
+            val pathLength = pathMeasure.length
+            val progressLength = pathLength * ringProgress
+            if (progressLength > 0f && pathLength > 0f) {
+                val normalizedRotation = ((animatedRotation % 360f) + 360f) % 360f
+                val startDistance = (pathLength * (normalizedRotation / 360f)).coerceIn(0f, pathLength)
+                val boundedProgress = progressLength.coerceAtMost(pathLength)
+                val progressPath = Path()
+
+                if (startDistance + boundedProgress <= pathLength) {
+                    pathMeasure.getSegment(
+                        startDistance = startDistance,
+                        stopDistance = startDistance + boundedProgress,
+                        destination = progressPath,
+                        startWithMoveTo = true,
+                    )
+                } else {
+                    val firstLeg = pathLength - startDistance
+                    pathMeasure.getSegment(
+                        startDistance = startDistance,
+                        stopDistance = pathLength,
+                        destination = progressPath,
+                        startWithMoveTo = true,
+                    )
+                    pathMeasure.getSegment(
+                        startDistance = 0f,
+                        stopDistance = (boundedProgress - firstLeg).coerceAtLeast(0f),
+                        destination = progressPath,
+                        startWithMoveTo = false,
+                    )
+                }
+
+                drawPath(
+                    path = progressPath,
+                    color = palette.controlContainer.copy(alpha = if (enabled) 1f else 0.95f),
+                    style = ringStroke,
+                )
+            }
         }
 
         Box(
@@ -1156,18 +1536,54 @@ private fun CenterPlayButton(
     }
 }
 
+private fun buildPlayButtonRingPath(
+    centerX: Float,
+    centerY: Float,
+    radius: Float,
+    curve: Float,
+    rotation: Float,
+    sides: Int = 8,
+    steps: Int = 320,
+): Path {
+    val twoPi = Math.PI * 2.0
+    val startAngle = -Math.PI / 2.0
+    val angleStep = twoPi / steps.toDouble()
+    val rotationRad = Math.toRadians(rotation.toDouble())
+    val ringPath = Path()
+    val boundedCurve = curve.coerceIn(0f, 0.12f)
+    val boundedRadius = radius.coerceAtLeast(0f)
+
+    fun pointAt(t: Double): Offset {
+        val angle = startAngle + t
+        val wave = 1f + (boundedCurve * cos((sides * angle)).toFloat())
+        val distance = boundedRadius * wave
+        val x = centerX + (distance * cos(angle - rotationRad).toFloat())
+        val y = centerY + (distance * sin(angle - rotationRad).toFloat())
+        return Offset(x, y)
+    }
+
+    val firstPoint = pointAt(0.0)
+    ringPath.moveTo(firstPoint.x, firstPoint.y)
+    var t = angleStep
+    while (t <= twoPi) {
+        val point = pointAt(t)
+        ringPath.lineTo(point.x, point.y)
+        t += angleStep
+    }
+    ringPath.close()
+    return ringPath
+}
+
 @Composable
 private fun SecondaryControlsRow(
-    isFavorite: Boolean,
-    isShuffleEnabled: Boolean,
-    repeatMode: Int,
-    enabled: Boolean,
-    onToggleFavorite: () -> Unit,
-    onToggleShuffle: () -> Unit,
-    onCycleRepeat: () -> Unit,
-    favoriteActiveColor: Color,
-    shuffleActiveColor: Color,
-    repeatActiveColor: Color,
+    volumeEnabled: Boolean,
+    deviceEnabled: Boolean,
+    deviceRouteType: String,
+    moreEnabled: Boolean,
+    onVolumeClick: () -> Unit,
+    onOutputClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    deviceActiveColor: Color,
 ) {
     Row(
         modifier = Modifier
@@ -1181,32 +1597,36 @@ private fun SecondaryControlsRow(
     ) {
         SecondaryActionSlot(lower = false) {
             SecondaryActionButton(
-                icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                enabled = enabled,
-                active = isFavorite,
-                activeColor = favoriteActiveColor,
-                onClick = onToggleFavorite,
-                contentDescription = "Like",
+                icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                enabled = volumeEnabled,
+                active = false,
+                activeColor = deviceActiveColor,
+                raisedInactiveStyle = true,
+                onClick = onVolumeClick,
+                contentDescription = "Volume",
             )
         }
         SecondaryActionSlot(lower = true) {
             SecondaryActionButton(
-                icon = Icons.Rounded.Shuffle,
-                enabled = enabled,
-                active = isShuffleEnabled,
-                activeColor = shuffleActiveColor,
-                onClick = onToggleShuffle,
-                contentDescription = "Shuffle",
+                icon = outputRouteIcon(deviceRouteType),
+                enabled = deviceEnabled,
+                active = deviceRouteType == com.theveloper.pixelplay.shared.WearVolumeState.ROUTE_TYPE_WATCH,
+                activeColor = deviceActiveColor,
+                raisedInactiveStyle = true,
+                onClick = onOutputClick,
+                contentDescription = "Output device",
             )
         }
         SecondaryActionSlot(lower = false) {
             SecondaryActionButton(
-                icon = if (repeatMode == 1) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                enabled = enabled,
-                active = repeatMode != 0,
-                activeColor = repeatActiveColor,
-                onClick = onCycleRepeat,
-                contentDescription = "Repeat",
+                icon = Icons.Rounded.MoreVert,
+                enabled = moreEnabled,
+                active = false,
+                activeColor = deviceActiveColor,
+                raisedInactiveStyle = true,
+                heavilyMutedWhenDisabled = true,
+                onClick = onMoreClick,
+                contentDescription = "More options",
             )
         }
     }
@@ -1218,25 +1638,47 @@ private fun SecondaryActionButton(
     enabled: Boolean,
     active: Boolean,
     activeColor: Color,
+    raisedInactiveStyle: Boolean = false,
+    heavilyMutedWhenDisabled: Boolean = false,
     onClick: () -> Unit,
     contentDescription: String,
 ) {
     val palette = LocalWearPalette.current
     val activeContainerColor = activeColor.copy(alpha = 0.84f)
+    val inactiveContainerColor = if (raisedInactiveStyle) {
+        palette.surfaceContainerHighest
+    } else {
+        palette.chipContainer
+    }
+    val inactiveContentColor = if (raisedInactiveStyle) {
+        palette.textPrimary.copy(alpha = 0.94f)
+    } else {
+        palette.chipContent
+    }
+    val disabledContainerColor = if (heavilyMutedWhenDisabled) {
+        palette.surfaceContainerLowest.copy(alpha = 0.92f)
+    } else {
+        palette.controlDisabledContainer
+    }
+    val disabledContentColor = if (heavilyMutedWhenDisabled) {
+        palette.textSecondary.copy(alpha = 0.48f)
+    } else {
+        palette.controlDisabledContent
+    }
     val container by animateColorAsState(
         targetValue = when {
-            !enabled -> palette.controlDisabledContainer
+            !enabled -> disabledContainerColor
             active -> activeContainerColor
-            else -> palette.chipContainer
+            else -> inactiveContainerColor
         },
         animationSpec = spring(),
         label = "secondaryContainer",
     )
     val tint by animateColorAsState(
         targetValue = when {
-            !enabled -> palette.controlDisabledContent
+            !enabled -> disabledContentColor
             active -> if (activeContainerColor.luminance() > 0.52f) Color.Black else Color.White
-            else -> palette.chipContent
+            else -> inactiveContentColor
         },
         animationSpec = spring(),
         label = "secondaryTint",
@@ -1321,101 +1763,6 @@ private fun BottomQueueShortcut(
             imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
             contentDescription = "Queue",
             modifier = Modifier.size(iconSize),
-        )
-    }
-}
-
-@Composable
-private fun UtilityPage(
-    enabled: Boolean,
-    onBrowseClick: () -> Unit,
-    onVolumeClick: () -> Unit,
-    onOutputClick: () -> Unit,
-) {
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        val maxSafeWidth = maxWidth - 10.dp
-        val middleWidth = (maxWidth * 0.84f).let { width ->
-            if (width > maxSafeWidth) maxSafeWidth else width
-        }
-        val sideWidth = (middleWidth * 0.82f).let { width ->
-            if (width < 128.dp) 128.dp else width
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 30.dp, bottom = 22.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            UtilityPillButton(
-                icon = Icons.Rounded.PhoneAndroid,
-                label = "Device",
-                enabled = enabled,
-                width = sideWidth,
-                onClick = onOutputClick,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            UtilityPillButton(
-                icon = Icons.Rounded.LibraryMusic,
-                label = "Library",
-                enabled = enabled,
-                width = middleWidth,
-                onClick = onBrowseClick,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            UtilityPillButton(
-                icon = Icons.AutoMirrored.Rounded.VolumeUp,
-                label = "Volume",
-                enabled = enabled,
-                width = sideWidth,
-                onClick = onVolumeClick,
-            )
-        }
-    }
-}
-
-@Composable
-private fun UtilityPillButton(
-    icon: ImageVector,
-    label: String,
-    enabled: Boolean,
-    width: Dp,
-    onClick: () -> Unit,
-) {
-    val palette = LocalWearPalette.current
-    val container = if (enabled) palette.chipContainer else palette.controlDisabledContainer
-    val tint = if (enabled) palette.chipContent else palette.controlDisabledContent
-
-    Row(
-        modifier = Modifier
-            .width(width)
-            .height(46.dp)
-            .clip(RoundedCornerShape(25.dp))
-            .background(container)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            color = tint,
-            style = MaterialTheme.typography.button,
-            maxLines = 1,
         )
     }
 }

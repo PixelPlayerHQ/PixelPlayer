@@ -1,13 +1,11 @@
 package com.theveloper.pixelplay.presentation.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,17 +25,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.Song
@@ -45,12 +44,13 @@ import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
-import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.LoadState
+import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -59,7 +59,6 @@ import androidx.paging.LoadState
 fun LibrarySongsTab(
     songs: LazyPagingItems<Song>, // Changed from ImmutableList<Song>
     isLoading: Boolean, // Kept for initial load or other states, though Paging has its own
-    stablePlayerState: StablePlayerState,
     playerViewModel: PlayerViewModel,
     bottomBarHeight: Dp,
     onMoreOptionsClick: (Song) -> Unit,
@@ -71,17 +70,25 @@ fun LibrarySongsTab(
     selectedSongIds: Set<String> = emptySet(),
     onSongLongPress: (Song) -> Unit = {},
     onSongSelectionToggle: (Song) -> Unit = {},
+    getSelectionIndex: (String) -> Int? = { null },
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
     onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
-    storageFilter: StorageFilter = StorageFilter.ALL
+    storageFilter: StorageFilter = StorageFilter.ALL,
+    hasCurrentSong: Boolean = false
 ) {
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
     val coroutineScope = rememberCoroutineScope()
     val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
     val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
-    
-    val currentSongId = stablePlayerState.currentSong?.id
+    var lastHandledSongSortKey by remember { mutableStateOf(sortOption.storageKey) }
+    var pendingSongSortScrollReset by remember { mutableStateOf(false) }
+    var songSortSawRefreshLoading by remember { mutableStateOf(false) }
+    val currentSongId by remember(playerViewModel) {
+        playerViewModel.stablePlayerState
+            .map { it.currentSong?.id }
+            .distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = null)
 
     // Check if list is effectively empty (based on Paging state)
     // val isListEmpty = songs.itemCount == 0 && songs.loadState.refresh is LoadState.NotLoading
@@ -112,8 +119,8 @@ fun LibrarySongsTab(
     }
 
     // New action just triggers the ViewModel request
-    val locateCurrentSongAction: (() -> Unit)? = remember(stablePlayerState.currentSong) {
-        if (stablePlayerState.currentSong == null) {
+    val locateCurrentSongAction: (() -> Unit)? = remember(currentSongId) {
+        if (currentSongId == null) {
             null
         } else {
             {
@@ -126,9 +133,25 @@ fun LibrarySongsTab(
         registerActionCallback(locateCurrentSongAction)
     }
 
-    // Scroll to top when sort option changes
     LaunchedEffect(sortOption) {
+        val currentSortKey = sortOption.storageKey
+        if (currentSortKey == lastHandledSongSortKey) return@LaunchedEffect
+        lastHandledSongSortKey = currentSortKey
+        pendingSongSortScrollReset = true
+        songSortSawRefreshLoading = false
         listState.scrollToItem(0)
+    }
+
+    // Apply a second reset after paging finishes refresh, to avoid key-anchor jumps.
+    LaunchedEffect(songs.loadState.refresh, pendingSongSortScrollReset) {
+        if (!pendingSongSortScrollReset) return@LaunchedEffect
+        if (songs.loadState.refresh is LoadState.Loading) {
+            songSortSawRefreshLoading = true
+            return@LaunchedEffect
+        }
+        if (!songSortSawRefreshLoading) return@LaunchedEffect
+        listState.scrollToItem(0)
+        pendingSongSortScrollReset = false
     }
     
     // Visibility Logic:
@@ -285,7 +308,6 @@ fun LibrarySongsTab(
                                 val song = songs[index]
                                 
                                 if (song != null) {
-                                    val isPlayingThisSong = song.id == stablePlayerState.currentSong?.id && stablePlayerState.isPlaying
                                     val isSelected = selectedSongIds.contains(song.id)
                                     
                                     val rememberedOnMoreOptionsClick: (Song) -> Unit = remember(onMoreOptionsClick) {
@@ -306,13 +328,13 @@ fun LibrarySongsTab(
                                         { onSongLongPress(song) }
                                     }
 
-                                    EnhancedSongListItem(
+                                    LibraryPlaybackAwareSongItem(
                                         song = song,
-                                        isPlaying = isPlayingThisSong,
-                                        isCurrentSong = stablePlayerState.currentSong?.id == song.id,
-                                        isLoading = false,
+                                        playerViewModel = playerViewModel,
                                         isSelected = isSelected,
+                                        //albumArtSize = 46.dp,
                                         isSelectionMode = isSelectionMode,
+                                        selectionIndex = if (isSelectionMode) getSelectionIndex(song.id) else null,
                                         onLongPress = rememberedOnLongPress,
                                         onMoreOptionsClick = rememberedOnMoreOptionsClick,
                                         onClick = rememberedOnClick
@@ -332,12 +354,12 @@ fun LibrarySongsTab(
                         }
                         
                         // ScrollBar Overlay
-                        val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong()) 
+                        val bottomPadding = if (hasCurrentSong)
                             bottomBarHeight + MiniPlayerHeight + 16.dp 
                         else 
                             bottomBarHeight + 16.dp
 
-                        com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
+                        ExpressiveScrollBar(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),

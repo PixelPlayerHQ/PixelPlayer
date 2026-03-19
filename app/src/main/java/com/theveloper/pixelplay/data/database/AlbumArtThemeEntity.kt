@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.data.database
 
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 // Para simplificar, almacenaremos los colores como Strings hexadecimales.
@@ -57,7 +58,12 @@ data class StoredColorSchemeValues(
     val onTertiaryFixedVariant: String
 )
 
-@Entity(tableName = "album_art_themes")
+@Entity(
+    tableName = "album_art_themes",
+    indices = [
+        Index(value = ["albumArtUriString", "paletteStyle"])
+    ]
+)
 data class AlbumArtThemeEntity(
     @PrimaryKey val albumArtUriString: String,
     val paletteStyle: String,

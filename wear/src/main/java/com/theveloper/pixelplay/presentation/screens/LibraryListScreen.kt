@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,7 +34,9 @@ import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.viewmodel.BrowseUiState
 import com.theveloper.pixelplay.presentation.viewmodel.WearBrowseViewModel
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
-import com.theveloper.pixelplay.presentation.theme.radialBackgroundBrush
+import com.theveloper.pixelplay.presentation.theme.rememberBrowseSubscreenTitleFont
+import com.theveloper.pixelplay.presentation.theme.screenBackgroundColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
 import com.theveloper.pixelplay.shared.WearBrowseRequest
 import com.theveloper.pixelplay.shared.WearLibraryItem
 import androidx.compose.material.icons.Icons
@@ -56,12 +59,13 @@ fun LibraryListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val palette = LocalWearPalette.current
+    val subscreenTitleFont = rememberBrowseSubscreenTitleFont()
 
     LaunchedEffect(browseType) {
         viewModel.loadItems(browseType)
     }
 
-    val background = palette.radialBackgroundBrush()
+    val background = palette.screenBackgroundColor()
 
     when (val state = uiState) {
         is BrowseUiState.Loading -> {
@@ -100,7 +104,9 @@ fun LibraryListScreen(
                     item {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.title3,
+                            style = MaterialTheme.typography.title2,
+                            fontFamily = subscreenTitleFont,
+                            fontWeight = FontWeight(760),
                             color = palette.textPrimary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -130,7 +136,7 @@ fun LibraryListScreen(
                             },
                             onClick = { viewModel.refresh() },
                             colors = ChipDefaults.chipColors(
-                                backgroundColor = palette.chipContainer,
+                                backgroundColor = palette.surfaceContainerColor(),
                                 contentColor = palette.chipContent,
                             ),
                             modifier = Modifier
@@ -171,7 +177,9 @@ fun LibraryListScreen(
                     item {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.title3,
+                            style = MaterialTheme.typography.title2,
+                            fontFamily = subscreenTitleFont,
+                            fontWeight = FontWeight(760),
                             color = palette.textPrimary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
@@ -279,7 +287,7 @@ private fun LibraryItemChip(
         },
         onClick = onClick,
         colors = ChipDefaults.chipColors(
-            backgroundColor = palette.chipContainer,
+            backgroundColor = palette.surfaceContainerColor(),
             contentColor = palette.chipContent,
         ),
         modifier = Modifier.fillMaxWidth(),

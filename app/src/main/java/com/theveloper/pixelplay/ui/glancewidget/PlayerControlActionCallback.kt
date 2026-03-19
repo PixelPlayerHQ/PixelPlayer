@@ -69,11 +69,11 @@ class PlayerControlActionCallback : ActionCallback {
 object PlayerActions {
     val key = ActionParameters.Key<String>("playerActionKey_v1")
     val songIdKey = ActionParameters.Key<Long>("songIdKey_v1")
-    const val PLAY_PAUSE = "com.example.pixelplay.ACTION_WIDGET_PLAY_PAUSE"
-    const val NEXT = "com.example.pixelplay.ACTION_WIDGET_NEXT"
-    const val PREVIOUS = "com.example.pixelplay.ACTION_WIDGET_PREVIOUS"
-    const val FAVORITE = "com.example.pixelplay.ACTION_WIDGET_FAVORITE"
-    const val PLAY_FROM_QUEUE = "com.example.pixelplay.ACTION_WIDGET_PLAY_FROM_QUEUE"
-    const val SHUFFLE = "com.example.pixelplay.ACTION_WIDGET_SHUFFLE"
-    const val REPEAT = "com.example.pixelplay.ACTION_WIDGET_REPEAT"
+    const val PLAY_PAUSE = "com.theveloper.pixelplay.ACTION_WIDGET_PLAY_PAUSE"
+    const val NEXT = "com.theveloper.pixelplay.ACTION_WIDGET_NEXT"
+    const val PREVIOUS = "com.theveloper.pixelplay.ACTION_WIDGET_PREVIOUS"
+    const val FAVORITE = "com.theveloper.pixelplay.ACTION_WIDGET_FAVORITE"
+    const val PLAY_FROM_QUEUE = "com.theveloper.pixelplay.ACTION_WIDGET_PLAY_FROM_QUEUE"
+    const val SHUFFLE = "com.theveloper.pixelplay.ACTION_WIDGET_SHUFFLE"
+    const val REPEAT = "com.theveloper.pixelplay.ACTION_WIDGET_REPEAT"
 }

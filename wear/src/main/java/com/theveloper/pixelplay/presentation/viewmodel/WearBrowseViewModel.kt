@@ -3,7 +3,10 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.WearLibraryRepository
+import com.theveloper.pixelplay.data.WearLocalPlayerRepository
+import com.theveloper.pixelplay.data.WearOutputTarget
 import com.theveloper.pixelplay.data.WearPlaybackController
+import com.theveloper.pixelplay.data.WearStateRepository
 import com.theveloper.pixelplay.shared.WearLibraryItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +23,8 @@ import javax.inject.Inject
 class WearBrowseViewModel @Inject constructor(
     private val libraryRepository: WearLibraryRepository,
     private val playbackController: WearPlaybackController,
+    private val stateRepository: WearStateRepository,
+    private val localPlayerRepository: WearLocalPlayerRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BrowseUiState>(BrowseUiState.Loading)
@@ -56,6 +61,7 @@ class WearBrowseViewModel @Inject constructor(
      * Sets up the full queue on the phone so next/previous work correctly.
      */
     fun playFromContext(songId: String, contextType: String, contextId: String?) {
+        prepareForPhonePlayback()
         playbackController.playFromContext(songId, contextType, contextId)
     }
 
@@ -74,6 +80,7 @@ class WearBrowseViewModel @Inject constructor(
     }
 
     fun playQueueIndex(index: Int) {
+        prepareForPhonePlayback()
         playbackController.playQueueIndex(index)
     }
 
@@ -84,6 +91,14 @@ class WearBrowseViewModel @Inject constructor(
         val type = currentBrowseType ?: return
         libraryRepository.invalidateCache()
         loadItems(type, currentContextId)
+    }
+
+    private fun prepareForPhonePlayback() {
+        stateRepository.setOutputTarget(WearOutputTarget.PHONE)
+        if (localPlayerRepository.localPlayerState.value.isPlaying) {
+            localPlayerRepository.pause()
+        }
+        playbackController.requestPhoneVolumeState()
     }
 }
 

@@ -3,7 +3,10 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
@@ -28,13 +31,20 @@ import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class BluetoothAudioDeviceState(
+    val name: String,
+    val address: String? = null,
+    val isConnected: Boolean = false,
+    val batteryPercent: Int? = null
+)
+
 /**
  * Manages WiFi and Bluetooth connectivity state.
  * Extracted from PlayerViewModel to improve modularity.
  *
  * Responsibilities:
  * - WiFi state tracking (enabled, radio state, network name)
- * - Bluetooth state tracking (enabled, device name, connected audio devices)
+ * - Bluetooth state tracking (enabled, active device name, discovered/connected audio devices)
  * - System callback registration and lifecycle management
  */
 @Singleton
@@ -61,6 +71,9 @@ class ConnectivityStateHolder @Inject constructor(
     private val _bluetoothName = MutableStateFlow<String?>(null)
     val bluetoothName: StateFlow<String?> = _bluetoothName.asStateFlow()
 
+    private val _bluetoothAudioDeviceStates = MutableStateFlow<List<BluetoothAudioDeviceState>>(emptyList())
+    val bluetoothAudioDeviceStates: StateFlow<List<BluetoothAudioDeviceState>> = _bluetoothAudioDeviceStates.asStateFlow()
+
     private val _bluetoothAudioDevices = MutableStateFlow<List<String>>(emptyList())
     val bluetoothAudioDevices: StateFlow<List<String>> = _bluetoothAudioDevices.asStateFlow()
     
@@ -77,9 +90,14 @@ class ConnectivityStateHolder @Inject constructor(
     /**
      * Manually refresh local connection info (e.g. WiFi SSID).
      */
-    fun refreshLocalConnectionInfo() {
+    fun refreshLocalConnectionInfo(refreshBluetoothDevices: Boolean = false) {
         val activeNetwork = connectivityManager.activeNetwork
         updateWifiInfo(activeNetwork)
+        if (refreshBluetoothDevices) {
+            refreshBluetoothAudioDevices()
+        } else {
+            updateAudioDevices()
+        }
     }
 
     // System services
@@ -100,6 +118,7 @@ class ConnectivityStateHolder @Inject constructor(
     private var audioDeviceCallback: android.media.AudioDeviceCallback? = null
 
     private var isInitialized = false
+    private val discoveredBluetoothAudioDevices = linkedMapOf<String, BluetoothAudioDeviceState>()
 
     /**
      * Initialize connectivity monitoring. Should be called once from ViewModel.
@@ -120,7 +139,7 @@ class ConnectivityStateHolder @Inject constructor(
         _isOnline.value = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-        _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled ?: false
+        updateBluetoothEnabledState()
 
         // Register WiFi network callback
         networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -183,18 +202,40 @@ class ConnectivityStateHolder @Inject constructor(
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
                     BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                        _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled ?: false
+                        updateBluetoothEnabledState()
                         if (_isBluetoothEnabled.value) {
                             updateAudioDevices()
                         } else {
+                            discoveredBluetoothAudioDevices.clear()
+                            _bluetoothAudioDeviceStates.value = emptyList()
                             _bluetoothAudioDevices.value = emptyList()
-                            updateBluetoothName()
+                            updateBluetoothName(emptyList())
                         }
+                    }
+                    BluetoothDevice.ACTION_BOND_STATE_CHANGED,
+                    BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
+                    BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> updateAudioDevices()
+                    BluetoothDevice.ACTION_FOUND -> {
+                        extractBluetoothDevice(intent)
+                            ?.takeIf { it.isAudioOutputCandidate() }
+                            ?.toBluetoothAudioDeviceState(isConnected = false)
+                            ?.let { deviceState ->
+                                discoveredBluetoothAudioDevices[deviceState.uniqueKey()] = deviceState
+                                updateAudioDevices()
+                            }
                     }
                 }
             }
         }
-        context.registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        context.registerReceiver(
+            bluetoothStateReceiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED).apply {
+                addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+                addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
+                addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)
+                addAction(BluetoothDevice.ACTION_FOUND)
+            }
+        )
 
         // Audio Device Callback
         audioDeviceCallback = object : android.media.AudioDeviceCallback() {
@@ -233,51 +274,250 @@ class ConnectivityStateHolder @Inject constructor(
          }
     }
 
-    private fun updateBluetoothName() {
+    private fun updateBluetoothName(connectedAudioDevices: List<String>) {
         if (!_isBluetoothEnabled.value) {
             _bluetoothName.value = null
             return
         }
 
-        val connectedAudioDevices = _bluetoothAudioDevices.value
         _bluetoothName.value = _bluetoothName.value
             ?.takeIf { it in connectedAudioDevices }
             ?: connectedAudioDevices.firstOrNull()
     }
 
     private fun updateAudioDevices() {
-        val devices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
-        val connectedDevices = mutableListOf<String>()
-        
-        for (device in devices) {
-            if (device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || 
-                device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO) {
-                device.productName?.let { connectedDevices.add(it.toString()) }
-            }
-        }
-        
-        // Also check via BluetoothManager for completeness if permissions allow
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-            safeGetConnectedDevices(BluetoothProfile.A2DP)
-                .mapNotNull { it.name }
-                .forEach { if (!connectedDevices.contains(it)) connectedDevices.add(it) }
-                
-            safeGetConnectedDevices(BluetoothProfile.HEADSET)
-                .mapNotNull { it.name }
-                .forEach { if (!connectedDevices.contains(it)) connectedDevices.add(it) }
+        updateBluetoothEnabledState()
+        if (!_isBluetoothEnabled.value) {
+            discoveredBluetoothAudioDevices.clear()
+            _bluetoothAudioDeviceStates.value = emptyList()
+            _bluetoothAudioDevices.value = emptyList()
+            updateBluetoothName(emptyList())
+            return
         }
 
-        _bluetoothAudioDevices.value = connectedDevices
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .sorted()
-        updateBluetoothName()
+        val localDeviceNames = resolveLocalBluetoothDeviceNames()
+        val connectedDevices = collectConnectedBluetoothDevices()
+        val availableDevices = discoveredBluetoothAudioDevices.values
+            .map { sanitizeBluetoothAudioDeviceState(it, localDeviceNames) }
+            .filterNotNull()
+        val connectedDeviceKeys = connectedDevices.mapTo(mutableSetOf()) { it.uniqueKey() }
+
+        val mergedDevices = linkedMapOf<String, BluetoothAudioDeviceState>()
+        connectedDevices.forEach { mergedDevices[it.uniqueKey()] = it }
+        availableDevices.forEach { deviceState ->
+            val key = deviceState.uniqueKey()
+            val existing = mergedDevices[key]
+            if (existing == null) {
+                mergedDevices[key] = deviceState
+            } else {
+                mergedDevices[key] = existing.mergeWith(deviceState)
+            }
+        }
+
+        val bluetoothDevices = mergedDevices.values
+            .sortedWith(
+                compareByDescending<BluetoothAudioDeviceState> { it.uniqueKey() in connectedDeviceKeys }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+            )
+        _bluetoothAudioDeviceStates.value = bluetoothDevices
+        _bluetoothAudioDevices.value = bluetoothDevices.map(BluetoothAudioDeviceState::name)
+        updateBluetoothName(connectedDevices.map(BluetoothAudioDeviceState::name))
     }
 
     @SuppressLint("MissingPermission")
     private fun safeGetConnectedDevices(profile: Int): List<BluetoothDevice> {
-        return runCatching { bluetoothManager.getConnectedDevices(profile) }.getOrElse { emptyList() }
+        if (!hasBluetoothConnectPermission()) return emptyList()
+        return safeBluetoothCall(emptyList()) { bluetoothManager.getConnectedDevices(profile) }
+    }
+
+    private fun collectConnectedBluetoothDevices(): List<BluetoothAudioDeviceState> {
+        val connectedDevices = linkedMapOf<String, BluetoothAudioDeviceState>()
+        val localDeviceNames = resolveLocalBluetoothDeviceNames()
+        val audioDevices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+
+        for (device in audioDevices) {
+            if (
+                device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+            ) {
+                val name = device.productName?.toString()?.trim().orEmpty()
+                if (name.isNotEmpty() && !isOwnBluetoothDeviceName(name, localDeviceNames)) {
+                    val address = device.address?.trim().orEmpty().takeIf { it.isNotEmpty() }
+                    val key = bluetoothDeviceKey(address, name)
+                    connectedDevices[key] = BluetoothAudioDeviceState(
+                        name = name,
+                        address = address,
+                        isConnected = true
+                    )
+                }
+            }
+        }
+
+        if (hasBluetoothConnectPermission()) {
+            safeGetConnectedDevices(BluetoothProfile.A2DP)
+                .mapNotNull { it.toBluetoothAudioDeviceState(isConnected = true) }
+                .forEach { deviceState ->
+                    val key = deviceState.uniqueKey()
+                    connectedDevices[key] = connectedDevices[key]?.mergeWith(deviceState) ?: deviceState
+                }
+
+            safeGetConnectedDevices(BluetoothProfile.HEADSET)
+                .mapNotNull { it.toBluetoothAudioDeviceState(isConnected = true) }
+                .forEach { deviceState ->
+                    val key = deviceState.uniqueKey()
+                    connectedDevices[key] = connectedDevices[key]?.mergeWith(deviceState) ?: deviceState
+                }
+        }
+
+        return connectedDevices.values.toList()
+    }
+
+    private fun refreshBluetoothAudioDevices() {
+        discoveredBluetoothAudioDevices.clear()
+        updateAudioDevices()
+
+        val adapter = bluetoothAdapter ?: return
+        if (!canStartBluetoothDiscovery()) return
+
+        if (runCatching { adapter.isDiscovering }.getOrDefault(false)) {
+            runCatching { adapter.cancelDiscovery() }
+        }
+        runCatching { adapter.startDiscovery() }
+    }
+
+    private fun sanitizeBluetoothAudioDeviceState(
+        deviceState: BluetoothAudioDeviceState,
+        localDeviceNames: Set<String> = resolveLocalBluetoothDeviceNames()
+    ): BluetoothAudioDeviceState? {
+        val normalizedName = deviceState.name.trim()
+        if (normalizedName.isEmpty() || isOwnBluetoothDeviceName(normalizedName, localDeviceNames)) return null
+
+        return deviceState.copy(
+            name = normalizedName,
+            address = deviceState.address?.trim()?.takeIf { it.isNotEmpty() },
+            batteryPercent = deviceState.batteryPercent?.takeIf { it in 0..100 }
+        )
+    }
+
+    private fun isOwnBluetoothDeviceName(
+        name: String,
+        localDeviceNames: Set<String> = resolveLocalBluetoothDeviceNames()
+    ): Boolean {
+        val normalizedName = name.trim()
+        if (normalizedName.isEmpty()) return true
+
+        return localDeviceNames.any { it.equals(normalizedName, ignoreCase = true) }
+    }
+
+    private fun updateBluetoothEnabledState() {
+        _isBluetoothEnabled.value = if (!hasBluetoothConnectPermission()) {
+            false
+        } else {
+            safeBluetoothCall(false) { bluetoothAdapter?.isEnabled ?: false }
+        }
+    }
+
+    private fun resolveLocalBluetoothAdapterName(): String? {
+        if (!hasBluetoothConnectPermission()) return null
+        return safeBluetoothCall("") { bluetoothAdapter?.name?.trim().orEmpty() }
+            .takeIf { it.isNotEmpty() }
+    }
+
+    private fun resolveLocalBluetoothDeviceNames(): Set<String> {
+        return buildSet {
+            resolveLocalBluetoothAdapterName()?.let { add(it) }
+            Build.MODEL.trim().takeIf { it.isNotEmpty() }?.let { add(it) }
+        }
+    }
+
+    private fun hasBluetoothConnectPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasBluetoothScanPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasBluetoothDiscoveryLocationPermission(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun canStartBluetoothDiscovery(): Boolean {
+        return _isBluetoothEnabled.value &&
+            hasBluetoothScanPermission() &&
+            hasBluetoothDiscoveryLocationPermission()
+    }
+
+    private fun BluetoothAudioDeviceState.uniqueKey(): String {
+        return bluetoothDeviceKey(address, name)
+    }
+
+    private fun BluetoothAudioDeviceState.mergeWith(other: BluetoothAudioDeviceState): BluetoothAudioDeviceState {
+        return copy(
+            name = if (name.isNotBlank()) name else other.name,
+            address = address ?: other.address,
+            isConnected = isConnected || other.isConnected,
+            batteryPercent = batteryPercent ?: other.batteryPercent
+        )
+    }
+
+    private fun bluetoothDeviceKey(address: String?, name: String): String {
+        return address?.takeIf { it.isNotBlank() } ?: "name:${name.lowercase()}"
+    }
+
+    private fun BluetoothDevice.toBluetoothAudioDeviceState(isConnected: Boolean): BluetoothAudioDeviceState? {
+        if (!hasBluetoothConnectPermission()) return null
+
+        val deviceName = safeBluetoothCall("") { name?.trim().orEmpty() }
+        val localDeviceNames = resolveLocalBluetoothDeviceNames()
+        if (deviceName.isEmpty() || isOwnBluetoothDeviceName(deviceName, localDeviceNames)) return null
+
+        return BluetoothAudioDeviceState(
+            name = deviceName,
+            address = safeBluetoothCall("") { address?.trim().orEmpty() }
+                .takeIf { it.isNotEmpty() },
+            isConnected = isConnected,
+            batteryPercent = resolveBatteryPercent(this)
+        )
+    }
+
+    private fun resolveBatteryPercent(device: BluetoothDevice): Int? {
+        if (!hasBluetoothConnectPermission()) return null
+
+        return runCatching {
+            val batteryMethod = device.javaClass.methods.firstOrNull { method ->
+                method.name == "getBatteryLevel" && method.parameterCount == 0
+            } ?: device.javaClass.declaredMethods.firstOrNull { method ->
+                method.name == "getBatteryLevel" && method.parameterCount == 0
+            }
+
+            batteryMethod
+                ?.apply { isAccessible = true }
+                ?.invoke(device) as? Int
+        }.getOrNull()?.takeIf { it in 0..100 }
+    }
+
+    private fun BluetoothDevice.isAudioOutputCandidate(): Boolean {
+        if (!hasBluetoothConnectPermission()) return false
+        val deviceClass = safeBluetoothCall<BluetoothClass?>(null) { bluetoothClass } ?: return false
+        return deviceClass.majorDeviceClass == BluetoothClass.Device.Major.AUDIO_VIDEO ||
+            deviceClass.hasService(BluetoothClass.Service.RENDER)
+    }
+
+    private inline fun <T> safeBluetoothCall(defaultValue: T, block: () -> T): T {
+        return runCatching(block).getOrDefault(defaultValue)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun extractBluetoothDevice(intent: Intent): BluetoothDevice? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+        } else {
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        }
     }
 
     /**
@@ -293,9 +533,14 @@ class ConnectivityStateHolder @Inject constructor(
         bluetoothStateReceiver?.let { 
             runCatching { context.unregisterReceiver(it) }
         }
-        audioDeviceCallback?.let { 
-            audioManager.unregisterAudioDeviceCallback(it) 
+        if (hasBluetoothScanPermission()) {
+            bluetoothAdapter?.takeIf { runCatching { it.isDiscovering }.getOrDefault(false) }?.let {
+                runCatching { it.cancelDiscovery() }
+            }
         }
+        discoveredBluetoothAudioDevices.clear()
+        _bluetoothAudioDeviceStates.value = emptyList()
+        _bluetoothAudioDevices.value = emptyList()
         isInitialized = false
     }
 }

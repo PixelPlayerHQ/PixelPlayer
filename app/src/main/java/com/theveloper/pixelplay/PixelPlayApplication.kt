@@ -33,10 +33,19 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
     lateinit var neteaseStreamProxy: com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
 
     @Inject
+    lateinit var qqMusicStreamProxy: com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
+
+    @Inject
+    lateinit var navidromeStreamProxy: com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
+
+    @Inject
     lateinit var telegramCacheManager: dagger.Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>
 
     @Inject
     lateinit var telegramCoilFetcherFactory: dagger.Lazy<com.theveloper.pixelplay.data.image.TelegramCoilFetcher.Factory>
+
+    @Inject
+    lateinit var navidromeCoilFetcherFactory: dagger.Lazy<com.theveloper.pixelplay.data.image.NavidromeCoilFetcher.Factory>
 
     // AÑADE EL COMPANION OBJECT
     companion object {
@@ -72,6 +81,12 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
         // Start Netease proxy immediately (no heavy native deps)
         neteaseStreamProxy.start()
 
+        // Start QQ Music proxy immediately (no heavy native deps)
+        qqMusicStreamProxy.start()
+
+        // Start Navidrome proxy immediately (no heavy native deps)
+        navidromeStreamProxy.start()
+
         // Start Telegram proxy and schedule cache cleanup on IO thread to avoid blocking
         // Application.onCreate() with TDLib native library loading (System.loadLibrary("tdjni")).
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
@@ -95,6 +110,7 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
         return imageLoader.get().newBuilder()
             .components {
                 add(telegramCoilFetcherFactory.get())
+                add(navidromeCoilFetcherFactory.get())
             }
             .build()
     }

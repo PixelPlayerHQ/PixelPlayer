@@ -45,6 +45,13 @@ class ModuleSchemaValidatorTest {
     }
 
     @Test
+    fun `favorites with snake case song id pass validation`() {
+        val payload = """[{"song_id": "123", "added_at": 1700000000000}]"""
+        val result = validator.validate(BackupSection.FAVORITES, payload)
+        assertTrue(result.isValid())
+    }
+
+    @Test
     fun `artist images with non-https URL emits warning`() {
         val payload = """[{"artistName": "Test", "imageUrl": "http://insecure.com/img.jpg"}]"""
         val result = validator.validate(BackupSection.ARTIST_IMAGES, payload)
@@ -105,6 +112,30 @@ class ModuleSchemaValidatorTest {
         assertTrue(result is BackupValidationResult.Invalid)
         val warnings = (result as BackupValidationResult.Invalid).warnings
         assertTrue(warnings.any { it.code == "NEGATIVE_PLAY_COUNT" })
+    }
+
+    @Test
+    fun `engagement stats with missing song id and invalid numbers emit warnings`() {
+        val payload = """[{"playCount": "oops", "totalDuration": -5, "lastPlayedTimestamp": "bad"}]"""
+        val result = validator.validate(BackupSection.ENGAGEMENT_STATS, payload)
+        assertTrue(result is BackupValidationResult.Invalid)
+        val warnings = (result as BackupValidationResult.Invalid).warnings
+        assertTrue(warnings.any { it.code == "MISSING_SONG_ID" })
+        assertTrue(warnings.any { it.code == "INVALID_PLAY_COUNT" })
+        assertTrue(warnings.any { it.code == "NEGATIVE_TOTAL_DURATION" })
+        assertTrue(warnings.any { it.code == "INVALID_LAST_PLAYED_TIMESTAMP" })
+    }
+
+    @Test
+    fun `engagement stats with duplicate song ids emit warning`() {
+        val payload = """[
+            {"songId": "123", "playCount": 1},
+            {"songId": "123", "playCount": 2}
+        ]"""
+        val result = validator.validate(BackupSection.ENGAGEMENT_STATS, payload)
+        assertTrue(result is BackupValidationResult.Invalid)
+        val warnings = (result as BackupValidationResult.Invalid).warnings
+        assertTrue(warnings.any { it.code == "DUPLICATE_SONG_ID" })
     }
 
     @Test

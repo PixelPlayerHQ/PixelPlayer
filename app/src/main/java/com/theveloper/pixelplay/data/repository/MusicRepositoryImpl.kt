@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,8 +45,9 @@ import com.theveloper.pixelplay.data.model.SearchResultItem
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.StorageFilter
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
-import com.theveloper.pixelplay.utils.DirectoryRuleResolver
+import com.theveloper.pixelplay.utils.DirectoryFilterUtils
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.StorageType
 import com.theveloper.pixelplay.utils.StorageUtils
@@ -78,6 +80,7 @@ import kotlinx.coroutines.CoroutineScope
 class MusicRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val searchHistoryDao: SearchHistoryDao,
     private val musicDao: MusicDao,
     private val lyricsRepository: LyricsRepository,
@@ -127,7 +130,7 @@ class MusicRepositoryImpl @Inject constructor(
             }.flatMapLatest { it }
         }.map { entities ->
             entities.map { it.toSong() }
-        }.flowOn(Dispatchers.IO)
+        }.distinctUntilChanged().flowOn(Dispatchers.IO)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -149,16 +152,16 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override fun getSongCountFlow(): Flow<Int> {
-        return musicDao.getSongCount()
+        return musicDao.getSongCount().distinctUntilChanged()
     }
 
     override suspend fun getRandomSongs(limit: Int): List<Song> = withContext(Dispatchers.IO) {
         // Use DAO's optimized random query with filter support
-        val allowed = userPreferencesRepository.allowedDirectoriesFlow.first()
-        val blocked = userPreferencesRepository.blockedDirectoriesFlow.first()
-        val applyFilter = blocked.isNotEmpty()
-        
-        musicDao.getRandomSongs(limit, allowed.toList(), applyFilter).map { it.toSong() }
+        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
+        val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
+        val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
+
+        musicDao.getRandomSongs(limit, allowedParentDirs, applyFilter).map { it.toSong() }
     }
 
     override suspend fun saveTelegramSongs(songs: List<Song>) {
@@ -192,14 +195,12 @@ class MusicRepositoryImpl @Inject constructor(
         allowedDirs: Set<String>,
         blockedDirs: Set<String>
     ): Pair<List<String>, Boolean> {
-        if (blockedDirs.isEmpty()) return Pair(emptyList(), false)
-        val resolver = DirectoryRuleResolver(
-            allowedDirs.map(::normalizePath).toSet(),
-            blockedDirs.map(::normalizePath).toSet()
+        return DirectoryFilterUtils.computeAllowedParentDirs(
+            allowedDirs = allowedDirs,
+            blockedDirs = blockedDirs,
+            getAllParentDirs = { musicDao.getDistinctParentDirectories() },
+            normalizePath = ::normalizePath
         )
-        val allDirs = musicDao.getDistinctParentDirectories()
-        val allowed = allDirs.filter { !resolver.isBlocked(normalizePath(it)) }
-        return Pair(allowed, true)
     }
 
     private fun StorageFilter.toFilterMode(): Int = when (this) {
@@ -219,6 +220,7 @@ class MusicRepositoryImpl @Inject constructor(
             val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
             musicDao.getAlbums(allowedParentDirs, applyFilter, storageFilter.toFilterMode())
                 .map { entities -> entities.map { it.toAlbum() } }
+                .distinctUntilChanged()
         }.flowOn(Dispatchers.IO)
     }
 
@@ -240,6 +242,7 @@ class MusicRepositoryImpl @Inject constructor(
                 applyDirectoryFilter = applyFilter,
                 filterMode = storageFilter.toFilterMode()
             )
+                .distinctUntilChanged()
                 .map { entities ->
                     val artists = entities.map { it.toArtist() }
                     // Trigger prefetch for missing images (non-blocking)
@@ -337,7 +340,7 @@ class MusicRepositoryImpl @Inject constructor(
 
     override suspend fun searchPlaylists(query: String): List<Playlist> {
         if (query.isBlank()) return emptyList()
-        return userPreferencesRepository.userPlaylistsFlow.first()
+        return playlistPreferencesRepository.userPlaylistsFlow.first()
             .filter { playlist ->
                 playlist.name.contains(query, ignoreCase = true)
             }
@@ -461,11 +464,6 @@ class MusicRepositoryImpl @Inject constructor(
         Log.i("MusicRepo", "invalidateCachesDependentOnAllowedDirectories called. Reactive flows will update automatically.")
     }
 
-    suspend fun syncMusicFromContentResolver() {
-        // Esta función ahora está en SyncWorker. Se deja el esqueleto por si se llama desde otro lugar.
-        Log.w("MusicRepo", "syncMusicFromContentResolver was called directly on repository. This should be handled by SyncWorker.")
-    }
-
     // Implementación de las nuevas funciones suspend para carga única
     override suspend fun getAllSongsOnce(): List<Song> = withContext(Dispatchers.IO) {
         musicDao.getAllSongsList().map { it.toSong() }
@@ -491,13 +489,18 @@ class MusicRepositoryImpl @Inject constructor(
         } else {
             favoritesDao.removeFavorite(id)
         }
-        musicDao.setFavoriteStatus(id, isFavorite)
     }
 
     override suspend fun getFavoriteSongIdsOnce(): Set<String> = withContext(Dispatchers.IO) {
         favoritesDao.getFavoriteSongIdsOnce()
             .map { it.toString() }
             .toSet()
+    }
+
+    override fun getFavoriteSongIdsFlow(): Flow<Set<String>> {
+        return favoritesDao.getFavoriteSongIds()
+            .map { ids -> ids.asSequence().map(Long::toString).toSet() }
+            .distinctUntilChanged()
     }
 
     override suspend fun toggleFavoriteStatus(songId: String): Boolean = withContext(Dispatchers.IO) {

@@ -4,7 +4,7 @@ import android.net.Uri
 import android.os.Trace
 import androidx.compose.ui.graphics.Color
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.ui.theme.DarkColorScheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -23,7 +23,7 @@ import javax.inject.Singleton
 @Singleton
 class ThemeStateHolder @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val themePreferencesRepository: ThemePreferencesRepository
 ) {
 
     private var scope: CoroutineScope? = null
@@ -38,7 +38,7 @@ class ThemeStateHolder @Inject constructor(
     private val _lavaLampColors = MutableStateFlow<ImmutableList<Color>>(persistentListOf())
     val lavaLampColors: StateFlow<ImmutableList<Color>> = _lavaLampColors.asStateFlow()
 
-    private val playerThemePreference = userPreferencesRepository.playerThemePreferenceFlow
+    private val playerThemePreference = themePreferencesRepository.playerThemePreferenceFlow
 
     private val _activePlayerColorSchemePair = MutableStateFlow<ColorSchemePair?>(null)
     val activePlayerColorSchemePair: StateFlow<ColorSchemePair?> = _activePlayerColorSchemePair.asStateFlow()
@@ -58,7 +58,7 @@ class ThemeStateHolder @Inject constructor(
         }
 
         scope.launch {
-            userPreferencesRepository.albumArtPaletteStyleFlow.collect { style ->
+            themePreferencesRepository.albumArtPaletteStyleFlow.collect { style ->
                 val styleChanged = currentPaletteStyle != style
                 currentPaletteStyle = style
 

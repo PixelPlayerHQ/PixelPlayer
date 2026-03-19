@@ -8,10 +8,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Playlist(
     val id: String,
-    var name: String,
-    var songIds: List<String>,
+    val name: String,
+    val songIds: List<String>,
     val createdAt: Long = System.currentTimeMillis(),
-    var lastModified: Long = System.currentTimeMillis(),
+    val lastModified: Long = System.currentTimeMillis(),
     val isAiGenerated: Boolean = false,
     val isQueueGenerated: Boolean = false,
     val coverImageUri: String? = null,

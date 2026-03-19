@@ -188,6 +188,11 @@ interface MusicRepository {
     suspend fun getFavoriteSongIdsOnce(): Set<String>
 
     /**
+     * Reactive stream of favorite song IDs from Room favorites table.
+     */
+    fun getFavoriteSongIdsFlow(): Flow<Set<String>>
+
+    /**
      * Obtiene una canción específica por su ID.
      * @param songId El ID de la canción.
      * @return Flow que emite el objeto Song o null si no se encuentra.

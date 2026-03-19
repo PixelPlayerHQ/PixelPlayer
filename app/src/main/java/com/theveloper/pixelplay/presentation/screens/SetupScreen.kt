@@ -5,11 +5,14 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
@@ -32,6 +35,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -57,23 +61,32 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.RoundedCorner
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -104,6 +117,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -118,11 +132,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.backup.model.BackupSection
+import com.theveloper.pixelplay.data.backup.model.BackupTransferProgressUpdate
+import com.theveloper.pixelplay.data.backup.model.RestorePlan
+import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.presentation.components.PermissionIconCollage
+import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
 import com.theveloper.pixelplay.presentation.components.subcomps.MaterialYouVectorDrawable
 import com.theveloper.pixelplay.presentation.components.subcomps.SineWaveLine
 import com.theveloper.pixelplay.presentation.components.FileExplorerDialog
 import com.theveloper.pixelplay.presentation.viewmodel.DirectoryEntry
+import com.theveloper.pixelplay.presentation.viewmodel.SetupEvent
 import com.theveloper.pixelplay.presentation.viewmodel.SetupUiState
 import com.theveloper.pixelplay.presentation.viewmodel.SetupViewModel
 import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
@@ -131,8 +151,14 @@ import com.theveloper.pixelplay.utils.StorageInfo
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @OptIn(ExperimentalPermissionsApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -147,8 +173,17 @@ fun SetupScreen(
     val directoryChildren by setupViewModel.currentDirectoryChildren.collectAsStateWithLifecycle()
     val availableStorages by setupViewModel.availableStorages.collectAsStateWithLifecycle()
     val selectedStorageIndex by setupViewModel.selectedStorageIndex.collectAsStateWithLifecycle()
+    var selectedBackupUri by remember { mutableStateOf<Uri?>(null) }
     
     var showCornerRadiusOverlay by remember { mutableStateOf(false) }
+    val backupPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        selectedBackupUri = uri
+        if (uri != null) {
+            setupViewModel.inspectBackupFile(uri)
+        }
+    }
 
     // Re-check permissions when the screen is resumed
     DisposableEffect(lifecycleOwner) {
@@ -164,33 +199,7 @@ fun SetupScreen(
     }
 
     val pages = remember {
-        val list = mutableListOf<SetupPage>(
-            SetupPage.Welcome,
-        )
-        // Add media permissions page for all versions
-        list.add(SetupPage.MediaPermission)
-        // Add all files access page for Android 11+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            list.add(SetupPage.AllFilesPermission)
-        }
-        // Add directory selection page after storage permissions
-        list.add(SetupPage.DirectorySelection)
-        // Add notifications permission page for Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            list.add(SetupPage.NotificationsPermission)
-        }
-        // Add exact alarms permission for Android 12+ (S)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            list.add(SetupPage.AlarmsPermission)
-        }
-        // Add Library Layout page
-        list.add(SetupPage.LibraryLayout)
-        // Add NavBar Layout page
-        list.add(SetupPage.NavBarLayout)
-        // Add battery optimization page (optional step)
-        list.add(SetupPage.BatteryOptimization)
-        list.add(SetupPage.Finish)
-        list
+        buildSetupPages(Build.VERSION.SDK_INT)
     }
 
     val pagerState = rememberPagerState(pageCount = { pages.size })
@@ -200,13 +209,47 @@ fun SetupScreen(
     var previousPageIndex by remember { mutableStateOf(0) }
 
     val directorySelectionPageIndex = remember(pages) { pages.indexOf(SetupPage.DirectorySelection) }
+    val batteryOptimizationPageIndex = remember(pages) { pages.indexOf(SetupPage.BatteryOptimization) }
+    val finishPageIndex = remember(pages) { pages.indexOf(SetupPage.Finish) }
+
+    LaunchedEffect(Unit) {
+        setupViewModel.events.collectLatest { event ->
+            when (event) {
+                is SetupEvent.Message -> {
+                    Toast.makeText(context, event.value, Toast.LENGTH_LONG).show()
+                }
+                is SetupEvent.RestoreCompleted -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    val targetPageIndex = when {
+                        batteryOptimizationPageIndex >= 0 && !isIgnoringBatteryOptimizationsNow(context) ->
+                            batteryOptimizationPageIndex
+                        finishPageIndex >= 0 -> finishPageIndex
+                        else -> null
+                    }
+
+                    if (targetPageIndex != null) {
+                        pagerState.animateScrollToPage(targetPageIndex)
+                    } else {
+                        onSetupComplete()
+                    }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage > previousPageIndex) {
-            val fromPage = pages[previousPageIndex]
-            if (!isPermissionGateSatisfied(context, fromPage, uiState)) {
+            val blockedPageIndex = firstBlockedForwardPageIndex(
+                pages = pages,
+                fromPageIndex = previousPageIndex,
+                toPageIndex = pagerState.currentPage,
+                context = context,
+                uiState = uiState
+            )
+            if (blockedPageIndex != null) {
                 setupViewModel.checkPermissions(context)
-                pagerState.scrollToPage(previousPageIndex)
+                pagerState.scrollToPage(blockedPageIndex)
+                previousPageIndex = blockedPageIndex
                 Toast.makeText(context, "Please grant the required permission first.", Toast.LENGTH_SHORT).show()
                 return@LaunchedEffect
             }
@@ -278,6 +321,17 @@ fun SetupScreen(
                         uiState = uiState,
                         onPermissionStateUpdated = { setupViewModel.checkPermissions(context) }
                     )
+                    SetupPage.BackupRestore -> BackupRestorePage(
+                        uiState = uiState,
+                        onImportClicked = { backupPickerLauncher.launch("*/*") },
+                        onSkip = {
+                            setupViewModel.clearRestorePlan()
+                            selectedBackupUri = null
+                            scope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        }
+                    )
                     SetupPage.DirectorySelection -> DirectorySelectionPage(
                         uiState = uiState,
                         currentPath = currentPath,
@@ -302,7 +356,14 @@ fun SetupScreen(
                         uiState = uiState,
                         onPermissionStateUpdated = { setupViewModel.checkPermissions(context) }
                     )
-                    SetupPage.AlarmsPermission -> AlarmsPermissionPage(uiState)
+                    SetupPage.AlarmsPermission -> AlarmsPermissionPage(
+                        uiState = uiState,
+                        onSkip = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        }
+                    )
                     SetupPage.AllFilesPermission -> AllFilesPermissionPage(uiState)
                     SetupPage.BatteryOptimization -> BatteryOptimizationPage(
                         onSkip = {
@@ -310,6 +371,10 @@ fun SetupScreen(
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             }
                         }
+                    )
+                    SetupPage.ThemeSelection -> ThemeSelectionPage(
+                        uiState = uiState,
+                        onModeSelected = setupViewModel::setAppThemeMode
                     )
                     SetupPage.Finish -> FinishPage()
                     SetupPage.LibraryLayout -> LibraryLayoutPage(
@@ -334,6 +399,28 @@ fun SetupScreen(
                 }
             }
         }
+    }
+
+    val restorePlan = uiState.restorePlan
+    if (restorePlan != null && selectedBackupUri != null) {
+        BackupModuleSelectionDialog(
+            plan = restorePlan,
+            inProgress = uiState.isRestoringBackup,
+            onDismiss = {
+                setupViewModel.clearRestorePlan()
+                selectedBackupUri = null
+            },
+            onBack = {
+                setupViewModel.clearRestorePlan()
+                selectedBackupUri = null
+            },
+            onSelectionChanged = setupViewModel::updateRestorePlanSelection,
+            onConfirm = {
+                val uri = selectedBackupUri ?: return@BackupModuleSelectionDialog
+                selectedBackupUri = null
+                setupViewModel.restoreFromPlan(uri)
+            }
+        )
     }
 
     // Overlay for Corner Radius Customization
@@ -440,7 +527,9 @@ fun DirectorySelectionPage(
 sealed class SetupPage {
     object Welcome : SetupPage()
     object MediaPermission : SetupPage()
+    object BackupRestore : SetupPage()
     object DirectorySelection : SetupPage()
+    object ThemeSelection : SetupPage()
     object NotificationsPermission : SetupPage()
     object AlarmsPermission : SetupPage()
     object AllFilesPermission : SetupPage()
@@ -448,6 +537,47 @@ sealed class SetupPage {
     object NavBarLayout : SetupPage()
     object BatteryOptimization : SetupPage()
     object Finish : SetupPage()
+}
+
+private fun buildSetupPages(sdkInt: Int): List<SetupPage> {
+    val pages = mutableListOf<SetupPage>(
+        SetupPage.Welcome,
+        SetupPage.MediaPermission
+    )
+
+    if (sdkInt >= Build.VERSION_CODES.R) {
+        pages += SetupPage.AllFilesPermission
+    }
+    if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
+        pages += SetupPage.NotificationsPermission
+    }
+
+    pages += SetupPage.BackupRestore
+    pages += SetupPage.DirectorySelection
+    pages += SetupPage.ThemeSelection
+    pages += SetupPage.LibraryLayout
+    pages += SetupPage.NavBarLayout
+
+    if (sdkInt >= Build.VERSION_CODES.S) {
+        pages += SetupPage.AlarmsPermission
+    }
+
+    pages += SetupPage.BatteryOptimization
+    pages += SetupPage.Finish
+    return pages
+}
+
+private fun firstBlockedForwardPageIndex(
+    pages: List<SetupPage>,
+    fromPageIndex: Int,
+    toPageIndex: Int,
+    context: Context,
+    uiState: SetupUiState
+): Int? {
+    if (toPageIndex <= fromPageIndex) return null
+    return (fromPageIndex until toPageIndex).firstOrNull { pageIndex ->
+        !isPermissionGateSatisfied(context, pages[pageIndex], uiState)
+    }
 }
 
 private fun isPermissionGateSatisfied(
@@ -472,9 +602,6 @@ private fun isPermissionGateSatisfied(
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED
         }
-        SetupPage.AlarmsPermission -> {
-            uiState.alarmsPermissionGranted || hasExactAlarmPermissionNow(context)
-        }
         else -> true
     }
 }
@@ -489,9 +616,7 @@ private fun allRequiredPermissionsGrantedNow(context: Context): Boolean {
             ) == PackageManager.PERMISSION_GRANTED
     val allFilesGranted =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
-    val alarmsGranted = hasExactAlarmPermissionNow(context)
-
-    return mediaGranted && notificationsGranted && allFilesGranted && alarmsGranted
+    return mediaGranted && notificationsGranted && allFilesGranted
 }
 
 private fun hasMediaPermissionNow(context: Context): Boolean {
@@ -507,6 +632,11 @@ private fun hasExactAlarmPermissionNow(context: Context): Boolean {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
     return alarmManager.canScheduleExactAlarms()
+}
+
+private fun isIgnoringBatteryOptimizationsNow(context: Context): Boolean {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+    return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 @Composable
@@ -577,7 +707,7 @@ fun WelcomePage() {
         ){
             MaterialYouVectorDrawable(
                 modifier = Modifier.fillMaxSize(),
-                painter = painterResource(R.drawable.welcome_art)
+                drawableResId = R.drawable.welcome_art
             )
             SineWaveLine(
                 modifier = Modifier
@@ -708,7 +838,10 @@ fun NotificationsPermissionPage(
 }
 
 @Composable
-fun AlarmsPermissionPage(uiState: SetupUiState) {
+fun AlarmsPermissionPage(
+    uiState: SetupUiState,
+    onSkip: () -> Unit
+) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
 
     val context = LocalContext.current
@@ -725,7 +858,7 @@ fun AlarmsPermissionPage(uiState: SetupUiState) {
     PermissionPageLayout(
         title = "Alarms & Reminders",
         granted = isGranted,
-        description = "To ensure the Sleep Timer works reliably and pauses music exactly when you want, PixelPlayer needs permission to schedule exact alarms.",
+        description = "Optional, but recommended if you use Sleep Timer and want PixelPlayer to stop playback exactly on time.",
         buttonText = if (isGranted) "Permission Granted" else "Grant Permission",
         buttonEnabled = !isGranted,
         icons = icons,
@@ -737,7 +870,13 @@ fun AlarmsPermissionPage(uiState: SetupUiState) {
                 context.startActivity(intent)
             }
         }
-    )
+    ) {
+        if (!isGranted) {
+            TextButton(onClick = onSkip) {
+                Text("Skip for now")
+            }
+        }
+    }
 }
 
 @Composable
@@ -768,6 +907,303 @@ fun AllFilesPermissionPage(uiState: SetupUiState) {
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun BackupRestorePage(
+    uiState: SetupUiState,
+    onImportClicked: () -> Unit,
+    onSkip: () -> Unit
+) {
+    val isBusy = uiState.isInspectingBackup || uiState.isRestoringBackup
+    val progress = uiState.backupTransferProgress
+
+    PermissionPageLayout(
+        title = "Do you have a backup?",
+        description = "If you already have a PixelPlayer backup, restore it now and skip most of the remaining setup on this device.",
+        buttonText = when {
+            uiState.isInspectingBackup -> "Inspecting backup"
+            uiState.isRestoringBackup -> "Restoring backup"
+            else -> "Import backup"
+        },
+        buttonEnabled = !isBusy,
+        icons = persistentListOf(
+            R.drawable.rounded_upload_file_24,
+            R.drawable.rounded_playlist_play_24,
+            R.drawable.rounded_settings_24,
+            R.drawable.rounded_lyrics_24,
+            R.drawable.rounded_monitoring_24
+        ),
+        onGrantClicked = onImportClicked
+    ) {
+        AnimatedVisibility(
+            visible = uiState.isInspectingBackup || progress != null
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize()
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (uiState.isInspectingBackup && progress == null) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            LoadingIndicator(modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "Checking backup package…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    if (progress != null) {
+                        Text(
+                            text = progress.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = progress.detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            progress = { progress.progress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+
+        TextButton(
+            onClick = onSkip,
+            enabled = !uiState.isRestoringBackup
+        ) {
+            Text("Skip / Not now")
+        }
+    }
+}
+
+private data class ThemeOptionItem(
+    val mode: String,
+    val title: String,
+    val description: String,
+    val icon: ImageVector,
+    val recommended: Boolean = false
+)
+
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun ThemeSelectionPage(
+    uiState: SetupUiState,
+    onModeSelected: (String) -> Unit
+) {
+    val themeOptions = remember {
+        listOf(
+            ThemeOptionItem(
+                mode = AppThemeMode.DARK,
+                title = "Dark",
+                description = "The default Material 3 dark look for PixelPlay.",
+                icon = Icons.Rounded.DarkMode,
+                recommended = true
+            ),
+            ThemeOptionItem(
+                mode = AppThemeMode.LIGHT,
+                title = "Light",
+                description = "A brighter Material 3 look across the app.",
+                icon = Icons.Outlined.LightMode
+            ),
+            ThemeOptionItem(
+                mode = AppThemeMode.FOLLOW_SYSTEM,
+                title = "Follow system",
+                description = "Match your phone's current appearance setting.",
+                icon = Icons.Rounded.PhoneAndroid
+            )
+        )
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "App Theme",
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontSize = 32.sp
+                ),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Pick the look you want before you start exploring your library.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            themeOptions.forEach { option ->
+                ThemeModeOptionCard(
+                    option = option,
+                    selected = uiState.appThemeMode == option.mode,
+                    onClick = { onModeSelected(option.mode) }
+                )
+            }
+
+            Text(
+                text = "You can change this later in Settings > Appearance > App Theme.",
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeModeOptionCard(
+    option: ThemeOptionItem,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        ),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Surface(
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.size(46.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = option.icon,
+                        contentDescription = null,
+                        tint = if (selected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        }
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = option.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (option.recommended) {
+                    Surface(
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        },
+                        contentColor = if (selected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        },
+                        shape = RoundedCornerShape(999.dp)
+                    ) {
+                        Text(
+                            text = "Recommended",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = option.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Surface(
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                },
+                contentColor = if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                shape = CircleShape
+            ) {
+                Box(
+                    modifier = Modifier.size(28.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -1216,6 +1652,266 @@ fun PermissionPageLayout(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SetupRestoreDialog(
+    plan: RestorePlan,
+    inProgress: Boolean,
+    progress: BackupTransferProgressUpdate?,
+    onDismiss: () -> Unit,
+    onSelectionChanged: (Set<BackupSection>) -> Unit,
+    onConfirm: () -> Unit
+) {
+    val dateText = remember(plan.manifest.createdAt) {
+        SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault())
+            .format(Date(plan.manifest.createdAt))
+    }
+    val availableModules = remember(plan.availableModules) {
+        plan.availableModules.toList().sortedBy { it.ordinal }
+    }
+
+    Dialog(
+        onDismissRequest = {
+            if (!inProgress) {
+                onDismiss()
+            }
+        },
+        properties = DialogProperties(
+            dismissOnBackPress = !inProgress,
+            dismissOnClickOutside = !inProgress,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                bottomBar = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = onDismiss,
+                                enabled = !inProgress,
+                                modifier = Modifier.height(52.dp)
+                            ) {
+                                Text("Cancel")
+                            }
+                            Button(
+                                onClick = onConfirm,
+                                enabled = plan.selectedModules.isNotEmpty() && !inProgress,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                            ) {
+                                if (inProgress) {
+                                    LoadingIndicator(modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Restoring")
+                                } else {
+                                    Icon(Icons.Rounded.Restore, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Restore selected")
+                                }
+                            }
+                        }
+                    }
+                }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 18.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Restore Backup",
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = GoogleSansRounded
+                        ),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Review what you want to import before finishing setup.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "${plan.selectedModules.size} of ${plan.availableModules.size} modules selected",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Created $dateText",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Backup from ${plan.manifest.appVersion.ifEmpty { "Unknown version" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (progress != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = progress.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = progress.detail,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                LinearProgressIndicator(
+                                    progress = { progress.progress },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    if (plan.warnings.isNotEmpty()) {
+                        plan.warnings.forEach { warning ->
+                            Surface(
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
+                                shape = RoundedCornerShape(18.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = warning,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 12.dp)
+                    ) {
+                        items(availableModules) { section ->
+                            val detail = plan.moduleDetails[section]
+                            val selected = section in plan.selectedModules
+                            SetupRestoreSectionRow(
+                                section = section,
+                                detail = detail,
+                                selected = selected,
+                                enabled = !inProgress,
+                                onClick = {
+                                    val newSelection = if (selected) {
+                                        plan.selectedModules - section
+                                    } else {
+                                        plan.selectedModules + section
+                                    }
+                                    onSelectionChanged(newSelection)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetupRestoreSectionRow(
+    section: BackupSection,
+    detail: com.theveloper.pixelplay.data.backup.model.ModuleRestoreDetail?,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = if (selected) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = selected,
+                onCheckedChange = { onClick() },
+                enabled = enabled
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(section.iconRes),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = section.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = section.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = detail?.entryCount?.let { "$it" } ?: "-",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LibraryNavigationPillSetupShow(
@@ -1402,8 +2098,8 @@ fun SetupBottomBar(
     )
 
     val shape = RoundedCornerShape(
-        topEnd = 24.dp,
-        topStart = 24.dp,
+        topEnd = 38.dp,
+        topStart = 38.dp,
         bottomEnd = 0.dp,
         bottomStart = 0.dp
     )

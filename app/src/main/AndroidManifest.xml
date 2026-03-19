@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
@@ -50,8 +51,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MUSIC_PLAYER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
                 <action android:name="com.theveloper.pixelplay.action.OPEN_PLAYER" />
@@ -78,6 +84,18 @@
             android:name=".presentation.gdrive.auth.GDriveLoginActivity"
             android:exported="false"
             android:label="Google Drive Login"
+            android:theme="@style/Theme.PixelPlay" />
+
+        <activity
+            android:name=".presentation.qqmusic.auth.QqMusicLoginActivity"
+            android:exported="false"
+            android:label="QQ Music Login"
+            android:theme="@style/Theme.PixelPlay" />
+
+        <activity
+            android:name=".presentation.navidrome.auth.NavidromeLoginActivity"
+            android:exported="false"
+            android:label="Navidrome Login"
             android:theme="@style/Theme.PixelPlay" />
 
 
@@ -194,7 +212,7 @@
         </provider>
 
         <receiver android:name=".ui.glancewidget.WidgetUpdateReceiver" android:exported="true"> <intent-filter>
-            <action android:name="com.example.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE" />
+            <action android:name="com.theveloper.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE" />
         </intent-filter>
         </receiver>
 
@@ -245,6 +263,14 @@
                     android:scheme="wear"
                     android:host="*"
                     android:pathPrefix="/transfer_cancel" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/transfer_progress" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/watch_library_state" />
             </intent-filter>
         </service>
 

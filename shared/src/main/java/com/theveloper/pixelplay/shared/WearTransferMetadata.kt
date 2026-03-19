@@ -20,7 +20,11 @@ data class WearTransferMetadata(
     val fileSize: Long,
     val bitrate: Int,
     val sampleRate: Int,
+    /** Favorite snapshot at transfer time so offline watch playback starts from the right state. */
+    val isFavorite: Boolean = false,
     /** Optional seed color extracted from album art on phone, used for offline watch theming. */
     val paletteSeedArgb: Int? = null,
+    /** Full watch palette snapshot so local watch playback matches phone playback exactly. */
+    val themePalette: WearThemePalette? = null,
     val error: String? = null,
 )

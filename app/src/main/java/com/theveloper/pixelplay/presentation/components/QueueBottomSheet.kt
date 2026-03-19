@@ -87,6 +87,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -1683,27 +1686,7 @@ private fun QueueMiniPlayer(
     val bodyTapInteractionSource = remember { MutableInteractionSource() }
     val corners = 20.dp
     val albumCorners = 10.dp
-//    val shape = AbsoluteSmoothCornerShape(
-//        cornerRadiusTR = corners,
-//        smoothnessAsPercentTL = 60,
-//        cornerRadiusTL = corners,
-//        smoothnessAsPercentTR = 60,
-//        cornerRadiusBR = corners,
-//        smoothnessAsPercentBL = 60,
-//        cornerRadiusBL = corners,
-//        smoothnessAsPercentBR = 60
-//    )
     val albumShape = RoundedCornerShape(albumCorners)
-//        AbsoluteSmoothCornerShape(
-//            cornerRadiusTR = albumCorners,
-//            smoothnessAsPercentTL = 60,
-//            cornerRadiusTL = albumCorners,
-//            smoothnessAsPercentTR = 60,
-//            cornerRadiusBR = albumCorners,
-//            smoothnessAsPercentBL = 60,
-//            cornerRadiusBL = albumCorners,
-//            smoothnessAsPercentBR = 60
-//        )
 
     Surface(
         modifier = modifier
@@ -1711,12 +1694,10 @@ private fun QueueMiniPlayer(
                 brush = Brush.verticalGradient(
                     listOf(
                         colors.primaryContainer,
-                        //colors.primaryContainer,
                         Color.Transparent
                     )
                 )
             ),
-        //shape = shape,
         tonalElevation = 10.dp,
         color = Color.Transparent
     ) {
@@ -1737,9 +1718,10 @@ private fun QueueMiniPlayer(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SmartImage(
-                model = song.albumArtUriString ?: R.drawable.rounded_album_24,
+                model = song.albumArtUriString,
                 shape = albumShape,
                 contentDescription = "Carátula",
+                placeHolderBackgroundColor = colors.surfaceContainerLow,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(albumShape),
@@ -1779,7 +1761,7 @@ private fun QueueMiniPlayer(
                 modifier = Modifier.size(44.dp),
             ) {
                 Icon(
-                    painter = if (isPlaying) painterResource(R.drawable.rounded_pause_24) else painterResource(R.drawable.rounded_play_arrow_24),
+                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = if (isPlaying) "Pausar" else "Reproducir",
                 )
             }
@@ -1796,7 +1778,7 @@ private fun QueueMiniPlayer(
                 modifier = Modifier.size(44.dp),
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.rounded_skip_next_24),
+                    imageVector = Icons.Rounded.SkipNext,
                     contentDescription = "Siguiente",
                 )
             }
@@ -1864,10 +1846,7 @@ fun QueuePlaylistSongItem(
         label = "elevationAnimation"
     )
 
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isCurrentSong) colors.surfaceContainerLowest else colors.surfaceContainerLowest,
-        label = "backgroundColorAnimation"
-    )
+    val backgroundColor = colors.surfaceContainerLowest
     val mvContainerColor = if (isCurrentSong) colors.tertiaryContainer else colors.surfaceContainerHigh
     val mvContentColor = if (isCurrentSong) colors.onTertiaryContainer else colors.onSurface
     val hapticView = LocalView.current
@@ -1916,11 +1895,7 @@ fun QueuePlaylistSongItem(
         animationSpec = tween(durationMillis = 120),
         label = "dismissIconScale"
     )
-    val dismissIconRotation by animateFloatAsState(
-        targetValue = 0f,
-        animationSpec = tween(durationMillis = 120),
-        label = "dismissIconRotation"
-    )
+    val dismissIconRotation = 0f
 
     // Track the actual rendered height of the Surface (foreground item) to size the background exactly.
     var surfaceHeightPx by remember { mutableStateOf(0f) }

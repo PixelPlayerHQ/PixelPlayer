@@ -56,12 +56,25 @@ internal fun rememberSheetInteractionState(
         }
     }
 
+    // ── OPT #3: Freeze shape during animation / drag ─────────────────────────────
+    // The radii change continuously at ~60fps during expand/collapse animations,
+    // which would cause `remember(...)` to create a new Shape on every frame.
+    // Instead, we only let `remember` invalidate when the sheet is *settled*.
+    // During motion the previously captured shape is reused — the visual change
+    // is imperceptible over the 300ms animation window.
+    val isAnimatingOrDragging by remember(playerContentExpansionFraction, isDragging) {
+        derivedStateOf { playerContentExpansionFraction.isRunning || isDragging }
+    }
+
     val playerShadowShape = remember(
         overallSheetTopCornerRadius,
         playerContentActualBottomRadius,
-        useSmoothShape
+        useSmoothShape,
+        isAnimatingOrDragging
     ) {
-        if (useSmoothShape) {
+        // Use fast RoundedCornerShape during animation; smooth only when settled.
+        val effectiveSmooth = useSmoothShape && !isAnimatingOrDragging
+        if (effectiveSmooth) {
             AbsoluteSmoothCornerShape(
                 cornerRadiusTL = overallSheetTopCornerRadius,
                 smoothnessAsPercentBL = 60,
@@ -81,6 +94,7 @@ internal fun rememberSheetInteractionState(
             )
         }
     }
+
 
     val collapsedYState = rememberUpdatedState(sheetCollapsedTargetY)
     val expandedYState = rememberUpdatedState(sheetExpandedTargetY)

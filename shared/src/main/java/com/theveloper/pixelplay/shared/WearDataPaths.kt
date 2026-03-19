@@ -11,6 +11,9 @@ object WearDataPaths {
     /** Message path for playback commands (watch -> phone) */
     const val PLAYBACK_COMMAND = "/playback_command"
 
+    /** Message path for playback command results (phone -> watch) */
+    const val PLAYBACK_RESULT = "/playback_result"
+
     /** Message path for volume commands (watch -> phone) */
     const val VOLUME_COMMAND = "/volume_command"
 
@@ -49,4 +52,16 @@ object WearDataPaths {
 
     /** Message path for transfer cancellation (watch -> phone) */
     const val TRANSFER_CANCEL = "/transfer_cancel"
+
+    /** Message path to ask the watch for its current saved song IDs (phone -> watch). */
+    const val WATCH_LIBRARY_QUERY = "/watch_library_query"
+
+    /** Message path carrying the watch saved song IDs snapshot (watch -> phone). */
+    const val WATCH_LIBRARY_STATE = "/watch_library_state"
+
+    /** Message path for asking the phone to resolve favorite states for watch-local songs. */
+    const val FAVORITES_SYNC_REQUEST = "/favorites_sync_request"
+
+    /** Message path carrying favorite state snapshots back to the watch. */
+    const val FAVORITES_SYNC_STATE = "/favorites_sync_state"
 }

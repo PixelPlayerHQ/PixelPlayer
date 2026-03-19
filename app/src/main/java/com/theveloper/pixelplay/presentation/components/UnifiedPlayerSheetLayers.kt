@@ -255,6 +255,25 @@ internal fun UnifiedPlayerPrewarmLayer(
                     .alpha(0f)
                     .clipToBounds()
             ) {
+                // Memoize closures the same way the main layer does to avoid creating
+                // new lambda instances on every recomposition.
+                val latestInfrequentPlayerState = rememberUpdatedState(infrequentPlayerState)
+                val latestIsFavorite = rememberUpdatedState(isFavorite)
+                val isPlayingProvider = remember { { latestInfrequentPlayerState.value.isPlaying } }
+                val playWhenReadyProvider = remember { { latestInfrequentPlayerState.value.playWhenReady } }
+                val repeatModeProvider = remember { { latestInfrequentPlayerState.value.repeatMode } }
+                val isShuffleEnabledProvider = remember { { latestInfrequentPlayerState.value.isShuffleEnabled } }
+                val totalDurationProvider = remember { { latestInfrequentPlayerState.value.totalDuration } }
+                val lyricsProvider = remember { { latestInfrequentPlayerState.value.lyrics } }
+                val isFavoriteProvider = remember { { latestIsFavorite.value } }
+                val onPlayPause = remember(playerViewModel) { playerViewModel::playPause }
+                val onSeek = remember(playerViewModel) { playerViewModel::seekTo }
+                val onNext = remember(playerViewModel) { playerViewModel::nextSong }
+                val onPrevious = remember(playerViewModel) { playerViewModel::previousSong }
+                val onShuffleToggle = remember(playerViewModel) { { playerViewModel.toggleShuffle() } }
+                val onRepeatToggle = remember(playerViewModel) { playerViewModel::cycleRepeatMode }
+                val onFavoriteToggle = remember(playerViewModel) { playerViewModel::toggleFavorite }
+
                 FullPlayerContent(
                     currentSong = currentSong,
                     currentPlaybackQueue = currentPlaybackQueue,
@@ -268,27 +287,27 @@ internal fun UnifiedPlayerPrewarmLayer(
                     loadingTweaks = fullPlayerLoadingTweaks,
                     playerViewModel = playerViewModel,
                     currentPositionProvider = currentPositionProvider,
-                    isPlayingProvider = { infrequentPlayerState.isPlaying },
-                    playWhenReadyProvider = { infrequentPlayerState.playWhenReady },
-                    repeatModeProvider = { infrequentPlayerState.repeatMode },
-                    isShuffleEnabledProvider = { infrequentPlayerState.isShuffleEnabled },
-                    totalDurationProvider = { infrequentPlayerState.totalDuration },
-                    lyricsProvider = { infrequentPlayerState.lyrics },
+                    isPlayingProvider = isPlayingProvider,
+                    playWhenReadyProvider = playWhenReadyProvider,
+                    repeatModeProvider = repeatModeProvider,
+                    isShuffleEnabledProvider = isShuffleEnabledProvider,
+                    totalDurationProvider = totalDurationProvider,
+                    lyricsProvider = lyricsProvider,
                     isCastConnecting = isCastConnecting,
-                    isFavoriteProvider = { isFavorite },
+                    isFavoriteProvider = isFavoriteProvider,
                     onShowQueueClicked = onShowQueueClicked,
                     onQueueDragStart = onQueueDragStart,
                     onQueueDrag = onQueueDrag,
                     onQueueRelease = onQueueRelease,
-                    onPlayPause = playerViewModel::playPause,
-                    onSeek = playerViewModel::seekTo,
-                    onNext = playerViewModel::nextSong,
-                    onPrevious = playerViewModel::previousSong,
+                    onPlayPause = onPlayPause,
+                    onSeek = onSeek,
+                    onNext = onNext,
+                    onPrevious = onPrevious,
                     onCollapse = {},
                     onShowCastClicked = {},
-                    onShuffleToggle = { playerViewModel.toggleShuffle() },
-                    onRepeatToggle = playerViewModel::cycleRepeatMode,
-                    onFavoriteToggle = playerViewModel::toggleFavorite
+                    onShuffleToggle = onShuffleToggle,
+                    onRepeatToggle = onRepeatToggle,
+                    onFavoriteToggle = onFavoriteToggle
                 )
             }
         }

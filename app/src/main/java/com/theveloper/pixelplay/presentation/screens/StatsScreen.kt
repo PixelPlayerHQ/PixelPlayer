@@ -40,13 +40,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoGraph
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Hearing
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -66,6 +65,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,6 +75,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -116,6 +119,7 @@ import com.theveloper.pixelplay.utils.formatListeningDurationLong
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.PI
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.unit.sp
@@ -124,6 +128,8 @@ import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PlayCircleOutline
 import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
+
+private const val PULL_TO_REFRESH_MIN_DURATION_MS = 3500L
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -198,115 +204,182 @@ fun StatsScreen(
     val tabContentSpacing = 20.dp
     var selectedTimelineMetric by rememberSaveable { mutableStateOf(TimelineMetric.ListeningTime) }
     var selectedCategoryDimension by rememberSaveable { mutableStateOf(CategoryDimension.Song) }
+    val pullToRefreshState = rememberPullToRefreshState()
+    var isPullRefreshAnimating by remember { mutableStateOf(false) }
+    var isPullRefreshMinDelayActive by remember { mutableStateOf(false) }
+    var hasPendingPullRefresh by remember { mutableStateOf(false) }
+    val isRefreshingFromViewModel by rememberUpdatedState(uiState.isRefreshing)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .nestedScroll(nestedScrollConnection)
-    ) {
-        if (uiState.isLoading && summary == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ContainedLoadingIndicator()
-            }
+    val onPullRefresh: () -> Unit = {
+        if (hasPendingPullRefresh || uiState.isLoading) {
+            Unit
         } else {
-            val showDailyRhythm = summary?.range == StatsTimeRange.DAY || summary?.range == StatsTimeRange.WEEK
-
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = currentTopBarHeightDp + tabsHeight + tabIndicatorExtraSpacing + tabContentSpacing + 0.dp,
-                    bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                item(key = "hero_section") {
-                    StatsHeroSection(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    ListeningTimelineSection(
-                        summary = summary,
-                        selectedMetric = selectedTimelineMetric,
-                        onMetricSelected = { selectedTimelineMetric = it },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    CategoryMetricsSection(
-                        summary = summary,
-                        selectedDimension = selectedCategoryDimension,
-                        onDimensionSelected = { selectedCategoryDimension = it },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-
-                item {
-                    ListeningHabitsCard(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    TopArtistsCard(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    TopAlbumsCard(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    TrackConcentrationCard(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-                item {
-                    SongStatsCard(
-                        summary = summary,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
+            hasPendingPullRefresh = true
+            isPullRefreshAnimating = true
+            isPullRefreshMinDelayActive = true
+            statsViewModel.requestStatsRefresh()
+            coroutineScope.launch {
+                delay(PULL_TO_REFRESH_MIN_DURATION_MS)
+                isPullRefreshMinDelayActive = false
+                if (!isRefreshingFromViewModel) {
+                    isPullRefreshAnimating = false
+                    hasPendingPullRefresh = false
                 }
             }
         }
+    }
 
+    LaunchedEffect(uiState.isRefreshing, hasPendingPullRefresh, isPullRefreshMinDelayActive) {
+        if (!hasPendingPullRefresh) return@LaunchedEffect
+        if (uiState.isRefreshing) {
+            isPullRefreshAnimating = true
+        } else if (!isPullRefreshMinDelayActive) {
+            isPullRefreshAnimating = false
+            hasPendingPullRefresh = false
+        }
+    }
+
+    PullToRefreshBox(
+        isRefreshing = isPullRefreshAnimating,
+        onRefresh = onPullRefresh,
+        state = pullToRefreshState,
+        modifier = Modifier.fillMaxSize(),
+        indicator = {
+            PullToRefreshDefaults.LoadingIndicator(
+                state = pullToRefreshState,
+                isRefreshing = isPullRefreshAnimating,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = currentTopBarHeightDp + tabsHeight + tabIndicatorExtraSpacing + 4.dp)
+            )
+        }
+    ) {
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .zIndex(5f)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .nestedScroll(nestedScrollConnection)
         ) {
-            val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
-            val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = solidAlpha)
-            
-            Column(
-                modifier = Modifier
-                    .background(backgroundColor)
-                    .padding(bottom = 8.dp) // Reduced padding below tabs
-            ) {
-                CollapsibleCommonTopBar(
-                    title = "Listening Stats",
-                    collapseFraction = collapseFraction,
-                    headerHeight = currentTopBarHeightDp,
-                    onBackClick = { navController.popBackStack() },
-                    containerColor = Color.Transparent
-                )
+            if (uiState.isLoading && summary == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ContainedLoadingIndicator()
+                }
+            } else {
+                val showDailyRhythm = summary?.range == StatsTimeRange.DAY || summary?.range == StatsTimeRange.WEEK
 
-                RangeTabsHeader(
-                    ranges = uiState.availableRanges,
-                    selected = uiState.selectedRange,
-                    onRangeSelected = statsViewModel::onRangeSelected,
-                    indicatorSpacing = tabIndicatorExtraSpacing,
-                    showIndicator = showRangeTabIndicator,
-                )
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = currentTopBarHeightDp + tabsHeight + tabIndicatorExtraSpacing + tabContentSpacing + 0.dp,
+                        bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    item(key = "hero_section") {
+                        StatsHeroSection(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        ListeningTimelineSection(
+                            summary = summary,
+                            selectedMetric = selectedTimelineMetric,
+                            onMetricSelected = { selectedTimelineMetric = it },
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        CategoryMetricsSection(
+                            summary = summary,
+                            selectedDimension = selectedCategoryDimension,
+                            onDimensionSelected = { selectedCategoryDimension = it },
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+
+                    item {
+                        ListeningHabitsCard(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        TopArtistsCard(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        TopAlbumsCard(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        TrackConcentrationCard(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                    item {
+                        SongStatsCard(
+                            summary = summary,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .zIndex(5f)
+            ) {
+                val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
+                val backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = solidAlpha)
+
+                Column(
+                    modifier = Modifier
+                        .background(backgroundColor)
+                        .padding(bottom = 8.dp) // Reduced padding below tabs
+                ) {
+                    CollapsibleCommonTopBar(
+                        title = "Listening Stats",
+                        collapseFraction = collapseFraction,
+                        headerHeight = currentTopBarHeightDp,
+                        onBackClick = { navController.popBackStack() },
+                        containerColor = Color.Transparent,
+                        actions = {
+                            FilledIconButton(
+                                modifier = Modifier
+                                    .padding(end = 12.dp),
+                                onClick = statsViewModel::requestStatsRefresh,
+                                enabled = !uiState.isLoading && !uiState.isRefreshing && !isPullRefreshAnimating,
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Refresh,
+                                    contentDescription = "Refresh listening stats"
+                                )
+                            }
+                        }
+                    )
+
+                    RangeTabsHeader(
+                        ranges = uiState.availableRanges,
+                        selected = uiState.selectedRange,
+                        onRangeSelected = statsViewModel::onRangeSelected,
+                        indicatorSpacing = tabIndicatorExtraSpacing,
+                        showIndicator = showRangeTabIndicator,
+                    )
+                }
             }
         }
     }

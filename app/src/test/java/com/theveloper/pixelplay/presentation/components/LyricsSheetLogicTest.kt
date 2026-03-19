@@ -151,4 +151,34 @@ class LyricsSheetLogicTest {
 
         assertEquals(2, idx)
     }
+
+    @Test
+    fun resolveSeekPositionMs_subtractsPositiveLyricsOffset() {
+        val seekPosition = resolveSeekPositionMs(
+            lineTimeMs = 12_000L,
+            lyricsSyncOffsetMs = 750
+        )
+
+        assertEquals(11_250L, seekPosition)
+    }
+
+    @Test
+    fun resolveSeekPositionMs_addsNegativeLyricsOffset() {
+        val seekPosition = resolveSeekPositionMs(
+            lineTimeMs = 12_000L,
+            lyricsSyncOffsetMs = -750
+        )
+
+        assertEquals(12_750L, seekPosition)
+    }
+
+    @Test
+    fun resolveSeekPositionMs_clampsToZeroWhenOffsetWouldGoNegative() {
+        val seekPosition = resolveSeekPositionMs(
+            lineTimeMs = 300L,
+            lyricsSyncOffsetMs = 750
+        )
+
+        assertEquals(0L, seekPosition)
+    }
 }

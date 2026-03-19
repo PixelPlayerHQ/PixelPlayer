@@ -6,6 +6,7 @@ import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
 import com.theveloper.pixelplay.shared.WearCapabilities
 import com.theveloper.pixelplay.shared.WearDataPaths
+import com.theveloper.pixelplay.shared.WearTransferProgress
 import com.theveloper.pixelplay.shared.WearTransferRequest
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.encodeToString
@@ -18,6 +19,9 @@ import javax.inject.Singleton
 @Singleton
 class WearPhoneTransferSender @Inject constructor(
     private val application: Application,
+    private val transferStateStore: PhoneWatchTransferStateStore,
+    private val transferCancellationStore: PhoneWatchTransferCancellationStore,
+    private val directTransferCoordinator: PhoneDirectWatchTransferCoordinator,
 ) {
     private val capabilityClient by lazy { Wearable.getCapabilityClient(application) }
     private val messageClient: MessageClient by lazy { Wearable.getMessageClient(application) }
@@ -29,14 +33,39 @@ class WearPhoneTransferSender @Inject constructor(
                 WearCapabilities.PIXELPLAY_WEAR_APP,
                 CapabilityClient.FILTER_REACHABLE,
             ).await()
+            transferStateStore.retainReachableWatchNodes(capability.nodes.map { it.id }.toSet())
             capability.nodes.isNotEmpty()
         }.getOrElse { error ->
+            transferStateStore.retainReachableWatchNodes(emptySet())
             Timber.tag(TAG).w(error, "Failed checking PixelPlay Wear availability")
             false
         }
     }
 
-    suspend fun requestSongTransfer(songId: String): Result<Int> {
+    suspend fun refreshWatchLibraryState(): Result<Unit> {
+        return runCatching {
+            val capability = capabilityClient.getCapability(
+                WearCapabilities.PIXELPLAY_WEAR_APP,
+                CapabilityClient.FILTER_REACHABLE,
+            ).await()
+            val nodes = capability.nodes
+            val nodeIds = nodes.map { it.id }.toSet()
+            transferStateStore.retainReachableWatchNodes(nodeIds)
+            transferStateStore.beginWatchLibraryRefresh(nodeIds)
+            if (nodes.isEmpty()) return@runCatching
+
+            nodes.forEach { node ->
+                messageClient.sendMessage(
+                    node.id,
+                    WearDataPaths.WATCH_LIBRARY_QUERY,
+                    ByteArray(0),
+                ).await()
+            }
+        }
+    }
+
+    suspend fun requestSongTransfer(songId: String, songTitle: String = ""): Result<Int> {
+        var requestId: String? = null
         return runCatching {
             val capability = capabilityClient.getCapability(
                 WearCapabilities.PIXELPLAY_WEAR_APP,
@@ -44,6 +73,7 @@ class WearPhoneTransferSender @Inject constructor(
             ).await()
 
             val nodes = capability.nodes
+            transferStateStore.retainReachableWatchNodes(nodes.map { it.id }.toSet())
             if (nodes.isEmpty()) {
                 error("No reachable watch with PixelPlay")
             }
@@ -52,16 +82,85 @@ class WearPhoneTransferSender @Inject constructor(
                 requestId = UUID.randomUUID().toString(),
                 songId = songId,
             )
+            requestId = request.requestId
             val payload = json.encodeToString(request).toByteArray(Charsets.UTF_8)
+            transferStateStore.markRequested(
+                requestId = request.requestId,
+                songId = songId,
+                songTitle = songTitle,
+            )
 
+            nodes.forEach { node ->
+                directTransferCoordinator.startTransferToWatch(
+                    nodeId = node.id,
+                    requestId = request.requestId,
+                    songId = songId,
+                )
+            }
+            nodes.size
+        }.onFailure { error ->
+            requestId?.let { safeRequestId ->
+                transferStateStore.markProgress(
+                    requestId = safeRequestId,
+                    songId = songId,
+                    bytesTransferred = 0L,
+                    totalBytes = 0L,
+                    status = WearTransferProgress.STATUS_FAILED,
+                    error = error.message ?: "Failed to request transfer",
+                    songTitle = songTitle,
+                )
+            }
+        }
+    }
+
+    suspend fun cancelTransfer(requestId: String) {
+        val transfer = transferStateStore.transfers.value[requestId]
+        if (transfer == null) {
+            Timber.tag(TAG).w("Ignoring cancel for unknown transfer requestId=%s", requestId)
+            return
+        }
+
+        transferCancellationStore.markCancelled(requestId)
+        transferStateStore.markCancelled(requestId)
+
+        runCatching {
+            val capability = capabilityClient.getCapability(
+                WearCapabilities.PIXELPLAY_WEAR_APP,
+                CapabilityClient.FILTER_REACHABLE,
+            ).await()
+
+            val nodes = capability.nodes
+            transferStateStore.retainReachableWatchNodes(nodes.map { it.id }.toSet())
+            if (nodes.isEmpty()) return@runCatching
+
+            val request = WearTransferRequest(
+                requestId = requestId,
+                songId = transfer.songId,
+            )
+            val payload = json.encodeToString(request).toByteArray(Charsets.UTF_8)
+            val cancelledProgressPayload = json.encodeToString(
+                WearTransferProgress(
+                    requestId = requestId,
+                    songId = transfer.songId,
+                    bytesTransferred = transfer.bytesTransferred,
+                    totalBytes = transfer.totalBytes,
+                    status = WearTransferProgress.STATUS_CANCELLED,
+                )
+            ).toByteArray(Charsets.UTF_8)
             nodes.forEach { node ->
                 messageClient.sendMessage(
                     node.id,
-                    WearDataPaths.TRANSFER_REQUEST,
+                    WearDataPaths.TRANSFER_PROGRESS,
+                    cancelledProgressPayload,
+                ).await()
+                messageClient.sendMessage(
+                    node.id,
+                    WearDataPaths.TRANSFER_CANCEL,
                     payload,
                 ).await()
             }
-            nodes.size
+        }.onFailure { error ->
+            Timber.tag(TAG).w(error, "Failed to notify watch about cancelled transfer")
         }
     }
 

@@ -3,7 +3,7 @@ package com.theveloper.pixelplay.data.telegram
 import com.theveloper.pixelplay.data.database.TelegramDao
 import com.theveloper.pixelplay.data.database.TelegramSongEntity
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -37,7 +37,7 @@ import timber.log.Timber
 class TelegramRepository @Inject constructor(
     private val clientManager: TelegramClientManager,
     private val dao: TelegramDao,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val playlistPreferencesRepository: PlaylistPreferencesRepository
 ) {
     private companion object {
         private const val AUTH_REQUEST_TIMEOUT_MS = 20_000L
@@ -565,7 +565,7 @@ class TelegramRepository @Inject constructor(
             val appPlaylistId = getAppPlaylistIdForTelegram(chatId)
             
             // Get all current app playlists
-            val allPlaylists = userPreferencesRepository.userPlaylistsFlow
+            val allPlaylists = playlistPreferencesRepository.userPlaylistsFlow
             val existingPlaylist = withContext(Dispatchers.IO) {
                 allPlaylists.map { playlists ->
                     playlists.find { it.id == appPlaylistId }
@@ -574,7 +574,7 @@ class TelegramRepository @Inject constructor(
 
             if (existingPlaylist != null) {
                 // Update the existing playlist
-                userPreferencesRepository.updatePlaylist(
+                playlistPreferencesRepository.updatePlaylist(
                     existingPlaylist.copy(
                         name = channelTitle,
                         songIds = unifiedSongIds,
@@ -585,7 +585,7 @@ class TelegramRepository @Inject constructor(
                 Timber.d("Updated app playlist for Telegram channel $chatId: $channelTitle")
             } else {
                 // Create a new playlist
-                userPreferencesRepository.createPlaylist(
+                playlistPreferencesRepository.createPlaylist(
                     name = channelTitle,
                     songIds = unifiedSongIds,
                     customId = appPlaylistId,
@@ -601,7 +601,7 @@ class TelegramRepository @Inject constructor(
     suspend fun deleteAppPlaylistForTelegramChannel(chatId: Long) {
         try {
             val appPlaylistId = getAppPlaylistIdForTelegram(chatId)
-            userPreferencesRepository.deletePlaylist(appPlaylistId)
+            playlistPreferencesRepository.deletePlaylist(appPlaylistId)
             Timber.d("Deleted app playlist for Telegram channel $chatId")
         } catch (e: Exception) {
             Timber.w(e, "Failed to delete app playlist for Telegram channel $chatId")

@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.service.auto
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
@@ -9,17 +10,19 @@ import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.utils.MediaItemBuilder
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AutoMediaBrowseTree @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val musicRepository: MusicRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val engagementDao: EngagementDao
 ) {
 
@@ -100,7 +103,7 @@ class AutoMediaBrowseTree @Inject constructor(
             }
             mediaId.startsWith(PLAYLIST_PREFIX) -> {
                 val playlistId = mediaId.removePrefix(PLAYLIST_PREFIX)
-                val playlist = userPreferencesRepository.userPlaylistsFlow.first()
+                val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .find { it.id == playlistId } ?: return null
                 buildBrowsablePlaylistItem(playlist)
             }
@@ -151,7 +154,7 @@ class AutoMediaBrowseTree @Inject constructor(
     }
 
     private suspend fun getPlaylists(offset: Int, limit: Int): List<MediaItem> {
-        val playlists = userPreferencesRepository.userPlaylistsFlow.first()
+        val playlists = playlistPreferencesRepository.userPlaylistsFlow.first()
         return playlists
             .drop(offset)
             .take(limit)
@@ -212,7 +215,7 @@ class AutoMediaBrowseTree @Inject constructor(
             }
             CONTEXT_TYPE_PLAYLIST -> {
                 val playlistId = contextId ?: return emptyList()
-                val playlist = userPreferencesRepository.userPlaylistsFlow.first()
+                val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .find { it.id == playlistId } ?: return emptyList()
                 val songs = musicRepository.getSongsByIds(playlist.songIds).first()
                 val songsById = songs.associateBy { it.id }
@@ -289,7 +292,8 @@ class AutoMediaBrowseTree @Inject constructor(
         if (!contextExtras.isEmpty) {
             metadata.setExtras(contextExtras)
         }
-        MediaItemBuilder.artworkUri(song.albumArtUriString)?.let { metadata.setArtworkUri(it) }
+        MediaItemBuilder.externalControllerArtworkUri(context, song.albumArtUriString)
+            ?.let { metadata.setArtworkUri(it) }
 
         return MediaItem.Builder()
             .setMediaId(song.id)
@@ -304,7 +308,8 @@ class AutoMediaBrowseTree @Inject constructor(
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS)
-        MediaItemBuilder.artworkUri(album.albumArtUriString)?.let { metadata.setArtworkUri(it) }
+        MediaItemBuilder.externalControllerArtworkUri(context, album.albumArtUriString)
+            ?.let { metadata.setArtworkUri(it) }
 
         return MediaItem.Builder()
             .setMediaId(ALBUM_PREFIX + album.id)
@@ -318,7 +323,8 @@ class AutoMediaBrowseTree @Inject constructor(
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS)
-        MediaItemBuilder.artworkUri(artist.effectiveImageUrl)?.let { metadata.setArtworkUri(it) }
+        MediaItemBuilder.externalControllerArtworkUri(context, artist.effectiveImageUrl)
+            ?.let { metadata.setArtworkUri(it) }
 
         return MediaItem.Builder()
             .setMediaId(ARTIST_PREFIX + artist.id)
@@ -332,7 +338,8 @@ class AutoMediaBrowseTree @Inject constructor(
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS)
-        MediaItemBuilder.artworkUri(playlist.coverImageUri)?.let { metadata.setArtworkUri(it) }
+        MediaItemBuilder.externalControllerArtworkUri(context, playlist.coverImageUri)
+            ?.let { metadata.setArtworkUri(it) }
 
         return MediaItem.Builder()
             .setMediaId(PLAYLIST_PREFIX + playlist.id)

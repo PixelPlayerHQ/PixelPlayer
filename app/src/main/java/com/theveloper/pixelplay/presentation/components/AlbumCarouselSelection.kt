@@ -37,6 +37,7 @@ fun AlbumCarouselSection(
     currentSong: Song?,
     queue: ImmutableList<Song>,
     expansionFraction: Float,
+    requestedScrollIndex: Int? = null,
     onSongSelected: (Song) -> Unit,
     modifier: Modifier = Modifier,
     carouselStyle: String = CarouselStyle.NO_PEEK,
@@ -83,12 +84,26 @@ fun AlbumCarouselSection(
                 .takeIf { it >= 0 }
                 ?: 0
     }
+    val requestedTargetIndex = remember(requestedScrollIndex, queue) {
+        requestedScrollIndex?.takeIf { it in queue.indices }
+    }
+    val effectiveTargetIndex = requestedTargetIndex ?: currentSongIndex
     val smoothCarouselSpec = remember { tween<Float>(durationMillis = 360, easing = FastOutSlowInEasing) }
-    LaunchedEffect(currentSongIndex, queue) {
+    var ignoreNextSettledSelectionForPage by remember { mutableStateOf<Int?>(null) }
+    var programmaticScrollInProgress by remember { mutableStateOf(false) }
+    LaunchedEffect(effectiveTargetIndex, requestedTargetIndex, queue) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
             .first { !it }
-        if (carouselState.pagerState.currentPage != currentSongIndex) {
-            carouselState.animateScrollToItem(currentSongIndex, animationSpec = smoothCarouselSpec)
+        if (carouselState.pagerState.currentPage != effectiveTargetIndex) {
+            if (requestedTargetIndex != null) {
+                ignoreNextSettledSelectionForPage = effectiveTargetIndex
+            }
+            programmaticScrollInProgress = true
+            try {
+                carouselState.animateScrollToItem(effectiveTargetIndex, animationSpec = smoothCarouselSpec)
+            } finally {
+                programmaticScrollInProgress = false
+            }
         }
     }
 
@@ -100,6 +115,10 @@ fun AlbumCarouselSection(
             .filter { !it }
             .collect {
                 val settled = carouselState.pagerState.currentPage
+                if (ignoreNextSettledSelectionForPage == settled) {
+                    ignoreNextSettledSelectionForPage = null
+                    return@collect
+                }
                 if (settled != currentSongIndex) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     queue.getOrNull(settled)?.let(onSongSelected)
@@ -117,6 +136,7 @@ fun AlbumCarouselSection(
             modifier = Modifier.fillMaxSize(), // Fill the space provided by the parent's modifier
             itemSpacing = itemSpacing,
             itemCornerRadius = corner,
+            suppressNoPeekSettleCorrection = requestedTargetIndex != null || programmaticScrollInProgress,
             carouselStyle = if (carouselState.pagerState.pageCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
             carouselWidth = availableWidth // Pass the full width for layout calculations
         ) { index ->

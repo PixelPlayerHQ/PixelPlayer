@@ -60,6 +60,7 @@ class ControlWidget4x2 : GlanceAppWidget() {
         val isShuffleEnabled = playerInfo.isShuffleEnabled
         val repeatMode = playerInfo.repeatMode
         val albumArtBitmapData = playerInfo.albumArtBitmapData
+        val albumArtUri = playerInfo.albumArtUri
 
         val colors = playerInfo.getWidgetColors()
 
@@ -88,6 +89,7 @@ class ControlWidget4x2 : GlanceAppWidget() {
                     AlbumArtImage(
                         modifier = GlanceModifier.size(72.dp),
                         bitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         size = 72.dp,
                         context = context,
                         cornerRadius = albumArtCornerRadius

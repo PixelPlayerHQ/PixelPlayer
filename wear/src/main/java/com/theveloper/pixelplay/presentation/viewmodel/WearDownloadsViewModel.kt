@@ -6,19 +6,32 @@ import com.theveloper.pixelplay.data.TransferState
 import com.theveloper.pixelplay.data.WearDeviceMusicRepository
 import com.theveloper.pixelplay.data.WearDeviceSong
 import com.theveloper.pixelplay.data.WearLocalPlayerRepository
-import com.theveloper.pixelplay.data.WearQueueSong
 import com.theveloper.pixelplay.data.WearOutputTarget
+import com.theveloper.pixelplay.data.WearPlaybackController
+import com.theveloper.pixelplay.data.WearQueueSong
 import com.theveloper.pixelplay.data.WearStateRepository
 import com.theveloper.pixelplay.data.WearTransferRepository
 import com.theveloper.pixelplay.data.local.LocalSongEntity
+import com.theveloper.pixelplay.shared.WearPlaybackCommand
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
+
+sealed interface WearDownloadsUiEvent {
+    data class Message(val value: String) : WearDownloadsUiEvent
+}
 
 /**
  * ViewModel for managing downloaded songs and local playback on the watch.
@@ -29,8 +42,13 @@ class WearDownloadsViewModel @Inject constructor(
     private val transferRepository: WearTransferRepository,
     private val deviceMusicRepository: WearDeviceMusicRepository,
     private val localPlayerRepository: WearLocalPlayerRepository,
+    private val playbackController: WearPlaybackController,
     private val stateRepository: WearStateRepository,
 ) : ViewModel() {
+
+    companion object {
+        private const val PHONE_PLAYBACK_TIMEOUT_MS = 6_000L
+    }
 
     /** All locally stored songs (for DownloadsScreen) */
     val localSongs: StateFlow<List<LocalSongEntity>> = transferRepository.localSongs
@@ -53,6 +71,39 @@ class WearDownloadsViewModel @Inject constructor(
     private val _deviceLibraryError = MutableStateFlow<String?>(null)
     val deviceLibraryError: StateFlow<String?> = _deviceLibraryError.asStateFlow()
 
+    private val _pendingPhonePlaybackSongId = MutableStateFlow<String?>(null)
+    val pendingPhonePlaybackSongId: StateFlow<String?> = _pendingPhonePlaybackSongId.asStateFlow()
+
+    private val _events = MutableSharedFlow<WearDownloadsUiEvent>(extraBufferCapacity = 8)
+    val events: SharedFlow<WearDownloadsUiEvent> = _events.asSharedFlow()
+
+    private var pendingPhonePlaybackRequestId: String? = null
+    private var phonePlaybackTimeoutJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            stateRepository.playbackResults.collect { result ->
+                if (result.action != WearPlaybackCommand.PLAY_ITEM) return@collect
+                if (result.requestId != pendingPhonePlaybackRequestId) return@collect
+
+                phonePlaybackTimeoutJob?.cancel()
+                phonePlaybackTimeoutJob = null
+                pendingPhonePlaybackRequestId = null
+                _pendingPhonePlaybackSongId.value = null
+
+                if (result.success) {
+                    stateRepository.setOutputTarget(WearOutputTarget.PHONE)
+                } else {
+                    _events.emit(
+                        WearDownloadsUiEvent.Message(
+                            result.error ?: "This song is no longer available on phone"
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     /**
      * Request download of a song from the phone to the watch.
      */
@@ -69,6 +120,40 @@ class WearDownloadsViewModel @Inject constructor(
         if (startIndex == -1 || allSongs.isEmpty()) return
         localPlayerRepository.playLocalSongs(allSongs, startIndex)
         stateRepository.setOutputTarget(WearOutputTarget.WATCH)
+    }
+
+    fun playSongOnPhone(songId: String) {
+        if (_pendingPhonePlaybackSongId.value != null) return
+
+        viewModelScope.launch {
+            val requestId = UUID.randomUUID().toString()
+            pendingPhonePlaybackRequestId = requestId
+            _pendingPhonePlaybackSongId.value = songId
+
+            val dispatched = playbackController.playItemAwaitDispatch(
+                songId = songId,
+                requestId = requestId,
+            )
+            if (!dispatched) {
+                pendingPhonePlaybackRequestId = null
+                _pendingPhonePlaybackSongId.value = null
+                _events.emit(WearDownloadsUiEvent.Message("Phone not connected"))
+                return@launch
+            }
+
+            phonePlaybackTimeoutJob?.cancel()
+            phonePlaybackTimeoutJob = launch {
+                delay(PHONE_PLAYBACK_TIMEOUT_MS)
+                if (pendingPhonePlaybackRequestId != requestId) return@launch
+                pendingPhonePlaybackRequestId = null
+                _pendingPhonePlaybackSongId.value = null
+                _events.emit(
+                    WearDownloadsUiEvent.Message(
+                        "Phone didn't confirm playback. The song may no longer be available."
+                    )
+                )
+            }
+        }
     }
 
     fun playDeviceSong(songId: String) {
@@ -118,7 +203,17 @@ class WearDownloadsViewModel @Inject constructor(
      */
     fun deleteSong(songId: String) {
         viewModelScope.launch {
-            transferRepository.deleteSong(songId)
+            val error = runCatching {
+                localPlayerRepository.removeSongFromActiveQueue(songId)
+                transferRepository.deleteSong(songId).getOrThrow()
+            }.exceptionOrNull()
+            if (error != null) {
+                _events.emit(
+                    WearDownloadsUiEvent.Message(
+                        error.message ?: "Couldn't remove this song from watch"
+                    )
+                )
+            }
         }
     }
 
@@ -127,5 +222,10 @@ class WearDownloadsViewModel @Inject constructor(
      */
     fun cancelTransfer(requestId: String) {
         transferRepository.cancelTransfer(requestId)
+    }
+
+    override fun onCleared() {
+        phonePlaybackTimeoutJob?.cancel()
+        super.onCleared()
     }
 }

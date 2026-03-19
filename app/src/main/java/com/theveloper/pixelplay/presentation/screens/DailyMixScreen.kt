@@ -110,6 +110,7 @@ fun DailyMixScreen(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
+    val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
 
     val showAiSheet by playerViewModel.showAiPlaylistSheet.collectAsStateWithLifecycle()
     val isGeneratingAiPlaylist by playerViewModel.isGeneratingAiPlaylist.collectAsStateWithLifecycle()
@@ -117,7 +118,6 @@ fun DailyMixScreen(
     val lazyListState = rememberLazyListState()
 
     var showSongInfoSheet by remember { mutableStateOf(false) }
-    var selectedSongForInfo by remember { mutableStateOf<Song?>(null) }
     var showDailyMixMenu by remember { mutableStateOf(false) }
 
     if (showDailyMixMenu) {
@@ -310,7 +310,7 @@ fun DailyMixScreen(
                         isPlaying = currentSongId == song.id && isPlaying,
                         onClick = { playerViewModel.showAndPlaySong(song, dailyMixSongs, "Daily Mix", isVoluntaryPlay = false) },
                         onMoreOptionsClick = {
-                            selectedSongForInfo = song
+                            playerViewModel.selectSongForInfo(song)
                             showSongInfoSheet = true
                         }
                     )

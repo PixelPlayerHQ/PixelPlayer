@@ -1,7 +1,9 @@
 package com.theveloper.pixelplay.utils
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -40,8 +42,26 @@ object MediaItemBuilder {
             .build()
     }
 
+    fun buildForExternalController(context: Context, song: Song): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(song.id)
+            .setUri(playbackUri(song.contentUriString))
+            .setMediaMetadata(
+                buildMediaMetadataForSong(
+                    song = song,
+                    exposedArtworkUri = externalControllerArtworkUri(context, song.albumArtUriString)
+                )
+            )
+            .build()
+    }
+
     fun playbackUri(contentUriString: String): Uri {
-        val uri = contentUriString.toUri()
+        val uri = runCatching { Uri.parse(contentUriString) }.getOrNull()
+            ?: return if (contentUriString.startsWith("/")) {
+                Uri.fromFile(File(contentUriString))
+            } else {
+                Uri.fromFile(File(contentUriString))
+            }
         // Telegram downloaded files can be stored as absolute paths (without file://).
         // Normalize them so ExoPlayer always gets a canonical local-file URI.
         return if (uri.scheme.isNullOrBlank() && contentUriString.startsWith("/")) {
@@ -73,13 +93,29 @@ object MediaItemBuilder {
         }
     }
 
-    private fun buildMediaMetadataForSong(song: Song): MediaMetadata {
+    fun externalControllerArtworkUri(context: Context, rawArtworkUri: String?): Uri? {
+        val normalizedUri = artworkUri(rawArtworkUri) ?: return null
+        return when (normalizedUri.scheme?.lowercase()) {
+            "file" -> normalizedUri.path
+                ?.takeIf { it.isNotBlank() }
+                ?.let(::File)
+                ?.let { file -> providerBackedArtworkUri(context, file) ?: normalizedUri }
+                ?: normalizedUri
+            null -> null
+            else -> normalizedUri
+        }
+    }
+
+    private fun buildMediaMetadataForSong(
+        song: Song,
+        exposedArtworkUri: Uri? = artworkUri(song.albumArtUriString)
+    ): MediaMetadata {
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.displayArtist)
             .setAlbumTitle(song.album)
 
-        artworkUri(song.albumArtUriString)?.let { artworkUri ->
+        exposedArtworkUri?.let { artworkUri ->
             metadataBuilder.setArtworkUri(artworkUri)
         }
 
@@ -88,7 +124,9 @@ object MediaItemBuilder {
             putString(EXTERNAL_EXTRA_ALBUM, song.album)
             putLong(EXTERNAL_EXTRA_DURATION, song.duration)
             putString(EXTERNAL_EXTRA_CONTENT_URI, song.contentUriString)
-            song.albumArtUriString?.let { putString(EXTERNAL_EXTRA_ALBUM_ART, it) }
+            (exposedArtworkUri?.toString() ?: song.albumArtUriString)?.let {
+                putString(EXTERNAL_EXTRA_ALBUM_ART, it)
+            }
             song.genre?.let { putString(EXTERNAL_EXTRA_GENRE, it) }
             putInt(EXTERNAL_EXTRA_TRACK, song.trackNumber)
             putInt(EXTERNAL_EXTRA_YEAR, song.year)
@@ -101,5 +139,25 @@ object MediaItemBuilder {
 
         metadataBuilder.setExtras(extras)
         return metadataBuilder.build()
+    }
+
+    private fun providerBackedArtworkUri(context: Context, file: File): Uri? {
+        val canonicalFile = runCatching { file.canonicalFile }.getOrElse { file.absoluteFile }
+        if (!isInsideAppStorage(context, canonicalFile)) {
+            return null
+        }
+
+        return runCatching {
+            FileProvider.getUriForFile(context, "${context.packageName}.provider", canonicalFile)
+        }.getOrNull()
+    }
+
+    private fun isInsideAppStorage(context: Context, file: File): Boolean {
+        val storageRoots = listOf(context.cacheDir, context.filesDir)
+            .mapNotNull { root -> runCatching { root.canonicalFile }.getOrNull() }
+
+        return storageRoots.any { root ->
+            file.path == root.path || file.path.startsWith(root.path + File.separator)
+        }
     }
 }

@@ -14,7 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -45,6 +47,7 @@ fun TabAnimation(
     val isSelected = index == selectedIndex
     val scale = remember { Animatable(1f) }
     val offsetX = remember { Animatable(0f) }
+    var hasAnimatedSelectionChange by remember { mutableStateOf(false) }
 
     val animationSpec = tween<Float>(durationMillis = 250, easing = FastOutSlowInEasing)
 
@@ -59,21 +62,24 @@ fun TabAnimation(
         label = "Tab Content Color"
     )
 
-    // Handles the "pop" animation for the selected tab.
-    LaunchedEffect(isSelected) {
+    // Animate only on actual selection changes, not on the first composition.
+    LaunchedEffect(selectedIndex) {
+        if (!hasAnimatedSelectionChange) {
+            hasAnimatedSelectionChange = true
+            scale.snapTo(1f)
+            offsetX.snapTo(0f)
+            return@LaunchedEffect
+        }
+
         if (isSelected) {
             launch {
                 scale.animateTo(1.05f, animationSpec = animationSpec)
                 scale.animateTo(1f, animationSpec = animationSpec)
             }
         } else {
-            // Instantly reset scale for non-selected tabs to avoid lagging animations
             scale.snapTo(1f)
         }
-    }
 
-    // Handles the offset for neighbor tabs when selection changes.
-    LaunchedEffect(selectedIndex) {
         if (!isSelected) {
             val distance = index - selectedIndex
             if (abs(distance) == 1) { // Only affect direct neighbors

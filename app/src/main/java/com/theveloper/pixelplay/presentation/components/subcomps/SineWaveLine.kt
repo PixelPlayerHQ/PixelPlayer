@@ -45,24 +45,22 @@ fun SineWaveLine(
 ) {
     val density = LocalDensity.current
 
-    // --- LÓGICA DE ANIMACIÓN ---
-    // 1. Creamos una transición infinita que se encargará de repetir la animación.
-    val infiniteTransition = rememberInfiniteTransition(label = "SineWaveAnimation")
-
-    // 2. Animamos un valor flotante (la fase) de 0 a 2π (un ciclo completo de la onda).
-    //    Esto crea el efecto de desplazamiento.
-    val animatedPhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2f * PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phaseAnimation"
-    )
-
-    // 3. Decidimos qué fase usar: la animada o la estática.
-    val currentPhase = if (animate == true) animatedPhase else phase
+    // Only allocate an infinite transition when animation is enabled.
+    val currentPhase = if (animate == true) {
+        val infiniteTransition = rememberInfiniteTransition(label = "SineWaveAnimation")
+        val animatedPhase by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 2f * PI.toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "phaseAnimation"
+        )
+        animatedPhase
+    } else {
+        phase
+    }
 
     Canvas(modifier = modifier) {
         val w = size.width

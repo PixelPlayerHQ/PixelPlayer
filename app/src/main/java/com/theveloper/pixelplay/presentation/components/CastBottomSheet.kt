@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.presentation.components
 
 import android.Manifest
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -11,6 +12,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,6 +24,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,6 +60,7 @@ import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothDisabled
+import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Speaker
 import androidx.compose.material.icons.rounded.Tv
@@ -81,6 +86,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -104,6 +110,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -126,12 +133,12 @@ import androidx.media3.common.util.UnstableApi
 import androidx.mediarouter.media.MediaRouter
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.screens.TabAnimation
+import com.theveloper.pixelplay.presentation.viewmodel.BluetoothAudioDeviceState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import android.content.pm.PackageManager
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -167,7 +174,7 @@ fun CastBottomSheet(
     val wifiName by playerViewModel.wifiName.collectAsStateWithLifecycle()
     val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsStateWithLifecycle()
     val bluetoothName by playerViewModel.bluetoothName.collectAsStateWithLifecycle()
-    val bluetoothAudioDevices by playerViewModel.bluetoothAudioDevices.collectAsStateWithLifecycle()
+    val bluetoothAudioDeviceStates by playerViewModel.bluetoothAudioDeviceStates.collectAsStateWithLifecycle()
     val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsStateWithLifecycle()
     val isCastConnecting by playerViewModel.isCastConnecting.collectAsStateWithLifecycle()
     val trackVolume by playerViewModel.trackVolume.collectAsStateWithLifecycle()
@@ -178,6 +185,7 @@ fun CastBottomSheet(
         buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 add(Manifest.permission.BLUETOOTH_CONNECT)
+                add(Manifest.permission.BLUETOOTH_SCAN)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.NEARBY_WIFI_DEVICES)
@@ -192,14 +200,14 @@ fun CastBottomSheet(
     ) {
         missingPermissions = missingCastPermissions(context, requiredPermissions)
         if (missingPermissions.isEmpty()) {
-            playerViewModel.refreshLocalConnectionInfo()
+            playerViewModel.refreshLocalConnectionInfo(refreshBluetoothDevices = true)
         }
     }
 
     LaunchedEffect(Unit) {
         missingPermissions = missingCastPermissions(context, requiredPermissions)
         if (missingPermissions.isEmpty()) {
-            playerViewModel.refreshLocalConnectionInfo()
+            playerViewModel.refreshLocalConnectionInfo(refreshBluetoothDevices = true)
         }
     }
 
@@ -211,13 +219,15 @@ fun CastBottomSheet(
     } else {
         emptyList()
     }
-    val bluetoothDeviceNames = bluetoothAudioDevices
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .distinct()
+    val bluetoothDevices = bluetoothAudioDeviceStates
+        .map { state -> state.copy(name = state.name.trim()) }
+        .filter { it.name.isNotEmpty() }
+        .distinctBy { it.stableId() }
     val activeBluetoothName = bluetoothName
         ?.trim()
-        ?.takeIf { it.isNotEmpty() && it in bluetoothDeviceNames }
+        ?.takeIf { activeName ->
+            activeName.isNotEmpty() && bluetoothDevices.any { it.name == activeName }
+        }
 
     val devices = buildList {
         if (isWifiEnabled) {
@@ -250,12 +260,12 @@ fun CastBottomSheet(
         }
 
         if (isBluetoothEnabled) {
-            bluetoothDeviceNames.forEach { name ->
-                val isConnected = name == activeBluetoothName
+            bluetoothDevices.forEach { bluetoothDevice ->
+                val isConnected = bluetoothDevice.name == activeBluetoothName
                 add(
                     CastDeviceUi(
-                        id = "bluetooth_$name",
-                        name = name,
+                        id = "bluetooth_${bluetoothDevice.stableId()}",
+                        name = bluetoothDevice.name,
                         deviceType = MediaRouter.RouteInfo.DEVICE_TYPE_BLUETOOTH_A2DP,
                         playbackType = MediaRouter.RouteInfo.PLAYBACK_TYPE_LOCAL,
                         connectionState = if (isConnected) {
@@ -267,6 +277,7 @@ fun CastBottomSheet(
                         volume = if (isConnected) (trackVolume * 100).toInt() else 0,
                         volumeMax = 100,
                         isSelected = isConnected && !isRemoteSession,
+                        batteryPercent = bluetoothDevice.batteryPercent,
                         isBluetooth = true
                     )
                 )
@@ -337,47 +348,62 @@ fun CastBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 12.dp
     ) {
-        Box(
-            modifier = Modifier
-                .padding(bottom = 18.dp)
+        // AQUÍ APLICAMOS EL FIX: Anulamos la fábrica de overscroll para todo lo que esté aquí adentro
+        CompositionLocalProvider(
+            LocalOverscrollFactory provides null
         ) {
-            if (missingPermissions.isNotEmpty()) {
-                CastPermissionStep(
-                    missingPermissions = missingPermissions,
-                    onRequestPermissions = {
-                        permissionLauncher.launch(missingPermissions.toTypedArray())
-                    }
-                )
-            } else {
-                CastSheetContent(
-                    state = uiState,
-                    onSelectDevice = { id ->
-                        routes.firstOrNull { it.id == id }?.let { playerViewModel.selectRoute(it) }
-                    },
-                    onDisconnect = {
-                        playerViewModel.disconnect()
-                        onDismiss()
-                    },
-                    onVolumeChange = { value ->
-                        if (uiState.activeDevice.isRemote) {
-                            playerViewModel.setRouteVolume(value.toInt())
-                        } else {
-                            playerViewModel.setTrackVolume(value)
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 18.dp)
+            ) {
+                if (missingPermissions.isNotEmpty()) {
+                    CastPermissionStep(
+                        missingPermissions = missingPermissions,
+                        onRequestPermissions = {
+                            permissionLauncher.launch(missingPermissions.toTypedArray())
                         }
-                    },
-                    onTurnOnWifi = {
-                        val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(intent)
-                    },
-                    onOpenBluetoothSettings = {
-                        val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(intent)
-                    },
-                    onRefresh = { playerViewModel.refreshCastRoutes() },
-                    startWithControls = isRemoteSession
-                )
+                    )
+                } else {
+                    CastSheetContent(
+                        state = uiState,
+                        onSelectDevice = { id ->
+                            when {
+                                id.startsWith("bluetooth_") -> {
+                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(intent)
+                                }
+                                else -> routes.firstOrNull { it.id == id }?.let { playerViewModel.selectRoute(it) }
+                            }
+                        },
+                        onDisconnect = {
+                            playerViewModel.disconnect()
+                            onDismiss()
+                        },
+                        onVolumeChange = { value ->
+                            if (uiState.activeDevice.isRemote) {
+                                playerViewModel.setRouteVolume(value.toInt())
+                            } else {
+                                playerViewModel.setTrackVolume(value)
+                            }
+                        },
+                        onTurnOnWifi = {
+                            val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        },
+                        onOpenBluetoothSettings = {
+                            val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        },
+                        onRefresh = {
+                            playerViewModel.refreshCastRoutes()
+                            playerViewModel.refreshLocalConnectionInfo(refreshBluetoothDevices = true)
+                        },
+                        startWithControls = isRemoteSession
+                    )
+                }
             }
         }
     }
@@ -393,6 +419,7 @@ private data class CastDeviceUi(
     val volume: Int,
     val volumeMax: Int,
     val isSelected: Boolean,
+    val batteryPercent: Int? = null,
     val isBluetooth: Boolean = false
 )
 
@@ -419,6 +446,10 @@ private data class CastSheetUiState(
     val isBluetoothEnabled: Boolean,
     val bluetoothName: String? = null
 )
+
+private fun BluetoothAudioDeviceState.stableId(): String {
+    return address ?: name.lowercase()
+}
 
 @Composable
 private fun CastPermissionStep(
@@ -542,62 +573,84 @@ private fun CastSheetContent(
     startWithControls: Boolean = true
 ) {
     val allConnectivityOff = !state.wifiEnabled && !state.isBluetoothEnabled
+    val configuration = LocalConfiguration.current
     val safeInsets = WindowInsets.safeDrawing.asPaddingValues()
-    val statusBarPadding = safeInsets.calculateTopPadding()
-    val navBarPadding = safeInsets.calculateBottomPadding()
+    val maxPagerHeight = (
+        configuration.screenHeightDp.dp -
+            safeInsets.calculateTopPadding() -
+            safeInsets.calculateBottomPadding() -
+            212.dp
+        ).coerceAtLeast(280.dp)
     val pagerState = rememberPagerState(
         initialPage = if (startWithControls) 0 else 1,
         pageCount = { 2 }
     )
     val scope = rememberCoroutineScope()
+    var heightAnimationEnabled by remember { mutableStateOf(false) }
 
-    Box(
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        withFrameNanos { }
+        heightAnimationEnabled = true
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            //.padding(top = statusBarPadding)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            Box(
+                modifier = Modifier.background(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = CircleShape
+                )
             ) {
-                Box(
-                    modifier = Modifier.background(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = CircleShape
-                    )
-                ) {
-                    Text(
-                        modifier = Modifier.padding(start = 6.dp, end = 8.dp),
-                        text = "Connect device",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = state.isScanning,
-                    enter = fadeIn(animationSpec = tween(180)),
-                    exit = fadeOut(animationSpec = tween(160)),
-                    label = "tabScanningIndicator"
-                ) {
-                    BadgeChip(
-                        text = "Scanning nearby",
-                        iconVector = Icons.Filled.Refresh,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(
+                    modifier = Modifier.padding(start = 6.dp, end = 8.dp),
+                    text = "Connect device",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            AnimatedVisibility(
+                visible = state.isScanning,
+                enter = fadeIn(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(160)),
+                label = "tabScanningIndicator"
+            ) {
+                BadgeChip(
+                    text = "Scanning nearby",
+                    iconVector = Icons.Filled.Refresh,
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxPagerHeight)
+                .animateContentSize(
+                    animationSpec = if (heightAnimationEnabled) {
+                        tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                    } else {
+                        snap()
+                    },
+                    alignment = Alignment.TopCenter
+                )
+        ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .wrapContentHeight()
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.Top
             ) { page ->
                 when (page) {
@@ -609,7 +662,7 @@ private fun CastSheetContent(
                         onTurnOnWifi = onTurnOnWifi,
                         onOpenBluetoothSettings = onOpenBluetoothSettings,
                         onRefresh = onRefresh,
-                        navBarPadding = navBarPadding
+                        bottomSpacing = 20.dp,
                     )
                     1 -> CastDevicesTabContent(
                         state = state,
@@ -619,7 +672,7 @@ private fun CastSheetContent(
                         onTurnOnWifi = onTurnOnWifi,
                         onOpenBluetoothSettings = onOpenBluetoothSettings,
                         onRefresh = onRefresh,
-                        navBarPadding = navBarPadding
+                        maxContentHeight = maxPagerHeight,
                     )
                 }
             }
@@ -628,7 +681,6 @@ private fun CastSheetContent(
         PrimaryTabRow(
             selectedTabIndex = pagerState.currentPage,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -703,79 +755,67 @@ private fun CastControlsTabContent(
     onTurnOnWifi: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
     onRefresh: () -> Unit,
-    navBarPadding: Dp
+    bottomSpacing: Dp,
 ) {
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = navBarPadding + 92.dp)
     ) {
-        item(key = "activeDeviceHero") {
-            ActiveDeviceHero(
-                device = state.activeDevice,
-                onDisconnect = onDisconnect,
-                onVolumeChange = onVolumeChange
+        ActiveDeviceHero(
+            device = state.activeDevice,
+            onDisconnect = onDisconnect,
+            onVolumeChange = onVolumeChange
+        )
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Connectivity",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = if (allConnectivityOff) {
+                            "Turn on Wi-Fi or Bluetooth"
+                        } else {
+                            "Manage active radios and rescan"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh connections")
+                }
+            }
+            QuickSettingsRow(
+                wifiOn = state.wifiRadioOn,
+                wifiConnected = state.wifiEnabled,
+                wifiSsid = state.wifiSsid,
+                onWifiClick = onTurnOnWifi,
+                bluetoothEnabled = state.isBluetoothEnabled,
+                bluetoothName = state.bluetoothName,
+                onBluetoothClick = onOpenBluetoothSettings
             )
         }
 
-        item(key = "connectivityPanel") {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Connectivity",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = if (allConnectivityOff) {
-                                    "Turn on Wi-Fi or Bluetooth"
-                                } else {
-                                    "Manage active radios and rescan"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(onClick = onRefresh) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Refresh connections")
-                        }
-                    }
-                    QuickSettingsRow(
-                        wifiOn = state.wifiRadioOn,
-                        wifiConnected = state.wifiEnabled,
-                        wifiSsid = state.wifiSsid,
-                        onWifiClick = onTurnOnWifi,
-                        bluetoothEnabled = state.isBluetoothEnabled,
-                        bluetoothName = state.bluetoothName,
-                        onBluetoothClick = onOpenBluetoothSettings
-                    )
-                }
-            }
+        if (allConnectivityOff) {
+            WifiOffIllustration(
+                onTurnOnWifi = onTurnOnWifi,
+                onOpenBluetoothSettings = onOpenBluetoothSettings
+            )
         }
 
-        if (allConnectivityOff) {
-            item(key = "wifiOff") {
-                WifiOffIllustration(
-                    onTurnOnWifi = onTurnOnWifi,
-                    onOpenBluetoothSettings = onOpenBluetoothSettings
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(bottomSpacing))
     }
 }
 
@@ -788,16 +828,17 @@ private fun CastDevicesTabContent(
     onTurnOnWifi: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
     onRefresh: () -> Unit,
-    navBarPadding: Dp
+    maxContentHeight: Dp,
 ) {
     val colors = MaterialTheme.colorScheme
 
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(max = maxContentHeight)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = navBarPadding + 92.dp)
+        contentPadding = PaddingValues(bottom = 20.dp)
     ) {
         item(key = "deviceSectionHeader") {
             DeviceSectionHeader(
@@ -1492,8 +1533,8 @@ private fun CastDeviceRow(
     onDisconnect: () -> Unit
 ) {
     val (containerColor, onContainer) = when {
-        device.isBluetooth -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         device.isSelected -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        device.isBluetooth -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurface
     }
 
@@ -1529,8 +1570,9 @@ private fun CastDeviceRow(
             .fillMaxWidth()
             .clip(CircleShape) // Mantenemos el clip circular para el ripple
             .clickable(
-                enabled = !device.isBluetooth,
+                enabled = true,
                 onClick = when {
+                    device.isBluetooth -> onSelect
                     device.isSelected &&
                         device.connectionState == MediaRouter.RouteInfo.CONNECTION_STATE_CONNECTED -> onDisconnect
                     device.isSelected &&
@@ -1597,7 +1639,9 @@ private fun CastDeviceRow(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 val statusText = when {
-                    device.isBluetooth -> "Bluetooth Audio"
+                    device.isBluetooth &&
+                        device.connectionState == MediaRouter.RouteInfo.CONNECTION_STATE_CONNECTED -> "Connected"
+                    device.isBluetooth -> "Available to connect"
                     device.isSelected && device.connectionState == MediaRouter.RouteInfo.CONNECTION_STATE_CONNECTED -> "Connected"
                     device.isSelected && device.connectionState == MediaRouter.RouteInfo.CONNECTION_STATE_CONNECTING -> "Connecting"
                     else -> "Available"
@@ -1612,17 +1656,70 @@ private fun CastDeviceRow(
                 )
             }
 
-            // Trailing Content (Volumen)
-            if (device.volumeHandling == MediaRouter.RouteInfo.PLAYBACK_VOLUME_VARIABLE && device.isSelected) {
-                Text(
-                    text = "${device.volume}/${device.volumeMax}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = onContainer,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
+            when {
+                device.isBluetooth && device.isSelected -> {
+                    BluetoothMetricIndicator(
+                        device = device,
+                        contentColor = onContainer,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+                device.volumeHandling == MediaRouter.RouteInfo.PLAYBACK_VOLUME_VARIABLE && device.isSelected -> {
+                    Text(
+                        text = "${device.volume}/${device.volumeMax}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = onContainer,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun BluetoothMetricIndicator(
+    device: CastDeviceUi,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val batteryPercent = device.batteryPercent
+    val value = batteryPercent ?: buildBluetoothVolumePercent(device)
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (batteryPercent != null) {
+            Icon(
+                imageVector = Icons.Rounded.BatteryFull,
+                contentDescription = "Battery level",
+                tint = contentColor,
+                modifier = Modifier.size(14.dp)
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.rounded_volume_up_24),
+                contentDescription = "Volume level",
+                tint = contentColor,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+
+        Text(
+            text = "$value%",
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor
+        )
+    }
+}
+
+private fun buildBluetoothVolumePercent(device: CastDeviceUi): Int {
+    return when {
+        device.volumeMax > 0 -> ((device.volume.toFloat() / device.volumeMax) * 100).roundToInt()
+        else -> device.volume
+    }.coerceIn(0, 100)
 }
 
 @Composable

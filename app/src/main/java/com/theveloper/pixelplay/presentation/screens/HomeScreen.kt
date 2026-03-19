@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,13 +66,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
 import com.theveloper.pixelplay.presentation.components.BetaInfoBottomSheet
+import com.theveloper.pixelplay.presentation.components.Beta05CleanInstallDisclaimerDialog
 import com.theveloper.pixelplay.presentation.components.ChangelogBottomSheet
 import com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardViewModel
+import com.theveloper.pixelplay.presentation.navidrome.dashboard.NavidromeDashboardViewModel
+import com.theveloper.pixelplay.presentation.qqmusic.dashboard.QqMusicDashboardViewModel
 import com.theveloper.pixelplay.presentation.components.DailyMixSection
 import com.theveloper.pixelplay.presentation.components.HomeGradientTopBar
 import com.theveloper.pixelplay.presentation.components.HomeOptionsBottomSheet
@@ -105,6 +113,8 @@ fun HomeScreen(
     playerViewModel: PlayerViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     neteaseViewModel: NeteaseDashboardViewModel = hiltViewModel(),
+    qqMusicViewModel: QqMusicDashboardViewModel = hiltViewModel(),
+    navidromeViewModel: NavidromeDashboardViewModel = hiltViewModel(),
     onOpenSidebar: () -> Unit
 ) {
     val context = LocalContext.current
@@ -119,6 +129,7 @@ fun HomeScreen(
     val dailyMixSongs by playerViewModel.dailyMixSongs.collectAsStateWithLifecycle()
     val curatedYourMixSongs by playerViewModel.yourMixSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val yourMixSongs = remember(curatedYourMixSongs, dailyMixSongs, allSongs) {
         when {
@@ -127,13 +138,36 @@ fun HomeScreen(
             else -> allSongs.toImmutableList()
         }
     }
-    val recentlyPlayedSongs = remember(playbackHistory, allSongs) {
+    val latestRecentlyPlayedSongs = remember(playbackHistory, allSongs) {
         mapRecentlyPlayedSongs(
             playbackHistory = playbackHistory,
             songs = allSongs,
             maxItems = 64
         )
     }
+    // Keep the visible Home snapshot stable and only refresh it once the screen is off-screen.
+    var recentlyPlayedSongs by remember { mutableStateOf(latestRecentlyPlayedSongs) }
+    val latestRecentlyPlayedSongsState = rememberUpdatedState(latestRecentlyPlayedSongs)
+
+    LaunchedEffect(latestRecentlyPlayedSongs, lifecycleOwner) {
+        val isHomeVisible = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        if (recentlyPlayedSongs.isEmpty() || !isHomeVisible) {
+            recentlyPlayedSongs = latestRecentlyPlayedSongs
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                recentlyPlayedSongs = latestRecentlyPlayedSongsState.value
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val recentlyPlayedQueue = remember(recentlyPlayedSongs) {
         recentlyPlayedSongs.map { it.song }.toImmutableList()
     }
@@ -163,6 +197,7 @@ fun HomeScreen(
     var showChangelogBottomSheet by remember { mutableStateOf(false) }
     var showBetaInfoBottomSheet by remember { mutableStateOf(false) }
     var showStreamingProviderSheet by remember { mutableStateOf(false) }
+    var cleanInstallDisclaimerDismissedThisSession by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val betaSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
@@ -172,6 +207,9 @@ fun HomeScreen(
 
     // Drawer state for sidebar
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val shouldShowCleanInstallDisclaimer =
+        settingsUiState.beta05CleanInstallDisclaimerDismissed == false &&
+            !cleanInstallDisclaimerDismissedThisSession
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -273,6 +311,12 @@ fun HomeScreen(
                             onClickOpen = {
                                 navController.navigateSafely(Screen.DailyMixScreen.route)
                             },
+                            onNavigateToAlbum = { song ->
+                                navController.navigateSafely(Screen.AlbumDetail.createRoute(song.albumId))
+                            },
+                            onNavigateToArtist = { song ->
+                                navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
+                            },
                             playerViewModel = playerViewModel
                         )
                     }
@@ -371,11 +415,31 @@ fun HomeScreen(
     }
     if (showStreamingProviderSheet) {
         val isNeteaseLoggedIn by neteaseViewModel.isLoggedIn.collectAsStateWithLifecycle()
+        val isQqMusicLoggedIn by qqMusicViewModel.isLoggedIn.collectAsStateWithLifecycle()
+        val isNavidromeLoggedIn by navidromeViewModel.isLoggedIn.collectAsStateWithLifecycle()
         StreamingProviderSheet(
             onDismissRequest = { showStreamingProviderSheet = false },
             isNeteaseLoggedIn = isNeteaseLoggedIn,
             onNavigateToNeteaseDashboard = {
                 navController.navigateSafely(Screen.NeteaseDashboard.route)
+            },
+            isQqMusicLoggedIn = isQqMusicLoggedIn,
+            onNavigateToQqMusicDashboard = {
+                navController.navigateSafely(Screen.QqMusicDashboard.route)
+            },
+            isNavidromeLoggedIn = isNavidromeLoggedIn,
+            onNavigateToNavidromeDashboard = {
+                navController.navigateSafely(Screen.NavidromeDashboard.route)
+            }
+        )
+    }
+    if (shouldShowCleanInstallDisclaimer) {
+        Beta05CleanInstallDisclaimerDialog(
+            onDismiss = { dontShowAgain ->
+                cleanInstallDisclaimerDismissedThisSession = true
+                if (dontShowAgain) {
+                    settingsViewModel.setBeta05CleanInstallDisclaimerDismissed(true)
+                }
             }
         )
     }
@@ -575,8 +639,7 @@ private fun rememberYourMixTitleStyle(): TextStyle {
             ),
             fontWeight = FontWeight(760),
             fontSize = 64.sp,
-            lineHeight = 62.sp,
-//            letterSpacing = (-0.4).sp
+            lineHeight = 62.sp
         )
     }
 }

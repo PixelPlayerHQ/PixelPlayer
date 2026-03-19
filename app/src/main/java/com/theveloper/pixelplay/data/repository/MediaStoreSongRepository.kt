@@ -11,18 +11,23 @@ import androidx.paging.map
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.toSong
+import com.theveloper.pixelplay.data.model.ArtistRef
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.observer.MediaStoreObserver
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.DirectoryRuleResolver
+import com.theveloper.pixelplay.utils.DirectoryFilterUtils
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.normalizeMetadataText
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
+import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -42,10 +47,6 @@ class MediaStoreSongRepository @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) : SongRepository {
 
-    init {
-        mediaStoreObserver.register()
-    }
-
     private fun getBaseSelection(minDurationMs: Int = 10000): String {
         // Relaxed filter: Remove IS_MUSIC to include all audio strings (WhatsApp, Recs, etc.)
         // We filter by duration based on user preference (default 10s).
@@ -58,33 +59,45 @@ class MediaStoreSongRepository @Inject constructor(
 
     private fun normalizePath(path: String): String = File(path).absolutePath
 
-    private fun getExcludedPaths(): Set<String> {
-        // This should come from a repository/store, not blocking flow preferably,
-        // but for query implementation we'll need to filter the cursor results.
-        // For now, we will assume strict filtering logic inside mapCursorToSongs
-        return emptySet()
+    private fun observeSongs(
+        extraSelection: String? = null,
+        extraSelectionArgs: Array<String>? = null
+    ): Flow<List<Song>> {
+        return combine(
+            mediaStoreObserver.mediaStoreChanges.onStart { emit(Unit) },
+            favoritesDao.getFavoriteSongIds().distinctUntilChanged(),
+            userPreferencesRepository.allowedDirectoriesFlow.distinctUntilChanged(),
+            userPreferencesRepository.blockedDirectoriesFlow.distinctUntilChanged(),
+            userPreferencesRepository.artistDelimitersFlow.distinctUntilChanged(),
+            userPreferencesRepository.minSongDurationFlow.distinctUntilChanged()
+        ) { values ->
+            val favoriteIds = @Suppress("UNCHECKED_CAST") (values[1] as List<Long>)
+            val allowedDirs = @Suppress("UNCHECKED_CAST") (values[2] as Set<String>)
+            val blockedDirs = @Suppress("UNCHECKED_CAST") (values[3] as Set<String>)
+            val artistDelimiters = @Suppress("UNCHECKED_CAST") (values[4] as List<String>)
+            val minDuration = values[5] as Int
+            fetchSongsFromMediaStore(
+                favoriteIds = favoriteIds.toSet(),
+                allowedDirs = allowedDirs.toList(),
+                blockedDirs = blockedDirs.toList(),
+                artistDelimiters = artistDelimiters,
+                minDurationMs = minDuration,
+                extraSelection = extraSelection,
+                extraSelectionArgs = extraSelectionArgs
+            )
+        }.distinctUntilChanged().flowOn(Dispatchers.IO)
     }
 
-    override fun getSongs(): Flow<List<Song>> = combine(
-        mediaStoreObserver.mediaStoreChanges.onStart { emit(Unit) },
-        favoritesDao.getFavoriteSongIds(),
-        userPreferencesRepository.allowedDirectoriesFlow,
-        userPreferencesRepository.blockedDirectoriesFlow,
-        userPreferencesRepository.minSongDurationFlow
-    ) { values ->
-        val favoriteIds = @Suppress("UNCHECKED_CAST") (values[1] as List<Long>)
-        val allowedDirs = @Suppress("UNCHECKED_CAST") (values[2] as Set<String>)
-        val blockedDirs = @Suppress("UNCHECKED_CAST") (values[3] as Set<String>)
-        val minDuration = values[4] as Int
-        // Triggered by mediaStore change or favorites change or directory/duration config change
-        fetchSongsFromMediaStore(favoriteIds.toSet(), allowedDirs.toList(), blockedDirs.toList(), minDuration)
-    }.flowOn(Dispatchers.IO)
+    override fun getSongs(): Flow<List<Song>> = observeSongs()
 
     private suspend fun fetchSongsFromMediaStore(
         favoriteIds: Set<Long>,
         allowedDirs: List<String>,
         blockedDirs: List<String>,
-        minDurationMs: Int = 10000
+        artistDelimiters: List<String>,
+        minDurationMs: Int = 10000,
+        extraSelection: String? = null,
+        extraSelectionArgs: Array<String>? = null
     ): List<Song> = withContext(Dispatchers.IO) {
         val songs = mutableListOf<Song>()
         val projection = arrayOf(
@@ -109,7 +122,14 @@ class MediaStoreSongRepository @Inject constructor(
         // Handling API version differences for columns if necessary
         // Assuming minSdk is high enough or columns exist (ALBUM_ARTIST is API 30+, need check if app supports lower)
 
-        val selection = getBaseSelection(minDurationMs)
+        val selection = buildString {
+            append(getBaseSelection(minDurationMs))
+            if (!extraSelection.isNullOrBlank()) {
+                append(" AND (")
+                append(extraSelection)
+                append(")")
+            }
+        }
 
         val songIdToGenreMap = getSongIdToGenreMap(context.contentResolver)
 
@@ -118,7 +138,7 @@ class MediaStoreSongRepository @Inject constructor(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 projection,
                 selection,
-                null,
+                extraSelectionArgs,
                 "${MediaStore.Audio.Media.TITLE} ASC"
             )?.use { cursor ->
                 val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -157,26 +177,43 @@ class MediaStoreSongRepository @Inject constructor(
                     val id = cursor.getLong(idCol)
                     val albumId = cursor.getLong(albumIdCol)
 
+                    // Album art (individual / cached per song)
+                    val albumArtUriString = AlbumArtUtils
+                        .getCachedAlbumArtUri(context, id)
+                        ?.toString()
+
+                    // Artists parsing (supports multiple artists separated by user delimiters)
+                    val rawArtist = cursor.getString(artistCol).normalizeMetadataTextOrEmpty()
+                    val splitArtists = rawArtist.splitArtistsByDelimiters(artistDelimiters)
+                    val normalizedArtists = if (splitArtists.isNotEmpty()) splitArtists else listOf(rawArtist)
+                    val primaryArtistName = normalizedArtists.firstOrNull().orEmpty()
+
+                    val artistRefs = normalizedArtists.mapIndexed { index, name ->
+                        ArtistRef(
+                            id = if (index == 0) cursor.getLong(artistIdCol)
+                            else (name.hashCode().toLong() * -1L) - 10_000L - index,
+                            name = name,
+                            isPrimary = index == 0
+                        )
+                    }
+
                     val song = Song(
                         id = id.toString(),
                         title = cursor.getString(titleCol).normalizeMetadataTextOrEmpty(),
-                        artist = cursor.getString(artistCol).normalizeMetadataTextOrEmpty(),
+                        artist = primaryArtistName,
                         artistId = cursor.getLong(artistIdCol),
-                        artists = emptyList(), // TODO: Secondary query for Multi-Artist or split string
+                        artists = artistRefs,
                         album = cursor.getString(albumCol).normalizeMetadataTextOrEmpty(),
                         albumId = albumId,
                         albumArtist = if (albumArtistCol != -1) cursor.getString(albumArtistCol).normalizeMetadataText() else null,
                         path = path,
                         contentUriString = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id).toString(),
-                        albumArtUriString = ContentUris.withAppendedId(
-                            android.net.Uri.parse("content://media/external/audio/albumart"),
-                            albumId
-                        ).toString(),
+                        albumArtUriString = albumArtUriString,
                         duration = cursor.getLong(durationCol),
                         genre = songIdToGenreMap[id],
                         lyrics = null,
                         isFavorite = favoriteIds.contains(id),
-                        trackNumber = cursor.getInt(trackCol),
+                        trackNumber = cursor.getInt(trackCol) % 1000,
                         year = cursor.getInt(yearCol),
                         dateAdded = cursor.getLong(dateAddedCol),
                         dateModified = cursor.getLong(dateModifiedCol),
@@ -239,31 +276,45 @@ class MediaStoreSongRepository @Inject constructor(
     }
 
     override fun getSongsByAlbum(albumId: Long): Flow<List<Song>> {
-        // Reusing getSongs() and filtering might be inefficient for one album,
-        // but consistent with the reactive source of truth.
-        // Optimization: Create specific query flow if needed.
-        return getSongs().flowOn(Dispatchers.IO).combine(kotlinx.coroutines.flow.flowOf(albumId)) { songs, id ->
-            songs.filter { it.albumId == id }
-        }
+        return observeSongs(
+            extraSelection = "${MediaStore.Audio.Media.ALBUM_ID} = ?",
+            extraSelectionArgs = arrayOf(albumId.toString())
+        )
     }
 
     override fun getSongsByArtist(artistId: Long): Flow<List<Song>> {
-        return getSongs().flowOn(Dispatchers.IO).combine(kotlinx.coroutines.flow.flowOf(artistId)) { songs, id ->
-            songs.filter { it.artistId == id }
-        }
+        return observeSongs(
+            extraSelection = "${MediaStore.Audio.Media.ARTIST_ID} = ?",
+            extraSelectionArgs = arrayOf(artistId.toString())
+        )
     }
 
     override suspend fun searchSongs(query: String): List<Song> {
-        val allSongs = getSongs().first() // Snapshot
-        return allSongs.filter {
-            it.title.contains(query, true) || it.artist.contains(query, true)
-        }
+        if (query.isBlank()) return emptyList()
+        val favoriteIds = getFavoriteIds()
+        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
+        val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
+        val artistDelimiters = userPreferencesRepository.artistDelimitersFlow.first()
+        val minDuration = userPreferencesRepository.minSongDurationFlow.first()
+        val queryTerm = "%${query.trim()}%"
+        return fetchSongsFromMediaStore(
+            favoriteIds = favoriteIds,
+            allowedDirs = allowedDirs.toList(),
+            blockedDirs = blockedDirs.toList(),
+            artistDelimiters = artistDelimiters,
+            minDurationMs = minDuration,
+            extraSelection = "${MediaStore.Audio.Media.TITLE} LIKE ? COLLATE NOCASE OR ${MediaStore.Audio.Media.ARTIST} LIKE ? COLLATE NOCASE",
+            extraSelectionArgs = arrayOf(queryTerm, queryTerm)
+        )
     }
 
     override fun getSongById(songId: Long): Flow<Song?> {
-        return getSongs().flowOn(Dispatchers.IO).combine(kotlinx.coroutines.flow.flowOf(songId)) { songs, id ->
-            songs.find { it.id == id.toString() }
-        }
+        return observeSongs(
+            extraSelection = "${MediaStore.Audio.Media._ID} = ?",
+            extraSelectionArgs = arrayOf(songId.toString())
+        ).map { songs ->
+            songs.firstOrNull()
+        }.distinctUntilChanged()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -345,16 +396,12 @@ class MediaStoreSongRepository @Inject constructor(
         allowedDirs: Set<String>,
         blockedDirs: Set<String>
     ): Pair<List<String>, Boolean> {
-        if (blockedDirs.isEmpty()) return Pair(emptyList(), false)
-        val resolver = DirectoryRuleResolver(
-            allowedDirs.map(::normalizePath).toSet(),
-            blockedDirs.map(::normalizePath).toSet()
+        return DirectoryFilterUtils.computeAllowedParentDirs(
+            allowedDirs = allowedDirs,
+            blockedDirs = blockedDirs,
+            getAllParentDirs = { musicDao.getDistinctParentDirectories() },
+            normalizePath = ::normalizePath
         )
-        val allParentDirs = musicDao.getDistinctParentDirectories()
-        val allowedParentDirs = allParentDirs.filter { parentDir ->
-            !resolver.isBlocked(normalizePath(parentDir))
-        }
-        return Pair(allowedParentDirs, true)
     }
 
     private val defaultPagingConfig = androidx.paging.PagingConfig(

@@ -12,7 +12,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.graphics.TransformOrigin
 
-const val TRANSITION_DURATION = 500
+const val TRANSITION_DURATION = 350
 private val TRANSITION_EASING = FastOutSlowInEasing
 
 // Push: Enter from Right

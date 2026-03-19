@@ -19,6 +19,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -34,11 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.LocalMaterialTheme
 import kotlinx.coroutines.delay
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -147,7 +149,7 @@ fun AnimatedPlaybackControls(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.rounded_skip_previous_24),
+                    imageVector = Icons.Rounded.SkipPrevious,
                     contentDescription = "Anterior",
                     tint = tintPreviousIcon,
                     modifier = Modifier.size(iconSize)
@@ -215,7 +217,7 @@ fun AnimatedPlaybackControls(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.rounded_skip_next_24),
+                    imageVector = Icons.Rounded.SkipNext,
                     contentDescription = "Siguiente",
                     tint = tintNextIcon,
                     modifier = Modifier.size(iconSize)
@@ -237,57 +239,10 @@ private fun MorphingPlayPauseIcon(
         label = "playPauseCrossfade"
     ) { playing ->
         Icon(
-            painter = painterResource(
-                if (playing) R.drawable.rounded_pause_24 else R.drawable.rounded_play_arrow_24
-            ),
+            imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
             contentDescription = if (playing) "Pausar" else "Reproducir",
             tint = tint,
             modifier = Modifier.size(size)
         )
-    }
-}
-
-/**
- * Screen-aware default sizes for [AnimatedPlaybackControls].
- * Adapts height and icon sizes based on the current screen width.
- */
-data class AdaptivePlaybackControlSizes(
-    val height: Dp,
-    val playPauseIconSize: Dp,
-    val iconSize: Dp
-)
-
-/**
- * Computes adaptive sizes for playback controls based on [LocalConfiguration] screen width.
- *
- * - Compact (< 360 dp): reduced sizes for small phones
- * - Normal (360-600 dp): standard sizes (matches original defaults)
- * - Large (> 600 dp): slightly larger for tablets
- */
-@Composable
-fun rememberAdaptivePlaybackControlSizes(): AdaptivePlaybackControlSizes {
-    val config = LocalConfiguration.current
-    val screenWidthDp = config.screenWidthDp
-    val screenHeightDp = config.screenHeightDp
-    // Scale control heights based on screen height for proportional layout
-    val heightScale = (screenHeightDp / 800f).coerceIn(0.82f, 1.0f)
-    return remember(screenWidthDp, screenHeightDp) {
-        when {
-            screenWidthDp < 360 -> AdaptivePlaybackControlSizes(
-                height = (70 * heightScale).dp,
-                playPauseIconSize = 30.dp,
-                iconSize = 26.dp
-            )
-            screenWidthDp <= 600 -> AdaptivePlaybackControlSizes(
-                height = (80 * heightScale).dp,
-                playPauseIconSize = 36.dp,
-                iconSize = 32.dp
-            )
-            else -> AdaptivePlaybackControlSizes(
-                height = (90 * heightScale).dp,
-                playPauseIconSize = 36.dp,
-                iconSize = 32.dp
-            )
-        }
     }
 }

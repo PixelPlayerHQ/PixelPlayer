@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -71,12 +72,6 @@ fun StatsOverviewCard(
             modifier = Modifier
                 .background(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
-//                    Brush.linearGradient(
-//                        listOf(
-//                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-//                            MaterialTheme.colorScheme.surface
-//                        )
-//                    )
                 )
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -110,7 +105,7 @@ fun StatsOverviewCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )

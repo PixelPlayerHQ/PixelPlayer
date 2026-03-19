@@ -30,7 +30,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,6 +53,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +77,7 @@ import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.presentation.components.subcomps.SineWaveLine
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.screens.PlayerSheetCollapsedCornerRadius
@@ -97,6 +101,7 @@ fun PlaylistContainer(
     isAddingToPlaylist: Boolean = false,
     selectedPlaylists: SnapshotStateMap<String, Boolean>? = null,
     filteredPlaylists: List<Playlist> = playlistUiState.playlists,
+    currentSortOption: SortOption? = null,
     isSelectionMode: Boolean = false,
     selectedPlaylistIds: Set<String> = emptySet(),
     onPlaylistLongPress: (Playlist) -> Unit = {},
@@ -164,7 +169,8 @@ fun PlaylistContainer(
                     playerViewModel = playerViewModel,
                     isAddingToPlaylist = true,
                     filteredPlaylists = filteredPlaylists,
-                    selectedPlaylists = selectedPlaylists
+                    selectedPlaylists = selectedPlaylists,
+                    currentSortOption = currentSortOption
                 )
             } else {
                 val playlistPullToRefreshState = rememberPullToRefreshState()
@@ -186,6 +192,7 @@ fun PlaylistContainer(
                         navController = navController,
                         playerViewModel = playerViewModel,
                         filteredPlaylists = filteredPlaylists,
+                        currentSortOption = currentSortOption,
                         isSelectionMode = isSelectionMode,
                         selectedPlaylistIds = selectedPlaylistIds,
                         onPlaylistLongPress = onPlaylistLongPress,
@@ -220,6 +227,7 @@ fun PlaylistItems(
     playerViewModel: PlayerViewModel,
     isAddingToPlaylist: Boolean = false,
     filteredPlaylists: List<Playlist>,
+    currentSortOption: SortOption? = null,
     selectedPlaylists: SnapshotStateMap<String, Boolean>? = null,
     isSelectionMode: Boolean = false,
     selectedPlaylistIds: Set<String> = emptySet(),
@@ -228,6 +236,22 @@ fun PlaylistItems(
 ) {
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    var lastHandledPlaylistSortKey by remember { mutableStateOf(currentSortOption?.storageKey) }
+    var pendingPlaylistSortScrollReset by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentSortOption) {
+        val currentSortKey = currentSortOption?.storageKey ?: return@LaunchedEffect
+        if (currentSortKey == lastHandledPlaylistSortKey) return@LaunchedEffect
+        lastHandledPlaylistSortKey = currentSortKey
+        pendingPlaylistSortScrollReset = true
+        listState.scrollToItem(0)
+    }
+
+    LaunchedEffect(filteredPlaylists, pendingPlaylistSortScrollReset) {
+        if (!pendingPlaylistSortScrollReset) return@LaunchedEffect
+        listState.scrollToItem(0)
+        pendingPlaylistSortScrollReset = false
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -423,6 +447,24 @@ fun PlaylistItem(
                             painter = painterResource(R.drawable.telegram),
                             contentDescription = "Telegram",
                             tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    if (playlist.source == "QQMUSIC") {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.Album,
+                            contentDescription = "QQ Music",
+                            tint = Color(0xFF2E7D32), // 修改为绿色
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    if (playlist.source == "NAVIDROME") {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(R.drawable.ic_navidrome),
+                            contentDescription = "Navidrome",
+                            tint = Color.Unspecified,
                             modifier = Modifier.size(18.dp)
                         )
                     }

@@ -93,27 +93,31 @@ fun AiPlaylistSheet(
         disabledIndicatorColor = Color.Transparent,
     )
 
-    val smoothCornerShape = AbsoluteSmoothCornerShape(
-        cornerRadiusTL = 16.dp,
-        smoothnessAsPercentBL = 60,
-        cornerRadiusTR = 16.dp,
-        smoothnessAsPercentBR = 60,
-        cornerRadiusBL = 16.dp,
-        smoothnessAsPercentTL = 60,
-        cornerRadiusBR = 16.dp,
-        smoothnessAsPercentTR = 60
-    )
+    val smoothCornerShape = remember {
+        AbsoluteSmoothCornerShape(
+            cornerRadiusTL = 16.dp,
+            smoothnessAsPercentBL = 60,
+            cornerRadiusTR = 16.dp,
+            smoothnessAsPercentBR = 60,
+            cornerRadiusBL = 16.dp,
+            smoothnessAsPercentTL = 60,
+            cornerRadiusBR = 16.dp,
+            smoothnessAsPercentTR = 60
+        )
+    }
 
-    val promptFieldShape = AbsoluteSmoothCornerShape(
-        cornerRadiusTL = 24.dp,
-        smoothnessAsPercentBL = 60,
-        cornerRadiusTR = 24.dp,
-        smoothnessAsPercentBR = 60,
-        cornerRadiusBL = 24.dp,
-        smoothnessAsPercentTL = 60,
-        cornerRadiusBR = 24.dp,
-        smoothnessAsPercentTR = 60
-    )
+    val promptFieldShape = remember {
+        AbsoluteSmoothCornerShape(
+            cornerRadiusTL = 24.dp,
+            smoothnessAsPercentBL = 60,
+            cornerRadiusTR = 24.dp,
+            smoothnessAsPercentBR = 60,
+            cornerRadiusBL = 24.dp,
+            smoothnessAsPercentTL = 60,
+            cornerRadiusBR = 24.dp,
+            smoothnessAsPercentTR = 60
+        )
+    }
 
     // Animation for AI icon when generating
     val infiniteTransition = rememberInfiniteTransition(label = "ai_animation")
@@ -159,16 +163,18 @@ fun AiPlaylistSheet(
         label = "buttonCorner"
     )
     
-    val buttonShape = AbsoluteSmoothCornerShape(
-        cornerRadiusTL = buttonCornerRadius,
-        smoothnessAsPercentBL = 60,
-        cornerRadiusTR = buttonCornerRadius,
-        smoothnessAsPercentBR = 60,
-        cornerRadiusBL = buttonCornerRadius,
-        smoothnessAsPercentTL = 60,
-        cornerRadiusBR = buttonCornerRadius,
-        smoothnessAsPercentTR = 60
-    )
+    val buttonShape = remember(buttonCornerRadius) {
+        AbsoluteSmoothCornerShape(
+            cornerRadiusTL = buttonCornerRadius,
+            smoothnessAsPercentBL = 60,
+            cornerRadiusTR = buttonCornerRadius,
+            smoothnessAsPercentBR = 60,
+            cornerRadiusBL = buttonCornerRadius,
+            smoothnessAsPercentTL = 60,
+            cornerRadiusBR = buttonCornerRadius,
+            smoothnessAsPercentTR = 60
+        )
+    }
 
     ModalBottomSheet(
         sheetState = sheetState,

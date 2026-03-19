@@ -62,7 +62,44 @@ data class ChangelogVersion(
 val changelog = listOf(
     ChangelogVersion(
         version = "0.6.0-beta",
-        date = "2026-02-14",
+        date = "2026-03-05",
+        sections = listOf(
+            ChangelogSection(
+                title = "What's New",
+                items = listOf(
+                    "Android Auto support is now available for in-car playback.",
+                    "Wear OS support is live, including better watch-to-phone playback controls.",
+                    "Cloud integrations expanded with Telegram, NetEase, QQ Music, and Google Drive improvements.",
+                    "Recently Played and persistent queue restoration keep your listening session ready.",
+                    "Backup & Restore v3 and account management tools are now included.",
+                    "Lyrics got smarter with manual search fallback and storage improvements."
+                )
+            ),
+            ChangelogSection(
+                title = "Improvements",
+                items = listOf(
+                    "Big performance pass across startup, library, queue, and player interactions.",
+                    "Player, Cast, Lyrics, Artist, and Genre surfaces were redesigned for smoother use.",
+                    "Navigation and search flows are more reliable, with safer route handling.",
+                    "Audio playback compatibility improved for more devices and formats.",
+                    "Multi-selection workflows were expanded across songs, albums, and playlists."
+                )
+            ),
+            ChangelogSection(
+                title = "Fixes",
+                items = listOf(
+                    "Queue and shuffle behavior is now more stable and predictable.",
+                    "Several background playback and casting edge cases were fixed.",
+                    "Sleep Timer, Files tab navigation, and album artist crash issues were fixed.",
+                    "Widget loading and service stability were improved to reduce overheating/memory issues.",
+                    "General bug fixes and UI polish across the app."
+                )
+            )
+        )
+    ),
+    ChangelogVersion(
+        version = "0.5.0-beta",
+        date = "2026-01-14",
         sections = listOf(
             ChangelogSection(
                 title = "Highlights",
@@ -203,7 +240,7 @@ fun ChangelogBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val changelogUrl = "https://github.com/theovilardo/PixelPlay/blob/master/CHANGELOG.md"
+    val changelogUrl = "https://github.com/theovilardo/PixelPlayer/blob/master/CHANGELOG.md"
 
     val fabCornerRadius = 16.dp
 

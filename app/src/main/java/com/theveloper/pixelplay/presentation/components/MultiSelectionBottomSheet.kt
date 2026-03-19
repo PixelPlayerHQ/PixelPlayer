@@ -1,7 +1,9 @@
 package com.theveloper.pixelplay.presentation.components
 
 import android.app.Activity
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -114,6 +116,27 @@ fun MultiSelectionBottomSheet(
         cornerRadiusTL = evenCornerRadius, smoothnessAsPercentBL = 60,
         cornerRadiusBL = evenCornerRadius, smoothnessAsPercentTR = 60
     )
+
+    val favoriteButtonCornerRadius by animateDpAsState(
+        targetValue = if (allAreLiked) evenCornerRadius else 60.dp,
+        animationSpec = tween(durationMillis = 300), label = "FavoriteCornerAnimation"
+    )
+    val favoriteButtonContainerColor by animateColorAsState(
+        targetValue = if (allAreLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = tween(durationMillis = 300), label = "FavoriteContainerColorAnimation"
+    )
+    val favoriteButtonContentColor by animateColorAsState(
+        targetValue = if (allAreLiked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 300), label = "FavoriteContentColorAnimation"
+    )
+
+    val favoriteButtonShape = remember(favoriteButtonCornerRadius) {
+        AbsoluteSmoothCornerShape(
+            cornerRadiusTR = favoriteButtonCornerRadius, smoothnessAsPercentBR = 60, cornerRadiusBR = favoriteButtonCornerRadius,
+            smoothnessAsPercentTL = 60, cornerRadiusTL = favoriteButtonCornerRadius, smoothnessAsPercentBL = 60,
+            cornerRadiusBL = favoriteButtonCornerRadius, smoothnessAsPercentTR = 60
+        )
+    }
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -228,24 +251,18 @@ fun MultiSelectionBottomSheet(
                                     onToggleLikeAll(!allAreLiked) // true = like all, false = unlike all
                                     onDismiss()
                                 },
-                                shape = buttonShape,
+                                shape = favoriteButtonShape,
                                 colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = if (allAreLiked) 
-                                        MaterialTheme.colorScheme.surfaceContainerHigh 
-                                    else 
-                                        MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = if (allAreLiked) 
-                                        MaterialTheme.colorScheme.onSurfaceVariant 
-                                    else 
-                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    containerColor = favoriteButtonContainerColor,
+                                    contentColor = favoriteButtonContentColor
                                 )
                             ) {
                                 Icon(
                                     modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
                                     imageVector = if (allAreLiked) 
                                         Icons.Rounded.HeartBroken 
-                                    else 
-                                        Icons.Rounded.Favorite,
+                                    else
+                                        Icons.Rounded.FavoriteBorder,
                                     contentDescription = if (allAreLiked) "Unlike all" else "Like all"
                                 )
                             }

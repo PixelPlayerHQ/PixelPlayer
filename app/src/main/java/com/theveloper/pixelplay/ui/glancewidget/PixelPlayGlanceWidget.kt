@@ -3,8 +3,8 @@ package com.theveloper.pixelplay.ui.glancewidget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
-import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -70,28 +70,6 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         private val EXTRA_LARGE_LAYOUT_SIZE = DpSize(width = 300.dp, height = 220.dp)
         private val EXTRA_LARGE_PLUS_LAYOUT_SIZE = DpSize(width = 350.dp, height = 260.dp)
         private val HUGE_LAYOUT_SIZE = DpSize(width = 400.dp, height = 300.dp)
-
-        // LruCache for Bitmaps
-        private object AlbumArtBitmapCache {
-            private const val CACHE_SIZE_BYTES = 4 * 1024 * 1024 // 4 MiB
-            private val lruCache = object : LruCache<String, Bitmap>(CACHE_SIZE_BYTES) {
-                override fun sizeOf(key: String, value: Bitmap): Int {
-                    return value.byteCount
-                }
-            }
-
-            fun getBitmap(key: String): Bitmap? = lruCache.get(key)
-
-            fun putBitmap(key: String, bitmap: Bitmap) {
-                if (getBitmap(key) == null) {
-                    lruCache.put(key, bitmap)
-                }
-            }
-
-            fun getKey(byteArray: ByteArray): String {
-                return byteArray.contentHashCode().toString()
-            }
-        }
     }
 
     override val sizeMode = SizeMode.Exact
@@ -122,6 +100,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         val isPlaying = playerInfo.isPlaying
         val isFavorite = playerInfo.isFavorite
         val albumArtBitmapData = playerInfo.albumArtBitmapData
+        val albumArtUri = playerInfo.albumArtUri
 
         Timber.tag("PixelPlayGlanceWidget")
             .d("WidgetUi: PlayerInfo received. Title: $title, Artist: $artist, HasBitmapData: ${albumArtBitmapData != null}, BitmapDataSize: ${albumArtBitmapData?.size ?: "N/A"}")
@@ -152,6 +131,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 60.dp,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         context = context
                     )
@@ -160,6 +140,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 360.dp,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         context = context
                     )
@@ -171,6 +152,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 60.dp,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         context = context
                     )
@@ -179,6 +161,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         title = title,
                         artist = artist,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         textColor = onBackgroundColor,
                         context = context,
@@ -192,6 +175,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         title = title,
                         artist = artist,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         textColor = onBackgroundColor,
                         context = context
@@ -204,6 +188,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 28.dp,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         context = context
                     )
@@ -212,6 +197,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         title = title,
                         artist = artist,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         textColor = onBackgroundColor,
                         context = context,
@@ -223,6 +209,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         title = title,
                         artist = artist,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 28.dp,
                         isPlaying = isPlaying,
@@ -235,6 +222,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         title = title,
                         artist = artist,
                         albumArtBitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         isPlaying = isPlaying,
                         backgroundColor = actualBackgroundColor,
                         bgCornerRadius = 28.dp,
@@ -255,6 +243,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         bgCornerRadius: Dp,
         artist: String,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         textColor: ColorProvider,
         context: Context
@@ -284,6 +273,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                     modifier = GlanceModifier
                         .size(albumArtSize),
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     context = context,
                     cornerRadius = bgCornerRadius
                 )
@@ -330,6 +320,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         title: String,
         artist: String,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         textColor: ColorProvider,
         context: Context
@@ -360,6 +351,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                     modifier = GlanceModifier
                         .size(albumArtSize),
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     context = context,
                     cornerRadius = bgCornerRadius
                 )
@@ -403,6 +395,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         context: Context
     ) {
@@ -430,6 +423,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         //.padding(4.dp)
                     ,
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     //size = 48.dp,
                     context = context,
                     cornerRadius = 64.dp
@@ -471,6 +465,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         context: Context
     ) {
@@ -496,6 +491,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                         .fillMaxWidth()
                         .height(48.dp),
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     context = context,
                     cornerRadius = 64.dp
                 )
@@ -574,6 +570,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         context: Context
     ) {
@@ -596,6 +593,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                 AlbumArtImageGlance(
                     modifier = GlanceModifier.padding(vertical = 6.dp),
                     bitmapData = albumArtBitmapData,
+                    albumArtUri = albumArtUri,
                     size = 58.dp,
                     context = context,
                     cornerRadius = 64.dp
@@ -621,6 +619,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         context: Context
     ) {
@@ -652,6 +651,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                     AlbumArtImageGlance(
                         modifier = GlanceModifier.defaultWeight(),
                         bitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         context = context,
                         cornerRadius = 64.dp
                     )
@@ -709,6 +709,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean,
         textColor: ColorProvider,
         context: Context
@@ -739,6 +740,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                 ) {
                     AlbumArtImageGlance(
                         bitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         size = 80.dp,
                         context = context,
                         cornerRadius = 16.dp
@@ -811,6 +813,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         title: String,
         artist: String,
         albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         backgroundColor: ColorProvider,
         bgCornerRadius: Dp,
         isPlaying: Boolean,
@@ -828,7 +831,13 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
             // *** FIX: Removed padding from the inner Column ***
             Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                    AlbumArtImageGlance(bitmapData = albumArtBitmapData, size = 64.dp, context = context, cornerRadius = 18.dp)
+                    AlbumArtImageGlance(
+                        bitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
+                        size = 64.dp,
+                        context = context,
+                        cornerRadius = 18.dp
+                    )
                     Spacer(GlanceModifier.width(12.dp))
                     Column(modifier = GlanceModifier.defaultWeight()) {
                         Text(text = title, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textColor), maxLines = 1)
@@ -899,6 +908,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
     @Composable
     fun ExtraLargeWidgetLayout(
         modifier: GlanceModifier, title: String, artist: String, albumArtBitmapData: ByteArray?,
+        albumArtUri: String?,
         isPlaying: Boolean, backgroundColor: ColorProvider, bgCornerRadius: Dp,
         textColor: ColorProvider,
         context: Context,
@@ -922,6 +932,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                 ) {
                     AlbumArtImageGlance(
                         bitmapData = albumArtBitmapData,
+                        albumArtUri = albumArtUri,
                         size = 68.dp,
                         context = context,
                         cornerRadius = 16.dp
@@ -1042,6 +1053,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                                         )
                                     ),
                                     bitmapData = queueItem.albumArtBitmapData,
+                                    albumArtUri = queueItem.albumArtUri,
                                     size = itemSize,
                                     context = context,
                                     cornerRadius = cornerRadius
@@ -1066,6 +1078,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
     @Composable
     fun AlbumArtImageGlance(
         bitmapData: ByteArray?,
+        albumArtUri: String? = null,
         size: Dp? = null,
         context: Context,
         modifier: GlanceModifier = GlanceModifier,
@@ -1150,6 +1163,19 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                 }
             }
             bitmap?.let { ImageProvider(it) }
+        } ?: albumArtUri?.let { rawUri ->
+            val cacheKey = "uri:$rawUri"
+            var bitmap = AlbumArtBitmapCache.getBitmap(cacheKey)
+            if (bitmap == null) {
+                bitmap = decodeAlbumArtFromUri(
+                    context = context,
+                    rawUri = rawUri,
+                    requestedSize = size,
+                    widgetDpSize = widgetDpSize
+                )
+                bitmap?.let { AlbumArtBitmapCache.putBitmap(cacheKey, it) }
+            }
+            bitmap?.let { ImageProvider(it) }
         }
 
         Box(
@@ -1190,6 +1216,56 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                 }
             }
         }
+    }
+
+    private fun decodeAlbumArtFromUri(
+        context: Context,
+        rawUri: String,
+        requestedSize: Dp?,
+        widgetDpSize: DpSize
+    ): Bitmap? {
+        return runCatching {
+            val uri = Uri.parse(rawUri)
+            val scheme = uri.scheme?.lowercase()
+            if (scheme !in setOf("content", "file", "android.resource")) return null
+
+            val (targetWidthPx, targetHeightPx) = with(context.resources.displayMetrics) {
+                if (requestedSize != null) {
+                    val target = (requestedSize.value * density).toInt().coerceAtLeast(1)
+                    target to target
+                } else {
+                    val width = (widgetDpSize.width.value * density).toInt().coerceAtLeast(1)
+                    val height = (widgetDpSize.height.value * density).toInt().coerceAtLeast(1)
+                    width to height
+                }
+            }
+
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input, null, bounds)
+            } ?: return null
+
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+            var inSampleSize = 1
+            if (bounds.outHeight > targetHeightPx || bounds.outWidth > targetWidthPx) {
+                var halfHeight = bounds.outHeight / 2
+                var halfWidth = bounds.outWidth / 2
+                while (halfHeight / inSampleSize >= targetHeightPx &&
+                    halfWidth / inSampleSize >= targetWidthPx
+                ) {
+                    inSampleSize *= 2
+                }
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+                this.inJustDecodeBounds = false
+            }
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input, null, decodeOptions)
+            }
+        }.getOrNull()
     }
 
     @Composable

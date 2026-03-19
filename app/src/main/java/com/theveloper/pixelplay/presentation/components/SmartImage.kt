@@ -55,6 +55,7 @@ fun SmartImage(
     colorFilter: ColorFilter? = null,
     alpha: Float = 1f,
     placeholderModel: Any? = null,
+    placeHolderBackgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     onState: ((AsyncImagePainter.State) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -157,7 +158,7 @@ fun SmartImage(
                                 modifier = Modifier.fillMaxSize(),
                                 drawableResId = placeholderResId,
                                 contentDescription = contentDescription,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                containerColor = placeHolderBackgroundColor,
                                 iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 alpha = alpha
                             )
@@ -168,7 +169,7 @@ fun SmartImage(
                         modifier = Modifier.fillMaxSize(),
                         drawableResId = placeholderResId,
                         contentDescription = contentDescription,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        containerColor = placeHolderBackgroundColor,
                         iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         alpha = alpha
                     )
@@ -191,7 +192,7 @@ fun SmartImage(
                         modifier = Modifier.fillMaxSize(),
                         drawableResId = errorResId,
                         contentDescription = contentDescription,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        containerColor = placeHolderBackgroundColor,
                         iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         alpha = alpha
                     )

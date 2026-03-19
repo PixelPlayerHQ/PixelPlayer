@@ -9,6 +9,8 @@ import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
@@ -19,11 +21,13 @@ import com.theveloper.pixelplay.data.database.EngagementDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
+import com.theveloper.pixelplay.data.database.LocalPlaylistDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.PixelPlayDatabase
 import com.theveloper.pixelplay.data.database.SearchHistoryDao
 import com.theveloper.pixelplay.data.database.TransitionDao
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.dataStore
 import com.theveloper.pixelplay.data.media.SongMetadataEditor
 import com.theveloper.pixelplay.data.network.deezer.DeezerApiService
@@ -99,7 +103,7 @@ object AppModule {
     @Singleton
     @Provides
     fun providePixelPlayDatabase(@ApplicationContext context: Context): PixelPlayDatabase {
-        return Room.databaseBuilder(
+        val builder = Room.databaseBuilder(
             context.applicationContext,
             PixelPlayDatabase::class.java,
             "pixelplay_database"
@@ -124,10 +128,31 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_20_21,
             PixelPlayDatabase.MIGRATION_21_22,
             PixelPlayDatabase.MIGRATION_22_23,
-            PixelPlayDatabase.MIGRATION_23_24
+            PixelPlayDatabase.MIGRATION_23_24,
+            PixelPlayDatabase.MIGRATION_24_25,
+            PixelPlayDatabase.MIGRATION_25_26,
+            PixelPlayDatabase.MIGRATION_26_27,
+            PixelPlayDatabase.MIGRATION_27_28,
+            PixelPlayDatabase.MIGRATION_28_29,
+            PixelPlayDatabase.MIGRATION_29_30
         )
-            .fallbackToDestructiveMigration(dropAllTables = true)
-            .build()
+            .addCallback(
+                object : RoomDatabase.Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                        PixelPlayDatabase.installFavoriteSyncTriggers(db)
+                    }
+                }
+            )
+
+        // P2-4: Only allow destructive migration in debug builds.
+        // In release, a migration bug will crash the app (revealing the problem)
+        // rather than silently wiping user data (playlists, favorites, statistics).
+        if (BuildConfig.DEBUG) {
+            builder.fallbackToDestructiveMigration(dropAllTables = true)
+        }
+
+        return builder.build()
     }
 
     @Singleton
@@ -178,12 +203,50 @@ object AppModule {
         return database.gdriveDao()
     }
 
+    @Singleton
+    @Provides
+    fun provideLocalPlaylistDao(database: PixelPlayDatabase): LocalPlaylistDao {
+        return database.localPlaylistDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideQqMusicDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.QqMusicDao {
+        return database.qqmusicDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideNavidromeDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.NavidromeDao {
+        return database.navidromeDao()
+    }
+
     @Provides
     @Singleton
     fun provideImageLoader(
         @ApplicationContext context: Context
     ): ImageLoader {
+        // Add interceptor for QQ Music images
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val url = request.url.toString()
+
+                // Add Referer header for QQ Music images
+                val newRequest = if (url.contains("y.qq.com")) {
+                    request.newBuilder()
+                        .header("Referer", "https://y.qq.com/")
+                        .build()
+                } else {
+                    request
+                }
+
+                chain.proceed(newRequest)
+            }
+            .build()
+
         return ImageLoader.Builder(context)
+            .okHttpClient(okHttpClient)
             .dispatcher(Dispatchers.Default) // Use CPU-bound dispatcher for decoding
             .allowHardware(true) // Re-enable hardware bitmaps for better performance
             .memoryCache {
@@ -258,6 +321,7 @@ object AppModule {
     fun provideMusicRepository(
         @ApplicationContext context: Context,
         userPreferencesRepository: UserPreferencesRepository,
+        playlistPreferencesRepository: PlaylistPreferencesRepository,
         searchHistoryDao: SearchHistoryDao,
         musicDao: MusicDao,
         lyricsRepository: LyricsRepository,
@@ -272,6 +336,7 @@ object AppModule {
         return MusicRepositoryImpl(
             context = context,
             userPreferencesRepository = userPreferencesRepository,
+            playlistPreferencesRepository = playlistPreferencesRepository,
             searchHistoryDao = searchHistoryDao,
             musicDao = musicDao,
             lyricsRepository = lyricsRepository,

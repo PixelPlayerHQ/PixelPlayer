@@ -11,6 +11,32 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import com.theveloper.pixelplay.utils.AudioMeta
 import kotlinx.coroutines.flow.Flow
 
+private const val SONG_DETAIL_PROJECTION = """
+    songs.id AS id,
+    songs.title AS title,
+    songs.artist_name AS artist_name,
+    songs.artist_id AS artist_id,
+    songs.album_artist AS album_artist,
+    songs.album_name AS album_name,
+    songs.album_id AS album_id,
+    songs.content_uri_string AS content_uri_string,
+    songs.album_art_uri_string AS album_art_uri_string,
+    songs.duration AS duration,
+    songs.genre AS genre,
+    songs.file_path AS file_path,
+    songs.parent_directory_path AS parent_directory_path,
+    songs.is_favorite AS is_favorite,
+    COALESCE(song_lyrics.content, songs.lyrics) AS lyrics,
+    songs.track_number AS track_number,
+    songs.year AS year,
+    songs.date_added AS date_added,
+    songs.mime_type AS mime_type,
+    songs.bitrate AS bitrate,
+    songs.sample_rate AS sample_rate,
+    songs.telegram_chat_id AS telegram_chat_id,
+    songs.telegram_file_id AS telegram_file_id
+"""
+
 @Dao
 interface MusicDao {
 
@@ -106,6 +132,9 @@ interface MusicDao {
         SELECT id FROM songs
         WHERE content_uri_string NOT LIKE 'telegram://%'
         AND content_uri_string NOT LIKE 'netease://%'
+        AND content_uri_string NOT LIKE 'qqmusic://%'
+        AND content_uri_string NOT LIKE 'navidrome://%'
+        AND content_uri_string NOT LIKE 'gdrive://%'
     """)
     suspend fun getAllMediaStoreSongIds(): List<Long>
 
@@ -137,6 +166,12 @@ interface MusicDao {
     @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'gdrive://%'")
     suspend fun getAllGDriveSongIds(): List<Long>
 
+    @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'qqmusic://%'")
+    suspend fun getAllQqMusicSongIds(): List<Long>
+
+    @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'navidrome://%'")
+    suspend fun getAllNavidromeSongIds(): List<Long>
+
     @Transaction
     suspend fun deleteSongsAndRelatedData(songIds: List<Long>) {
         if (songIds.isEmpty()) return
@@ -165,6 +200,20 @@ interface MusicDao {
     }
 
     @Transaction
+    suspend fun clearAllQqMusicSongs() {
+        val qqMusicSongIds = getAllQqMusicSongIds()
+        if (qqMusicSongIds.isEmpty()) return
+        deleteSongsAndRelatedData(qqMusicSongIds)
+    }
+
+    @Transaction
+    suspend fun clearAllNavidromeSongs() {
+        val navidromeSongIds = getAllNavidromeSongIds()
+        if (navidromeSongIds.isEmpty()) return
+        deleteSongsAndRelatedData(navidromeSongIds)
+    }
+
+    @Transaction
     suspend fun clearAllTelegramSongs() {
         val telegramSongIds = getAllTelegramSongIds()
         if (telegramSongIds.isEmpty()) return
@@ -190,7 +239,9 @@ interface MusicDao {
         crossRefs: List<SongArtistCrossRef>,
         deletedSongIds: List<Long>
     ) {
-        // Delete removed songs and their cross-refs
+        // Protect cloud songs from deletion during generic media scan
+        // Only allow explicit deletions if the list is non-empty.
+        // During general refresh, deletedSongIds strictly contains local MediaStore IDs only.
         if (deletedSongIds.isNotEmpty()) {
             deletedSongIds.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
                 deleteCrossRefsBySongIds(chunk)
@@ -242,13 +293,32 @@ interface MusicDao {
     @Query("SELECT * FROM songs WHERE id IN (:songIds)")
     suspend fun getSongsByIdsListSimple(songIds: List<Long>): List<SongEntity>
 
-    @Query("SELECT * FROM songs WHERE id = :songId")
+    @Query(
+        "SELECT " + SONG_DETAIL_PROJECTION + """
+        FROM songs
+        LEFT JOIN lyrics AS song_lyrics ON song_lyrics.songId = songs.id
+        WHERE songs.id = :songId
+        """
+    )
     fun getSongById(songId: Long): Flow<SongEntity?>
 
-    @Query("SELECT * FROM songs WHERE id = :songId")
+    @Query(
+        "SELECT " + SONG_DETAIL_PROJECTION + """
+        FROM songs
+        LEFT JOIN lyrics AS song_lyrics ON song_lyrics.songId = songs.id
+        WHERE songs.id = :songId
+        """
+    )
     suspend fun getSongByIdOnce(songId: Long): SongEntity?
     
-    @Query("SELECT * FROM songs WHERE file_path = :path LIMIT 1")
+    @Query(
+        "SELECT " + SONG_DETAIL_PROJECTION + """
+        FROM songs
+        LEFT JOIN lyrics AS song_lyrics ON song_lyrics.songId = songs.id
+        WHERE songs.file_path = :path
+        LIMIT 1
+        """
+    )
     suspend fun getSongByPath(path: String): SongEntity?
 
     //@Query("SELECT * FROM songs WHERE id IN (:songIds)")
@@ -321,12 +391,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND content_uri_string NOT LIKE 'telegram://%'
                 AND content_uri_string NOT LIKE 'netease://%'
+                AND content_uri_string NOT LIKE 'gdrive://%'
+                AND content_uri_string NOT LIKE 'qqmusic://%'
+                AND content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     content_uri_string LIKE 'telegram://%'
                     OR content_uri_string LIKE 'netease://%'
+                    OR content_uri_string LIKE 'gdrive://%'
+                    OR content_uri_string LIKE 'qqmusic://%'
+                    OR content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -347,12 +423,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND content_uri_string NOT LIKE 'telegram://%'
                 AND content_uri_string NOT LIKE 'netease://%'
+                AND content_uri_string NOT LIKE 'gdrive://%'
+                AND content_uri_string NOT LIKE 'qqmusic://%'
+                AND content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     content_uri_string LIKE 'telegram://%'
                     OR content_uri_string LIKE 'netease://%'
+                    OR content_uri_string LIKE 'gdrive://%'
+                    OR content_uri_string LIKE 'qqmusic://%'
+                    OR content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -388,12 +470,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND content_uri_string NOT LIKE 'telegram://%'
                 AND content_uri_string NOT LIKE 'netease://%'
+                AND content_uri_string NOT LIKE 'gdrive://%'
+                AND content_uri_string NOT LIKE 'qqmusic://%'
+                AND content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     content_uri_string LIKE 'telegram://%'
                     OR content_uri_string LIKE 'netease://%'
+                    OR content_uri_string LIKE 'gdrive://%'
+                    OR content_uri_string LIKE 'qqmusic://%'
+                    OR content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -431,12 +519,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND songs.content_uri_string NOT LIKE 'telegram://%'
                 AND songs.content_uri_string NOT LIKE 'netease://%'
+                AND songs.content_uri_string NOT LIKE 'gdrive://%'
+                AND songs.content_uri_string NOT LIKE 'qqmusic://%'
+                AND songs.content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     songs.content_uri_string LIKE 'telegram://%'
                     OR songs.content_uri_string LIKE 'netease://%'
+                    OR songs.content_uri_string LIKE 'gdrive://%'
+                    OR songs.content_uri_string LIKE 'qqmusic://%'
+                    OR songs.content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -468,12 +562,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND songs.content_uri_string NOT LIKE 'telegram://%'
                 AND songs.content_uri_string NOT LIKE 'netease://%'
+                AND songs.content_uri_string NOT LIKE 'gdrive://%'
+                AND songs.content_uri_string NOT LIKE 'qqmusic://%'
+                AND songs.content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     songs.content_uri_string LIKE 'telegram://%'
                     OR songs.content_uri_string LIKE 'netease://%'
+                    OR songs.content_uri_string LIKE 'gdrive://%'
+                    OR songs.content_uri_string LIKE 'qqmusic://%'
+                    OR songs.content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -498,12 +598,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND songs.content_uri_string NOT LIKE 'telegram://%'
                 AND songs.content_uri_string NOT LIKE 'netease://%'
+                AND songs.content_uri_string NOT LIKE 'gdrive://%'
+                AND songs.content_uri_string NOT LIKE 'qqmusic://%'
+                AND songs.content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     songs.content_uri_string LIKE 'telegram://%'
                     OR songs.content_uri_string LIKE 'netease://%'
+                    OR songs.content_uri_string LIKE 'gdrive://%'
+                    OR songs.content_uri_string LIKE 'qqmusic://%'
+                    OR songs.content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -565,7 +671,15 @@ interface MusicDao {
 
     // --- Album Queries ---
     @Query("""
-        SELECT DISTINCT albums.* FROM albums
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            COUNT(songs.id) AS song_count,
+            albums.year AS year
+        FROM albums
         INNER JOIN songs ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND (
@@ -574,15 +688,28 @@ interface MusicDao {
                 :filterMode = 1
                 AND songs.content_uri_string NOT LIKE 'telegram://%'
                 AND songs.content_uri_string NOT LIKE 'netease://%'
+                AND songs.content_uri_string NOT LIKE 'gdrive://%'
+                AND songs.content_uri_string NOT LIKE 'qqmusic://%'
+                AND songs.content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     songs.content_uri_string LIKE 'telegram://%'
                     OR songs.content_uri_string LIKE 'netease://%'
+                    OR songs.content_uri_string LIKE 'gdrive://%'
+                    OR songs.content_uri_string LIKE 'qqmusic://%'
+                    OR songs.content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
+        GROUP BY
+            albums.id,
+            albums.title,
+            albums.artist_name,
+            albums.artist_id,
+            albums.album_art_uri_string,
+            albums.year
         ORDER BY albums.title ASC
     """)
     fun getAlbums(
@@ -591,10 +718,42 @@ interface MusicDao {
         filterMode: Int
     ): Flow<List<AlbumEntity>>
 
-    @Query("SELECT * FROM albums WHERE id = :albumId")
+    @Query("""
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            (
+                SELECT COUNT(*)
+                FROM songs
+                WHERE songs.album_id = albums.id
+            ) AS song_count,
+            albums.year AS year
+        FROM albums
+        WHERE albums.id = :albumId
+        LIMIT 1
+    """)
     fun getAlbumById(albumId: Long): Flow<AlbumEntity?>
 
-    @Query("SELECT * FROM albums WHERE title LIKE '%' || :query || '%' ORDER BY title ASC")
+    @Query("""
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            (
+                SELECT COUNT(*)
+                FROM songs
+                WHERE songs.album_id = albums.id
+            ) AS song_count,
+            albums.year AS year
+        FROM albums
+        WHERE albums.title LIKE '%' || :query || '%'
+        ORDER BY albums.title ASC
+    """)
     fun searchAlbums(query: String): Flow<List<AlbumEntity>>
 
     @Query("SELECT COUNT(*) FROM albums")
@@ -602,9 +761,24 @@ interface MusicDao {
 
     // Version of getAlbums that returns a List for one-shot reads
     @Query("""
-        SELECT DISTINCT albums.* FROM albums
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            COUNT(songs.id) AS song_count,
+            albums.year AS year
+        FROM albums
         INNER JOIN songs ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        GROUP BY
+            albums.id,
+            albums.title,
+            albums.artist_name,
+            albums.artist_id,
+            albums.album_art_uri_string,
+            albums.year
         ORDER BY albums.title ASC
     """)
     suspend fun getAllAlbumsList(
@@ -612,14 +786,49 @@ interface MusicDao {
         applyDirectoryFilter: Boolean
     ): List<AlbumEntity>
 
-    @Query("SELECT * FROM albums WHERE artist_id = :artistId ORDER BY title ASC")
+    @Query("""
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            COUNT(songs.id) AS song_count,
+            albums.year AS year
+        FROM albums
+        LEFT JOIN songs ON albums.id = songs.album_id
+        WHERE albums.artist_id = :artistId
+        GROUP BY
+            albums.id,
+            albums.title,
+            albums.artist_name,
+            albums.artist_id,
+            albums.album_art_uri_string,
+            albums.year
+        ORDER BY albums.title ASC
+    """)
     fun getAlbumsByArtistId(artistId: Long): Flow<List<AlbumEntity>>
 
     @Query("""
-        SELECT DISTINCT albums.* FROM albums
+        SELECT
+            albums.id AS id,
+            albums.title AS title,
+            albums.artist_name AS artist_name,
+            albums.artist_id AS artist_id,
+            albums.album_art_uri_string AS album_art_uri_string,
+            COUNT(songs.id) AS song_count,
+            albums.year AS year
+        FROM albums
         INNER JOIN songs ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND (albums.title LIKE '%' || :query || '%' OR albums.artist_name LIKE '%' || :query || '%')
+        GROUP BY
+            albums.id,
+            albums.title,
+            albums.artist_name,
+            albums.artist_id,
+            albums.album_art_uri_string,
+            albums.year
         ORDER BY albums.title ASC
     """)
     fun searchAlbums(
@@ -795,14 +1004,13 @@ interface MusicDao {
         return newStatus
     }
 
-    @Query("UPDATE songs SET title = :title, artist_name = :artist, album_name = :album, genre = :genre, lyrics = :lyrics, track_number = :trackNumber WHERE id = :songId")
+    @Query("UPDATE songs SET title = :title, artist_name = :artist, album_name = :album, genre = :genre, track_number = :trackNumber WHERE id = :songId")
     suspend fun updateSongMetadata(
         songId: Long,
         title: String,
         artist: String,
         album: String,
         genre: String?,
-        lyrics: String?,
         trackNumber: Int
     )
 
@@ -820,6 +1028,16 @@ interface MusicDao {
 
     @Query("SELECT * FROM songs")
     suspend fun getAllSongsList(): List<SongEntity>
+
+    @Query("""
+        SELECT id, title, artist_name, album_name, duration
+        FROM songs
+        WHERE content_uri_string NOT LIKE 'telegram://%'
+        AND content_uri_string NOT LIKE 'netease://%'
+        AND content_uri_string NOT LIKE 'gdrive://%'
+        AND content_uri_string NOT LIKE 'qqmusic://%'
+    """)
+    suspend fun getAllLocalSongSummaries(): List<SongSummary>
 
     @Query("SELECT album_art_uri_string FROM songs WHERE id=:id")
     suspend fun getAlbumArtUriById(id: Long) : String?
@@ -952,12 +1170,18 @@ interface MusicDao {
                 :filterMode = 1
                 AND songs.content_uri_string NOT LIKE 'telegram://%'
                 AND songs.content_uri_string NOT LIKE 'netease://%'
+                AND songs.content_uri_string NOT LIKE 'gdrive://%'
+                AND songs.content_uri_string NOT LIKE 'qqmusic://%'
+                AND songs.content_uri_string NOT LIKE 'navidrome://%'
             )
             OR (
                 :filterMode = 2
                 AND (
                     songs.content_uri_string LIKE 'telegram://%'
                     OR songs.content_uri_string LIKE 'netease://%'
+                    OR songs.content_uri_string LIKE 'gdrive://%'
+                    OR songs.content_uri_string LIKE 'qqmusic://%'
+                    OR songs.content_uri_string LIKE 'navidrome://%'
                 )
             )
         )
@@ -997,6 +1221,30 @@ interface MusicDao {
         insertSongs(songs)
         // Insert cross-refs in chunks to avoid SQLite variable limit.
         // Each SongArtistCrossRef has 3 fields, so batch size is calculated accordingly.
+        crossRefs.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
+            insertSongArtistCrossRefs(chunk)
+        }
+    }
+
+    @Transaction
+    suspend fun rebuildMusicDataWithCrossRefs(
+        songs: List<SongEntity>,
+        albums: List<AlbumEntity>,
+        artists: List<ArtistEntity>,
+        crossRefs: List<SongArtistCrossRef>
+    ) {
+        // Save current cloud songs before clearing to prevent accidental data loss
+        // Only clear if we have new songs to insert, or we are explicitly asked to REBUILD everything.
+        // We handle this logic at the worker/repository level to be more precise.
+        
+        clearAllSongArtistCrossRefs()
+        clearAllSongs()
+        clearAllAlbums()
+        clearAllArtists()
+
+        insertArtists(artists)
+        insertAlbums(albums)
+        insertSongs(songs)
         crossRefs.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
             insertSongArtistCrossRefs(chunk)
         }

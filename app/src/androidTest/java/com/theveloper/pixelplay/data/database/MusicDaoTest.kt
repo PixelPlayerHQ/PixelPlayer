@@ -92,8 +92,11 @@ class MusicDaoTest {
     @Test
     @Throws(Exception::class)
     fun insertAndGetAlbums() = runTest {
-        val song = createSongEntity(1L, "Song A", "Artist 1", "Album X", "/path/a/songA.mp3")
-        musicDao.insertSongs(listOf(song)) // Needed for inner join in getAlbums
+        val songs = listOf(
+            createSongEntity(1L, "Song A", "Artist 1", "Album X", "/path/a/songA.mp3"),
+            createSongEntity(2L, "Song B", "Artist 1", "Album X", "/path/a/songB.mp3")
+        )
+        musicDao.insertSongs(songs) // Needed for inner join in getAlbums
 
         val albumList = listOf(
             createAlbumEntity(201L, "Album X"), // Matches song's albumId 201L default
@@ -101,13 +104,14 @@ class MusicDaoTest {
         )
         musicDao.insertAlbums(albumList)
         
-        val retrievedAlbums = musicDao.getAlbums(emptyList(), false).first()
+        val retrievedAlbums = musicDao.getAlbums(emptyList(), false, 0).first()
         // getAlbums uses INNER JOIN with songs, so only albums with songs are returned
         // My createSongEntity uses albumId 201L (Album X).
         // So Album Y (202L) should NOT be returned if logic holds (INNER JOIN songs ON albums.id = songs.album_id)
         
         assertEquals(1, retrievedAlbums.size)
         assertEquals("Album X", retrievedAlbums[0].title)
+        assertEquals(2, retrievedAlbums[0].songCount)
     }
 
     @Test
@@ -199,4 +203,3 @@ class MusicDaoTest {
         assertEquals(listOf("Cool Song", "Coolest Song Ever"), titles)
     }
 }
-

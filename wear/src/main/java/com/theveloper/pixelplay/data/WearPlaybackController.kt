@@ -56,9 +56,15 @@ class WearPlaybackController @Inject constructor(
     fun togglePlayPause() = sendCommand(WearPlaybackCommand(WearPlaybackCommand.TOGGLE_PLAY_PAUSE))
     fun next() = sendCommand(WearPlaybackCommand(WearPlaybackCommand.NEXT))
     fun previous() = sendCommand(WearPlaybackCommand(WearPlaybackCommand.PREVIOUS))
-    fun toggleFavorite(targetEnabled: Boolean? = null) = sendCommand(
+    fun toggleFavorite(
+        songId: String? = null,
+        targetEnabled: Boolean? = null,
+        requestId: String? = null,
+    ) = sendCommand(
         WearPlaybackCommand(
             action = WearPlaybackCommand.TOGGLE_FAVORITE,
+            songId = songId,
+            requestId = requestId,
             targetEnabled = targetEnabled
         )
     )
@@ -71,6 +77,12 @@ class WearPlaybackController @Inject constructor(
     fun cycleRepeat() = sendCommand(WearPlaybackCommand(WearPlaybackCommand.CYCLE_REPEAT))
     fun volumeUp() = sendVolumeCommand(WearVolumeCommand(WearVolumeCommand.UP))
     fun volumeDown() = sendVolumeCommand(WearVolumeCommand(WearVolumeCommand.DOWN))
+    fun setPhoneVolume(percent: Int) = sendVolumeCommand(
+        WearVolumeCommand(
+            direction = WearVolumeCommand.SET,
+            value = percent.coerceIn(0, 100),
+        )
+    )
     fun requestPhoneVolumeState() = sendVolumeCommand(WearVolumeCommand(WearVolumeCommand.QUERY))
 
     /** Play a song within its context queue (album, artist, playlist, etc.) */
@@ -82,6 +94,19 @@ class WearPlaybackController @Inject constructor(
             contextId = contextId,
         )
     )
+
+    suspend fun playItemAwaitDispatch(songId: String, requestId: String): Boolean {
+        return sendMessageToPhone(
+            path = WearDataPaths.PLAYBACK_COMMAND,
+            data = json.encodeToString(
+                WearPlaybackCommand(
+                    action = WearPlaybackCommand.PLAY_ITEM,
+                    songId = songId,
+                    requestId = requestId,
+                )
+            ).toByteArray(Charsets.UTF_8)
+        )
+    }
 
     fun playNextFromContext(songId: String, contextType: String, contextId: String?) = sendCommand(
         WearPlaybackCommand(
@@ -128,18 +153,19 @@ class WearPlaybackController @Inject constructor(
         )
     )
 
-    private suspend fun sendMessageToPhone(path: String, data: ByteArray) {
+    private suspend fun sendMessageToPhone(path: String, data: ByteArray): Boolean {
         try {
             val nodes = nodeClient.connectedNodes.await()
             if (nodes.isEmpty()) {
                 stateRepository.setPhoneConnected(false)
                 Timber.tag(TAG).w("No connected nodes found — phone not reachable (path=%s)", path)
-                return
+                return false
             }
             stateRepository.setPhoneConnected(true)
             stateRepository.setPhoneDeviceName(nodes.firstOrNull()?.displayName.orEmpty())
 
             // Send to all connected nodes (typically just one phone)
+            var delivered = false
             nodes.forEach { node ->
                 try {
                     Timber.tag(TAG).d(
@@ -150,6 +176,7 @@ class WearPlaybackController @Inject constructor(
                         node.displayName
                     )
                     messageClient.sendMessage(node.id, path, data).await()
+                    delivered = true
                     Timber.tag(TAG).d(
                         "Sent message path=%s nodeId=%s nodeName=%s",
                         path,
@@ -166,9 +193,14 @@ class WearPlaybackController @Inject constructor(
                     )
                 }
             }
+            if (!delivered) {
+                stateRepository.setPhoneConnected(false)
+            }
+            return delivered
         } catch (e: Exception) {
             stateRepository.setPhoneConnected(false)
             Timber.tag(TAG).e(e, "Failed to get connected nodes for path=%s", path)
+            return false
         }
     }
 }

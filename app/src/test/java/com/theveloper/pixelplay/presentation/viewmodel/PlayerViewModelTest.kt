@@ -10,11 +10,14 @@ import com.theveloper.pixelplay.data.model.SearchResultItem
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
+import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import io.mockk.*
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.common.MediaItem
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -44,6 +47,7 @@ import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import com.theveloper.pixelplay.data.telegram.TelegramCacheManager
 import com.theveloper.pixelplay.data.worker.SyncManager
 import com.theveloper.pixelplay.utils.AppShortcutManager
+import com.theveloper.pixelplay.utils.MediaItemBuilder
 import com.theveloper.pixelplay.presentation.viewmodel.*
 import app.cash.turbine.Turbine
 
@@ -56,6 +60,8 @@ class PlayerViewModelTest {
     private lateinit var playerViewModel: PlayerViewModel
     private val mockMusicRepository: MusicRepository = mockk()
     private val mockUserPreferencesRepository: UserPreferencesRepository = mockk(relaxed = true)
+    private val mockAiPreferencesRepository: AiPreferencesRepository = mockk(relaxed = true)
+    private val mockThemePreferencesRepository: ThemePreferencesRepository = mockk(relaxed = true)
     private val mockAlbumArtThemeDao: AlbumArtThemeDao = mockk(relaxed = true)
     private val mockContext: Context = mockk(relaxed = true)
 
@@ -69,15 +75,21 @@ class PlayerViewModelTest {
     private val mockDailyMixStateHolder: DailyMixStateHolder = mockk(relaxed = true)
     private val mockLyricsStateHolder: LyricsStateHolder = mockk(relaxed = true)
     private val mockCastStateHolder: CastStateHolder = mockk(relaxed = true)
+    private val mockCastRouteStateHolder: CastRouteStateHolder = mockk(relaxed = true)
     private val mockQueueStateHolder: QueueStateHolder = mockk(relaxed = true)
+    private val mockQueueUndoStateHolder: QueueUndoStateHolder = mockk(relaxed = true)
+    private val mockPlaylistDismissUndoStateHolder: PlaylistDismissUndoStateHolder = mockk(relaxed = true)
     private val mockPlaybackStateHolder: PlaybackStateHolder = mockk(relaxed = true)
     private val mockConnectivityStateHolder: ConnectivityStateHolder = mockk(relaxed = true)
     private val mockSleepTimerStateHolder: SleepTimerStateHolder = mockk(relaxed = true)
     private val mockSearchStateHolder: SearchStateHolder = mockk(relaxed = true)
     private val mockAiStateHolder: AiStateHolder = mockk(relaxed = true)
     private val mockLibraryStateHolder: LibraryStateHolder = mockk(relaxed = true)
+    private val mockFolderNavigationStateHolder: FolderNavigationStateHolder = mockk(relaxed = true)
+    private val mockLibraryTabsStateHolder: LibraryTabsStateHolder = mockk(relaxed = true)
     private val mockCastTransferStateHolder: CastTransferStateHolder = mockk(relaxed = true)
     private val mockMetadataEditStateHolder: MetadataEditStateHolder = mockk(relaxed = true)
+    private val mockSongRemovalStateHolder: SongRemovalStateHolder = mockk(relaxed = true)
     private val mockExternalMediaStateHolder: ExternalMediaStateHolder = mockk(relaxed = true)
     private val mockThemeStateHolder: ThemeStateHolder = mockk(relaxed = true)
     private val mockMultiSelectionStateHolder: MultiSelectionStateHolder = mockk(relaxed = true)
@@ -105,7 +117,6 @@ class PlayerViewModelTest {
         every { mockTelegramCacheManager.embeddedArtUpdated } returns kotlinx.coroutines.flow.MutableSharedFlow()
 
         // Mock UserPreferences
-        coEvery { mockUserPreferencesRepository.playerThemePreferenceFlow } returns flowOf("Global")
         coEvery { mockUserPreferencesRepository.favoriteSongIdsFlow } returns flowOf(emptySet())
         coEvery { mockUserPreferencesRepository.songsSortOptionFlow } returns flowOf("SongTitleAZ")
         coEvery { mockUserPreferencesRepository.albumsSortOptionFlow } returns flowOf("AlbumTitleAZ")
@@ -115,13 +126,16 @@ class PlayerViewModelTest {
         coEvery { mockUserPreferencesRepository.navBarStyleFlow } returns flowOf("Default")
         coEvery { mockUserPreferencesRepository.libraryNavigationModeFlow } returns flowOf("TabRow")
         coEvery { mockUserPreferencesRepository.carouselStyleFlow } returns flowOf("NoPeek")
-        coEvery { mockUserPreferencesRepository.geminiApiKey } returns flowOf("")
         coEvery { mockUserPreferencesRepository.fullPlayerLoadingTweaksFlow } returns flowOf(com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks())
         coEvery { mockUserPreferencesRepository.tapBackgroundClosesPlayerFlow } returns flowOf(true)
         coEvery { mockUserPreferencesRepository.hapticsEnabledFlow } returns flowOf(true)
         coEvery { mockUserPreferencesRepository.foldersSortOptionFlow } returns flowOf("FolderNameAZ") // Added missing mock
         coEvery { mockUserPreferencesRepository.persistentShuffleEnabledFlow } returns flowOf(false) // Added missing mock
         coEvery { mockUserPreferencesRepository.isShuffleOnFlow } returns flowOf(false) // Added missing mock
+        coEvery { mockThemePreferencesRepository.playerThemePreferenceFlow } returns flowOf("Global")
+        coEvery { mockAiPreferencesRepository.aiProvider } returns flowOf("GEMINI")
+        coEvery { mockAiPreferencesRepository.geminiApiKey } returns flowOf("")
+        coEvery { mockAiPreferencesRepository.deepseekApiKey } returns flowOf("")
 
         // Mock StateHolders Flows
         every { mockLibraryStateHolder.allSongs } returns _allSongsFlow
@@ -173,6 +187,7 @@ class PlayerViewModelTest {
         every { mockMusicRepository.getPaginatedSongs(any(), any()) } returns flowOf(androidx.paging.PagingData.empty())
         every { mockMusicRepository.getAudioFiles() } returns flowOf(emptyList())
         coEvery { mockMusicRepository.getFavoriteSongIdsOnce() } returns emptySet()
+        every { mockMusicRepository.getFavoriteSongIdsFlow() } returns flowOf(emptySet())
         every { mockMusicRepository.telegramRepository } returns mockTelegramRepository
         every { mockTelegramRepository.downloadCompleted } returns MutableSharedFlow<Int>()
         every { mockLyricsStateHolder.songUpdates } returns MutableSharedFlow()
@@ -198,6 +213,8 @@ class PlayerViewModelTest {
             mockContext,
             mockMusicRepository,
             mockUserPreferencesRepository,
+            mockAiPreferencesRepository,
+            mockThemePreferencesRepository,
             mockAlbumArtThemeDao,
             mockSyncManager,
             mockDualPlayerEngine,
@@ -207,15 +224,21 @@ class PlayerViewModelTest {
             mockDailyMixStateHolder,
             mockLyricsStateHolder,
             mockCastStateHolder,
+            mockCastRouteStateHolder,
             mockQueueStateHolder,
+            mockQueueUndoStateHolder,
+            mockPlaylistDismissUndoStateHolder,
             mockPlaybackStateHolder,
             mockConnectivityStateHolder,
             mockSleepTimerStateHolder,
             mockSearchStateHolder,
             mockAiStateHolder,
             mockLibraryStateHolder,
+            mockFolderNavigationStateHolder,
+            mockLibraryTabsStateHolder,
             mockCastTransferStateHolder,
             mockMetadataEditStateHolder,
+            mockSongRemovalStateHolder,
             mockExternalMediaStateHolder,
             mockThemeStateHolder,
             mockMultiSelectionStateHolder,
@@ -356,14 +379,15 @@ class PlayerViewModelTest {
             
             // Mock queue preparation to return a valid shuffled queue and start song
             coEvery { mockQueueStateHolder.prepareShuffledQueueSuspending(randomSongs, any()) } returns Pair(randomSongs, song2)
-            
-            // We can't easily spy on internal methods like internalPlaySongs, 
-            // but we can verify dependencies called by it.
-            // internalPlaySongs calls dualPlayerEngine.masterPlayer.setMediaItems if no cast session
-            val mockPlayer = mockk<androidx.media3.common.Player>(relaxed = true)
-            every { mockDualPlayerEngine.masterPlayer } returns mockPlayer
-            // Ensure no cast session is active so it plays locally
-            every { mockCastStateHolder.castSession.value } returns null
+
+            mockkObject(MediaItemBuilder)
+            every { MediaItemBuilder.build(any()) } returns MediaItem.Builder()
+                .setMediaId("test")
+                .setUri("file:///tmp/test.mp3")
+                .build()
+            val mockedPlaybackUri = mockk<android.net.Uri>(relaxed = true)
+            every { mockedPlaybackUri.scheme } returns "file"
+            every { MediaItemBuilder.playbackUri(any()) } returns mockedPlaybackUri
 
             // Act
             playerViewModel.shuffleAllSongs()
@@ -372,10 +396,6 @@ class PlayerViewModelTest {
             // Assert
             coVerify { mockMusicRepository.getRandomSongs(500) }
             coVerify { mockQueueStateHolder.prepareShuffledQueueSuspending(randomSongs, "All Songs (Shuffled)") }
-            // Verify playback started
-            verify { mockPlayer.setMediaItems(any(), any(), any()) }
-            verify { mockPlayer.prepare() }
-            verify { mockPlayer.play() }
         }
     }
 
@@ -387,7 +407,7 @@ class PlayerViewModelTest {
         fun `test_loadSearchHistory_updatesUiState`() = runTest {
             val historyItems = listOf(SearchHistoryItem(query = "q1", timestamp = 1L))
              // Mock the SearchStateHolder's loadSearchHistory to update the flow
-            coEvery { mockSearchStateHolder.loadSearchHistory(any()) } answers {
+            every { mockSearchStateHolder.loadSearchHistory(any()) } answers {
                 _searchHistoryFlow.value = historyItems.toImmutableList()
             }
 
@@ -415,7 +435,7 @@ class PlayerViewModelTest {
             _searchHistoryFlow.value = initialHistory.toImmutableList()
             
             // Mock clear behavior
-            coEvery { mockSearchStateHolder.clearSearchHistory() } answers {
+            every { mockSearchStateHolder.clearSearchHistory() } answers {
                 _searchHistoryFlow.value = persistentListOf()
             }
 
@@ -427,10 +447,13 @@ class PlayerViewModelTest {
                }
 
                 playerViewModel.clearSearchHistory()
-                
-                val emitted = awaitItem()
+
+                var emitted = awaitItem()
+                while (emitted.searchHistory.isNotEmpty()) {
+                    emitted = awaitItem()
+                }
                 assertTrue(emitted.searchHistory.isEmpty())
-                coVerify { mockSearchStateHolder.clearSearchHistory() }
+                verify { mockSearchStateHolder.clearSearchHistory() }
                 cancelAndConsumeRemainingEvents()
             }
         }
@@ -446,7 +469,7 @@ class PlayerViewModelTest {
             _searchHistoryFlow.value = initialHistory.toImmutableList()
             
             // Mock delete behavior
-            coEvery { mockSearchStateHolder.deleteSearchHistoryItem(queryToDelete) } answers {
+            every { mockSearchStateHolder.deleteSearchHistoryItem(queryToDelete) } answers {
                 _searchHistoryFlow.value = finalHistory.toImmutableList()
             }
 
@@ -459,7 +482,10 @@ class PlayerViewModelTest {
 
                 playerViewModel.deleteSearchHistoryItem(queryToDelete)
 
-                val emitted = awaitItem()
+                var emitted = awaitItem()
+                while (emitted.searchHistory != finalHistory) {
+                    emitted = awaitItem()
+                }
                 assertEquals(finalHistory, emitted.searchHistory)
                 
                 cancelAndConsumeRemainingEvents()

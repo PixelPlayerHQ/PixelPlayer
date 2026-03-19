@@ -8,7 +8,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -73,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,7 +125,6 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.AudioMetaUtils.mimeTypeToFormat
 import com.theveloper.pixelplay.utils.formatDuration
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
@@ -133,6 +132,15 @@ import java.util.Locale
 import kotlin.math.roundToLong
 import com.theveloper.pixelplay.presentation.components.WavySliderExpressive
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collect
+
+private const val PREVIOUS_TRACK_RESTART_THRESHOLD_MS = 10_000L
+private const val SPAM_SKIP_SERIALIZATION_MS = 360L
+private const val NO_TARGET_SKIP_SERIALIZATION_MS = 140L
+
+private enum class SkipDirection { PREVIOUS, NEXT }
 
 private val MetadataAndProgressMinHeight = 56.dp
 
@@ -212,18 +220,23 @@ fun FullPlayerContent(
     var showArtistPicker by rememberSaveable { mutableStateOf(false) }
     
     val lyricsSearchUiState by playerViewModel.lyricsSearchUiState.collectAsStateWithLifecycle()
-    val currentSongArtists by playerViewModel.currentSongArtists.collectAsStateWithLifecycle()
-    val lyricsSyncOffset by playerViewModel.currentSongLyricsSyncOffset.collectAsStateWithLifecycle()
-    val albumArtQuality by playerViewModel.albumArtQuality.collectAsStateWithLifecycle()
-    val playbackAudioMetadata by playerViewModel.playbackAudioMetadata.collectAsStateWithLifecycle()
-    val showPlayerFileInfo by playerViewModel.showPlayerFileInfo.collectAsStateWithLifecycle()
-    val immersiveLyricsEnabled by playerViewModel.immersiveLyricsEnabled.collectAsStateWithLifecycle()
-    val immersiveLyricsTimeout by playerViewModel.immersiveLyricsTimeout.collectAsStateWithLifecycle()
-    val isImmersiveTemporarilyDisabled by playerViewModel.isImmersiveTemporarilyDisabled.collectAsStateWithLifecycle()
-    val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsStateWithLifecycle()
-    val selectedRouteName by playerViewModel.selectedRoute.map { it?.name }.collectAsStateWithLifecycle(initialValue = null)
-    val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsStateWithLifecycle()
-    val bluetoothName by playerViewModel.bluetoothName.collectAsStateWithLifecycle()
+
+    // Single subscription — replaces 11 independent collectAsStateWithLifecycle calls.
+    // distinctUntilChanged in the ViewModel ensures this only emits when something
+    // actually changed, batching multiple rapid updates into one recomposition.
+    val fullPlayerSlice by playerViewModel.fullPlayerSlice.collectAsStateWithLifecycle()
+    val currentSongArtists = fullPlayerSlice.currentSongArtists
+    val lyricsSyncOffset = fullPlayerSlice.lyricsSyncOffset
+    val albumArtQuality = fullPlayerSlice.albumArtQuality
+    val playbackAudioMetadata = fullPlayerSlice.audioMetadata
+    val showPlayerFileInfo = fullPlayerSlice.showPlayerFileInfo
+    val immersiveLyricsEnabled = fullPlayerSlice.immersiveLyricsEnabled
+    val immersiveLyricsTimeout = fullPlayerSlice.immersiveLyricsTimeout
+    val isImmersiveTemporarilyDisabled = fullPlayerSlice.isImmersiveTemporarilyDisabled
+    val isRemotePlaybackActive = fullPlayerSlice.isRemotePlaybackActive
+    val selectedRouteName = fullPlayerSlice.selectedRouteName
+    val isBluetoothEnabled = fullPlayerSlice.isBluetoothEnabled
+    val bluetoothName = fullPlayerSlice.bluetoothName
 
     var showFetchLyricsDialog by remember { mutableStateOf(false) }
     var totalDrag by remember { mutableStateOf(0f) }
@@ -357,6 +370,94 @@ fun FullPlayerContent(
         }
     }
 
+    var pendingCarouselSongId by remember { mutableStateOf<String?>(null) }
+    val pendingCarouselIndex = remember(pendingCarouselSongId, currentPlaybackQueue) {
+        pendingCarouselSongId?.let { targetSongId ->
+            currentPlaybackQueue.indexOfFirst { it.id == targetSongId }
+                .takeIf { it >= 0 }
+        }
+    }
+    val skipRequests = remember {
+        MutableSharedFlow<SkipDirection>(
+            extraBufferCapacity = 16,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+    }
+    val latestQueue by rememberUpdatedState(currentPlaybackQueue)
+    val latestSongId by rememberUpdatedState(song.id)
+    val latestRepeatMode by rememberUpdatedState(repeatMode)
+    val latestIsRemotePlaybackActive by rememberUpdatedState(isRemotePlaybackActive)
+    val latestCurrentPositionProvider by rememberUpdatedState(currentPositionProvider)
+    val latestOnNext by rememberUpdatedState(onNext)
+    val latestOnPrevious by rememberUpdatedState(onPrevious)
+
+    LaunchedEffect(song.id, pendingCarouselSongId) {
+        if (pendingCarouselSongId == song.id) {
+            pendingCarouselSongId = null
+        }
+    }
+
+    LaunchedEffect(pendingCarouselSongId, song.id) {
+        val targetSongId = pendingCarouselSongId ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(900)
+        if (pendingCarouselSongId == targetSongId && song.id != targetSongId) {
+            pendingCarouselSongId = null
+        }
+    }
+
+    LaunchedEffect(skipRequests) {
+        skipRequests.collect { direction ->
+            val queueSnapshot = latestQueue
+            val baseSongId = pendingCarouselSongId ?: latestSongId
+            val predictedTargetIndex = when (direction) {
+                SkipDirection.NEXT -> predictSkipNextCarouselIndex(
+                    currentSongId = baseSongId,
+                    queue = queueSnapshot,
+                    repeatMode = latestRepeatMode,
+                    isRemotePlaybackActive = latestIsRemotePlaybackActive
+                )
+                SkipDirection.PREVIOUS -> predictSkipPreviousCarouselIndex(
+                    currentSongId = baseSongId,
+                    queue = queueSnapshot,
+                    currentPositionMs = latestCurrentPositionProvider(),
+                    repeatMode = latestRepeatMode,
+                    isRemotePlaybackActive = latestIsRemotePlaybackActive
+                )
+            }
+            val predictedTargetSongId = predictedTargetIndex
+                ?.let(queueSnapshot::getOrNull)
+                ?.id
+
+            if (predictedTargetSongId != null) {
+                pendingCarouselSongId = predictedTargetSongId
+
+                // Start the pager motion before MediaController listeners fan out
+                // the full track transition state updates through the player UI.
+                withFrameNanos { }
+            }
+
+            when (direction) {
+                SkipDirection.NEXT -> latestOnNext()
+                SkipDirection.PREVIOUS -> latestOnPrevious()
+            }
+
+            kotlinx.coroutines.delay(
+                if (predictedTargetSongId != null) SPAM_SKIP_SERIALIZATION_MS
+                else NO_TARGET_SKIP_SERIALIZATION_MS
+            )
+        }
+    }
+
+    val onNextWithOptimisticCarousel = {
+        skipRequests.tryEmit(SkipDirection.NEXT)
+        Unit
+    }
+
+    val onPreviousWithOptimisticCarousel = {
+        skipRequests.tryEmit(SkipDirection.PREVIOUS)
+        Unit
+    }
+
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
         FullPlayerAlbumCoverSection(
             song = song,
@@ -371,6 +472,7 @@ fun FullPlayerContent(
             placeholderColor = placeholderColor,
             placeholderOnColor = placeholderOnColor,
             albumArtQuality = albumArtQuality,
+            requestedScrollIndex = pendingCarouselIndex,
             onSongSelected = onAlbumSongSelected,
             modifier = modifier
         )
@@ -407,9 +509,9 @@ fun FullPlayerContent(
             placeholderColor = placeholderColor,
             placeholderOnColor = placeholderOnColor,
             isPlayingProvider = isPlayingProvider,
-            onPrevious = onPrevious,
+            onPrevious = onPreviousWithOptimisticCarousel,
             onPlayPause = onPlayPause,
-            onNext = onNext,
+            onNext = onNextWithOptimisticCarousel,
             playerSecondaryAccentColor = playerSecondaryAccentColor,
             playerAccentColor = playerAccentColor,
             playerOnAccentColor = playerOnAccentColor,
@@ -611,26 +713,17 @@ fun FullPlayerContent(
                             }
                             val castCornersExpanded = 50.dp
                             val castCornersCompact = 6.dp
-                            val castTopStart by animateDpAsState(
-                                targetValue = if (showCastLabel) castCornersExpanded else castCornersExpanded,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-                            )
+                            val castTopStart = castCornersExpanded
                             val castTopEnd by animateDpAsState(
                                 targetValue = if (showCastLabel) castCornersExpanded else castCornersCompact,
                                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                             )
-                            val castBottomStart by animateDpAsState(
-                                targetValue = if (showCastLabel) castCornersExpanded else castCornersExpanded,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-                            )
+                            val castBottomStart = castCornersExpanded
                             val castBottomEnd by animateDpAsState(
                                 targetValue = if (showCastLabel) castCornersExpanded else castCornersCompact,
                                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                             )
-                            val castContainerColor by animateColorAsState(
-                                targetValue = playerOnAccentColor.copy(alpha = 0.7f),
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-                            )
+                            val castContainerColor = playerOnAccentColor.copy(alpha = 0.7f)
                             Box(
                                 modifier = Modifier
                                     .height(42.dp)
@@ -890,6 +983,7 @@ private fun FullPlayerAlbumCoverSection(
     placeholderColor: Color,
     placeholderOnColor: Color,
     albumArtQuality: AlbumArtQuality,
+    requestedScrollIndex: Int?,
     onSongSelected: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -964,6 +1058,7 @@ private fun FullPlayerAlbumCoverSection(
                 currentSong = song,
                 queue = currentPlaybackQueue,
                 expansionFraction = 1f,
+                requestedScrollIndex = requestedScrollIndex,
                 onSongSelected = { newSong ->
                     if (newSong.id != song.id) {
                         onSongSelected(newSong)
@@ -1160,6 +1255,45 @@ private fun FullPlayerProgressSection(
     )
 }
 
+private fun predictSkipNextCarouselIndex(
+    currentSongId: String,
+    queue: ImmutableList<Song>,
+    repeatMode: Int,
+    isRemotePlaybackActive: Boolean
+): Int? {
+    if (isRemotePlaybackActive || queue.size <= 1) return null
+
+    val currentIndex = queue.indexOfFirst { it.id == currentSongId }
+    if (currentIndex == -1) return null
+
+    return when {
+        currentIndex < queue.lastIndex -> currentIndex + 1
+        repeatMode == Player.REPEAT_MODE_ALL -> 0
+        else -> null
+    }
+}
+
+private fun predictSkipPreviousCarouselIndex(
+    currentSongId: String,
+    queue: ImmutableList<Song>,
+    currentPositionMs: Long,
+    repeatMode: Int,
+    isRemotePlaybackActive: Boolean
+): Int? {
+    if (isRemotePlaybackActive || queue.size <= 1) return null
+    if (currentPositionMs > PREVIOUS_TRACK_RESTART_THRESHOLD_MS) return null
+
+    val currentIndex = queue.indexOfFirst { it.id == currentSongId }
+    if (currentIndex == -1) return null
+
+    return when {
+        currentIndex > 0 -> currentIndex - 1
+        repeatMode == Player.REPEAT_MODE_ALL -> queue.lastIndex
+        else -> null
+    }
+}
+
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun FullPlayerSongMetadataSection(
     song: Song,
@@ -1681,7 +1815,6 @@ private fun PlayerProgressBarSection(
                 .padding(vertical = lerp(2.dp, 0.dp, expansionFraction))
                 .heightIn(min = MetadataAndProgressMinHeight)
         ) {
-            
             // Isolated Slider Component
             EfficientSlider(
                 valueState = animatedProgressState,

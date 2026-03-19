@@ -264,9 +264,9 @@ fun CapabilitySection(
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
-                )
+//                HorizontalDivider(
+//                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
+//                )
                 Spacer(Modifier.height(12.dp))
                 content()
             }
@@ -358,7 +358,7 @@ fun DeviceInfoExpressiveSection(deviceInfo: Map<String, String>) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
+                //HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
                 if (heroEntries.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

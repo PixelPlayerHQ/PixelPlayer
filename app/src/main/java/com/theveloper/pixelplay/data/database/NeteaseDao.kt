@@ -17,6 +17,10 @@ interface NeteaseDao {
     @Query("SELECT * FROM netease_songs ORDER BY date_added DESC")
     suspend fun getAllNeteaseSongsList(): List<NeteaseSongEntity>
 
+    /** Lightweight count — use this for guard checks instead of loading all songs. */
+    @Query("SELECT COUNT(*) FROM netease_songs")
+    suspend fun getNeteaseCount(): Int
+
     @Query("SELECT * FROM netease_songs WHERE playlist_id = :playlistId ORDER BY date_added DESC")
     fun getSongsByPlaylist(playlistId: Long): Flow<List<NeteaseSongEntity>>
 

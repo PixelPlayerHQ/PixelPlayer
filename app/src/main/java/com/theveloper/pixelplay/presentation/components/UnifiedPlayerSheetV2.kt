@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerArtistNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerSheetPredictiveBackHandler
@@ -129,6 +131,7 @@ fun UnifiedPlayerSheetV2(
 
     val infrequentPlayerStateReference = playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val infrequentPlayerState = infrequentPlayerStateReference.value
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
 
     val currentPositionState = playerViewModel.currentPlaybackPosition.collectAsStateWithLifecycle()
     val remotePositionState = playerViewModel.remotePosition.collectAsStateWithLifecycle()
@@ -321,12 +324,12 @@ fun UnifiedPlayerSheetV2(
         swipeDismissProgress = swipeDismissProgress
     )
     val currentBottomPadding = sheetVisualState.currentBottomPadding
-    val playerContentAreaHeightDp = sheetVisualState.playerContentAreaHeightDp
-    val visualSheetTranslationY = sheetVisualState.visualSheetTranslationY
+    val playerContentAreaHeightPxProvider = sheetVisualState.playerContentAreaHeightPxProvider
+    val visualSheetTranslationYProvider = sheetVisualState.visualSheetTranslationYProvider
     val overallSheetTopCornerRadius = sheetVisualState.overallSheetTopCornerRadius
     val playerContentActualBottomRadius = sheetVisualState.playerContentActualBottomRadius
-    val currentHorizontalPaddingStart = sheetVisualState.currentHorizontalPaddingStart
-    val currentHorizontalPaddingEnd = sheetVisualState.currentHorizontalPaddingEnd
+    val currentHorizontalPaddingStartPxProvider = sheetVisualState.currentHorizontalPaddingStartPxProvider
+    val currentHorizontalPaddingEndPxProvider = sheetVisualState.currentHorizontalPaddingEndPxProvider
 
     val queueSheetState = rememberQueueSheetState(
         scope = scope,
@@ -349,6 +352,17 @@ fun UnifiedPlayerSheetV2(
         showPlayerContentArea = showPlayerContentArea,
         currentSheetContentState = currentSheetContentState
     )
+    val canHandlePlayerBack by remember(
+        sheetBackAndDragState.predictiveBackEnabled,
+        showQueueSheet,
+        castSheetState.showCastSheet
+    ) {
+        derivedStateOf {
+            sheetBackAndDragState.predictiveBackEnabled &&
+                !showQueueSheet &&
+                !castSheetState.showCastSheet
+        }
+    }
     val velocityTracker = remember { VelocityTracker() }
     val sheetModalOverlayController = rememberSheetModalOverlayController(
         scope = scope,
@@ -390,13 +404,14 @@ fun UnifiedPlayerSheetV2(
     )
 
     PlayerSheetPredictiveBackHandler(
-        enabled = sheetBackAndDragState.predictiveBackEnabled,
+        enabled = canHandlePlayerBack,
         playerViewModel = playerViewModel,
         sheetCollapsedTargetY = sheetCollapsedTargetY,
         sheetExpandedTargetY = sheetExpandedTargetY,
         sheetMotionController = sheetMotionController,
         animationDurationMs = ANIMATION_DURATION_MS,
-        onSwipeEdgeChanged = { playerViewModel.updatePredictiveBackSwipeEdge(it) }
+        onSwipeEdgeChanged = { playerViewModel.updatePredictiveBackSwipeEdge(it) },
+        registrationKey = currentBackStackEntry?.id
     )
 
     val sheetOverlayState = rememberSheetOverlayState(
@@ -499,7 +514,7 @@ fun UnifiedPlayerSheetV2(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .offset { IntOffset(0, visualSheetTranslationY.roundToInt()) }
+            .offset { IntOffset(0, visualSheetTranslationYProvider().roundToInt()) }
             .height(containerHeight),
         shadowElevation = 0.dp,
         color = Color.Transparent
@@ -514,15 +529,34 @@ fun UnifiedPlayerSheetV2(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            // Modifier.layout reads from pixel lambdas during the layout phase —
+                            // this avoids recomposition per drag frame (unlike derivedStateOf).
+                            // Layout still runs per-frame, but composition is skipped entirely.
+                            .layout { measurable, constraints ->
+                                val targetHeightPx = playerContentAreaHeightPxProvider()
+                                    .toInt().coerceAtLeast(0)
+                                val startPaddingPx = currentHorizontalPaddingStartPxProvider()
+                                    .toInt().coerceAtLeast(0)
+                                val endPaddingPx = currentHorizontalPaddingEndPxProvider()
+                                    .toInt().coerceAtLeast(0)
+                                val innerWidth = (constraints.maxWidth - startPaddingPx - endPaddingPx)
+                                    .coerceAtLeast(0)
+                                val placeable = measurable.measure(
+                                    constraints.copy(
+                                        minWidth = innerWidth,
+                                        maxWidth = innerWidth,
+                                        minHeight = targetHeightPx,
+                                        maxHeight = targetHeightPx
+                                    )
+                                )
+                                layout(constraints.maxWidth, targetHeightPx) {
+                                    placeable.placeRelative(startPaddingPx, 0)
+                                }
+                            }
                             .miniPlayerDismissHorizontalGesture(
                                 enabled = currentSheetContentState == PlayerSheetState.COLLAPSED,
                                 handler = miniDismissGestureHandler
                             )
-                            .padding(
-                                start = currentHorizontalPaddingStart,
-                                end = currentHorizontalPaddingEnd
-                            )
-                            .height(playerContentAreaHeightDp)
                             .graphicsLayer {
                                 translationX = offsetAnimatable.value
                                 scaleX = miniAppearScale

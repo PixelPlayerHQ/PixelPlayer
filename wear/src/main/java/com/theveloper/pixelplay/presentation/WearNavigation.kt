@@ -9,6 +9,7 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.theveloper.pixelplay.presentation.screens.BrowseScreen
 import com.theveloper.pixelplay.presentation.screens.DownloadsScreen
 import com.theveloper.pixelplay.presentation.screens.LibraryListScreen
+import com.theveloper.pixelplay.presentation.screens.MoreScreen
 import com.theveloper.pixelplay.presentation.screens.OutputScreen
 import com.theveloper.pixelplay.presentation.screens.PlayerScreen
 import com.theveloper.pixelplay.presentation.screens.QueueScreen
@@ -31,6 +32,7 @@ object WearScreens {
     const val PLAYER = "player"
     const val VOLUME = "volume"
     const val OUTPUT = "output"
+    const val MORE = "more"
     const val QUEUE = "queue"
     const val TIMER = "timer"
     const val BROWSE = "browse"
@@ -50,6 +52,23 @@ object WearScreens {
 @Composable
 fun WearNavigation() {
     val navController = rememberSwipeDismissableNavController()
+    val navigateToBrowseCategory: (browseType: String, title: String) -> Unit = { browseType, title ->
+        when (browseType) {
+            "downloads" -> {
+                navController.navigate(WearScreens.DOWNLOADS)
+            }
+            "favorites", "all_songs" -> {
+                navController.navigate(
+                    WearScreens.songListRoute(browseType, "none", title)
+                )
+            }
+            else -> {
+                navController.navigate(
+                    WearScreens.libraryListRoute(browseType, title)
+                )
+            }
+        }
+    }
 
     SwipeDismissableNavHost(
         navController = navController,
@@ -57,9 +76,7 @@ fun WearNavigation() {
     ) {
         composable(WearScreens.PLAYER) {
             PlayerScreen(
-                onBrowseClick = {
-                    navController.navigate(WearScreens.BROWSE)
-                },
+                onBrowseCategoryClick = navigateToBrowseCategory,
                 onVolumeClick = {
                     navController.navigate(WearScreens.VOLUME) {
                         launchSingleTop = true
@@ -67,6 +84,11 @@ fun WearNavigation() {
                 },
                 onOutputClick = {
                     navController.navigate(WearScreens.OUTPUT) {
+                        launchSingleTop = true
+                    }
+                },
+                onMoreClick = {
+                    navController.navigate(WearScreens.MORE) {
                         launchSingleTop = true
                     }
                 },
@@ -86,6 +108,21 @@ fun WearNavigation() {
             OutputScreen()
         }
 
+        composable(WearScreens.MORE) {
+            MoreScreen(
+                onQueueClick = {
+                    navController.navigate(WearScreens.QUEUE) {
+                        launchSingleTop = true
+                    }
+                },
+                onSettingsClick = {
+                    navController.navigate(WearScreens.OUTPUT) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
         composable(WearScreens.QUEUE) {
             QueueScreen(
                 onTimerClick = {
@@ -101,32 +138,12 @@ fun WearNavigation() {
         }
 
         composable(WearScreens.DOWNLOADS) {
-            DownloadsScreen(
-                onSongClick = {
-                    navController.popBackStack(WearScreens.PLAYER, inclusive = false)
-                },
-            )
+            DownloadsScreen()
         }
 
         composable(WearScreens.BROWSE) {
             BrowseScreen(
-                onCategoryClick = { browseType, title ->
-                    when (browseType) {
-                        "downloads" -> {
-                            navController.navigate(WearScreens.DOWNLOADS)
-                        }
-                        "favorites", "all_songs" -> {
-                            navController.navigate(
-                                WearScreens.songListRoute(browseType, "none", title)
-                            )
-                        }
-                        else -> {
-                            navController.navigate(
-                                WearScreens.libraryListRoute(browseType, title)
-                            )
-                        }
-                    }
-                },
+                onCategoryClick = navigateToBrowseCategory,
             )
         }
 
@@ -169,10 +186,6 @@ fun WearNavigation() {
                 browseType = browseType,
                 contextId = contextId,
                 title = title,
-                onSongPlayed = {
-                    // Navigate back to player when a song is played
-                    navController.popBackStack(WearScreens.PLAYER, inclusive = false)
-                },
             )
         }
     }

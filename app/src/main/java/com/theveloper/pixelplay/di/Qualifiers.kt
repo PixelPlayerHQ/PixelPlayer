@@ -22,11 +22,3 @@ annotation class FastOkHttpClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class BackupGson
-
-/**
- * Qualifier for Netease Cloud Music Retrofit instance.
- */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class NeteaseRetrofit
-

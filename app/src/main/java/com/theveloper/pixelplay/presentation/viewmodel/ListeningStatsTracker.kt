@@ -7,13 +7,16 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import timber.log.Timber
 
 /**
  * Tracks listening statistics for songs.
@@ -145,7 +148,7 @@ class ListeningStatsTracker @Inject constructor(
         }
     }
 
-    fun finalizeCurrentSession() {
+    fun finalizeCurrentSession(forceSynchronousPersistence: Boolean = false) {
         val session = currentSession ?: return
         val nowRealtime = SystemClock.elapsedRealtime()
         if (session.isPlaying) {
@@ -167,18 +170,12 @@ class ListeningStatsTracker @Inject constructor(
             _playbackHistory.update { current ->
                 (listOf(historyEntry) + current).take(MAX_INTERNAL_PLAYBACK_HISTORY_ITEMS)
             }
-            scope?.launch(Dispatchers.IO) {
-                dailyMixManager.recordPlay(
-                    songId = songId,
-                    songDurationMs = listened,
-                    timestamp = timestamp
-                )
-                playbackStatsRepository.recordPlayback(
-                    songId = songId,
-                    durationMs = listened,
-                    timestamp = timestamp
-                )
-            }
+            persistPlayback(
+                songId = songId,
+                listened = listened,
+                timestamp = timestamp,
+                forceSynchronous = forceSynchronousPersistence
+            )
         }
         currentSession = null
         if (pendingVoluntarySongId == session.songId) {
@@ -191,8 +188,48 @@ class ListeningStatsTracker @Inject constructor(
     }
 
     fun onCleared() {
-        finalizeCurrentSession()
+        finalizeCurrentSession(forceSynchronousPersistence = true)
         scope = null
+    }
+
+    private fun persistPlayback(
+        songId: String,
+        listened: Long,
+        timestamp: Long,
+        forceSynchronous: Boolean
+    ) {
+        val coroutineScope = scope
+        if (!forceSynchronous && coroutineScope != null && coroutineScope.isActive()) {
+            coroutineScope.launch(Dispatchers.IO) {
+                persistPlaybackInternal(songId = songId, listened = listened, timestamp = timestamp)
+            }
+            return
+        }
+        runCatching {
+            runBlocking(Dispatchers.IO) {
+                persistPlaybackInternal(songId = songId, listened = listened, timestamp = timestamp)
+            }
+        }.onFailure { throwable ->
+            Timber.e(throwable, "Failed to persist listening session for song=%s", songId)
+        }
+    }
+
+    private suspend fun persistPlaybackInternal(songId: String, listened: Long, timestamp: Long) {
+        dailyMixManager.recordPlay(
+            songId = songId,
+            songDurationMs = listened,
+            timestamp = timestamp
+        )
+        playbackStatsRepository.recordPlayback(
+            songId = songId,
+            durationMs = listened,
+            timestamp = timestamp
+        )
+    }
+
+    private fun CoroutineScope?.isActive(): Boolean {
+        val job = this?.coroutineContext?.get(Job)
+        return job?.isActive == true
     }
 
     companion object {

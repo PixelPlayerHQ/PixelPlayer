@@ -20,6 +20,7 @@ import com.theveloper.pixelplay.data.network.lyrics.LrcLibApiService
 import com.theveloper.pixelplay.data.network.lyrics.LrcLibResponse
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.LyricsUtils
+import com.theveloper.pixelplay.utils.NetworkRetryUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,10 +35,10 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
-import kotlin.coroutines.cancellation.CancellationException
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -100,20 +101,12 @@ class LyricsRepositoryImpl @Inject constructor(
     // Repository scope for background tasks
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // LRU Cache with Rhythm-style LinkedHashMap (access-order for true LRU)
-    private val lyricsCache = object : LinkedHashMap<String, Lyrics>(50, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Lyrics>?): Boolean {
-            return size > MAX_LYRICS_CACHE_SIZE
-        }
-    }
+    // Thread-safe LRU cache to avoid race conditions across concurrent lyrics requests.
+    private val lyricsCache = LruCache<String, Lyrics>(MAX_LYRICS_CACHE_SIZE)
 
-    // Rate limiting state (bounded to prevent unbounded growth)
-    private val lastApiCalls = object : LinkedHashMap<String, Long>(32, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean = size > 200
-    }
-    private val apiCallCounts = object : LinkedHashMap<String, Int>(32, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>?): Boolean = size > 200
-    }
+    // Thread-safe rate limiting state.
+    private val lastApiCalls = ConcurrentHashMap<String, Long>()
+    private val apiCallCounts = ConcurrentHashMap<String, Int>()
 
     // Gson for JSON cache
     private val gson = Gson()
@@ -170,37 +163,22 @@ class LyricsRepositoryImpl @Inject constructor(
         operationName: String,
         maxAttempts: Int = NETWORK_RETRY_ATTEMPTS,
         initialDelayMs: Long = NETWORK_RETRY_INITIAL_DELAY_MS,
-        shouldRetry: (Throwable) -> Boolean = { it.isRetryableNetworkError() },
+        shouldRetry: (Throwable) -> Boolean = { it is IOException || (it is HttpException && (it.code() == 429 || it.code() >= 500)) },
         block: suspend () -> T
     ): T {
-        var delayMs = initialDelayMs
-        repeat(maxAttempts) { attempt ->
-            try {
-                return block()
-            } catch (throwable: Throwable) {
-                if (throwable is CancellationException) throw throwable
-                val lastAttempt = attempt == maxAttempts - 1
-                val retryable = shouldRetry(throwable)
-                if (!retryable || lastAttempt) {
-                    throw throwable
-                }
+        return NetworkRetryUtils.withNetworkRetry(
+            operationName = operationName,
+            maxAttempts = maxAttempts,
+            initialDelayMs = initialDelayMs,
+            shouldRetry = shouldRetry,
+            onRetry = { attempt, attempts, throwable ->
                 Log.d(
                     TAG,
-                    "Retrying $operationName after failure (${attempt + 1}/$maxAttempts): ${throwable.message}"
+                    "Retrying $operationName after failure ($attempt/$attempts): ${throwable.message}"
                 )
-                delay(delayMs)
-                delayMs *= 2
-            }
-        }
-        error("Unreachable retry state for $operationName")
-    }
-
-    private fun Throwable.isRetryableNetworkError(): Boolean {
-        return when (this) {
-            is IOException -> true
-            is HttpException -> code() == 429 || code() >= 500
-            else -> false
-        }
+            },
+            block = block
+        )
     }
 
     private fun Int.isRetryableHttpStatusCode(): Boolean {
@@ -266,11 +244,9 @@ class LyricsRepositoryImpl @Inject constructor(
 
         // Check in-memory cache unless force refresh (early return - matching Rhythm)
         if (!forceRefresh && !isNeteaseTrack) {
-            synchronized(lyricsCache) {
-                lyricsCache[cacheKey]?.let { cached ->
-                    Log.d(TAG, "===== RETURNING IN-MEMORY CACHED LYRICS =====")
-                    return@withContext cached
-                }
+            lyricsCache.get(cacheKey)?.let { cached ->
+                Log.d(TAG, "===== RETURNING IN-MEMORY CACHED LYRICS =====")
+                return@withContext cached
             }
             Log.d(TAG, "===== NO IN-MEMORY CACHE HIT, proceeding to fetch =====")
         } else if (!forceRefresh && isNeteaseTrack) {
@@ -324,9 +300,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     Log.d(TAG, "Found lyrics from $sourceName for: ${song.displayArtist} - ${song.title}")
                     
                     // Cache the result
-                    synchronized(lyricsCache) {
-                        lyricsCache[cacheKey] = lyrics
-                    }
+                    lyricsCache.put(cacheKey, lyrics)
                     
                     // Save to JSON disk cache if from API
                     if (sourceName == "API") {
@@ -884,9 +858,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     }
 
                     val cacheKey = generateCacheKey(song.id)
-                    synchronized(lyricsCache) {
-                        lyricsCache[cacheKey] = best.lyrics
-                    }
+                    lyricsCache.put(cacheKey, best.lyrics)
                     LogUtils.d(this@LyricsRepositoryImpl, "Fetched and cached remote lyrics for: ${song.title}")
 
                     return@withContext Result.success(Pair(best.lyrics, rawLyricsToSave))
@@ -926,9 +898,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 }
 
                 val cacheKey = generateCacheKey(song.id)
-                synchronized(lyricsCache) {
-                    lyricsCache[cacheKey] = parsedLyrics
-                }
+                lyricsCache.put(cacheKey, parsedLyrics)
                 LogUtils.d(this@LyricsRepositoryImpl, "Fetched and cached remote lyrics (exact match) for: ${song.title}")
 
                 Result.success(Pair(parsedLyrics, rawLyricsToSave))
@@ -1099,18 +1069,14 @@ class LyricsRepositoryImpl @Inject constructor(
         )
 
         val cacheKey = generateCacheKey(songId.toString())
-        synchronized(lyricsCache) {
-            lyricsCache[cacheKey] = parsedLyrics
-        }
+        lyricsCache.put(cacheKey, parsedLyrics)
         LogUtils.d(this@LyricsRepositoryImpl, "Updated and cached lyrics for songId: $songId")
     }
 
     override suspend fun resetLyrics(songId: Long): Unit = withContext(Dispatchers.IO) {
         LogUtils.d(this, "Resetting lyrics for songId: $songId")
         val cacheKey = generateCacheKey(songId.toString())
-        synchronized(lyricsCache) {
-            lyricsCache.remove(cacheKey)
-        }
+        lyricsCache.remove(cacheKey)
         try {
             lyricsDao.deleteLyrics(songId)
         } catch (e: Exception) {
@@ -1128,9 +1094,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
     override suspend fun resetAllLyrics(): Unit = withContext(Dispatchers.IO) {
         LogUtils.d(this, "Resetting all lyrics")
-        synchronized(lyricsCache) {
-            lyricsCache.clear()
-        }
+        lyricsCache.evictAll()
         lyricsDao.deleteAll()
         
         // Also clear JSON cache directory
@@ -1152,9 +1116,18 @@ class LyricsRepositoryImpl @Inject constructor(
         val updatedCount = AtomicInteger(0)
         val processedCount = AtomicInteger(0)
         val total = songs.size
-        
-        // Only scan songs that don't have lyrics
-        val songsToScan = songs.filter { it.lyrics.isNullOrBlank() }
+
+        val idsWithPersistedLyrics = songs
+            .mapNotNull { it.id.toLongOrNull() }
+            .chunked(900)
+            .flatMap { chunk -> lyricsDao.getSongIdsWithLyrics(chunk) }
+            .toHashSet()
+
+        // Only scan songs that don't already have persisted lyrics.
+        val songsToScan = songs.filter { song ->
+            val songId = song.id.toLongOrNull()
+            song.lyrics.isNullOrBlank() && (songId == null || songId !in idsWithPersistedLyrics)
+        }
         val skippedCount = total - songsToScan.size
         processedCount.addAndGet(skippedCount)
         
@@ -1236,9 +1209,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
     override fun clearCache() {
         LogUtils.d(this, "Clearing lyrics in-memory cache")
-        synchronized(lyricsCache) {
-            lyricsCache.clear()
-        }
+        lyricsCache.evictAll()
     }
 
     private fun generateCacheKey(songId: String): String = songId

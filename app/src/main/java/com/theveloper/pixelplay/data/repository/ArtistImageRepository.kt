@@ -8,15 +8,14 @@ import android.util.Log
 import android.util.LruCache
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.network.deezer.DeezerApiService
-import kotlinx.coroutines.CancellationException
+import com.theveloper.pixelplay.utils.NetworkRetryUtils
+import com.theveloper.pixelplay.utils.isRetryableNetworkError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import retrofit2.HttpException
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -192,34 +191,19 @@ class ArtistImageRepository @Inject constructor(
         initialDelayMs: Long = NETWORK_RETRY_INITIAL_DELAY_MS,
         block: suspend () -> T
     ): T {
-        var delayMs = initialDelayMs
-        repeat(maxAttempts) { attempt ->
-            try {
-                return block()
-            } catch (throwable: Throwable) {
-                if (throwable is CancellationException) throw throwable
-                val lastAttempt = attempt == maxAttempts - 1
-                val retryable = throwable.isRetryableNetworkError()
-                if (!retryable || lastAttempt) {
-                    throw throwable
-                }
+        return NetworkRetryUtils.withNetworkRetry(
+            operationName = operationName,
+            maxAttempts = maxAttempts,
+            initialDelayMs = initialDelayMs,
+            shouldRetry = { throwable -> throwable.isRetryableNetworkError() },
+            onRetry = { attempt, attempts, throwable ->
                 Log.d(
                     TAG,
-                    "Retrying $operationName after failure (${attempt + 1}/$maxAttempts): ${throwable.message}"
+                    "Retrying $operationName after failure ($attempt/$attempts): ${throwable.message}"
                 )
-                delay(delayMs)
-                delayMs *= 2
-            }
-        }
-        error("Unreachable retry state for $operationName")
-    }
-
-    private fun Throwable.isRetryableNetworkError(): Boolean {
-        return when (this) {
-            is java.io.IOException -> true
-            is HttpException -> code() == 429 || code() >= 500
-            else -> false
-        }
+            },
+            block = block
+        )
     }
     
     /**

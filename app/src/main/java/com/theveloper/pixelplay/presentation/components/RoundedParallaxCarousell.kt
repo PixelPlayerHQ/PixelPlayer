@@ -143,6 +143,7 @@ fun RoundedHorizontalMultiBrowseCarousel(
     ),
     userScrollEnabled: Boolean = true,
     itemCornerRadius: Dp = 16.dp,
+    suppressNoPeekSettleCorrection: Boolean = false,
     carouselStyle: String,
     carouselWidth: Dp,
     content: @Composable CarouselItemScope.(itemIndex: Int) -> Unit,
@@ -157,7 +158,7 @@ fun RoundedHorizontalMultiBrowseCarousel(
         else -> 1 // Default to one peek
     }
 
-    if (carouselStyle == CarouselStyle.NO_PEEK) {
+    if (carouselStyle == CarouselStyle.NO_PEEK && !suppressNoPeekSettleCorrection) {
         val settleEpsilon = 0.001f
         LaunchedEffect(state.pagerState) {
             snapshotFlow {
@@ -1143,6 +1144,13 @@ private suspend fun LazyLayoutScrollScope.animateScrollToPage(
     val delta = value - prev
         val consumed = scrollBy(delta)
         prev += consumed
+    }
+
+    // Programmatic page changes do not go through the pager's fling snap path,
+    // so leave the state exactly on the target page to avoid a visible end-of-motion
+    // wobble when the final consumed delta undershoots by a fraction.
+    if (pagerState.currentPage != targetPage || abs(pagerState.currentPageOffsetFraction) > 0.0001f) {
+        snapToItem(targetPage, 0)
     }
 }
 

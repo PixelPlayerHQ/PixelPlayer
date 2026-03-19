@@ -304,9 +304,19 @@ class WearStatePublisher @Inject constructor(
      * This avoids re-extracting colors from album art on watch and keeps both UIs aligned.
      */
     private fun buildWearThemePalette(playerInfo: PlayerInfo): WearThemePalette? {
+        playerInfo.wearThemePalette?.let { return it }
+
         val colors = playerInfo.themeColors ?: return null
 
-        val baseSurface = colors.darkSurfaceContainer
+        val surfaceContainer = colors.darkSurfaceContainer
+        val surfaceContainerLowest = colors.darkSurfaceContainerLowest.takeIf { it != 0 }
+            ?: ColorUtils.blendARGB(surfaceContainer, AndroidColor.BLACK, 0.24f)
+        val surfaceContainerLow = colors.darkSurfaceContainerLow.takeIf { it != 0 }
+            ?: ColorUtils.blendARGB(surfaceContainer, AndroidColor.WHITE, 0.08f)
+        val surfaceContainerHigh = colors.darkSurfaceContainerHigh.takeIf { it != 0 }
+            ?: ColorUtils.blendARGB(surfaceContainer, AndroidColor.WHITE, 0.16f)
+        val surfaceContainerHighest = colors.darkSurfaceContainerHighest.takeIf { it != 0 }
+            ?: ColorUtils.blendARGB(surfaceContainer, AndroidColor.WHITE, 0.24f)
         val title = colors.darkTitle
         val artist = colors.darkArtist
         val playContainer = colors.darkPlayPauseBackground
@@ -314,23 +324,22 @@ class WearStatePublisher @Inject constructor(
         val secondaryContainer = colors.darkPrevNextBackground
         val secondaryContent = colors.darkPrevNextIcon
 
-        val gradientTop = ColorUtils.blendARGB(baseSurface, playContainer, 0.28f)
-        val gradientMiddle = ColorUtils.blendARGB(baseSurface, AndroidColor.BLACK, 0.52f)
-        val gradientBottom = ColorUtils.blendARGB(baseSurface, AndroidColor.BLACK, 0.82f)
+        val gradientTop = ColorUtils.blendARGB(surfaceContainerHigh, playContainer, 0.24f)
+        val gradientMiddle = ColorUtils.blendARGB(surfaceContainer, AndroidColor.BLACK, 0.48f)
+        val gradientBottom = ColorUtils.blendARGB(surfaceContainerLowest, AndroidColor.BLACK, 0.78f)
 
-        val disabledContainer = ColorUtils.setAlphaComponent(
-            ColorUtils.blendARGB(playContainer, AndroidColor.BLACK, 0.62f),
-            0xF5
-        )
-        val chipContainer = ColorUtils.setAlphaComponent(
-            ColorUtils.blendARGB(secondaryContainer, baseSurface, 0.42f),
-            0x66
-        )
+        val disabledContainer = surfaceContainerHighest
+        val chipContainer = ColorUtils.blendARGB(secondaryContainer, surfaceContainerLow, 0.36f)
 
         return WearThemePalette(
             gradientTopArgb = gradientTop,
             gradientMiddleArgb = gradientMiddle,
             gradientBottomArgb = gradientBottom,
+            surfaceContainerLowestArgb = surfaceContainerLowest,
+            surfaceContainerLowArgb = surfaceContainerLow,
+            surfaceContainerArgb = surfaceContainer,
+            surfaceContainerHighArgb = surfaceContainerHigh,
+            surfaceContainerHighestArgb = surfaceContainerHighest,
             textPrimaryArgb = ensureReadable(preferredColor = title, backgroundColor = gradientMiddle),
             textSecondaryArgb = ensureReadable(preferredColor = artist, backgroundColor = gradientBottom),
             textErrorArgb = 0xFFFFB8C7.toInt(),
@@ -338,8 +347,13 @@ class WearStatePublisher @Inject constructor(
             controlContentArgb = ensureReadable(preferredColor = playContent, backgroundColor = playContainer),
             controlDisabledContainerArgb = disabledContainer,
             controlDisabledContentArgb = ensureReadable(
-                preferredColor = playContent,
+                preferredColor = artist,
                 backgroundColor = disabledContainer
+            ),
+            transportContainerArgb = secondaryContainer,
+            transportContentArgb = ensureReadable(
+                preferredColor = secondaryContent,
+                backgroundColor = secondaryContainer,
             ),
             chipContainerArgb = chipContainer,
             chipContentArgb = ensureReadable(preferredColor = secondaryContent, backgroundColor = chipContainer),

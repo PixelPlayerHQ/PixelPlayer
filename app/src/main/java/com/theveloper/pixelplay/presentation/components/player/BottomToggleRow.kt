@@ -113,7 +113,7 @@ fun BottomToggleRow(
                 inactiveColor = inactiveColor,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onFavoriteToggle,
-                iconId = R.drawable.round_favorite_24,
+                iconId = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.rounded_favorite_24,
                 contentDesc = "Favorite"
             )
         }

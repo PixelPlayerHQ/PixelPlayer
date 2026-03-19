@@ -20,7 +20,8 @@ data class Lyrics(
 data class SyncedLine(
     val time: Int,
     val line: String,
-    val words: List<SyncedWord>? = null // Null if not a word-by-word synced lyric
+    val words: List<SyncedWord>? = null, // Null if not a word-by-word synced lyric
+    val translation: String? = null // Translation text paired by identical timestamp
 )
 
 @Serializable

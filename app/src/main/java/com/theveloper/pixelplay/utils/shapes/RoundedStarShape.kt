@@ -41,29 +41,28 @@ class RoundedStarShape(
         layoutDirection: LayoutDirection,
         density: Density
     ): Outline = Outline.Generic(Path().apply {
-
-
         val r = min(size.height, size.width) * 0.4 * mapRange(1.0, 0.0, 0.5, 1.0, curve)
 
         val xCenter = size.width * .5f
         val yCenter = size.height * .5f
 
-        moveTo(xCenter, yCenter)
-
-        var t = 0.0
-
-        while (t <= TWO_PI) {
+        fun pointAt(t: Double): Pair<Float, Float> {
             val x = r * (cos(t - rotationDegree) * (1 + curve * cos(sides * t)))
             val y = r * (sin(t - rotationDegree) * (1 + curve * cos(sides * t)))
-            lineTo((x + xCenter).toFloat(), (y + yCenter).toFloat())
+            return (x + xCenter).toFloat() to (y + yCenter).toFloat()
+        }
 
+        val (startX, startY) = pointAt(0.0)
+        moveTo(startX, startY)
+
+        var t = steps
+        while (t < TWO_PI) {
+            val (x, y) = pointAt(t)
+            lineTo(x, y)
             t += steps
         }
 
-        val x = r * (cos(t - rotationDegree) * (1 + curve * cos(sides * t)))
-        val y = r * (sin(t - rotationDegree) * (1 + curve * cos(sides * t)))
-        lineTo((x + xCenter).toFloat(), (y + yCenter).toFloat())
-
+        close()
     })
 
 

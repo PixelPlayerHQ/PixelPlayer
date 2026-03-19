@@ -14,18 +14,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.map
@@ -158,6 +163,9 @@ internal fun UnifiedPlayerSongInfoLayer(
 ) {
     selectedSongForInfo?.let { staticSong ->
         val context = LocalContext.current
+        var showPlaylistBottomSheet by remember(staticSong.id) { mutableStateOf(false) }
+        val playlistViewModel: PlaylistViewModel = hiltViewModel()
+        val playlistUiState by playlistViewModel.uiState.collectAsStateWithLifecycle()
         val liveSongState by remember(playerViewModel, staticSong.id) {
             playerViewModel.observeSong(staticSong.id).map { it ?: staticSong }
         }.collectAsStateWithLifecycle(initialValue = staticSong)
@@ -173,7 +181,10 @@ internal fun UnifiedPlayerSongInfoLayer(
                 song = liveSong,
                 isFavorite = liveSong.isFavorite,
                 onToggleFavorite = { playerViewModel.toggleFavoriteSpecificSong(liveSong) },
-                onDismiss = onDismissSongInfo,
+                onDismiss = {
+                    showPlaylistBottomSheet = false
+                    onDismissSongInfo()
+                },
                 onPlaySong = {
                     playerViewModel.showAndPlaySong(
                         song = liveSong,
@@ -193,8 +204,7 @@ internal fun UnifiedPlayerSongInfoLayer(
                     Toast.makeText(context, "Playing next", Toast.LENGTH_SHORT).show()
                 },
                 onAddToPlayList = {
-                    Log.d("UnifiedPlayerSheet", "Add to playlist clicked for ${liveSong.title}")
-                    onDismissSongInfo()
+                    showPlaylistBottomSheet = true
                 },
                 onDeleteFromDevice = { activity, songToDelete, onResult ->
                     playerViewModel.deleteFromDevice(activity, songToDelete, onResult)
@@ -223,6 +233,16 @@ internal fun UnifiedPlayerSongInfoLayer(
                     onDismissSongInfo()
                 }
             )
+
+            if (showPlaylistBottomSheet) {
+                PlaylistBottomSheet(
+                    playlistUiState = playlistUiState,
+                    songs = listOf(liveSong),
+                    onDismiss = { showPlaylistBottomSheet = false },
+                    bottomBarHeight = 0.dp,
+                    playerViewModel = playerViewModel,
+                )
+            }
         }
     }
 }

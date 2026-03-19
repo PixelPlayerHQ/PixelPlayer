@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import coil.size.Size
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +34,9 @@ class CoilBitmapLoader(private val context: Context, private val scope: Coroutin
             try {
                 val request = ImageRequest.Builder(context)
                     .data(data)
-                    .size(256, 256)
+                    // Let Media3 and System UI downscale from the real artwork instead of
+                    // forcing a 256 px thumbnail into the notification pipeline.
+                    .size(Size.ORIGINAL)
                     .allowHardware(false) // Bitmap must not be hardware for MediaSession
                     // Disable memory cache so Coil does not hold a second reference to this
                     // bitmap. Without this, Coil may recycle the cached copy while Media3

@@ -21,8 +21,24 @@ interface LocalSongDao {
     @Query("SELECT songId FROM local_songs")
     fun getAllSongIds(): Flow<List<String>>
 
+    @Query("SELECT songId FROM local_songs")
+    suspend fun getAllSongIdsOnce(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(song: LocalSongEntity)
+
+    @Query(
+        "UPDATE local_songs " +
+            "SET isFavorite = :isFavorite, favoriteSyncPending = :favoriteSyncPending " +
+            "WHERE songId = :songId"
+    )
+    suspend fun updateFavoriteState(songId: String, isFavorite: Boolean, favoriteSyncPending: Boolean)
+
+    @Query("UPDATE local_songs SET favoriteSyncPending = :favoriteSyncPending WHERE songId = :songId")
+    suspend fun updateFavoritePending(songId: String, favoriteSyncPending: Boolean)
+
+    @Query("SELECT * FROM local_songs WHERE favoriteSyncPending = 1")
+    suspend fun getPendingFavoriteSongs(): List<LocalSongEntity>
 
     @Query("UPDATE local_songs SET paletteSeedArgb = :paletteSeedArgb WHERE songId = :songId")
     suspend fun updatePaletteSeed(songId: String, paletteSeedArgb: Int)

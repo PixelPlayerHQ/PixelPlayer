@@ -46,23 +46,23 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
+import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,6 +70,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
@@ -93,10 +94,10 @@ import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.size.Size
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-private const val HeaderVisualOverscan = 1.03f
-private val HeaderGradientLift = 10.dp
+private const val UseSharedCollapsibleTopBarProbe = true
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -125,6 +126,7 @@ fun ArtistDetailScreen(
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomBarHeightDp = NavBarContentHeight + systemNavBarInset
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
     val isDarkTheme = LocalPixelPlayDarkTheme.current
@@ -157,6 +159,16 @@ fun ArtistDetailScreen(
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
+    val headerImageRequestSize = remember(
+        configuration.screenWidthDp,
+        density.density,
+        maxTopBarHeightPx
+    ) {
+        Size(
+            width = with(density) { configuration.screenWidthDp.dp.roundToPx() },
+            height = maxTopBarHeightPx.roundToInt()
+        )
+    }
 
     val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
     val collapseFraction by remember(minTopBarHeightPx, maxTopBarHeightPx) {
@@ -277,8 +289,13 @@ fun ArtistDetailScreen(
                         state = lazyListState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .offset { IntOffset(0, topBarHeight.value.toInt()) },
+                            .offset {
+                                val extraHeight =
+                                    (topBarHeight.value - minTopBarHeightPx).roundToInt()
+                                IntOffset(0, extraHeight)
+                            },
                         contentPadding = PaddingValues(
+                            top = minTopBarHeight + 8.dp,
                             start = 16.dp,
                             end = if (showScrollBar) 24.dp else 16.dp,
                             bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 8.dp
@@ -292,7 +309,10 @@ fun ArtistDetailScreen(
                             
                             val sectionSongs = if (isTransitionFinished) section.songs else section.songs.take(5)
 
-                            item(key = "${sectionKey}_header") {
+                            item(
+                                key = "${sectionKey}_header",
+                                contentType = "artist_section_header"
+                            ) {
                                 CollapsibleAlbumSectionHeader(
                                     section = section,
                                     isExpanded = isExpanded,
@@ -307,7 +327,10 @@ fun ArtistDetailScreen(
                                 )
                             }
 
-                            item(key = "${sectionKey}_song_group_spacer") {
+                            item(
+                                key = "${sectionKey}_song_group_spacer",
+                                contentType = "artist_section_spacer"
+                            ) {
                                 AnimatedVisibility(
                                     visible = isExpanded,
                                     enter = expandVertically(animationSpec = tween(durationMillis = 260)) + fadeIn(animationSpec = tween(durationMillis = 180)),
@@ -324,7 +347,8 @@ fun ArtistDetailScreen(
 
                             itemsIndexed(
                                 items = sectionSongs,
-                                key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" }
+                                key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" },
+                                contentType = { _, _ -> "artist_section_song" }
                             ) { songIndex, song ->
                                 AnimatedVisibility(
                                     visible = isExpanded,
@@ -348,7 +372,10 @@ fun ArtistDetailScreen(
                                 }
                             }
 
-                            item(key = "${sectionKey}_footer") {
+                            item(
+                                key = "${sectionKey}_footer",
+                                contentType = "artist_section_footer"
+                            ) {
                                 Spacer(
                                     modifier = Modifier.height(
                                         if (index == albumSections.lastIndex) 24.dp else 16.dp
@@ -366,28 +393,57 @@ fun ArtistDetailScreen(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(
-                                    top = currentTopBarHeightDp + 12.dp,
+                                    top = minTopBarHeight + 12.dp,
                                     bottom = MiniPlayerHeight + systemNavBarInset + 8.dp
                                 )
                         )
                     }
 
-                    CustomCollapsingTopBar(
-                        artist = artist,
-                        effectiveImageUrl = uiState.effectiveImageUrl,
-                        hasCustomImage = !artist.customImageUri.isNullOrBlank(),
-                        songsCount = songs.size,
-                        collapseFraction = collapseFraction,
-                        headerHeight = currentTopBarHeightDp,
-                        onBackPressed = { navController.popBackStack() },
-                        onPlayClick = {
-                            if (songs.isNotEmpty()) {
-                                playerViewModel.playSongsShuffled(songs, artist.name, startAtZero = true)
-                            }
-                        },
-                        onChangeImage = { imagePickerLauncher.launch("image/*") },
-                        onClearCustomImage = { viewModel.clearCustomImage() }
-                    )
+                    if (UseSharedCollapsibleTopBarProbe) {
+                        SharedArtistTopBarProbe(
+                            artist = artist,
+                            effectiveImageUrl = uiState.effectiveImageUrl,
+                            songsCount = songs.size,
+                            collapseFraction = collapseFraction,
+                            headerHeight = currentTopBarHeightDp,
+                            headerImageRequestSize = headerImageRequestSize,
+                            hasCustomImage = !artist.customImageUri.isNullOrBlank(),
+                            onBackPressed = { navController.popBackStack() },
+                            onPlayClick = {
+                                if (songs.isNotEmpty()) {
+                                    playerViewModel.playSongsShuffled(
+                                        songs,
+                                        artist.name,
+                                        startAtZero = true
+                                    )
+                                }
+                            },
+                            onChangeImage = { imagePickerLauncher.launch("image/*") },
+                            onClearCustomImage = { viewModel.clearCustomImage() }
+                        )
+                    } else {
+                        CustomCollapsingTopBar(
+                            artist = artist,
+                            effectiveImageUrl = uiState.effectiveImageUrl,
+                            hasCustomImage = !artist.customImageUri.isNullOrBlank(),
+                            songsCount = songs.size,
+                            collapseFraction = collapseFraction,
+                            headerHeight = currentTopBarHeightDp,
+                            headerImageRequestSize = headerImageRequestSize,
+                            onBackPressed = { navController.popBackStack() },
+                            onPlayClick = {
+                                if (songs.isNotEmpty()) {
+                                    playerViewModel.playSongsShuffled(
+                                        songs,
+                                        artist.name,
+                                        startAtZero = true
+                                    )
+                                }
+                            },
+                            onChangeImage = { imagePickerLauncher.launch("image/*") },
+                            onClearCustomImage = { viewModel.clearCustomImage() }
+                        )
+                    }
                 }
             }
         }
@@ -627,6 +683,175 @@ private fun ArtistAlbumSectionSongItem(
     }
 }
 
+@Composable
+private fun SharedArtistTopBarProbe(
+    artist: Artist,
+    effectiveImageUrl: String?,
+    songsCount: Int,
+    collapseFraction: Float,
+    headerHeight: Dp,
+    headerImageRequestSize: Size,
+    hasCustomImage: Boolean,
+    onBackPressed: () -> Unit,
+    onPlayClick: () -> Unit,
+    onChangeImage: () -> Unit,
+    onClearCustomImage: () -> Unit
+) {
+    var showImageMenu by remember { mutableStateOf(false) }
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val statusBarColor =
+        if (LocalPixelPlayDarkTheme.current) Color.Black.copy(alpha = 0.6f)
+        else Color.White.copy(alpha = 0.4f)
+    val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
+    val expandedContentAlpha = 1f - solidAlpha
+    val displayUrl = effectiveImageUrl?.takeIf { it.isNotBlank() }
+    val headerOverlayBrush = remember(surfaceColor, expandedContentAlpha) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.24f * expandedContentAlpha),
+                surfaceColor.copy(alpha = 0.84f * expandedContentAlpha),
+                surfaceColor
+            )
+        )
+    }
+    val statusBarBrush = remember(statusBarColor) {
+        Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent))
+    }
+    val titleVerticalBias = lerp(1f, -1f, collapseFraction)
+    val shuffleAlignment = BiasAlignment(horizontalBias = 1f, verticalBias = titleVerticalBias)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(headerHeight)
+            .clipToBounds()
+    ) {
+        if (expandedContentAlpha > 0.01f) {
+            if (!displayUrl.isNullOrEmpty()) {
+                SmartImage(
+                    model = displayUrl,
+                    contentDescription = artist.name,
+                    contentScale = ContentScale.Crop,
+                    targetSize = headerImageRequestSize,
+                    allowHardware = true,
+                    crossfadeDurationMillis = 0,
+                    alpha = expandedContentAlpha,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                MusicIconPattern(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = expandedContentAlpha }
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(headerOverlayBrush)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .background(statusBarBrush)
+                .align(Alignment.TopCenter)
+        )
+
+        CollapsibleCommonTopBar(
+            title = artist.name,
+            subtitle = "$songsCount songs",
+            collapseFraction = collapseFraction,
+            headerHeight = headerHeight,
+            onBackClick = onBackPressed,
+            containerColor = surfaceColor.copy(alpha = solidAlpha),
+            collapsedTitleStartPadding = 68.dp,
+            expandedTitleStartPadding = 24.dp,
+            collapsedTitleEndPadding = 88.dp,
+            expandedTitleEndPadding = 136.dp,
+            containerHeightRange = 92.dp to 56.dp,
+            titleStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.SemiBold,
+                textGeometricTransform = TextGeometricTransform(scaleX = 1.08f)
+            ),
+            titleScaleRange = 1f to 1f,
+            titleFontSizeRange = 30.sp to 18.sp,
+            maxLines = if (collapseFraction < 0.5f) 2 else 1,
+            collapsedSubtitleMaxLines = 1,
+            expandedSubtitleMaxLines = 2,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            fadeSubtitleOnCollapse = false,
+            actions = {
+                Box(
+                    modifier = Modifier.padding(end = 12.dp, top = 4.dp)
+                ) {
+                    FilledIconButton(
+                        onClick = { showImageMenu = true },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = "Edit artist image"
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showImageMenu,
+                        onDismissRequest = { showImageMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Change photo") },
+                            leadingIcon = {
+                                Icon(Icons.Rounded.AddAPhoto, contentDescription = null)
+                            },
+                            onClick = {
+                                showImageMenu = false
+                                onChangeImage()
+                            }
+                        )
+                        if (hasCustomImage) {
+                            DropdownMenuItem(
+                                text = { Text("Reset to default") },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                                },
+                                onClick = {
+                                    showImageMenu = false
+                                    onClearCustomImage()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        )
+
+        LargeExtendedFloatingActionButton(
+            onClick = onPlayClick,
+            shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+            modifier = Modifier
+                .align(shuffleAlignment)
+                .statusBarsPadding()
+                .padding(end = 16.dp)
+                .graphicsLayer {
+                    scaleX = expandedContentAlpha
+                    scaleY = expandedContentAlpha
+                    alpha = expandedContentAlpha
+                }
+        ) {
+            Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle play artist")
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun CustomCollapsingTopBar(
@@ -636,6 +861,7 @@ private fun CustomCollapsingTopBar(
     songsCount: Int,
     collapseFraction: Float, // 0.0 = expandido, 1.0 = colapsado
     headerHeight: Dp,
+    headerImageRequestSize: Size,
     onBackPressed: () -> Unit,
     onPlayClick: () -> Unit,
     onChangeImage: () -> Unit,
@@ -648,6 +874,20 @@ private fun CustomCollapsingTopBar(
     val fabScale = 1f - collapseFraction
     val backgroundAlpha = collapseFraction
     val headerContentAlpha = 1f - (collapseFraction * 2).coerceAtMost(1f)
+    val showExpandedArtwork = headerContentAlpha > 0.01f
+    val headerOverlayBrush = remember(surfaceColor, headerContentAlpha) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.30f * headerContentAlpha),
+                surfaceColor.copy(alpha = 0.90f * headerContentAlpha),
+                surfaceColor.copy(alpha = headerContentAlpha)
+            )
+        )
+    }
+    val statusBarBrush = remember(statusBarColor) {
+        Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent))
+    }
 
     // Title animation
     val titleScale = lerp(1f, 0.75f, collapseFraction)
@@ -671,70 +911,41 @@ private fun CustomCollapsingTopBar(
                 .height(headerHeight)
                 .background(surfaceColor.copy(alpha = backgroundAlpha))
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = HeaderVisualOverscan
-                        scaleY = HeaderVisualOverscan
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
-            ) {
-                // --- Contenido del Header (visible cuando está expandido) ---
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = headerContentAlpha }
-                ) {
-                    // Artist artwork or fallback pattern
-                    val displayUrl = effectiveImageUrl?.takeIf { it.isNotBlank() }
-                    if (!displayUrl.isNullOrEmpty()) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(displayUrl)
-                                .size(600, 600)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = artist.name,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        MusicIconPattern(
-                            modifier = Modifier.fillMaxSize(),
-                            collapseFraction = collapseFraction
-                        )
-                    }
-
-                    // Gradient overlay for text readability
-                    Box(
+            if (showExpandedArtwork) {
+                val displayUrl = effectiveImageUrl?.takeIf { it.isNotBlank() }
+                if (!displayUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(displayUrl)
+                            .size(headerImageRequestSize)
+                            .allowHardware(true)
+                            .crossfade(false)
+                            .build(),
+                        contentDescription = artist.name,
+                        contentScale = ContentScale.Crop,
+                        alpha = headerContentAlpha,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    MusicIconPattern(
                         modifier = Modifier
                             .fillMaxSize()
-                            .drawWithCache {
-                                val liftPx = HeaderGradientLift.toPx()
-                                val brush = Brush.verticalGradient(
-                                    colorStops = arrayOf(
-                                        0.22f to Color.Transparent,
-                                        0.56f to surfaceColor.copy(alpha = 0.30f),
-                                        0.80f to surfaceColor.copy(alpha = 0.90f),
-                                        0.91f to surfaceColor,
-                                        1f to surfaceColor
-                                    ),
-                                    startY = -liftPx,
-                                    endY = size.height - liftPx
-                                )
-                                onDrawBehind { drawRect(brush = brush) }
-                            }
+                            .graphicsLayer { alpha = headerContentAlpha }
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .background(Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent)))
-                        .align(Alignment.TopCenter)
+                        .fillMaxSize()
+                        .background(headerOverlayBrush)
                 )
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(statusBarBrush)
+                    .align(Alignment.TopCenter)
+            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -851,7 +1062,7 @@ private fun CustomCollapsingTopBar(
 }
 
 @Composable
-private fun MusicIconPattern(modifier: Modifier = Modifier, collapseFraction: Float) {
+private fun MusicIconPattern(modifier: Modifier = Modifier) {
     val color1 = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
     val color2 = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
 
@@ -859,38 +1070,65 @@ private fun MusicIconPattern(modifier: Modifier = Modifier, collapseFraction: Fl
         Icon(
             imageVector = Icons.Rounded.MusicNote,
             contentDescription = null, tint = color1,
-            modifier = Modifier.align(Alignment.TopStart).offset(x = lerp(60.dp, 100.dp, collapseFraction), y = lerp(100.dp, 10.dp, collapseFraction)).size(60.dp).graphicsLayer { rotationZ = lerp(-15f, 30f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = 76.dp, y = 72.dp)
+                .size(60.dp)
+                .graphicsLayer { rotationZ = -12f }
         )
         Icon(
             imageVector = Icons.Default.GraphicEq,
             contentDescription = null, tint = color1,
-            modifier = Modifier.align(Alignment.CenterStart).offset(x = lerp(20.dp,
-                (-40).dp, collapseFraction), y = lerp(50.dp, 90.dp, collapseFraction)).size(50.dp).graphicsLayer { rotationZ = lerp(5f, 45f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(x = 4.dp, y = 78.dp)
+                .size(50.dp)
+                .graphicsLayer { rotationZ = 18f }
         )
         Icon(
             imageVector = Icons.Rounded.Album,
             contentDescription = null, tint = color2,
-            modifier = Modifier.align(Alignment.CenterEnd).offset(x = lerp((-40).dp, 20.dp, collapseFraction), y = lerp(-50.dp, -90.dp, collapseFraction)).size(70.dp).graphicsLayer { rotationZ = lerp(20f, -10f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = 4.dp, y = (-70).dp)
+                .size(70.dp)
+                .graphicsLayer { rotationZ = 12f }
         )
         Icon(
             imageVector = Icons.Rounded.Mic,
             contentDescription = null, tint = color1,
-            modifier = Modifier.align(Alignment.BottomCenter).offset(x = lerp(20.dp, 10.dp, collapseFraction),y = lerp((-40).dp, 20.dp, collapseFraction)).size(60.dp).graphicsLayer { rotationZ = lerp(-5f, 35f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(x = 14.dp, y = (-6).dp)
+                .size(60.dp)
+                .graphicsLayer { rotationZ = 14f }
         )
         Icon(
             imageVector = Icons.Rounded.SurroundSound,
             contentDescription = null, tint = color2,
-            modifier = Modifier.align(Alignment.TopCenter).offset(y = lerp(60.dp, 10.dp, collapseFraction), x = lerp(0.dp, -50.dp, collapseFraction)).size(80.dp).graphicsLayer { rotationZ = lerp(-10f, 20f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(x = (-24).dp, y = 32.dp)
+                .size(80.dp)
+                .graphicsLayer { rotationZ = 10f }
         )
         Icon(
             imageVector = Icons.Rounded.MusicNote,
             contentDescription = null, tint = color1,
-            modifier = Modifier.align(Alignment.BottomEnd).offset(x = lerp((-30).dp, (-10).dp, collapseFraction), y = lerp(-120.dp, -150.dp, collapseFraction)).size(45.dp).graphicsLayer { rotationZ = lerp(15f, -30f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = (-18).dp, y = (-138).dp)
+                .size(45.dp)
+                .graphicsLayer { rotationZ = -18f }
         )
         Icon(
             imageVector = Icons.Rounded.Headphones,
             contentDescription = null, tint = color2,
-            modifier = Modifier.align(Alignment.Center).offset(x = lerp(60.dp, 80.dp, collapseFraction), y = lerp(20.dp, 60.dp, collapseFraction)).size(45.dp).graphicsLayer { rotationZ = lerp(-25f, 15f, collapseFraction); scaleX = 1f - collapseFraction; scaleY = 1f - collapseFraction }
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(x = 72.dp, y = 34.dp)
+                .size(45.dp)
+                .graphicsLayer { rotationZ = -8f }
         )
     }
 }

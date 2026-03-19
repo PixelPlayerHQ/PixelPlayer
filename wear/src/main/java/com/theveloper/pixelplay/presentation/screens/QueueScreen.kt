@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextAlign
@@ -40,9 +41,13 @@ import androidx.wear.compose.material.Text
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
 import com.theveloper.pixelplay.presentation.components.AlwaysOnScalingPositionIndicator
+import com.theveloper.pixelplay.presentation.components.PlayingEqIcon
 import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
-import com.theveloper.pixelplay.presentation.theme.radialBackgroundBrush
+import com.theveloper.pixelplay.presentation.theme.screenBackgroundColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerHighColor
+import com.theveloper.pixelplay.presentation.theme.surfaceContainerHighestColor
 import com.theveloper.pixelplay.presentation.viewmodel.BrowseUiState
 import com.theveloper.pixelplay.presentation.viewmodel.WearBrowseViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
@@ -50,7 +55,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.WearSleepTimerMode
 import com.theveloper.pixelplay.shared.WearBrowseRequest
 import com.theveloper.pixelplay.shared.WearLibraryItem
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -65,30 +69,37 @@ fun QueueScreen(
 ) {
     val palette = LocalWearPalette.current
     val playerState by viewModel.playerState.collectAsState()
+    val localQueueState by viewModel.localQueueState.collectAsState()
+    val isLocalPlaybackActive by viewModel.isLocalPlaybackActive.collectAsState()
     val uiState by browseViewModel.uiState.collectAsState()
     val isPhoneConnected by viewModel.isPhoneConnected.collectAsState()
     val isWatchOutputSelected by viewModel.isWatchOutputSelected.collectAsState()
     val timerState by viewModel.sleepTimerUiState.collectAsState()
 
-    val controlsEnabled = isPhoneConnected && !isWatchOutputSelected
+    val showingLocalQueue = isWatchOutputSelected
+    val remoteControlsEnabled = isPhoneConnected && !isWatchOutputSelected
+    val queueModeControlsEnabled = !playerState.isEmpty && (
+        showingLocalQueue || remoteControlsEnabled
+    )
+    val queueSelectionEnabled = showingLocalQueue || remoteControlsEnabled
     val columnState = rememberResponsiveColumnState(
         contentPadding = {
             PaddingValues(
                 start = 0.dp,
                 end = 0.dp,
-                top = 6.dp,
+                top = 20.dp,
                 bottom = 20.dp,
             )
         },
     )
 
-    LaunchedEffect(controlsEnabled) {
-        if (controlsEnabled) {
+    LaunchedEffect(remoteControlsEnabled) {
+        if (remoteControlsEnabled) {
             browseViewModel.loadItems(WearBrowseRequest.QUEUE)
         }
     }
-    LaunchedEffect(playerState.songId, controlsEnabled) {
-        if (controlsEnabled) {
+    LaunchedEffect(playerState.songId, remoteControlsEnabled) {
+        if (remoteControlsEnabled) {
             browseViewModel.loadItems(WearBrowseRequest.QUEUE)
         }
     }
@@ -96,7 +107,7 @@ fun QueueScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.radialBackgroundBrush()),
+            .background(palette.screenBackgroundColor()),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -107,15 +118,21 @@ fun QueueScreen(
                 shuffleEnabled = playerState.isShuffleEnabled,
                 repeatMode = playerState.repeatMode,
                 timerEnabled = timerState.mode != WearSleepTimerMode.OFF,
-                enabled = controlsEnabled,
+                shuffleEnabledAction = queueModeControlsEnabled,
+                timerEnabledAction = remoteControlsEnabled,
+                repeatEnabledAction = queueModeControlsEnabled,
                 onShuffleClick = {
                     viewModel.toggleShuffle()
-                    browseViewModel.refresh()
+                    if (remoteControlsEnabled) {
+                        browseViewModel.refresh()
+                    }
                 },
                 onTimerClick = onTimerClick,
                 onRepeatClick = {
                     viewModel.cycleRepeat()
-                    browseViewModel.refresh()
+                    if (remoteControlsEnabled) {
+                        browseViewModel.refresh()
+                    }
                 },
             )
 
@@ -132,7 +149,7 @@ fun QueueScreen(
                         .padding(horizontal = 8.dp),
                     columnState = columnState,
                 ) {
-                    if (!controlsEnabled) {
+                    if (!showingLocalQueue && !remoteControlsEnabled) {
                         item {
                             Text(
                                 text = if (!isPhoneConnected) {
@@ -149,7 +166,44 @@ fun QueueScreen(
                             )
                         }
                         item { Spacer(modifier = Modifier.height(2.dp)) }
-                    } else {
+                    }
+
+                    if (showingLocalQueue) {
+                        //item { Spacer(modifier = Modifier.height(10.dp)) }
+
+                        if (localQueueState.items.isEmpty()) {
+                            item {
+                                Text(
+                                    text = if (isLocalPlaybackActive) {
+                                        "Queue is empty"
+                                    } else {
+                                        "Play something on watch first"
+                                    },
+                                    style = MaterialTheme.typography.body2,
+                                    color = palette.textSecondary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 20.dp),
+                                )
+                            }
+                        } else {
+                            items(localQueueState.items.size) { index ->
+                                val item = localQueueState.items[index]
+                                val isCurrentSong = index == localQueueState.currentIndex
+                                QueueSongChip(
+                                    song = item,
+                                    enabled = queueSelectionEnabled,
+                                    isCurrentSong = isCurrentSong,
+                                    isPlayingSong = isCurrentSong && playerState.isPlaying,
+                                    onClick = {
+                                        item.id.toIntOrNull()?.let(viewModel::playLocalQueueIndex)
+                                    },
+                                )
+                            }
+                        }
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+                    } else if (remoteControlsEnabled) {
                         when (val state = uiState) {
                             is BrowseUiState.Loading -> {
                                 item {
@@ -205,9 +259,12 @@ fun QueueScreen(
                                 } else {
                                     items(state.items.size) { index ->
                                         val item = state.items[index]
+                                        val isCurrentSong = item.subtitle.startsWith("Playing")
                                         QueueSongChip(
                                             song = item,
-                                            enabled = controlsEnabled,
+                                            enabled = queueSelectionEnabled,
+                                            isCurrentSong = isCurrentSong,
+                                            isPlayingSong = isCurrentSong && playerState.isPlaying,
                                             onClick = {
                                                 item.id.toIntOrNull()?.let { queueIndex ->
                                                     browseViewModel.playQueueIndex(queueIndex)
@@ -221,6 +278,23 @@ fun QueueScreen(
                         item { Spacer(modifier = Modifier.height(24.dp)) }
                     }
                 }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to palette.screenBackgroundColor(),
+                                    0.28f to palette.screenBackgroundColor().copy(alpha = 0.96f),
+                                    0.68f to palette.screenBackgroundColor().copy(alpha = 0.42f),
+                                    1f to Color.Transparent,
+                                ),
+                            ),
+                        ),
+                )
 
                 AlwaysOnScalingPositionIndicator(
                     listState = columnState.state,
@@ -246,7 +320,9 @@ private fun QueueShortcutsRow(
     shuffleEnabled: Boolean,
     repeatMode: Int,
     timerEnabled: Boolean,
-    enabled: Boolean,
+    shuffleEnabledAction: Boolean,
+    timerEnabledAction: Boolean,
+    repeatEnabledAction: Boolean,
     onShuffleClick: () -> Unit,
     onTimerClick: () -> Unit,
     onRepeatClick: () -> Unit,
@@ -268,7 +344,7 @@ private fun QueueShortcutsRow(
                 icon = Icons.Rounded.Shuffle,
                 contentDescription = "Shuffle",
                 active = shuffleEnabled,
-                enabled = enabled,
+                enabled = shuffleEnabledAction,
                 activeColor = palette.shuffleActive,
                 onClick = onShuffleClick,
             )
@@ -278,7 +354,7 @@ private fun QueueShortcutsRow(
                 icon = Icons.Rounded.Timer,
                 contentDescription = "Timer",
                 active = timerEnabled,
-                enabled = enabled,
+                enabled = timerEnabledAction,
                 activeColor = palette.favoriteActive,
                 onClick = onTimerClick,
             )
@@ -288,7 +364,7 @@ private fun QueueShortcutsRow(
                 icon = if (repeatMode == 1) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                 contentDescription = "Repeat",
                 active = repeatMode != 0,
-                enabled = enabled,
+                enabled = repeatEnabledAction,
                 activeColor = palette.repeatActive,
                 onClick = onRepeatClick,
             )
@@ -308,16 +384,16 @@ private fun QueueShortcutButton(
     val palette = LocalWearPalette.current
     val container by animateColorAsState(
         targetValue = when {
-            !enabled -> palette.controlDisabledContainer
+            !enabled -> palette.surfaceContainerHighestColor()
             active -> activeColor.copy(alpha = 0.86f)
-            else -> palette.chipContainer
+            else -> palette.surfaceContainerColor()
         },
         animationSpec = spring(),
         label = "queueShortcutContainer",
     )
     val tint by animateColorAsState(
         targetValue = when {
-            !enabled -> palette.controlDisabledContent
+            !enabled -> palette.textSecondary
             active -> if (activeColor.luminance() > 0.52f) Color.Black else Color.White
             else -> palette.chipContent
         },
@@ -359,10 +435,17 @@ private fun QueueShortcutSlot(
 private fun QueueSongChip(
     song: WearLibraryItem,
     enabled: Boolean,
+    isCurrentSong: Boolean,
+    isPlayingSong: Boolean,
     onClick: () -> Unit,
 ) {
     val palette = LocalWearPalette.current
-    val isPlayingItem = song.subtitle.startsWith("Playing")
+    val subtitleText = if (isCurrentSong && !isPlayingSong) {
+        song.subtitle.replaceFirst("Playing", "Current")
+    } else {
+        song.subtitle
+    }
+    val iconTint = if (isPlayingSong) palette.shuffleActive else palette.textSecondary
 
     Chip(
         label = {
@@ -375,27 +458,39 @@ private fun QueueSongChip(
         },
         secondaryLabel = {
             Text(
-                text = song.subtitle,
+                text = subtitleText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = palette.textSecondary.copy(alpha = 0.78f),
+                color = if (isPlayingSong) {
+                    palette.shuffleActive.copy(alpha = 0.90f)
+                } else {
+                    palette.textSecondary.copy(alpha = 0.78f)
+                },
             )
         },
         icon = {
-            Icon(
-                imageVector = if (isPlayingItem) Icons.Rounded.PlayArrow else Icons.Rounded.MusicNote,
-                contentDescription = null,
-                tint = if (isPlayingItem) palette.shuffleActive else palette.textSecondary,
-                modifier = Modifier.size(18.dp),
-            )
+            if (isCurrentSong) {
+                PlayingEqIcon(
+                    color = iconTint,
+                    isPlaying = isPlayingSong,
+                    modifier = Modifier.size(18.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.MusicNote,
+                    contentDescription = null,
+                    tint = palette.textSecondary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         },
         onClick = onClick,
         enabled = enabled,
         colors = ChipDefaults.chipColors(
-            backgroundColor = if (isPlayingItem) {
-                palette.controlContainer.copy(alpha = 0.30f)
+            backgroundColor = if (isCurrentSong) {
+                palette.surfaceContainerHighColor()
             } else {
-                palette.chipContainer
+                palette.surfaceContainerColor()
             },
             contentColor = palette.chipContent,
             secondaryContentColor = palette.textSecondary,

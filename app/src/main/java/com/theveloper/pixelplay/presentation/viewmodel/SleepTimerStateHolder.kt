@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -157,6 +158,7 @@ class SleepTimerStateHolder @Inject constructor(
      * Start counted play mode - play N more tracks.
      */
     fun playCounted(count: Int) {
+        _playCount.value = count.toFloat()
         val args = Bundle().apply { putInt("count", count) }
         mediaControllerProvider?.invoke()?.sendCustomCommand(
             SessionCommand(MusicNotificationProvider.CUSTOM_COMMAND_COUNTED_PLAY, Bundle.EMPTY),
@@ -198,7 +200,9 @@ class SleepTimerStateHolder @Inject constructor(
             // Monitor for song changes
             eotSongMonitorJob?.cancel()
             eotSongMonitorJob = scope.launch {
-                currentSongIdProvider?.invoke()?.collect { newSongId ->
+                currentSongIdProvider?.invoke()
+                    ?.filterNotNull() // skip initial null emission from stateIn initialValue
+                    ?.collect { newSongId ->
                     if (_isEndOfTrackTimerActive.value &&
                         EotStateHolder.eotTargetSongId.value != null &&
                         newSongId != EotStateHolder.eotTargetSongId.value) {

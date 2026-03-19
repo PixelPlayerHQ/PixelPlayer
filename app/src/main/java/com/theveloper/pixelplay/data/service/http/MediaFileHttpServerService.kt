@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.core.net.toUri
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.utils.AlbumArtUtils
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -828,11 +829,7 @@ class MediaFileHttpServerService : Service() {
                 val songIdLong = cursor.getLong(idCol)
                 val albumId = cursor.getLong(albumIdCol)
                 val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songIdLong)
-                val albumArtUri = if (albumId > 0) {
-                    ContentUris.withAppendedId("content://media/external/audio/albumart".toUri(), albumId).toString()
-                } else {
-                    null
-                }
+                val albumArtUri = AlbumArtUtils.getCachedAlbumArtUri(this, songIdLong)?.toString()
 
                 Song(
                     id = songIdLong.toString(),
@@ -1392,6 +1389,9 @@ class MediaFileHttpServerService : Service() {
         synchronized(serverStartLock) {
             startInProgress = false
         }
+
+        // P0-1: Cancel serviceScope to avoid coroutine leaks after service is destroyed.
+        serviceJob.cancel()
 
         val serverInstance = server
         server = null

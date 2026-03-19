@@ -139,8 +139,8 @@ fun SearchScreen(
     val genres by playerViewModel.genres.collectAsStateWithLifecycle()
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
+    val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
-    var selectedSongForInfo by remember { mutableStateOf<Song?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchInputFocusRequester = remember { FocusRequester() }
 
@@ -162,7 +162,6 @@ fun SearchScreen(
     }
     val searchResults = uiState.searchResults
     val handleSongMoreOptionsClick: (Song) -> Unit = { song ->
-        selectedSongForInfo = song
         playerViewModel.selectSongForInfo(song)
         showSongInfoBottomSheet = true
     }
@@ -331,15 +330,14 @@ fun SearchScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .align(Alignment.BottomCenter)
-                                .height(80.dp)
+                                .height(170.dp)
                                 .background(
                                     brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-                                                0.5f
-                                            ),
-                                            MaterialTheme.colorScheme.surfaceContainerLowest
+                                        colorStops = arrayOf(
+                                            0.0f to Color.Transparent,
+                                            0.2f to Color.Transparent,
+                                            0.8f to MaterialTheme.colorScheme.surfaceContainerLowest,
+                                            1.0f to MaterialTheme.colorScheme.surfaceContainerLowest
                                         )
                                     )
                                 )

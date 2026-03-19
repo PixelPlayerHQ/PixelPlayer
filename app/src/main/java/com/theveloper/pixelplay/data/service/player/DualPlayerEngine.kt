@@ -12,21 +12,14 @@ import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
-import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
-import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-import androidx.media3.common.Format
-import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
-import android.os.Handler
-import kotlin.math.max
 //import androidx.media3.exoplayer.ffmpeg.FfmpegAudioRenderer
 import com.theveloper.pixelplay.data.model.TransitionSettings
 import com.theveloper.pixelplay.utils.envelope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,6 +33,8 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
+import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
+import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
 import com.theveloper.pixelplay.data.telegram.TelegramRepository
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -62,6 +57,8 @@ class DualPlayerEngine @Inject constructor(
     private val telegramRepository: TelegramRepository,
     private val telegramStreamProxy: com.theveloper.pixelplay.data.telegram.TelegramStreamProxy,
     private val neteaseStreamProxy: NeteaseStreamProxy,
+    private val qqMusicStreamProxy: QqMusicStreamProxy,
+    private val navidromeStreamProxy: NavidromeStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
@@ -73,6 +70,7 @@ class DualPlayerEngine @Inject constructor(
     private lateinit var playerB: ExoPlayer
 
     private val onPlayerSwappedListeners = mutableListOf<(Player) -> Unit>()
+    private val onTransitionFinishedListeners = mutableListOf<() -> Unit>()
     
     // Active Audio Session ID Flow
     private val _activeAudioSessionId = kotlinx.coroutines.flow.MutableStateFlow(0)
@@ -139,13 +137,11 @@ class DualPlayerEngine @Inject constructor(
                     telegramCacheManager.setActivePlayback(fileId)
                     Timber.tag("DualPlayerEngine").d("Telegram playback active: fileId=$fileId")
                 }
-                // Telegram streaming necesita Wake Mode para evitar cortes
-                (playerA as? ExoPlayer)?.setWakeMode(C.WAKE_MODE_LOCAL)
             } else {
                 // Limpieza para canciones que no son de Telegram
                 telegramCacheManager.setActivePlayback(null)
-                (playerA as? ExoPlayer)?.setWakeMode(C.WAKE_MODE_LOCAL)
             }
+            // Note: setWakeMode(WAKE_MODE_LOCAL) is set once in buildPlayer() — no need to repeat here.
 
             // --- Pre-Resolve Next/Prev Tracks para Performance ---
             try {
@@ -157,6 +153,8 @@ class DualPlayerEngine @Inject constructor(
                         val nextUri = nextItem.localConfiguration?.uri
                         if (nextUri?.scheme == "telegram") {
                             telegramRepository.preResolveTelegramUri(nextUri.toString())
+                        } else if (nextUri?.scheme == "netease" || nextUri?.scheme == "qqmusic" || nextUri?.scheme == "navidrome") {
+                            scope.launch { resolveCloudUri(nextUri) }
                         }
                     }
                     // 2. Pre-resolver ANTERIOR (para rapidez al retroceder)
@@ -165,6 +163,8 @@ class DualPlayerEngine @Inject constructor(
                         val prevUri = prevItem.localConfiguration?.uri
                         if (prevUri?.scheme == "telegram") {
                             telegramRepository.preResolveTelegramUri(prevUri.toString())
+                        } else if (prevUri?.scheme == "netease" || prevUri?.scheme == "qqmusic" || prevUri?.scheme == "navidrome") {
+                            scope.launch { resolveCloudUri(prevUri) }
                         }
                     }
                 }
@@ -180,6 +180,14 @@ class DualPlayerEngine @Inject constructor(
 
     fun removePlayerSwapListener(listener: (Player) -> Unit) {
         onPlayerSwappedListeners.remove(listener)
+    }
+
+    fun addTransitionFinishedListener(listener: () -> Unit) {
+        onTransitionFinishedListeners.add(listener)
+    }
+
+    fun removeTransitionFinishedListener(listener: () -> Unit) {
+        onTransitionFinishedListeners.remove(listener)
     }
 
     /** The master player instance that should be connected to the MediaSession. */
@@ -263,45 +271,24 @@ class DualPlayerEngine @Inject constructor(
 
     private fun buildPlayer(handleAudioFocus: Boolean): ExoPlayer {
         val renderersFactory = object : DefaultRenderersFactory(context) {
-            override fun buildAudioRenderers(
+            override fun buildAudioSink(
                 context: Context,
-                extensionRendererMode: Int,
-                mediaCodecSelector: MediaCodecSelector,
-                enableDecoderFallback: Boolean,
-                audioSink: AudioSink,
-                eventHandler: Handler,
-                eventListener: AudioRendererEventListener,
-                out: ArrayList<Renderer>
-            ) {
-                // Use provided sink or create one with Float output enabled
-                // Note: We use the provided audioSink if it works, but here we want to enforce config.
-                // Since super.buildAudioRenderers takes the sink, we can just pass our configured one.
-                // But wait, the parameter 'audioSink' is passed IN. 
-                // We should probably ignore the passed one if we want to enforce ours, OR configure ours and pass it to super.
-                
-                val sink = DefaultAudioSink.Builder(context)
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean
+            ): AudioSink {
+                // Keep Media3's default renderer wiring intact and only customize the sink.
+                return DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(false) // Disable Float output to fix CCodec/Hardware errors on some devices
+                    .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                    .setAudioProcessorChain(
+                        // Downsample >192 kHz before AudioTrack to avoid ultra-hi-res device hangs,
+                        // then downmix multichannel PCM when stereo output is required.
+                        DefaultAudioSink.DefaultAudioProcessorChain(
+                            HiResSampleRateCapAudioProcessor(),
+                            SurroundDownmixProcessor()
+                        )
+                    )
                     .build()
-
-                out.add(object : MediaCodecAudioRenderer(
-                    context,
-                    mediaCodecSelector,
-                    enableDecoderFallback,
-                    eventHandler,
-                    eventListener,
-                    sink
-                ) {
-                    override fun getCodecMaxInputSize(
-                        codecInfo: MediaCodecInfo,
-                        format: Format,
-                        streamFormats: Array<Format>
-                    ): Int {
-                        // Force minimum 512KB buffer for FLAC/High-res audio
-                        return max(super.getCodecMaxInputSize(codecInfo, format, streamFormats), 512 * 1024)
-                    }
-                })
-
-                super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback, sink, eventHandler, eventListener, out)
             }
         }.setEnableAudioFloatOutput(false) // Disable Float output helper
          .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
@@ -316,17 +303,35 @@ class DualPlayerEngine @Inject constructor(
         // in resolveCloudUri() which is called from coroutines before ExoPlayer sees the URI.
         val resolver = object : ResolvingDataSource.Resolver {
             override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
-                val scheme = dataSpec.uri.scheme
-                if (scheme == "telegram" || scheme == "netease") {
-                    val originalUri = dataSpec.uri.toString()
+                val uri = dataSpec.uri
+                val scheme = uri.scheme
+                if (scheme == "telegram" || scheme == "netease" || scheme == "qqmusic" || scheme == "navidrome") {
+                    val originalUri = uri.toString()
                     val resolved = resolvedUriCache[originalUri]
                     if (resolved != null) {
                         Timber.tag("DualPlayerEngine").d("resolveDataSpec: cache hit for $scheme URI")
                         return dataSpec.buildUpon().setUri(resolved).build()
                     }
-                    // Cache miss — URI was not pre-resolved. Log warning but do NOT block.
-                    // This can happen if the URI was added to the queue without pre-resolution
-                    // (e.g., via external intent or legacy code path).
+                    
+                    // Cache miss — URI was not pre-resolved.
+                    // Instead of just logging a warning, we perform a synchronous resolution inside runBlocking.
+                    // This ensures the data source gets a valid URI, which fixes the "loop of death" or loading hang.
+                    // P1-2: Timeout of 3s to prevent indefinitely blocking the ExoPlayer playback thread.
+                    Timber.tag("DualPlayerEngine").w("resolveDataSpec: cache MISS for $originalUri — performing synchronous resolution")
+                    try {
+                        val resolvedUri = runBlocking(Dispatchers.IO) {
+                            kotlinx.coroutines.withTimeout(3000L) {
+                                resolveCloudUri(uri)
+                            }
+                        }
+                        if (resolvedUri != uri) {
+                            Timber.tag("DualPlayerEngine").i("resolveDataSpec: Synchronous resolution successful for $originalUri")
+                            return dataSpec.buildUpon().setUri(resolvedUri).build()
+                        }
+                    } catch (e: Exception) {
+                        Timber.tag("DualPlayerEngine").e(e, "resolveDataSpec: Synchronous resolution failed for $originalUri")
+                    }
+                    
                     Timber.tag("DualPlayerEngine").w("resolveDataSpec: cache MISS for $originalUri — playback may fail")
                 }
                 return dataSpec
@@ -394,6 +399,8 @@ class DualPlayerEngine @Inject constructor(
         val resolved: Uri? = when (uri.scheme) {
             "telegram" -> resolveTelegramUriAsync(uri, uriString)
             "netease" -> resolveNeteaseUriAsync(uriString)
+            "qqmusic" -> resolveQqMusicUriAsync(uriString)
+            "navidrome" -> resolveNavidromeUriAsync(uriString)
             else -> null
         }
 
@@ -474,6 +481,56 @@ class DualPlayerEngine @Inject constructor(
         return null
     }
 
+    private suspend fun resolveQqMusicUriAsync(uriString: String): Uri? {
+        Timber.tag("DualPlayerEngine").d("Async resolving QQ Music URI: $uriString")
+
+        if (!qqMusicStreamProxy.isReady()) {
+            Timber.tag("DualPlayerEngine").w("QqMusicStreamProxy not ready, awaiting...")
+            val proxyReady = qqMusicStreamProxy.awaitReady(5_000L)
+            if (!proxyReady) {
+                Timber.tag("DualPlayerEngine").e("QqMusicStreamProxy not ready after timeout")
+                return null
+            }
+        }
+
+        // Pre-fetch the real stream URL now (network call) so the proxy cache is
+        // warm by the time ExoPlayer makes its HTTP request to the local proxy.
+        qqMusicStreamProxy.warmUpStreamUrl(uriString)
+
+        val proxyUrl = qqMusicStreamProxy.resolveQqMusicUri(uriString)
+        if (!proxyUrl.isNullOrBlank()) {
+            return Uri.parse(proxyUrl)
+        }
+
+        Timber.tag("DualPlayerEngine").w("Failed to resolve QQ Music URI: $uriString")
+        return null
+    }
+
+    private suspend fun resolveNavidromeUriAsync(uriString: String): Uri? {
+        Timber.tag("DualPlayerEngine").d("Async resolving Navidrome URI: $uriString")
+
+        if (!navidromeStreamProxy.isReady()) {
+            Timber.tag("DualPlayerEngine").w("NavidromeStreamProxy not ready, awaiting...")
+            val proxyReady = navidromeStreamProxy.awaitReady(5_000L)
+            if (!proxyReady) {
+                Timber.tag("DualPlayerEngine").e("NavidromeStreamProxy not ready after timeout")
+                return null
+            }
+        }
+
+        // Pre-fetch the real stream URL now (network call) so the proxy cache is
+        // warm by the time ExoPlayer makes its HTTP request to the local proxy.
+        navidromeStreamProxy.warmUpStreamUrl(uriString)
+
+        val proxyUrl = navidromeStreamProxy.resolveNavidromeUri(uriString)
+        if (!proxyUrl.isNullOrBlank()) {
+            return Uri.parse(proxyUrl)
+        }
+
+        Timber.tag("DualPlayerEngine").w("Failed to resolve Navidrome URI: $uriString")
+        return null
+    }
+
     /**
      * Resolves a MediaItem's cloud URI (if any) and returns a copy with the resolved URI.
      * For non-cloud URIs, returns the original MediaItem unchanged.
@@ -481,7 +538,7 @@ class DualPlayerEngine @Inject constructor(
     suspend fun resolveMediaItem(mediaItem: MediaItem): MediaItem {
         val uri = mediaItem.localConfiguration?.uri ?: return mediaItem
         val scheme = uri.scheme
-        if (scheme != "telegram" && scheme != "netease") return mediaItem
+        if (scheme != "telegram" && scheme != "netease" && scheme != "qqmusic" && scheme != "navidrome") return mediaItem
 
         val resolvedUri = resolveCloudUri(uri)
         if (resolvedUri == uri) return mediaItem // Resolution failed or not needed
@@ -508,14 +565,8 @@ class DualPlayerEngine @Inject constructor(
             playerB.playWhenReady = false
             playerB.setMediaItem(resolvedItem)
             
-            // Set appropriate WakeMode for the next item
-            val scheme = mediaItem.localConfiguration?.uri?.scheme
-            if (scheme == "telegram" || scheme == "http" || scheme == "https") {
-                 playerB.setWakeMode(C.WAKE_MODE_LOCAL)
-            } else {
-                 playerB.setWakeMode(C.WAKE_MODE_LOCAL)
-            }
-            
+            // Note: setWakeMode is already set to WAKE_MODE_LOCAL in buildPlayer().
+            // No need to re-set per track — the value doesn't change.
             playerB.prepare()
             playerB.volume = 0f // Start silent
             if (startPositionMs > 0) {
@@ -565,6 +616,7 @@ class DualPlayerEngine @Inject constructor(
                 playerB.stop()
             } finally {
                 transitionRunning = false
+                onTransitionFinishedListeners.forEach { it() }
             }
         }
     }
@@ -825,6 +877,10 @@ class DualPlayerEngine @Inject constructor(
      */
     fun release() {
         transitionJob?.cancel()
+        // OPT #11: Cancel the scope to prevent coroutine leaks after release().
+        // Without this, any in-flight scope.launch { } coroutines (e.g. resolveCloudUri,
+        // preResolveTelegramUri) would continue running even after both ExoPlayers are released.
+        scope.coroutineContext[Job]?.cancel()
         abandonAudioFocus()
         if (::playerA.isInitialized) {
             playerA.removeListener(masterPlayerListener)

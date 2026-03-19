@@ -1,11 +1,13 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
+import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
 
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.SystemClock
 import android.provider.Settings
 import android.text.format.Formatter
 import android.widget.Toast
@@ -77,7 +79,6 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -110,6 +111,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -121,6 +123,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextGeometricTransform
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -131,6 +134,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.theveloper.pixelplay.R
@@ -683,23 +687,13 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
-                            SettingsSubsection(title = "Headset") {
-                                SwitchSettingItem(
-                                    title = "Auto-resume on headset connect",
-                                    subtitle = "Resume playback when wired/Bluetooth earphones reconnect after an unplug pause.",
-                                    checked = uiState.autoResumeOnHeadsetConnect,
-                                    onCheckedChange = { settingsViewModel.setAutoResumeOnHeadsetConnect(it) },
-                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_headphones_24), null, tint = MaterialTheme.colorScheme.secondary) }
-                                )
-                            }
-
                             SettingsSubsection(title = "Volume Normalization (ReplayGain)") {
                                 SwitchSettingItem(
                                     title = "Enable ReplayGain",
                                     subtitle = "Normalize volume levels using ReplayGain metadata from audio files.",
                                     checked = uiState.replayGainEnabled,
                                     onCheckedChange = { settingsViewModel.setReplayGainEnabled(it) },
-                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_volume_up_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_volume_down_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                                 AnimatedVisibility(
                                     visible = uiState.replayGainEnabled,
@@ -725,6 +719,16 @@ fun SettingsCategoryScreen(
                                     selectedKey = if (uiState.disableCastAutoplay) "true" else "false",
                                     onSelectionChanged = { settingsViewModel.setDisableCastAutoplay(it.toBoolean()) },
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_cast_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
+
+                            SettingsSubsection(title = "Headphones") {
+                                SwitchSettingItem(
+                                    title = "Resume when headphones reconnect",
+                                    subtitle = "If playback paused because headphones were removed, resume automatically when they connect again.",
+                                    checked = uiState.resumeOnHeadsetReconnect,
+                                    onCheckedChange = { settingsViewModel.setResumeOnHeadsetReconnect(it) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_headphones_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
 
@@ -924,7 +928,7 @@ fun SettingsCategoryScreen(
                                     "GEMINI" -> {
                                         GeminiSystemPromptItem(
                                             systemPrompt = geminiSystemPrompt,
-                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.UserPreferencesRepository.DEFAULT_SYSTEM_PROMPT,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT,
                                             onSystemPromptSave = { settingsViewModel.onGeminiSystemPromptChange(it) },
                                             onReset = { settingsViewModel.resetGeminiSystemPrompt() },
                                             title = "System Prompt",
@@ -934,7 +938,7 @@ fun SettingsCategoryScreen(
                                     "DEEPSEEK" -> {
                                         GeminiSystemPromptItem(
                                             systemPrompt = deepseekSystemPrompt,
-                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.UserPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT,
                                             onSystemPromptSave = { settingsViewModel.onDeepseekSystemPromptChange(it) },
                                             onReset = { settingsViewModel.resetDeepseekSystemPrompt() },
                                             title = "System Prompt",
@@ -1110,9 +1114,7 @@ fun SettingsCategoryScreen(
         }
     }
 
-    dataTransferProgress?.let { progress ->
-        BackupTransferProgressDialog(progress = progress)
-    }
+    BackupTransferProgressDialogHost(progress = dataTransferProgress)
 
     // Dialogs
     FileExplorerDialog(
@@ -1790,14 +1792,58 @@ private fun BackupSectionSelectableCard(
     }
 }
 
+private const val BackupTransferDialogMinimumVisibilityMs = 1500L
+
+@Composable
+private fun BackupTransferProgressDialogHost(progress: BackupTransferProgressUpdate?) {
+    var visibleProgress by remember { mutableStateOf<BackupTransferProgressUpdate?>(null) }
+    var visibleSinceMs by remember { mutableStateOf(0L) }
+    var isHoldingForMinimumTime by remember { mutableStateOf(false) }
+
+    LaunchedEffect(progress) {
+        if (progress != null) {
+            if (visibleProgress == null || isHoldingForMinimumTime) {
+                visibleSinceMs = SystemClock.elapsedRealtime()
+            }
+            isHoldingForMinimumTime = false
+            visibleProgress = progress
+            return@LaunchedEffect
+        }
+
+        val currentVisibleProgress = visibleProgress ?: return@LaunchedEffect
+        isHoldingForMinimumTime = true
+        val elapsed = SystemClock.elapsedRealtime() - visibleSinceMs
+        val remaining = BackupTransferDialogMinimumVisibilityMs - elapsed
+        if (remaining > 0) {
+            delay(remaining)
+        }
+        if (visibleProgress == currentVisibleProgress) {
+            visibleProgress = null
+            visibleSinceMs = 0L
+        }
+        isHoldingForMinimumTime = false
+    }
+
+    visibleProgress?.let { currentProgress ->
+        BackupTransferProgressDialog(progress = currentProgress)
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate) {
     val animatedProgress by animateFloatAsState(
-        targetValue = progress.progress,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        targetValue = progress.progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 300),
         label = "BackupTransferProgress"
     )
+    val progressPercent = (animatedProgress * 100f).roundToInt().coerceIn(0, 100)
+    val statusText = if (progress.operation == BackupOperationType.EXPORT) {
+        "Exporting"
+    } else {
+        "Importing"
+    }
+    val stepText = "Step ${progress.step.coerceAtLeast(1)} of ${progress.totalSteps}"
 
     Dialog(
         onDismissRequest = {},
@@ -1829,8 +1875,27 @@ private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate)
                     fontWeight = FontWeight.SemiBold
                 )
 
-                CircularWavyProgressIndicator(modifier = Modifier.size(44.dp))
-                LoadingIndicator(modifier = Modifier.height(24.dp))
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(1.84f),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "$progressPercent%",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = MaterialTheme.typography.labelLarge.fontSize * 1.4f
+                        ),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
 
                 LinearWavyProgressIndicator(
                     progress = { animatedProgress },
@@ -1843,29 +1908,41 @@ private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate)
                 )
 
                 Text(
-                    text = "Step ${progress.step.coerceAtLeast(1)} of ${progress.totalSteps}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = progress.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "$statusText • $stepText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
 
                 AnimatedContent(
-                    targetState = progress.title,
+                    targetState = progress.detail,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "BackupStepTitle"
-                ) { animatedTitle ->
+                    label = "BackupStepDetail"
+                ) { animatedDetail ->
                     Text(
-                        text = animatedTitle,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Medium
+                        text = animatedDetail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
 
-                Text(
-                    text = progress.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                progress.section?.let { section ->
+                    Text(
+                        text = section.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -2204,342 +2281,14 @@ private fun ImportModuleSelectionDialog(
     onSelectionChanged: (Set<BackupSection>) -> Unit,
     onConfirm: () -> Unit
 ) {
-    val listState = rememberLazyListState()
-    val selectedCount = plan.selectedModules.size
-    val availableCount = plan.availableModules.size
-    val dateText = remember(plan.manifest.createdAt) {
-        val sdf = java.text.SimpleDateFormat("MMM d, yyyy 'at' h:mm a", java.util.Locale.getDefault())
-        sdf.format(java.util.Date(plan.manifest.createdAt))
-    }
-    val transitionState = remember { MutableTransitionState(false) }
-    var shouldShowDialog by remember { mutableStateOf(true) }
-    var onDialogHiddenAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-
-    transitionState.targetState = shouldShowDialog
-
-    fun closeDialog(afterClose: () -> Unit) {
-        if (!shouldShowDialog) return
-        onDialogHiddenAction = afterClose
-        shouldShowDialog = false
-    }
-
-    LaunchedEffect(transitionState.currentState, transitionState.targetState) {
-        if (!transitionState.currentState && !transitionState.targetState) {
-            onDialogHiddenAction?.let { action ->
-                onDialogHiddenAction = null
-                action()
-            }
-        }
-    }
-
-    if (transitionState.currentState || transitionState.targetState) {
-        Dialog(
-            onDismissRequest = { closeDialog(onDismiss) },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
-        ) {
-            AnimatedVisibility(
-                visibleState = transitionState,
-                enter = slideInVertically(initialOffsetY = { it / 6 }) + fadeIn(animationSpec = tween(220)),
-                exit = slideOutVertically(targetOffsetY = { it / 6 }) + fadeOut(animationSpec = tween(200)),
-                label = "import_module_selection_dialog"
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest
-                ) {
-                    Scaffold(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        contentWindowInsets = WindowInsets.systemBars,
-                        topBar = {
-                            CenterAlignedTopAppBar(
-                                title = {
-                                    Text(
-                                        text = "Restore Modules",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontSize = 24.sp,
-                                            textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
-                                        ),
-                                        fontFamily = GoogleSansRounded,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                navigationIcon = {
-                                    FilledIconButton(
-                                        modifier = Modifier.padding(start = 6.dp),
-                                        onClick = { closeDialog(onBack) },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                            contentColor = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                            contentDescription = "Back"
-                                        )
-                                    }
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                                )
-                            )
-                        },
-                        bottomBar = {
-                            BottomAppBar(
-                                windowInsets = WindowInsets.navigationBars,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Absolute.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(start = 10.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        FilledIconButton(
-                                            onClick = { onSelectionChanged(plan.availableModules) },
-                                            enabled = !inProgress,
-                                            colors = IconButtonDefaults.filledIconButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                            )
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.round_select_all_24),
-                                                contentDescription = "Select all"
-                                            )
-                                        }
-                                        FilledIconButton(
-                                            onClick = { onSelectionChanged(emptySet()) },
-                                            enabled = !inProgress,
-                                            colors = IconButtonDefaults.filledIconButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                                contentColor = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.baseline_deselect_24),
-                                                contentDescription = "Clear selection"
-                                            )
-                                        }
-                                    }
-
-                                    ExtendedFloatingActionButton(
-                                        onClick = { closeDialog(onConfirm) },
-                                        modifier = Modifier
-                                            .padding(end = 6.dp)
-                                            .height(48.dp),
-                                        shape = RoundedCornerShape(16.dp),
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ) {
-                                        if (inProgress) {
-                                            LoadingIndicator(modifier = Modifier.height(20.dp))
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Restoring",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        } else {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Restore,
-                                                    contentDescription = null
-                                                )
-                                                Text(
-                                                    text = "Restore Selected",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    ) { innerPadding ->
-                        Column(
-                            modifier = Modifier
-                                .padding(innerPadding)
-                                .fillMaxSize()
-                                .padding(horizontal = 18.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Backup metadata header
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.62f),
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "Backup Details",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = "Created",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = dateText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = "App Version",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = plan.manifest.appVersion.ifEmpty { "Unknown" },
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = "Schema",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = "v${plan.manifest.schemaVersion}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                        if (plan.manifest.deviceInfo.model.isNotBlank()) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(
-                                                    text = "Device",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                                Text(
-                                                    text = "${plan.manifest.deviceInfo.manufacturer} ${plan.manifest.deviceInfo.model}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Text(
-                                        text = "$selectedCount of $availableCount modules selected",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-
-                                    if (inProgress) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            LoadingIndicator(modifier = Modifier.height(24.dp))
-                                            Text(
-                                                text = "Transfer in progress...",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Warnings
-                            if (plan.warnings.isNotEmpty()) {
-                                plan.warnings.forEach { warning ->
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Warning,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Text(
-                                                text = warning,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onErrorContainer
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Module list
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 18.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                items(plan.availableModules.toList(), key = { it.key }) { section ->
-                                    val isSelected = section in plan.selectedModules
-                                    val detail = plan.moduleDetails[section]
-                                    BackupSectionSelectableCard(
-                                        section = section,
-                                        selected = isSelected,
-                                        enabled = !inProgress,
-                                        detail = detail,
-                                        onToggle = {
-                                            onSelectionChanged(
-                                                if (isSelected) plan.selectedModules - section else plan.selectedModules + section
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    BackupModuleSelectionDialog(
+        plan = plan,
+        inProgress = inProgress,
+        onDismiss = onDismiss,
+        onBack = onBack,
+        onSelectionChanged = onSelectionChanged,
+        onConfirm = onConfirm
+    )
 }
 @Composable
 private fun PaletteRegenerateSongSheetContent(
@@ -2704,6 +2453,6 @@ private fun SettingsSubsection(
         content()
     }
     if (addBottomSpace) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }

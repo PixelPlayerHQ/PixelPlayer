@@ -1,12 +1,14 @@
 package com.theveloper.pixelplay.data.model
 
+import com.theveloper.pixelplay.shared.WearThemePalette
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient // Para campos que no queremos serializar
 
 @Serializable
 data class QueueItem(
     val id: Long, // ID único de la canción
-    val albumArtBitmapData: ByteArray?
+    val albumArtBitmapData: ByteArray?,
+    val albumArtUri: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -15,6 +17,7 @@ data class QueueItem(
         other as QueueItem
 
         if (id != other.id) return false
+        if (albumArtUri != other.albumArtUri) return false
         if (albumArtBitmapData != null) {
             if (other.albumArtBitmapData == null) return false
             if (!albumArtBitmapData.contentEquals(other.albumArtBitmapData)) return false
@@ -25,6 +28,7 @@ data class QueueItem(
 
     override fun hashCode(): Int {
         var result = id.hashCode()
+        result = 31 * result + (albumArtUri?.hashCode() ?: 0)
         result = 31 * result + (albumArtBitmapData?.contentHashCode() ?: 0)
         return result
     }
@@ -33,6 +37,10 @@ data class QueueItem(
 @Serializable
 data class WidgetThemeColors(
     val lightSurfaceContainer: Int,
+    val lightSurfaceContainerLowest: Int = 0,
+    val lightSurfaceContainerLow: Int = 0,
+    val lightSurfaceContainerHigh: Int = 0,
+    val lightSurfaceContainerHighest: Int = 0,
     val lightTitle: Int,
     val lightArtist: Int,
     val lightPlayPauseBackground: Int,
@@ -41,6 +49,10 @@ data class WidgetThemeColors(
     val lightPrevNextIcon: Int,
 
     val darkSurfaceContainer: Int,
+    val darkSurfaceContainerLowest: Int = 0,
+    val darkSurfaceContainerLow: Int = 0,
+    val darkSurfaceContainerHigh: Int = 0,
+    val darkSurfaceContainerHighest: Int = 0,
     val darkTitle: Int,
     val darkArtist: Int,
     val darkPlayPauseBackground: Int,
@@ -65,6 +77,7 @@ data class PlayerInfo(
     val themeColors: WidgetThemeColors? = null,
     val isShuffleEnabled: Boolean = false,
     val repeatMode: Int = 0, // 0 = OFF, 1 = ONE, 2 = ALL
+    val wearThemePalette: WearThemePalette? = null,
 ) {
     // equals y hashCode para ByteArray, ya que el por defecto no es comparando contenido
     override fun equals(other: Any?): Boolean {
@@ -83,12 +96,14 @@ data class PlayerInfo(
         } else if (other.albumArtBitmapData != null) return false
         if (currentPositionMs != other.currentPositionMs) return false
         if (totalDurationMs != other.totalDurationMs) return false
+        if (isFavorite != other.isFavorite) return false
         if (queue != other.queue) return false
         if (lyrics != other.lyrics) return false
         if (isLoadingLyrics != other.isLoadingLyrics) return false
         if (themeColors != other.themeColors) return false
         if (isShuffleEnabled != other.isShuffleEnabled) return false
         if (repeatMode != other.repeatMode) return false
+        if (wearThemePalette != other.wearThemePalette) return false
 
         return true
     }
@@ -101,12 +116,14 @@ data class PlayerInfo(
         result = 31 * result + (albumArtBitmapData?.contentHashCode() ?: 0)
         result = 31 * result + currentPositionMs.hashCode()
         result = 31 * result + totalDurationMs.hashCode()
+        result = 31 * result + isFavorite.hashCode()
         result = 31 * result + queue.hashCode()
         result = 31 * result + (lyrics?.hashCode() ?: 0)
         result = 31 * result + isLoadingLyrics.hashCode()
         result = 31 * result + (themeColors?.hashCode() ?: 0)
         result = 31 * result + isShuffleEnabled.hashCode()
         result = 31 * result + repeatMode
+        result = 31 * result + (wearThemePalette?.hashCode() ?: 0)
         return result
     }
 }

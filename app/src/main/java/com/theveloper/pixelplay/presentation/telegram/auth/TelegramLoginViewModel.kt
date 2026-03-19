@@ -104,8 +104,7 @@ class TelegramLoginViewModel @Inject constructor(
         }
 
         if (state.phoneEditMode) {
-            _uiState.update { it.copy(phoneEditMode = false, inlineError = null) }
-            return true
+            return false
         }
 
         return when (authState) {

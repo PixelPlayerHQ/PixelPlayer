@@ -20,5 +20,6 @@ data class WearTransferProgress(
         const val STATUS_COMPLETED = "completed"
         const val STATUS_FAILED = "failed"
         const val STATUS_CANCELLED = "cancelled"
+        const val ERROR_ALREADY_ON_WATCH = "Song is already on watch"
     }
 }

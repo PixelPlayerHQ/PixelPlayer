@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -194,5 +195,118 @@ class LyricsUtilsTest {
         assertEquals("To fall in love\\n怦然心动", first.line)
         assertEquals(listOf("To ", "fall ", "in ", "love"), words.map { it.word })
         assertTrue(words.none { it.word.contains("怦然心动") })
+    }
+
+    @Test
+    fun parseLyrics_pairsSameTimestampLinesAsTranslation() {
+        val lrc = "[00:10.00]Hello world\n[00:10.00]你好世界\n[00:20.00]Goodbye"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+
+        assertEquals(2, synced.size)
+        assertEquals("Hello world", synced[0].line)
+        assertEquals("你好世界", synced[0].translation)
+        assertEquals("Goodbye", synced[1].line)
+        assertNull(synced[1].translation)
+    }
+
+    @Test
+    fun parseLyrics_singleLineWithoutDuplicate_translationIsNull() {
+        val lrc = "[00:10.00]Hello world\n[00:20.00]Goodbye\n[00:30.00]See you"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+
+        assertEquals(3, synced.size)
+        synced.forEach { assertNull(it.translation) }
+    }
+
+    @Test
+    fun parseLyrics_threeLinesAtSameTimestamp_pairsFirstTwoOnly() {
+        val lrc = "[00:10.00]Hello world\n[00:10.00]你好世界\n[00:10.00]Hola mundo"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+
+        assertEquals(2, synced.size)
+        assertEquals("Hello world", synced[0].line)
+        assertEquals("你好世界", synced[0].translation)
+        assertEquals("Hola mundo", synced[1].line)
+        assertNull(synced[1].translation)
+    }
+
+    @Test
+    fun parseLyrics_nonTimestampedLinePreservedAsMerge_notTranslation() {
+        // Non-timestamped lines after a synced line are merged into line text (existing behavior)
+        val lrc = "[00:10.00]Hello world\ncontinuation line\n[00:20.00]Next"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+
+        assertEquals(2, synced.size)
+        assertEquals("Hello world\ncontinuation line", synced[0].line)
+        assertNull(synced[0].translation)
+    }
+
+    @Test
+    fun parseLyrics_colonSubSecondSeparator_parsedAndPairedWithTranslation() {
+        // Some LRC files use [mm:ss:xx] (colon) instead of [mm:ss.xx] (dot)
+        val lrc = "[00:00.000]作词: イマニシ\n" +
+            "[00:01.000]作曲: イマニシ\n" +
+            "[00:22:43]愛情なんて忘れて\n" +
+            "[00:25:39]一人ワルツを踊る\n" +
+            "[00:22.43]忘掉爱情什么的\n" +
+            "[00:25.39]一个人舞动华尔兹"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+
+        // Credits + 2 paired lines = 4 lines
+        assertEquals(4, synced.size)
+
+        // The Japanese originals should be separate synced lines, not merged into credits
+        val line22 = synced.first { it.line == "愛情なんて忘れて" }
+        assertEquals(22_430, line22.time)
+        assertEquals("忘掉爱情什么的", line22.translation)
+
+        val line25 = synced.first { it.line == "一人ワルツを踊る" }
+        assertEquals(25_390, line25.time)
+        assertEquals("一个人舞动华尔兹", line25.translation)
+    }
+
+    @Test
+    fun parseLyrics_wordByWord_colonSubSecondSeparator_supported() {
+        val lrc = "[00:10:00]<00:10:00>Hello <00:10:50>world"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+        val words = requireNotNull(synced.single().words)
+
+        assertEquals("Hello world", synced.single().line)
+        assertEquals(listOf("Hello ", "world"), words.map { it.word })
+        assertEquals(listOf(10_000, 10_500), words.map { it.time })
+    }
+
+    @Test
+    fun syncedToLrcString_preservesPairedTranslations() {
+        val lrc = LyricsUtils.syncedToLrcString(
+            listOf(
+                com.theveloper.pixelplay.data.model.SyncedLine(
+                    time = 10_000,
+                    line = "Hello world",
+                    translation = "你好世界"
+                ),
+                com.theveloper.pixelplay.data.model.SyncedLine(
+                    time = 20_000,
+                    line = "Goodbye"
+                )
+            )
+        )
+
+        assertEquals(
+            "[00:10.00]Hello world\n[00:10.00]你好世界\n[00:20.00]Goodbye",
+            lrc
+        )
     }
 }

@@ -9,12 +9,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class WearVolumeCommand(
     val direction: String,
-    /** Optional absolute volume value (0-100). If set, direction is ignored. */
+    /** Optional absolute volume value in percent (0-100). If set, direction is ignored. */
     val value: Int? = null,
 ) {
     companion object {
         const val UP = "up"
         const val DOWN = "down"
+        const val SET = "set"
         const val QUERY = "query"
     }
 }

@@ -12,13 +12,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.media3.common.Player
+import com.theveloper.pixelplay.data.model.PlaybackQueueSnapshot
 import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.SortOption // Added import
 import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.TransitionSettings
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset // Added import
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.text.get
@@ -68,11 +68,14 @@ constructor(
         private val json: Json // Inyectar Json para serialización
 ) {
 
+    private val backupExcludedKeyNames = setOf(
+        PreferencesKeys.INITIAL_SETUP_DONE.name
+    )
+
     private object PreferencesKeys {
         val APP_REBRAND_DIALOG_SHOWN = booleanPreferencesKey("app_rebrand_dialog_shown")
-        val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
-        val GEMINI_MODEL = stringPreferencesKey("gemini_model")
-        val GEMINI_SYSTEM_PROMPT = stringPreferencesKey("gemini_system_prompt")
+        val BETA_05_CLEAN_INSTALL_DISCLAIMER_DISMISSED =
+            booleanPreferencesKey("beta_05_clean_install_disclaimer_dismissed")
         val ALLOWED_DIRECTORIES = stringSetPreferencesKey("allowed_directories")
         val BLOCKED_DIRECTORIES = stringSetPreferencesKey("blocked_directories")
         val INITIAL_SETUP_DONE = booleanPreferencesKey("initial_setup_done")
@@ -112,6 +115,7 @@ constructor(
         val LIBRARY_TABS_ORDER = stringPreferencesKey("library_tabs_order")
         val IS_FOLDER_FILTER_ACTIVE = booleanPreferencesKey("is_folder_filter_active")
         val IS_FOLDERS_PLAYLIST_VIEW = booleanPreferencesKey("is_folders_playlist_view")
+        val SHOW_TELEGRAM_CLOUD_PLAYLISTS = booleanPreferencesKey("show_telegram_cloud_playlists")
         val FOLDERS_SOURCE = stringPreferencesKey("folders_source")
         val FOLDER_BACK_GESTURE_NAVIGATION = booleanPreferencesKey("folder_back_gesture_navigation")
         val USE_SMOOTH_CORNERS = booleanPreferencesKey("use_smooth_corners")
@@ -124,8 +128,9 @@ constructor(
         val IS_SHUFFLE_ON = booleanPreferencesKey("is_shuffle_on")
         val PERSISTENT_SHUFFLE_ENABLED = booleanPreferencesKey("persistent_shuffle_enabled")
         val DISABLE_CAST_AUTOPLAY = booleanPreferencesKey("disable_cast_autoplay")
-        val AUTO_RESUME_ON_HEADSET_CONNECT = booleanPreferencesKey("auto_resume_on_headset_connect")
+        val RESUME_ON_HEADSET_RECONNECT = booleanPreferencesKey("resume_on_headset_reconnect")
         val SHOW_QUEUE_HISTORY = booleanPreferencesKey("show_queue_history")
+        val PLAYBACK_QUEUE_SNAPSHOT = stringPreferencesKey("playback_queue_snapshot_v1")
         val FULL_PLAYER_SHOW_FILE_INFO = booleanPreferencesKey("full_player_show_file_info")
         val FULL_PLAYER_DELAY_ALL = booleanPreferencesKey("full_player_delay_all")
         val FULL_PLAYER_DELAY_ALBUM = booleanPreferencesKey("full_player_delay_album")
@@ -191,6 +196,8 @@ constructor(
         val IMMERSIVE_LYRICS_ENABLED = booleanPreferencesKey("immersive_lyrics_enabled")
         val IMMERSIVE_LYRICS_TIMEOUT = longPreferencesKey("immersive_lyrics_timeout")
         val USE_ANIMATED_LYRICS = booleanPreferencesKey("use_animated_lyrics")
+        val ANIMATED_LYRICS_BLUR_ENABLED = booleanPreferencesKey("animated_lyrics_blur_enabled")
+        val ANIMATED_LYRICS_BLUR_STRENGTH = androidx.datastore.preferences.core.floatPreferencesKey("animated_lyrics_blur_strength")
         
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
@@ -212,12 +219,6 @@ constructor(
         // ReplayGain
         val REPLAYGAIN_ENABLED = booleanPreferencesKey("replaygain_enabled")
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
-        
-        // AI Provider Settings
-        val AI_PROVIDER = stringPreferencesKey("ai_provider")
-        val DEEPSEEK_API_KEY = stringPreferencesKey("deepseek_api_key")
-        val DEEPSEEK_MODEL = stringPreferencesKey("deepseek_model")
-        val DEEPSEEK_SYSTEM_PROMPT = stringPreferencesKey("deepseek_system_prompt")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -228,6 +229,17 @@ constructor(
     suspend fun setAppRebrandDialogShown(wasShown: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_REBRAND_DIALOG_SHOWN] = wasShown
+        }
+    }
+
+    val beta05CleanInstallDisclaimerDismissedFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.BETA_05_CLEAN_INSTALL_DISCLAIMER_DISMISSED] ?: false
+        }
+
+    suspend fun setBeta05CleanInstallDisclaimerDismissed(dismissed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BETA_05_CLEAN_INSTALL_DISCLAIMER_DISMISSED] = dismissed
         }
     }
 
@@ -242,70 +254,6 @@ constructor(
         }
     }
 
-    // Effects Settings
-    val bassBoostEnabledFlow: Flow<Boolean> =
-        dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.BASS_BOOST_ENABLED] ?: false
-        }
-
-    suspend fun setBassBoostEnabled(enabled: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.BASS_BOOST_ENABLED] = enabled }
-    }
-
-    val virtualizerEnabledFlow: Flow<Boolean> =
-        dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.VIRTUALIZER_ENABLED] ?: false
-        }
-
-    suspend fun setVirtualizerEnabled(enabled: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.VIRTUALIZER_ENABLED] = enabled }
-    }
-
-    val loudnessEnhancerEnabledFlow: Flow<Boolean> =
-        dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.LOUDNESS_ENHANCER_ENABLED] ?: false
-        }
-
-    val loudnessEnhancerStrengthFlow: Flow<Int> =
-        dataStore.data.map { preferences ->
-            (preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] ?: 0).coerceIn(0, 1000)
-        }
-
-    suspend fun setLoudnessEnhancerEnabled(enabled: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.LOUDNESS_ENHANCER_ENABLED] = enabled }
-    }
-
-    suspend fun setLoudnessEnhancerStrength(strength: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] = strength.coerceIn(0, 1000)
-        }
-    }
-
-    // Dismissed Warning Flows & Setters
-    val bassBoostDismissedFlow: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.BASS_BOOST_DISMISSED] ?: false
-    }
-
-    suspend fun setBassBoostDismissed(dismissed: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.BASS_BOOST_DISMISSED] = dismissed }
-    }
-
-    val virtualizerDismissedFlow: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.VIRTUALIZER_DISMISSED] ?: false
-    }
-
-    suspend fun setVirtualizerDismissed(dismissed: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.VIRTUALIZER_DISMISSED] = dismissed }
-    }
-
-    val loudnessDismissedFlow: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.LOUDNESS_DISMISSED] ?: false
-    }
-
-    suspend fun setLoudnessDismissed(dismissed: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.LOUDNESS_DISMISSED] = dismissed }
-    }
-
     val backupInfoDismissedFlow: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.BACKUP_INFO_DISMISSED] ?: false
     }
@@ -316,27 +264,6 @@ constructor(
 
     enum class EqualizerViewMode {
         SLIDERS, GRAPH, HYBRID
-    }
-
-    val equalizerViewModeFlow: Flow<EqualizerViewMode> = dataStore.data.map { preferences ->
-        val modeString = preferences[PreferencesKeys.VIEW_MODE]
-        if (modeString != null) {
-            try {
-                EqualizerViewMode.valueOf(modeString)
-            } catch (e: Exception) {
-                EqualizerViewMode.SLIDERS
-            }
-        } else {
-            // Migration: Check legacy boolean
-            val isGraph = preferences[booleanPreferencesKey("is_graph_view")] ?: false
-            if (isGraph) EqualizerViewMode.GRAPH else EqualizerViewMode.SLIDERS
-        }
-    }
-
-    suspend fun setEqualizerViewMode(mode: EqualizerViewMode) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.VIEW_MODE] = mode.name
-        }
     }
 
     val crossfadeDurationFlow: Flow<Int> =
@@ -419,6 +346,27 @@ constructor(
 
     suspend fun setPersistentShuffleEnabled(enabled: Boolean) {
         dataStore.edit { preferences -> preferences[PreferencesKeys.PERSISTENT_SHUFFLE_ENABLED] = enabled }
+    }
+
+    val playbackQueueSnapshotFlow: Flow<PlaybackQueueSnapshot?> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.PLAYBACK_QUEUE_SNAPSHOT]?.let { raw ->
+                    runCatching { json.decodeFromString<PlaybackQueueSnapshot>(raw) }.getOrNull()
+                }
+            }
+
+    suspend fun getPlaybackQueueSnapshotOnce(): PlaybackQueueSnapshot? {
+        return playbackQueueSnapshotFlow.first()
+    }
+
+    suspend fun setPlaybackQueueSnapshot(snapshot: PlaybackQueueSnapshot?) {
+        dataStore.edit { preferences ->
+            if (snapshot == null || snapshot.items.isEmpty()) {
+                preferences.remove(PreferencesKeys.PLAYBACK_QUEUE_SNAPSHOT)
+            } else {
+                preferences[PreferencesKeys.PLAYBACK_QUEUE_SNAPSHOT] = json.encodeToString(snapshot)
+            }
+        }
     }
 
     // ===== Multi-Artist Settings =====
@@ -777,24 +725,6 @@ constructor(
                 preferences[PreferencesKeys.INITIAL_SETUP_DONE] ?: false
             }
 
-    val playerThemePreferenceFlow: Flow<String> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.PLAYER_THEME_PREFERENCE]
-                        ?: ThemePreference.ALBUM_ART // Default to Album Art
-            }
-
-    val albumArtPaletteStyleFlow: Flow<AlbumArtPaletteStyle> =
-            dataStore.data.map { preferences ->
-                AlbumArtPaletteStyle.fromStorageKey(
-                    preferences[PreferencesKeys.ALBUM_ART_PALETTE_STYLE]
-                )
-            }
-
-    val appThemeModeFlow: Flow<String> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.APP_THEME_MODE] ?: AppThemeMode.FOLLOW_SYSTEM
-            }
-
     val keepPlayingInBackgroundFlow: Flow<Boolean> =
             dataStore.data.map { preferences ->
                 preferences[PreferencesKeys.KEEP_PLAYING_IN_BACKGROUND] ?: true
@@ -805,9 +735,9 @@ constructor(
                 preferences[PreferencesKeys.DISABLE_CAST_AUTOPLAY] ?: false
             }
 
-    val autoResumeOnHeadsetConnectFlow: Flow<Boolean> =
+    val resumeOnHeadsetReconnectFlow: Flow<Boolean> =
             dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.AUTO_RESUME_ON_HEADSET_CONNECT] ?: false
+                preferences[PreferencesKeys.RESUME_ON_HEADSET_RECONNECT] ?: false
             }
 
     val showQueueHistoryFlow: Flow<Boolean> =
@@ -878,192 +808,23 @@ constructor(
                 }
             }
 
-    val userPlaylistsFlow: Flow<List<Playlist>> =
+    // Legacy DataStore playlist payload kept only for one-time migration and old backup compatibility.
+    val legacyUserPlaylistsFlow: Flow<List<Playlist>> =
             dataStore.data.map { preferences ->
                 val jsonString = preferences[PreferencesKeys.USER_PLAYLISTS]
                 if (jsonString != null) {
-                    try {
-                        json.decodeFromString<List<Playlist>>(jsonString)
-                    } catch (e: Exception) {
-                        // Error al deserializar, devolver lista vacía o manejar error
-                        emptyList()
-                    }
+                    runCatching { json.decodeFromString<List<Playlist>>(jsonString) }
+                        .getOrDefault(emptyList())
                 } else {
                     emptyList()
                 }
             }
 
-    private suspend fun savePlaylists(playlists: List<Playlist>) {
+    suspend fun getLegacyUserPlaylistsOnce(): List<Playlist> = legacyUserPlaylistsFlow.first()
+
+    suspend fun clearLegacyUserPlaylists() {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.USER_PLAYLISTS] = json.encodeToString(playlists)
-        }
-    }
-
-    suspend fun createPlaylist(
-            name: String,
-            songIds: List<String> = emptyList(),
-            isAiGenerated: Boolean = false,
-            isQueueGenerated: Boolean = false,
-            coverImageUri: String? = null,
-            coverColorArgb: Int? = null,
-            coverIconName: String? = null,
-            coverShapeType: String? = null,
-            coverShapeDetail1: Float? = null,
-            coverShapeDetail2: Float? = null,
-            coverShapeDetail3: Float? = null,
-            coverShapeDetail4: Float? = null,
-            customId: String? = null,  // Support custom ID for NetEase sync de-duplication
-            source: String = "LOCAL"   // Source tag
-    ): Playlist {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val newPlaylist =
-                Playlist(
-                        id = customId ?: UUID.randomUUID().toString(),  // Use custom ID or UUID
-                        name = name,
-                        songIds = songIds,
-                        isAiGenerated = isAiGenerated,
-                        isQueueGenerated = isQueueGenerated,
-                        coverImageUri = coverImageUri,
-                        coverColorArgb = coverColorArgb,
-                        coverIconName = coverIconName,
-                        coverShapeType = coverShapeType,
-                        coverShapeDetail1 = coverShapeDetail1,
-                        coverShapeDetail2 = coverShapeDetail2,
-                        coverShapeDetail3 = coverShapeDetail3,
-                        coverShapeDetail4 = coverShapeDetail4,
-                        source = source // Set source
-                )
-        currentPlaylists.add(newPlaylist)
-        savePlaylists(currentPlaylists)
-        return newPlaylist
-    }
-
-    suspend fun deletePlaylist(playlistId: String) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        currentPlaylists.removeAll { it.id == playlistId }
-        savePlaylists(currentPlaylists)
-        clearPlaylistSongOrderMode(playlistId)
-    }
-
-    suspend fun renamePlaylist(playlistId: String, newName: String) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val index = currentPlaylists.indexOfFirst { it.id == playlistId }
-        if (index != -1) {
-            currentPlaylists[index] =
-                    currentPlaylists[index].copy(
-                            name = newName,
-                            lastModified = System.currentTimeMillis()
-                    )
-            savePlaylists(currentPlaylists)
-        }
-    }
-
-    suspend fun updatePlaylist(playlist: Playlist) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val index = currentPlaylists.indexOfFirst { it.id == playlist.id }
-        if (index != -1) {
-            currentPlaylists[index] = playlist.copy(lastModified = System.currentTimeMillis())
-            savePlaylists(currentPlaylists)
-        }
-    }
-
-    suspend fun addSongsToPlaylist(playlistId: String, songIdsToAdd: List<String>) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val index = currentPlaylists.indexOfFirst { it.id == playlistId }
-        if (index != -1) {
-            val playlist = currentPlaylists[index]
-            // Evitar duplicados, añadir solo los nuevos
-            val newSongIds = (playlist.songIds + songIdsToAdd).distinct()
-            currentPlaylists[index] =
-                    playlist.copy(songIds = newSongIds, lastModified = System.currentTimeMillis())
-            savePlaylists(currentPlaylists)
-        }
-    }
-
-    /*
-     * @param playlistIds playlistIds Ids of playlists to add the song to
-     * will remove song from the playlists which are not in playlistIds
-     * */
-    suspend fun addOrRemoveSongFromPlaylists(
-            songId: String,
-            playlistIds: List<String>
-    ): MutableList<String> {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val removedPlaylistIds = mutableListOf<String>()
-
-        // adding to playlist if not already in
-        playlistIds.forEach { playlistId ->
-            val index = currentPlaylists.indexOfFirst { it.id == playlistId }
-            if (index != -1) {
-                val playlist = currentPlaylists[index]
-                if (playlist.songIds.contains(songId)) return@forEach
-                else {
-                    val newSongIds = (playlist.songIds + songId).distinct()
-                    currentPlaylists[index] =
-                            playlist.copy(
-                                    songIds = newSongIds,
-                                    lastModified = System.currentTimeMillis()
-                            )
-                    savePlaylists(currentPlaylists)
-                }
-            }
-        }
-
-        // removing from playlist if not in playlistIds
-        currentPlaylists.forEach { playlist ->
-            if (playlist.songIds.contains(songId) && !playlistIds.contains(playlist.id)) {
-                removeSongFromPlaylist(playlist.id, songId)
-                removedPlaylistIds.add(playlist.id)
-            }
-        }
-        return removedPlaylistIds
-    }
-
-    suspend fun removeSongFromPlaylist(playlistId: String, songIdToRemove: String) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val index = currentPlaylists.indexOfFirst { it.id == playlistId }
-        if (index != -1) {
-            val playlist = currentPlaylists[index]
-            currentPlaylists[index] =
-                    playlist.copy(
-                            songIds = playlist.songIds.filterNot { it == songIdToRemove },
-                            lastModified = System.currentTimeMillis()
-                    )
-            savePlaylists(currentPlaylists)
-        }
-    }
-
-    suspend fun removeSongFromAllPlaylists(songId: String) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        var updated = false
-
-        // Iterate through all playlists and remove the song
-        currentPlaylists.forEachIndexed { index, playlist ->
-            if (playlist.songIds.contains(songId)) {
-                currentPlaylists[index] =
-                        playlist.copy(
-                                songIds = playlist.songIds.filterNot { it == songId },
-                                lastModified = System.currentTimeMillis()
-                        )
-                updated = true
-            }
-        }
-
-        if (updated) {
-            savePlaylists(currentPlaylists)
-        }
-    }
-
-    suspend fun reorderSongsInPlaylist(playlistId: String, newSongOrderIds: List<String>) {
-        val currentPlaylists = userPlaylistsFlow.first().toMutableList()
-        val index = currentPlaylists.indexOfFirst { it.id == playlistId }
-        if (index != -1) {
-            currentPlaylists[index] =
-                    currentPlaylists[index].copy(
-                            songIds = newSongOrderIds,
-                            lastModified = System.currentTimeMillis()
-                    )
-            savePlaylists(currentPlaylists)
+            preferences.remove(PreferencesKeys.USER_PLAYLISTS)
         }
     }
 
@@ -1080,6 +841,16 @@ constructor(
             updated[playlistId] = modeValue
 
             preferences[PreferencesKeys.PLAYLIST_SONG_ORDER_MODES] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun setPlaylistSongOrderModes(modes: Map<String, String>) {
+        dataStore.edit { preferences ->
+            if (modes.isEmpty()) {
+                preferences.remove(PreferencesKeys.PLAYLIST_SONG_ORDER_MODES)
+            } else {
+                preferences[PreferencesKeys.PLAYLIST_SONG_ORDER_MODES] = json.encodeToString(modes)
+            }
         }
     }
 
@@ -1124,22 +895,6 @@ constructor(
         }
     }
 
-    suspend fun setPlayerThemePreference(themeMode: String) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.PLAYER_THEME_PREFERENCE] = themeMode
-        }
-    }
-
-    suspend fun setAlbumArtPaletteStyle(style: AlbumArtPaletteStyle) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.ALBUM_ART_PALETTE_STYLE] = style.storageKey
-        }
-    }
-
-    suspend fun setAppThemeMode(themeMode: String) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.APP_THEME_MODE] = themeMode }
-    }
-
     suspend fun toggleFavoriteSong(
             songId: String,
             removing: Boolean = false
@@ -1165,6 +920,12 @@ constructor(
             } else {
                 currentFavorites - songId
             }
+        }
+    }
+
+    suspend fun clearFavoriteSongIds() {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FAVORITE_SONG_IDS] = emptySet()
         }
     }
 
@@ -1365,94 +1126,9 @@ constructor(
         dataStore.edit { preferences -> preferences[PreferencesKeys.MOCK_GENRES_ENABLED] = enabled }
     }
 
-    val geminiApiKey: Flow<String> =
-            dataStore.data.map { preferences -> preferences[PreferencesKeys.GEMINI_API_KEY] ?: "" }
-
-    suspend fun setGeminiApiKey(apiKey: String) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.GEMINI_API_KEY] = apiKey }
-    }
-
-    val geminiModel: Flow<String> =
-            dataStore.data.map { preferences -> preferences[PreferencesKeys.GEMINI_MODEL] ?: "" }
-
-    suspend fun setGeminiModel(model: String) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.GEMINI_MODEL] = model }
-    }
-
     companion object {
-        const val DEFAULT_SYSTEM_PROMPT =
-                "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
-        const val DEFAULT_DEEPSEEK_SYSTEM_PROMPT =
-            "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
-
         /** Default delimiters for splitting multi-artist tags */
         val DEFAULT_ARTIST_DELIMITERS = listOf("/", ";", ",", "+", "&")
-    }
-
-    val geminiSystemPrompt: Flow<String> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.GEMINI_SYSTEM_PROMPT] ?: DEFAULT_SYSTEM_PROMPT
-            }
-
-    suspend fun setGeminiSystemPrompt(prompt: String) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.GEMINI_SYSTEM_PROMPT] = prompt }
-    }
-
-    suspend fun resetGeminiSystemPrompt() {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.GEMINI_SYSTEM_PROMPT] = DEFAULT_SYSTEM_PROMPT
-        }
-    }
-
-    // AI Provider Settings
-    val aiProvider: Flow<String> =
-        dataStore.data.map { preferences -> 
-            preferences[PreferencesKeys.AI_PROVIDER] ?: "GEMINI"
-        }
-    
-    suspend fun setAiProvider(provider: String) {
-        dataStore.edit { preferences -> 
-            preferences[PreferencesKeys.AI_PROVIDER] = provider 
-        }
-    }
-    
-    val deepseekApiKey: Flow<String> =
-        dataStore.data.map { preferences -> 
-            preferences[PreferencesKeys.DEEPSEEK_API_KEY] ?: "" 
-        }
-    
-    suspend fun setDeepseekApiKey(apiKey: String) {
-        dataStore.edit { preferences -> 
-            preferences[PreferencesKeys.DEEPSEEK_API_KEY] = apiKey 
-        }
-    }
-    
-    val deepseekModel: Flow<String> =
-        dataStore.data.map { preferences -> 
-            preferences[PreferencesKeys.DEEPSEEK_MODEL] ?: "" 
-        }
-    
-    suspend fun setDeepseekModel(model: String) {
-        dataStore.edit { preferences -> 
-            preferences[PreferencesKeys.DEEPSEEK_MODEL] = model 
-        }
-    }
-
-    val deepseekSystemPrompt: Flow<String> =
-        dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.DEEPSEEK_SYSTEM_PROMPT] ?: DEFAULT_DEEPSEEK_SYSTEM_PROMPT
-        }
-
-    suspend fun setDeepseekSystemPrompt(prompt: String) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DEEPSEEK_SYSTEM_PROMPT] = prompt
-        }
-    }
-
-    suspend fun resetDeepseekSystemPrompt() {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DEEPSEEK_SYSTEM_PROMPT] = DEFAULT_DEEPSEEK_SYSTEM_PROMPT
-        }
     }
 
     val navBarCornerRadiusFlow: Flow<Int> =
@@ -1517,9 +1193,9 @@ constructor(
         }
     }
 
-    suspend fun setAutoResumeOnHeadsetConnect(enabled: Boolean) {
+    suspend fun setResumeOnHeadsetReconnect(enabled: Boolean) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AUTO_RESUME_ON_HEADSET_CONNECT] = enabled
+            preferences[PreferencesKeys.RESUME_ON_HEADSET_RECONNECT] = enabled
         }
     }
 
@@ -1616,6 +1292,29 @@ constructor(
         }
     }
 
+    val animatedLyricsBlurEnabledFlow: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.ANIMATED_LYRICS_BLUR_ENABLED] ?: true
+        }
+
+    suspend fun setAnimatedLyricsBlurEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANIMATED_LYRICS_BLUR_ENABLED] = enabled
+        }
+    }
+
+    // Range should ideally be 0.0f to 5.0f (or similar)
+    val animatedLyricsBlurStrengthFlow: Flow<Float> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.ANIMATED_LYRICS_BLUR_STRENGTH] ?: 2.5f
+        }
+
+    suspend fun setAnimatedLyricsBlurStrength(strength: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANIMATED_LYRICS_BLUR_STRENGTH] = strength
+        }
+    }
+
     val libraryTabsOrderFlow: Flow<String?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.LIBRARY_TABS_ORDER]
@@ -1670,6 +1369,11 @@ constructor(
             preferences[PreferencesKeys.IS_FOLDERS_PLAYLIST_VIEW] ?: false
         }
 
+    val showTelegramCloudPlaylistsFlow: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.SHOW_TELEGRAM_CLOUD_PLAYLISTS] ?: true
+        }
+
     val foldersSourceFlow: Flow<FolderSource> = dataStore.data
         .map { preferences ->
             FolderSource.fromStorageKey(preferences[PreferencesKeys.FOLDERS_SOURCE])
@@ -1697,6 +1401,12 @@ constructor(
         }
     }
 
+    suspend fun setShowTelegramCloudPlaylists(show: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_TELEGRAM_CLOUD_PLAYLISTS] = show
+        }
+    }
+
     suspend fun setFoldersSource(source: FolderSource) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.FOLDERS_SOURCE] = source.storageKey
@@ -1706,187 +1416,6 @@ constructor(
     suspend fun setFolderBackGestureNavigation(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.FOLDER_BACK_GESTURE_NAVIGATION] = enabled
-        }
-    }
-
-    // ===== Equalizer Settings =====
-
-    val equalizerEnabledFlow: Flow<Boolean> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.EQUALIZER_ENABLED] ?: false
-            }
-
-    suspend fun setEqualizerEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.EQUALIZER_ENABLED] = enabled
-        }
-    }
-
-    val equalizerPresetFlow: Flow<String> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.EQUALIZER_PRESET] ?: "flat"
-            }
-
-    suspend fun setEqualizerPreset(preset: String) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.EQUALIZER_PRESET] = preset
-        }
-    }
-
-    val equalizerCustomBandsFlow: Flow<List<Int>> =
-            dataStore.data.map { preferences ->
-                val stored = preferences[PreferencesKeys.EQUALIZER_CUSTOM_BANDS]
-                if (stored != null) {
-                    try {
-                        val decoded = json.decodeFromString<List<Int>>(stored)
-                        when {
-                            decoded.size >= 10 -> decoded.take(10)
-                            decoded.isEmpty() -> List(10) { 0 }
-                            else -> decoded + List(10 - decoded.size) { 0 }
-                        }
-                    } catch (e: Exception) {
-                        List(10) { 0 }
-                    }
-                } else {
-                    List(10) { 0 }
-                }
-            }
-
-    suspend fun setEqualizerCustomBands(bands: List<Int>) {
-        dataStore.edit { preferences ->
-            val normalized = when {
-                bands.size >= 10 -> bands.take(10)
-                bands.isEmpty() -> List(10) { 0 }
-                else -> bands + List(10 - bands.size) { 0 }
-            }
-            preferences[PreferencesKeys.EQUALIZER_CUSTOM_BANDS] = json.encodeToString(normalized)
-        }
-    }
-
-    val bassBoostStrengthFlow: Flow<Int> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.BASS_BOOST_STRENGTH] ?: 0
-            }
-
-    suspend fun setBassBoostStrength(strength: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.BASS_BOOST_STRENGTH] = strength.coerceIn(0, 1000)
-        }
-    }
-
-    val virtualizerStrengthFlow: Flow<Int> =
-            dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.VIRTUALIZER_STRENGTH] ?: 0
-            }
-
-    suspend fun setVirtualizerStrength(strength: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.VIRTUALIZER_STRENGTH] = strength.coerceIn(0, 1000)
-        }
-    }
-
-    // ===== End Equalizer Settings =====
-    // ===== Custom Presets Persistence =====
-
-    val customPresetsFlow: Flow<List<EqualizerPreset>> =
-        dataStore.data.map { preferences ->
-            val jsonString = preferences[PreferencesKeys.CUSTOM_PRESETS]
-            if (jsonString != null) {
-                try {
-                    json.decodeFromString<List<EqualizerPreset>>(jsonString)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } else {
-                emptyList()
-            }
-        }
-        
-    suspend fun saveCustomPreset(preset: EqualizerPreset) {
-        val current = customPresetsFlow.first().toMutableList()
-        // Remove existing if overwriting (by name)
-        current.removeAll { it.name == preset.name }
-        current.add(preset)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-    }
-    
-    suspend fun deleteCustomPreset(presetName: String) {
-        val current = customPresetsFlow.first().toMutableList()
-        current.removeAll { it.name == presetName }
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-        
-        // Also remove from pinned if present
-        val pinned = pinnedPresetsFlow.first().toMutableList()
-        if (pinned.remove(presetName)) {
-            setPinnedPresets(pinned)
-        }
-    }
-    
-    suspend fun renameCustomPreset(oldName: String, newName: String) {
-        val current = customPresetsFlow.first().toMutableList()
-        val index = current.indexOfFirst { it.name == oldName }
-        if (index == -1) return
-        
-        current[index] = current[index].copy(name = newName, displayName = newName)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-        
-        val pinned = pinnedPresetsFlow.first().toMutableList()
-        val pinnedIndex = pinned.indexOf(oldName)
-        if (pinnedIndex != -1) {
-            pinned[pinnedIndex] = newName
-            setPinnedPresets(pinned)
-        }
-        
-        val activePreset = dataStore.data.first()[PreferencesKeys.EQUALIZER_PRESET]
-        if (activePreset == oldName) {
-            dataStore.edit { preferences ->
-                preferences[PreferencesKeys.EQUALIZER_PRESET] = newName
-            }
-        }
-    }
-    
-    suspend fun updateCustomPresetBands(presetName: String, bandLevels: List<Int>) {
-        val current = customPresetsFlow.first().toMutableList()
-        val index = current.indexOfFirst { it.name == presetName }
-        if (index == -1) return
-        
-        current[index] = current[index].copy(bandLevels = bandLevels)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-    }
-    
-    // ===== Pinned Presets Persistence =====
-    
-    val pinnedPresetsFlow: Flow<List<String>> =
-        dataStore.data.map { preferences ->
-            val jsonString = preferences[PreferencesKeys.PINNED_PRESETS]
-            if (jsonString != null) {
-                try {
-                    json.decodeFromString<List<String>>(jsonString)
-                } catch (e: Exception) {
-                    // Default pinned: All standard presets
-                    EqualizerPreset.ALL_PRESETS.map { it.name }
-                }
-            } else {
-                 // Default pinned: All standard presets
-                 EqualizerPreset.ALL_PRESETS.map { it.name }
-            }
-        }
-        
-    suspend fun setPinnedPresets(presetNames: List<String>) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.PINNED_PRESETS] = json.encodeToString(presetNames)
         }
     }
 
@@ -1943,7 +1472,7 @@ constructor(
         if (keyNames.isEmpty()) return
         dataStore.edit { preferences ->
             preferences.asMap().keys
-                .filter { key -> key.name in keyNames }
+                .filter { key -> key.name in keyNames && key.name !in backupExcludedKeyNames }
                 .forEach { key ->
                     @Suppress("UNCHECKED_CAST")
                     preferences.remove(key as Preferences.Key<Any>)
@@ -1952,9 +1481,10 @@ constructor(
     }
 
     suspend fun clearPreferencesExceptKeys(excludedKeyNames: Set<String>) {
+        val protectedKeyNames = excludedKeyNames + backupExcludedKeyNames
         dataStore.edit { preferences ->
             preferences.asMap().keys
-                .filterNot { key -> key.name in excludedKeyNames }
+                .filterNot { key -> key.name in protectedKeyNames }
                 .forEach { key ->
                     @Suppress("UNCHECKED_CAST")
                     preferences.remove(key as Preferences.Key<Any>)
@@ -1966,6 +1496,9 @@ constructor(
         val snapshot = dataStore.data.first().asMap()
         return snapshot.mapNotNull { (key, value) ->
             val keyName = key.name
+            if (keyName in backupExcludedKeyNames) {
+                return@mapNotNull null
+            }
             when (value) {
                 is String -> PreferenceBackupEntry(
                     key = keyName,
@@ -2016,10 +1549,18 @@ constructor(
     ) {
         dataStore.edit { preferences ->
             if (clearExisting) {
-                preferences.clear()
+                preferences.asMap().keys
+                    .filterNot { key -> key.name in backupExcludedKeyNames }
+                    .forEach { key ->
+                        @Suppress("UNCHECKED_CAST")
+                        preferences.remove(key as Preferences.Key<Any>)
+                    }
             }
 
             entries.forEach { entry ->
+                if (entry.key in backupExcludedKeyNames) {
+                    return@forEach
+                }
                 when (entry.type) {
                     "string" -> {
                         val value = entry.stringValue ?: return@forEach

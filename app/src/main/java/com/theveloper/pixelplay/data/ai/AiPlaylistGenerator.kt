@@ -2,7 +2,7 @@ package com.theveloper.pixelplay.data.ai
 
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import kotlinx.coroutines.flow.first
@@ -11,7 +11,7 @@ import javax.inject.Inject
 import kotlin.math.max
 
 class AiPlaylistGenerator @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val aiPreferencesRepository: AiPreferencesRepository,
     private val dailyMixManager: DailyMixManager,
     private val aiClientFactory: AiClientFactory,
     private val json: Json
@@ -33,13 +33,13 @@ class AiPlaylistGenerator @Inject constructor(
     ): Result<List<Song>> {
         return try {
             // Get AI provider and create client
-            val providerName = userPreferencesRepository.aiProvider.first()
+            val providerName = aiPreferencesRepository.aiProvider.first()
             val provider = AiProvider.fromString(providerName)
             
             // Get API key based on provider
             val apiKey = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiApiKey.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekApiKey.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiApiKey.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekApiKey.first()
             }
             
             if (apiKey.isBlank()) {
@@ -60,8 +60,8 @@ class AiPlaylistGenerator @Inject constructor(
 
             // Get model based on provider
             val selectedModel = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiModel.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekModel.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiModel.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekModel.first()
             }
             val modelName = selectedModel.ifBlank { aiClient.getDefaultModel() }
 
@@ -98,8 +98,8 @@ class AiPlaylistGenerator @Inject constructor(
 
             // Get provider-specific custom system prompt from user preferences
             val customSystemPrompt = when (provider) {
-                AiProvider.GEMINI -> userPreferencesRepository.geminiSystemPrompt.first()
-                AiProvider.DEEPSEEK -> userPreferencesRepository.deepseekSystemPrompt.first()
+                AiProvider.GEMINI -> aiPreferencesRepository.geminiSystemPrompt.first()
+                AiProvider.DEEPSEEK -> aiPreferencesRepository.deepseekSystemPrompt.first()
             }
 
             // Build the task-specific instructions

@@ -6,11 +6,14 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.os.Bundle
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.core.net.toUri
 import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastContext
@@ -20,22 +23,34 @@ import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
 import com.google.common.util.concurrent.ListenableFuture
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.session.SessionCommand
 import androidx.core.content.ContextCompat
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
+import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.ThemePreference
+import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.service.MusicService
 import com.theveloper.pixelplay.data.service.MusicNotificationProvider
 import com.theveloper.pixelplay.data.service.player.CastPlayer
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
+import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor
 import com.theveloper.pixelplay.shared.WearBrowseRequest
 import com.theveloper.pixelplay.shared.WearBrowseResponse
 import com.theveloper.pixelplay.shared.WearDataPaths
+import com.theveloper.pixelplay.shared.WearFavoriteStateEntry
+import com.theveloper.pixelplay.shared.WearFavoriteSyncRequest
+import com.theveloper.pixelplay.shared.WearFavoriteSyncResponse
 import com.theveloper.pixelplay.shared.WearLibraryItem
+import com.theveloper.pixelplay.shared.WearLibraryState
 import com.theveloper.pixelplay.shared.WearPlaybackCommand
+import com.theveloper.pixelplay.shared.WearPlaybackResult
+import com.theveloper.pixelplay.shared.WearThemePalette
 import com.theveloper.pixelplay.shared.WearTransferMetadata
 import com.theveloper.pixelplay.shared.WearTransferProgress
 import com.theveloper.pixelplay.shared.WearTransferRequest
@@ -49,8 +64,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
@@ -75,8 +92,12 @@ import kotlin.coroutines.resume
 class WearCommandReceiver : WearableListenerService() {
 
     @Inject lateinit var musicRepository: MusicRepository
-    @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
+    @Inject lateinit var themePreferencesRepository: ThemePreferencesRepository
+    @Inject lateinit var playlistPreferencesRepository: PlaylistPreferencesRepository
     @Inject lateinit var dualPlayerEngine: DualPlayerEngine
+    @Inject lateinit var colorSchemeProcessor: ColorSchemeProcessor
+    @Inject lateinit var transferStateStore: PhoneWatchTransferStateStore
+    @Inject lateinit var transferCancellationStore: PhoneWatchTransferCancellationStore
 
     private val json = Json { ignoreUnknownKeys = true }
     private var mediaController: MediaController? = null
@@ -85,17 +106,15 @@ class WearCommandReceiver : WearableListenerService() {
     private var cachedCastSession: CastSession? = null
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    /** Set of requestIds that have been cancelled by the watch */
-    private val cancelledTransfers = ConcurrentHashMap.newKeySet<String>()
     private val albumPaletteSeedCache = ConcurrentHashMap<Long, Int>()
     private val albumArtworkTransferCache = ConcurrentHashMap<Long, ByteArray>()
 
     companion object {
         private const val TAG = "WearCommandReceiver"
-        private const val MAX_SONGS = 500
+        private const val MAX_BROWSE_SONGS = 500
         private const val MAX_ALBUMS = 200
         private const val MAX_ARTISTS = 200
+        private val EXPLICIT_PLAY_RETRY_DELAYS_MS = longArrayOf(180L, 700L)
         private const val TRANSFER_CHUNK_SIZE = 8192
         private const val PROGRESS_UPDATE_INTERVAL_BYTES = 65536L
         private const val TRANSFER_ARTWORK_MAX_DIMENSION = 1024
@@ -115,9 +134,55 @@ class WearCommandReceiver : WearableListenerService() {
             WearDataPaths.PLAYBACK_COMMAND -> handlePlaybackCommand(messageEvent)
             WearDataPaths.VOLUME_COMMAND -> handleVolumeCommand(messageEvent)
             WearDataPaths.BROWSE_REQUEST -> handleBrowseRequest(messageEvent)
-            WearDataPaths.TRANSFER_REQUEST -> handleTransferRequest(messageEvent)
+            WearDataPaths.TRANSFER_REQUEST -> runBlocking(Dispatchers.IO) {
+                handleTransferRequest(messageEvent)
+            }
+            WearDataPaths.TRANSFER_PROGRESS -> handleWatchTransferProgress(messageEvent)
             WearDataPaths.TRANSFER_CANCEL -> handleTransferCancel(messageEvent)
+            WearDataPaths.WATCH_LIBRARY_STATE -> handleWatchLibraryState(messageEvent)
+            WearDataPaths.FAVORITES_SYNC_REQUEST -> handleFavoriteSyncRequest(messageEvent)
             else -> Timber.tag(TAG).w("Unknown message path: ${messageEvent.path}")
+        }
+    }
+
+    private fun handleWatchLibraryState(messageEvent: MessageEvent) {
+        val libraryStateJson = String(messageEvent.data, Charsets.UTF_8)
+        runCatching {
+            json.decodeFromString<WearLibraryState>(libraryStateJson)
+        }.onSuccess { libraryState ->
+            transferStateStore.updateWatchSongIds(
+                nodeId = messageEvent.sourceNodeId,
+                songIds = libraryState.songIds.toSet(),
+            )
+        }.onFailure { error ->
+            Timber.tag(TAG).e(error, "Failed to parse watch library state")
+        }
+    }
+
+    private fun handleWatchTransferProgress(messageEvent: MessageEvent) {
+        val progressJson = String(messageEvent.data, Charsets.UTF_8)
+        runCatching {
+            json.decodeFromString<WearTransferProgress>(progressJson)
+        }.onSuccess { progress ->
+            transferStateStore.markProgress(
+                requestId = progress.requestId,
+                songId = progress.songId,
+                bytesTransferred = progress.bytesTransferred,
+                totalBytes = progress.totalBytes,
+                status = progress.status,
+                error = progress.error,
+            )
+            if (
+                progress.status == WearTransferProgress.STATUS_FAILED &&
+                progress.error == WearTransferProgress.ERROR_ALREADY_ON_WATCH
+            ) {
+                transferStateStore.markSongPresentOnWatch(
+                    nodeId = messageEvent.sourceNodeId,
+                    songId = progress.songId,
+                )
+            }
+        }.onFailure { error ->
+            Timber.tag(TAG).e(error, "Failed to parse watch transfer progress")
         }
     }
 
@@ -132,7 +197,18 @@ class WearCommandReceiver : WearableListenerService() {
 
         Timber.tag(TAG).d("Playback command: ${command.action}")
 
+        if (
+            command.action == WearPlaybackCommand.TOGGLE_FAVORITE &&
+            !command.songId.isNullOrBlank()
+        ) {
+            handleSongFavoriteCommand(command, messageEvent.sourceNodeId)
+            return
+        }
+
         when (command.action) {
+            WearPlaybackCommand.PLAY_ITEM -> {
+                handlePlayItem(command, messageEvent.sourceNodeId)
+            }
             WearPlaybackCommand.PLAY_FROM_CONTEXT -> {
                 handlePlayFromContext(command)
             }
@@ -209,6 +285,121 @@ class WearCommandReceiver : WearableListenerService() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun handleSongFavoriteCommand(command: WearPlaybackCommand, targetNodeId: String) {
+        val songId = command.songId
+        if (songId.isNullOrBlank()) {
+            scope.launch {
+                sendPlaybackResult(
+                    nodeId = targetNodeId,
+                    requestId = command.requestId,
+                    action = command.action,
+                    songId = null,
+                    success = false,
+                    error = "Missing song id",
+                )
+            }
+            return
+        }
+
+        scope.launch {
+            runCatching {
+                val targetFavoriteState = command.targetEnabled
+                    ?: !musicRepository.getFavoriteSongIdsOnce().contains(songId)
+                musicRepository.setFavoriteStatus(songId, targetFavoriteState)
+                sendPlaybackResult(
+                    nodeId = targetNodeId,
+                    requestId = command.requestId,
+                    action = command.action,
+                    songId = songId,
+                    success = true,
+                )
+            }.onFailure { error ->
+                sendPlaybackResult(
+                    nodeId = targetNodeId,
+                    requestId = command.requestId,
+                    action = command.action,
+                    songId = songId,
+                    success = false,
+                    error = error.message ?: "Failed to update favorite",
+                )
+            }
+        }
+    }
+
+    private fun handlePlayItem(command: WearPlaybackCommand, targetNodeId: String) {
+        val songId = command.songId
+        if (songId.isNullOrBlank()) {
+            scope.launch {
+                sendPlaybackResult(
+                    nodeId = targetNodeId,
+                    requestId = command.requestId,
+                    action = command.action,
+                    songId = null,
+                    success = false,
+                    error = "Missing song id",
+                )
+            }
+            return
+        }
+
+        scope.launch {
+            try {
+                val song = resolveSongById(songId)
+                if (song == null) {
+                    sendPlaybackResult(
+                        nodeId = targetNodeId,
+                        requestId = command.requestId,
+                        action = command.action,
+                        songId = songId,
+                        success = false,
+                        error = "This song is no longer available on phone",
+                    )
+                    return@launch
+                }
+
+                val cloudReady = ensureStartSongCloudUriResolved(song)
+                if (!cloudReady) {
+                    sendPlaybackResult(
+                        nodeId = targetNodeId,
+                        requestId = command.requestId,
+                        action = command.action,
+                        songId = song.id,
+                        success = false,
+                        error = "This song could not be opened on phone",
+                    )
+                    return@launch
+                }
+
+                val mediaItem = MediaItemBuilder.build(song)
+                getOrBuildMediaController { controller ->
+                    startExplicitPlayback(controller, song.id) {
+                        controller.setMediaItem(mediaItem)
+                        controller.prepare()
+                    }
+                    scope.launch {
+                        sendPlaybackResult(
+                            nodeId = targetNodeId,
+                            requestId = command.requestId,
+                            action = command.action,
+                            songId = song.id,
+                            success = true,
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Failed to handle PLAY_ITEM")
+                sendPlaybackResult(
+                    nodeId = targetNodeId,
+                    requestId = command.requestId,
+                    action = command.action,
+                    songId = songId,
+                    success = false,
+                    error = e.message ?: "Failed to start playback on phone",
+                )
             }
         }
     }
@@ -328,8 +519,9 @@ class WearCommandReceiver : WearableListenerService() {
                 Timber.tag(TAG).w("PLAY_QUEUE_INDEX out of bounds: index=$index count=$itemCount")
                 return@getOrBuildMediaController
             }
+            val targetMediaId = controller.getMediaItemAt(index).mediaId
             controller.seekTo(index, C.TIME_UNSET)
-            controller.play()
+            startExplicitPlayback(controller, targetMediaId)
             Timber.tag(TAG).d("Jumped to queue index=$index from wear")
         }
     }
@@ -398,7 +590,7 @@ class WearCommandReceiver : WearableListenerService() {
 
         scope.launch {
             try {
-                val song = resolveSongForCommand(command)
+                val song = resolveSongById(songId)
                 if (song == null) {
                     Timber.tag(TAG).w("Cannot resolve song for queue insert: songId=$songId")
                     return@launch
@@ -446,8 +638,16 @@ class WearCommandReceiver : WearableListenerService() {
                     return@launch
                 }
 
-                val mediaItems = songs.map { MediaItemBuilder.build(it) }
-                val startIndex = songs.indexOfFirst { it.id == songId }.coerceAtLeast(0)
+                val startIndex = songs.indexOfFirst { it.id == songId }
+                if (startIndex < 0) {
+                    Timber.tag(TAG).w(
+                        "PLAY_FROM_CONTEXT song not found inside context: type=%s contextId=%s songId=%s",
+                        contextType,
+                        command.contextId,
+                        songId,
+                    )
+                    return@launch
+                }
                 val startSong = songs[startIndex]
                 val cloudReady = ensureStartSongCloudUriResolved(startSong)
                 if (!cloudReady) {
@@ -457,11 +657,16 @@ class WearCommandReceiver : WearableListenerService() {
                     )
                     return@launch
                 }
+                val mediaItems = buildPlaybackQueueMediaItems(songs)
 
                 getOrBuildMediaController { controller ->
-                    controller.setMediaItems(mediaItems, startIndex, 0L)
-                    controller.prepare()
-                    controller.play()
+                    // Large watch-initiated queues can exceed Binder limits if we send the
+                    // whole timeline through MediaController, so write directly to the player.
+                    val enginePlayer = dualPlayerEngine.masterPlayer
+                    startExplicitPlayback(controller, startSong.id) {
+                        enginePlayer.setMediaItems(mediaItems, startIndex, 0L)
+                        enginePlayer.prepare()
+                    }
                     Timber.tag(TAG).d(
                         "Playing from context: $contextType, song=${songs[startIndex].title}, " +
                             "queue size=${songs.size}"
@@ -482,7 +687,7 @@ class WearCommandReceiver : WearableListenerService() {
     private suspend fun ensureStartSongCloudUriResolved(song: Song): Boolean {
         val originalUri = runCatching { song.contentUriString.toUri() }.getOrNull() ?: return true
         val scheme = originalUri.scheme?.lowercase()
-        if (scheme != "telegram" && scheme != "netease") return true
+        if (scheme != "telegram" && scheme != "netease" && scheme != "qqmusic") return true
 
         return runCatching {
             val resolvedUri = dualPlayerEngine.resolveCloudUri(originalUri)
@@ -507,6 +712,42 @@ class WearCommandReceiver : WearableListenerService() {
         }
     }
 
+    private fun startExplicitPlayback(
+        controller: MediaController,
+        targetMediaId: String,
+        preparePlayback: (() -> Unit)? = null,
+    ) {
+        preparePlayback?.invoke()
+        forceExplicitPlayback(controller, targetMediaId)
+        EXPLICIT_PLAY_RETRY_DELAYS_MS.forEach { delayMs ->
+            mainHandler.postDelayed(
+                {
+                    if (!controller.isConnected) return@postDelayed
+                    forceExplicitPlayback(controller, targetMediaId)
+                },
+                delayMs,
+            )
+        }
+    }
+
+    private fun forceExplicitPlayback(
+        controller: MediaController,
+        targetMediaId: String,
+    ) {
+        val currentMediaId = controller.currentMediaItem?.mediaId.orEmpty()
+        val targetMatchesCurrent = currentMediaId.isBlank() ||
+            targetMediaId.isBlank() ||
+            currentMediaId == targetMediaId
+        if (!targetMatchesCurrent || controller.isPlaying) {
+            return
+        }
+        if (controller.playbackState == Player.STATE_IDLE) {
+            controller.prepare()
+        }
+        controller.playWhenReady = true
+        controller.play()
+    }
+
     /**
      * Get songs for a given context type and optional context ID.
      */
@@ -522,7 +763,7 @@ class WearCommandReceiver : WearableListenerService() {
             }
             "playlist" -> {
                 val playlistId = contextId ?: return emptyList()
-                val playlist = userPreferencesRepository.userPlaylistsFlow.first()
+                val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .find { it.id == playlistId } ?: return emptyList()
                 val songs = musicRepository.getSongsByIds(playlist.songIds).first()
                 // Maintain playlist order
@@ -533,7 +774,8 @@ class WearCommandReceiver : WearableListenerService() {
                 musicRepository.getFavoriteSongsOnce()
             }
             "all_songs" -> {
-                musicRepository.getAllSongsOnce().take(MAX_SONGS)
+                // Playback queues must include the full phone library, even if watch browsing is capped.
+                musicRepository.getAllSongsOnce()
             }
             else -> {
                 Timber.tag(TAG).w("Unknown context type: $contextType")
@@ -542,18 +784,43 @@ class WearCommandReceiver : WearableListenerService() {
         }
     }
 
-    private suspend fun resolveSongForCommand(command: WearPlaybackCommand): Song? {
-        val songId = command.songId ?: return null
-        val contextType = command.contextType
-        val contextId = command.contextId
-
-        if (!contextType.isNullOrBlank()) {
-            val contextSongs = getSongsForContext(contextType, contextId)
-            val inContext = contextSongs.firstOrNull { it.id == songId }
-            if (inContext != null) return inContext
-        }
-
+    private suspend fun resolveSongById(songId: String): Song? {
         return musicRepository.getSongsByIds(listOf(songId)).first().firstOrNull()
+    }
+
+    private suspend fun buildPlaybackQueueMediaItems(songs: List<Song>): List<MediaItem> {
+        return withContext(Dispatchers.Default) {
+            songs.map { MediaItemBuilder.build(it) }
+        }
+    }
+
+    private suspend fun sendPlaybackResult(
+        nodeId: String,
+        requestId: String?,
+        action: String,
+        songId: String?,
+        success: Boolean,
+        error: String? = null,
+    ) {
+        if (requestId.isNullOrBlank() || nodeId.isBlank()) return
+
+        val payload = json.encodeToString(
+            WearPlaybackResult(
+                requestId = requestId,
+                action = action,
+                songId = songId,
+                success = success,
+                error = error,
+            )
+        ).toByteArray(Charsets.UTF_8)
+
+        runCatching {
+            Wearable.getMessageClient(this@WearCommandReceiver)
+                .sendMessage(nodeId, WearDataPaths.PLAYBACK_RESULT, payload)
+                .await()
+        }.onFailure { sendError ->
+            Timber.tag(TAG).w(sendError, "Failed to send playback result to watch")
+        }
     }
 
     // ---- Browse request handling ----
@@ -599,6 +866,37 @@ class WearCommandReceiver : WearableListenerService() {
         }
     }
 
+    private fun handleFavoriteSyncRequest(messageEvent: MessageEvent) {
+        scope.launch {
+            runCatching {
+                val request = json.decodeFromString<WearFavoriteSyncRequest>(
+                    String(messageEvent.data, Charsets.UTF_8)
+                )
+                val favoriteIds = musicRepository.getFavoriteSongIdsOnce()
+                val response = WearFavoriteSyncResponse(
+                    states = request.songIds
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .map { songId ->
+                            WearFavoriteStateEntry(
+                                songId = songId,
+                                isFavorite = favoriteIds.contains(songId),
+                            )
+                        }
+                )
+                Wearable.getMessageClient(this@WearCommandReceiver)
+                    .sendMessage(
+                        messageEvent.sourceNodeId,
+                        WearDataPaths.FAVORITES_SYNC_STATE,
+                        json.encodeToString(response).toByteArray(Charsets.UTF_8),
+                    )
+                    .await()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to handle favorite sync request")
+            }
+        }
+    }
+
     /**
      * Get browse items based on the browse type, following the same pattern
      * as AutoMediaBrowseTree.
@@ -640,7 +938,7 @@ class WearCommandReceiver : WearableListenerService() {
             }
 
             WearBrowseRequest.PLAYLISTS -> {
-                userPreferencesRepository.userPlaylistsFlow.first()
+                playlistPreferencesRepository.userPlaylistsFlow.first()
                     .map { playlist ->
                         WearLibraryItem(
                             id = playlist.id,
@@ -653,13 +951,13 @@ class WearCommandReceiver : WearableListenerService() {
 
             WearBrowseRequest.FAVORITES -> {
                 musicRepository.getFavoriteSongsOnce()
-                    .take(MAX_SONGS)
+                    .take(MAX_BROWSE_SONGS)
                     .map { song -> song.toWearLibraryItem() }
             }
 
             WearBrowseRequest.ALL_SONGS -> {
                 musicRepository.getAllSongsOnce()
-                    .take(MAX_SONGS)
+                    .take(MAX_BROWSE_SONGS)
                     .map { song -> song.toWearLibraryItem() }
             }
 
@@ -684,7 +982,7 @@ class WearCommandReceiver : WearableListenerService() {
             WearBrowseRequest.PLAYLIST_SONGS -> {
                 val playlistId = contextId
                     ?: throw IllegalArgumentException("Missing playlistId for PLAYLIST_SONGS")
-                val playlist = userPreferencesRepository.userPlaylistsFlow.first()
+                val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .find { it.id == playlistId }
                     ?: throw IllegalArgumentException("Playlist not found: $playlistId")
                 val songs = musicRepository.getSongsByIds(playlist.songIds).first()
@@ -767,6 +1065,7 @@ class WearCommandReceiver : WearableListenerService() {
         if (
             contentUri.startsWith("telegram://") ||
             contentUri.startsWith("netease://") ||
+            contentUri.startsWith("qqmusic://") ||
             contentUri.startsWith("gdrive://")
         ) {
             return false
@@ -859,7 +1158,16 @@ class WearCommandReceiver : WearableListenerService() {
     private fun sendVolumeState(nodeId: String, level: Int, max: Int) {
         scope.launch {
             runCatching {
-                val payload = json.encodeToString(WearVolumeState(level = level, max = max))
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                val activeRoute = resolveActiveOutputRoute(audioManager)
+                val payload = json.encodeToString(
+                    WearVolumeState(
+                        level = level,
+                        max = max,
+                        routeType = activeRoute.type,
+                        routeName = activeRoute.name,
+                    )
+                )
                     .toByteArray(Charsets.UTF_8)
                 val messageClient = Wearable.getMessageClient(this@WearCommandReceiver)
                 messageClient.sendMessage(nodeId, WearDataPaths.VOLUME_STATE, payload).await()
@@ -869,9 +1177,168 @@ class WearCommandReceiver : WearableListenerService() {
         }
     }
 
+    private data class ActiveOutputRoute(
+        val type: String,
+        val name: String,
+    )
+
+    private suspend fun resolveActiveOutputRoute(audioManager: AudioManager): ActiveOutputRoute {
+        if (withContext(Dispatchers.Main.immediate) { isCastingMediaPlayback() }) {
+            return ActiveOutputRoute(
+                type = WearVolumeState.ROUTE_TYPE_CAST,
+                name = "Cast",
+            )
+        }
+
+        val outputs = runCatching {
+            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+        }.getOrDefault(emptyList())
+
+        val bluetoothDevice = outputs.firstOrNull {
+            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                it.type == AudioDeviceInfo.TYPE_BLE_BROADCAST
+        }
+        if (bluetoothDevice != null || audioManager.isBluetoothA2dpOn || audioManager.isBluetoothScoOn) {
+            val bluetoothName = bluetoothDevice?.productName?.toString().orEmpty().ifBlank { "Bluetooth" }
+            return ActiveOutputRoute(
+                type = resolveBluetoothRouteType(
+                    audioDevice = bluetoothDevice,
+                    deviceName = bluetoothName,
+                ),
+                name = bluetoothName,
+            )
+        }
+
+        val wiredDevice = outputs.firstOrNull {
+            it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                it.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                it.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
+        }
+        if (wiredDevice != null || audioManager.isWiredHeadsetOn) {
+            return ActiveOutputRoute(
+                type = WearVolumeState.ROUTE_TYPE_HEADPHONES,
+                name = wiredDevice?.productName?.toString().orEmpty().ifBlank { "Headphones" },
+            )
+        }
+
+        val speakerDevice = outputs.firstOrNull {
+            it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER ||
+                it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE
+        }
+        if (speakerDevice != null) {
+            return ActiveOutputRoute(
+                type = WearVolumeState.ROUTE_TYPE_SPEAKER,
+                name = "Phone speaker",
+            )
+        }
+
+        return ActiveOutputRoute(
+            type = WearVolumeState.ROUTE_TYPE_PHONE,
+            name = "Phone",
+        )
+    }
+
+    private fun resolveBluetoothRouteType(
+        audioDevice: AudioDeviceInfo?,
+        deviceName: String,
+    ): String {
+        return when (audioDevice?.type) {
+            AudioDeviceInfo.TYPE_BLE_HEADSET,
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+            -> WearVolumeState.ROUTE_TYPE_HEADPHONES
+
+            AudioDeviceInfo.TYPE_BLE_SPEAKER,
+            AudioDeviceInfo.TYPE_BLE_BROADCAST,
+            -> WearVolumeState.ROUTE_TYPE_BLUETOOTH
+
+            else -> {
+                if (looksLikeBluetoothHeadphones(deviceName)) {
+                    WearVolumeState.ROUTE_TYPE_HEADPHONES
+                } else {
+                    WearVolumeState.ROUTE_TYPE_BLUETOOTH
+                }
+            }
+        }
+    }
+
+    private fun looksLikeBluetoothHeadphones(deviceName: String): Boolean {
+        val normalizedName = deviceName.trim().lowercase()
+        if (normalizedName.isBlank()) return false
+
+        val headphoneHints = listOf(
+            "airpods",
+            "buds",
+            "buds+",
+            "bud",
+            "earbud",
+            "earbuds",
+            "earphones",
+            "earphone",
+            "headphone",
+            "headphones",
+            "headset",
+            "pods",
+            "xm3",
+            "xm4",
+            "xm5",
+            "wh-",
+            "wf-",
+            "qc ultra",
+            "quietcomfort",
+            "freebuds",
+            "bean",
+            "auricular",
+            "auriculares",
+            "audifono",
+            "audifonos",
+        )
+        val speakerHints = listOf(
+            "speaker",
+            "soundlink",
+            "boombox",
+            "flip",
+            "charge",
+            "xtreme",
+            "soundcore",
+            "home",
+            "nest",
+            "roam",
+            "move",
+            "parlante",
+            "bocina",
+            "altavoz",
+        )
+
+        if (speakerHints.any { normalizedName.contains(it) }) return false
+        return headphoneHints.any { normalizedName.contains(it) }
+    }
+
+    private fun isCastingMediaPlayback(): Boolean {
+        val castSession = resolveActiveCastSession() ?: return false
+        val remoteClient = castSession.remoteMediaClient ?: return false
+        val playerState = remoteClient.playerState
+        return remoteClient.mediaStatus != null &&
+            playerState != MediaStatus.PLAYER_STATE_IDLE &&
+            playerState != MediaStatus.PLAYER_STATE_UNKNOWN
+    }
+
     // ---- Transfer handling ----
 
-    private fun handleTransferRequest(messageEvent: MessageEvent) {
+    private data class PreparedTransferRequest(
+        val nodeId: String,
+        val requestId: String,
+        val songId: String,
+        val fileSize: Long,
+        val inputStream: InputStream,
+        val artworkBytes: ByteArray?,
+    )
+
+    private suspend fun handleTransferRequest(messageEvent: MessageEvent) {
         val requestJson = String(messageEvent.data, Charsets.UTF_8)
         val request = try {
             json.decodeFromString<WearTransferRequest>(requestJson)
@@ -879,96 +1346,170 @@ class WearCommandReceiver : WearableListenerService() {
             Timber.tag(TAG).e(e, "Failed to parse transfer request")
             return
         }
+        var openedInputStream: InputStream? = null
 
         Timber.tag(TAG).d("Transfer request: songId=${request.songId}, requestId=${request.requestId}")
 
-        scope.launch {
-            try {
-                // 1. Find the song
-                val songs = musicRepository.getSongsByIds(listOf(request.songId)).first()
-                val song = songs.firstOrNull()
+        try {
+            // 1. Find the song
+            val songs = musicRepository.getSongsByIds(listOf(request.songId)).first()
+            val song = songs.firstOrNull()
 
-                if (song == null) {
-                    sendTransferMetadataError(
-                        messageEvent.sourceNodeId, request.requestId, request.songId,
-                        "Song not found"
-                    )
-                    return@launch
-                }
+            if (song == null) {
+                sendTransferMetadataError(
+                    messageEvent.sourceNodeId, request.requestId, request.songId,
+                    "Song not found"
+                )
+                return
+            }
+            transferStateStore.markRequested(
+                requestId = request.requestId,
+                songId = song.id,
+                songTitle = song.title,
+            )
 
-                // 2. Verify this song is truly available offline on the phone.
-                if (!isSongTransferEligible(song)) {
-                    sendTransferMetadataError(
-                        messageEvent.sourceNodeId, request.requestId, request.songId,
-                        "Song must be downloaded locally on phone before saving to watch"
-                    )
-                    return@launch
-                }
+            // 2. Verify this song is truly available offline on the phone.
+            if (!isSongTransferEligible(song)) {
+                sendTransferMetadataError(
+                    messageEvent.sourceNodeId, request.requestId, request.songId,
+                    "Song must be downloaded locally on phone before saving to watch"
+                )
+                return
+            }
 
-                // 3. Open the file and get its size
-                val fileInputStream = openSongFile(song)
-                if (fileInputStream == null) {
-                    sendTransferMetadataError(
-                        messageEvent.sourceNodeId, request.requestId, request.songId,
-                        "Cannot read audio file"
-                    )
-                    return@launch
-                }
+            // 3. Open the file and get its size
+            val fileInputStream = openSongFile(song)
+            if (fileInputStream == null) {
+                sendTransferMetadataError(
+                    messageEvent.sourceNodeId, request.requestId, request.songId,
+                    "Cannot read audio file"
+                )
+                return
+            }
+            openedInputStream = fileInputStream
 
-                val fileSize = getSongFileSize(song)
-                val paletteSeedArgb = resolvePaletteSeedArgb(song)
-                val transferArtworkBytes = resolveTransferArtworkBytes(song)
+            val fileSize = getSongFileSize(song)
+            val paletteSeedArgb = resolvePaletteSeedArgb(song)
+            val transferThemePalette = resolveTransferThemePalette(song)
+            val transferArtworkBytes = resolveTransferArtworkBytes(song)
 
-                // 4. Send metadata to watch
-                val metadata = WearTransferMetadata(
+            // 4. Send metadata to watch
+            val metadata = WearTransferMetadata(
+                requestId = request.requestId,
+                songId = song.id,
+                title = song.title,
+                artist = song.displayArtist,
+                album = song.album,
+                albumId = song.albumId,
+                duration = song.duration,
+                mimeType = song.mimeType ?: "audio/mpeg",
+                fileSize = fileSize,
+                bitrate = song.bitrate ?: 0,
+                sampleRate = song.sampleRate ?: 0,
+                isFavorite = song.isFavorite,
+                paletteSeedArgb = paletteSeedArgb,
+                themePalette = transferThemePalette,
+            )
+            transferStateStore.markMetadata(
+                requestId = request.requestId,
+                songId = song.id,
+                songTitle = song.title,
+                totalBytes = fileSize,
+            )
+            if (transferCancellationStore.consumeCancellation(request.requestId)) {
+                sendTransferProgress(
+                    nodeId = messageEvent.sourceNodeId,
                     requestId = request.requestId,
                     songId = song.id,
-                    title = song.title,
-                    artist = song.displayArtist,
-                    album = song.album,
-                    albumId = song.albumId,
-                    duration = song.duration,
-                    mimeType = song.mimeType ?: "audio/mpeg",
-                    fileSize = fileSize,
-                    bitrate = song.bitrate ?: 0,
-                    sampleRate = song.sampleRate ?: 0,
-                    paletteSeedArgb = paletteSeedArgb,
+                    bytesTransferred = 0L,
+                    totalBytes = fileSize,
+                    status = WearTransferProgress.STATUS_CANCELLED,
                 )
-                val metadataBytes = json.encodeToString(metadata).toByteArray(Charsets.UTF_8)
-                val msgClient = Wearable.getMessageClient(this@WearCommandReceiver)
-                msgClient.sendMessage(
-                    messageEvent.sourceNodeId,
-                    WearDataPaths.TRANSFER_METADATA,
-                    metadataBytes,
-                ).await()
+                return
+            }
+            val metadataBytes = json.encodeToString(metadata).toByteArray(Charsets.UTF_8)
+            val msgClient = Wearable.getMessageClient(this@WearCommandReceiver)
+            msgClient.sendMessage(
+                messageEvent.sourceNodeId,
+                WearDataPaths.TRANSFER_METADATA,
+                metadataBytes,
+            ).await()
 
-                Timber.tag(TAG).d("Sent transfer metadata: ${song.title} ($fileSize bytes)")
+            Timber.tag(TAG).d("Sent transfer metadata: ${song.title} ($fileSize bytes)")
 
-                // 5. Stream artwork via dedicated channel (optional)
-                if (transferArtworkBytes != null) {
-                    runCatching {
-                        streamArtworkToWatch(
-                            nodeId = messageEvent.sourceNodeId,
-                            requestId = request.requestId,
-                            songId = song.id,
-                            artworkBytes = transferArtworkBytes,
-                        )
-                    }.onFailure { error ->
-                        Timber.tag(TAG).w(error, "Artwork transfer failed for songId=${song.id}")
-                    }
+            val preparedTransfer = PreparedTransferRequest(
+                nodeId = messageEvent.sourceNodeId,
+                requestId = request.requestId,
+                songId = song.id,
+                fileSize = fileSize,
+                inputStream = fileInputStream,
+                artworkBytes = transferArtworkBytes,
+            )
+
+            scope.launch {
+                continueTransferRequest(preparedTransfer)
+            }
+            openedInputStream = null
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to handle transfer request")
+            sendTransferProgress(
+                messageEvent.sourceNodeId, request.requestId, request.songId,
+                0, 0, WearTransferProgress.STATUS_FAILED, e.message,
+            )
+            runCatching { openedInputStream?.close() }
+        }
+    }
+
+    private suspend fun continueTransferRequest(transfer: PreparedTransferRequest) {
+        var audioStreamingStarted = false
+        try {
+            if (transfer.artworkBytes != null) {
+                runCatching {
+                    streamArtworkToWatch(
+                        nodeId = transfer.nodeId,
+                        requestId = transfer.requestId,
+                        songId = transfer.songId,
+                        artworkBytes = transfer.artworkBytes,
+                    )
+                }.onFailure { error ->
+                    Timber.tag(TAG).w(error, "Artwork transfer failed for songId=${transfer.songId}")
                 }
+            }
 
-                // 6. Stream audio via ChannelClient
-                streamFileToWatch(
-                    messageEvent.sourceNodeId, request.requestId, song.id,
-                    fileInputStream, fileSize,
-                )
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to handle transfer request")
+            if (transferCancellationStore.consumeCancellation(transfer.requestId)) {
                 sendTransferProgress(
-                    messageEvent.sourceNodeId, request.requestId, request.songId,
-                    0, 0, WearTransferProgress.STATUS_FAILED, e.message,
+                    nodeId = transfer.nodeId,
+                    requestId = transfer.requestId,
+                    songId = transfer.songId,
+                    bytesTransferred = 0L,
+                    totalBytes = transfer.fileSize,
+                    status = WearTransferProgress.STATUS_CANCELLED,
                 )
+                return
+            }
+
+            audioStreamingStarted = true
+            streamFileToWatch(
+                nodeId = transfer.nodeId,
+                requestId = transfer.requestId,
+                songId = transfer.songId,
+                inputStream = transfer.inputStream,
+                fileSize = transfer.fileSize,
+            )
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to continue transfer request")
+            sendTransferProgress(
+                nodeId = transfer.nodeId,
+                requestId = transfer.requestId,
+                songId = transfer.songId,
+                bytesTransferred = 0L,
+                totalBytes = transfer.fileSize,
+                status = WearTransferProgress.STATUS_FAILED,
+                error = e.message,
+            )
+        } finally {
+            if (!audioStreamingStarted) {
+                runCatching { transfer.inputStream.close() }
             }
         }
     }
@@ -981,7 +1522,8 @@ class WearCommandReceiver : WearableListenerService() {
             Timber.tag(TAG).e(e, "Failed to parse transfer cancel")
             return
         }
-        cancelledTransfers.add(request.requestId)
+        transferCancellationStore.markCancelled(request.requestId)
+        transferStateStore.markCancelled(request.requestId)
         Timber.tag(TAG).d("Transfer cancelled: requestId=${request.requestId}")
     }
 
@@ -1071,6 +1613,21 @@ class WearCommandReceiver : WearableListenerService() {
         } finally {
             bitmap.recycle()
         }
+    }
+
+    private suspend fun resolveTransferThemePalette(song: Song): WearThemePalette? {
+        val playerTheme = themePreferencesRepository.playerThemePreferenceFlow.first()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playerTheme == ThemePreference.DYNAMIC) {
+            return buildWearThemePalette(dynamicDarkColorScheme(this))
+        }
+
+        val artUriString = song.albumArtUriString?.takeIf { it.isNotBlank() } ?: return null
+        val paletteStyle = AlbumArtPaletteStyle.fromStorageKey(
+            themePreferencesRepository.albumArtPaletteStyleFlow.first().storageKey
+        )
+        val schemePair = colorSchemeProcessor.getOrGenerateColorScheme(artUriString, paletteStyle)
+            ?: return null
+        return buildWearThemePalette(schemePair.dark)
     }
 
     private fun loadSongAlbumArtBitmapForTransfer(song: Song): Bitmap? {
@@ -1250,6 +1807,17 @@ class WearCommandReceiver : WearableListenerService() {
         inputStream: InputStream,
         fileSize: Long,
     ) {
+        if (transferCancellationStore.consumeCancellation(requestId)) {
+            sendTransferProgress(
+                nodeId = nodeId,
+                requestId = requestId,
+                songId = songId,
+                bytesTransferred = 0L,
+                totalBytes = fileSize,
+                status = WearTransferProgress.STATUS_CANCELLED,
+            )
+            return
+        }
         val channelClient = Wearable.getChannelClient(this@WearCommandReceiver)
         val channel = channelClient.openChannel(nodeId, WearDataPaths.TRANSFER_CHANNEL).await()
 
@@ -1271,7 +1839,7 @@ class WearCommandReceiver : WearableListenerService() {
                 var bytesRead: Int
                 while (input.read(buffer).also { bytesRead = it } != -1) {
                     // Check for cancellation
-                    if (cancelledTransfers.remove(requestId)) {
+                    if (transferCancellationStore.consumeCancellation(requestId)) {
                         Timber.tag(TAG).d("Transfer cancelled during streaming: $requestId")
                         sendTransferProgress(
                             nodeId, requestId, songId, totalSent, fileSize,
@@ -1316,6 +1884,7 @@ class WearCommandReceiver : WearableListenerService() {
             } catch (e: Exception) {
                 Timber.tag(TAG).w(e, "Failed to close channel")
             }
+            transferCancellationStore.clear(requestId)
         }
     }
 
@@ -1372,6 +1941,7 @@ class WearCommandReceiver : WearableListenerService() {
             fileSize = 0L,
             bitrate = 0,
             sampleRate = 0,
+            isFavorite = false,
             error = errorMessage,
         )
         try {
@@ -1403,6 +1973,20 @@ class WearCommandReceiver : WearableListenerService() {
         status: String,
         error: String? = null,
     ) {
+        transferStateStore.markProgress(
+            requestId = requestId,
+            songId = songId,
+            bytesTransferred = bytesTransferred,
+            totalBytes = totalBytes,
+            status = status,
+            error = error,
+        )
+        if (status == WearTransferProgress.STATUS_COMPLETED) {
+            transferStateStore.markSongPresentOnWatch(
+                nodeId = nodeId,
+                songId = songId,
+            )
+        }
         val progress = WearTransferProgress(
             requestId = requestId,
             songId = songId,

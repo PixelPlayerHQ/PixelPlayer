@@ -51,14 +51,17 @@ import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -72,8 +75,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -193,6 +194,16 @@ fun LyricsSheet(
         context.dataStore.data.map { it[booleanPreferencesKey("use_animated_lyrics")] ?: false }
     }
     val useAnimatedLyrics by useAnimatedLyricsFlow.collectAsStateWithLifecycle(initialValue = false)
+
+    val animatedLyricsBlurEnabledFlow = remember(context) {
+        context.dataStore.data.map { it[booleanPreferencesKey("animated_lyrics_blur_enabled")] ?: true }
+    }
+    val animatedLyricsBlurEnabled by animatedLyricsBlurEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+
+    val animatedLyricsBlurStrengthFlow = remember(context) {
+        context.dataStore.data.map { it[androidx.datastore.preferences.core.floatPreferencesKey("animated_lyrics_blur_strength")] ?: 2.5f }
+    }
+    val animatedLyricsBlurStrength by animatedLyricsBlurStrengthFlow.collectAsStateWithLifecycle(initialValue = 2.5f)
 
     val resolvedAutoscrollSpec = autoscrollAnimationSpec ?: if (useAnimatedLyrics) {
         spring(
@@ -534,13 +545,20 @@ fun LyricsSheet(
                                 accentColor = accentColor,
                                 textStyle = scaledTextStyle,
                                 onLineClick = { syncedLine -> 
-                                    onSeekTo(syncedLine.time.toLong())
+                                    onSeekTo(
+                                        resolveSeekPositionMs(
+                                            lineTimeMs = syncedLine.time.toLong(),
+                                            lyricsSyncOffsetMs = lyricsSyncOffset
+                                        )
+                                    )
                                     resetImmersiveTimer()
                                 },
                                 highlightZoneFraction = highlightZoneFraction,
                                 highlightOffsetDp = highlightOffsetDp,
                                 autoscrollAnimationSpec = resolvedAutoscrollSpec,
                                 useAnimatedLyrics = useAnimatedLyrics,
+                                animatedLyricsBlurEnabled = animatedLyricsBlurEnabled,
+                                animatedLyricsBlurStrength = animatedLyricsBlurStrength,
                                 immersiveMode = immersiveMode,
                                 footer = {
                                     if (lyrics?.areFromRemote == true) {
@@ -684,10 +702,13 @@ fun LyricsSheet(
                             .size(78.dp)
                             .clip(RoundedCornerShape(playPauseCornerRadius))
                             .background(tertiaryColor)
-                            .clickable(onClick = onPlayPause),
+                            .clickable {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onPlayPause()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                         AnimatedContent(
+                        AnimatedContent(
                             targetState = isPlaying,
                             label = "playPauseIconAnimation"
                         ) { playing ->
@@ -873,6 +894,8 @@ fun SyncedLyricsList(
     highlightOffsetDp: Dp,
     autoscrollAnimationSpec: AnimationSpec<Float>,
     useAnimatedLyrics: Boolean = false,
+    animatedLyricsBlurEnabled: Boolean = true,
+    animatedLyricsBlurStrength: Float = 2.5f,
     immersiveMode: Boolean = false,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -913,11 +936,25 @@ fun SyncedLyricsList(
             if (listState.isScrollInProgress) return@LaunchedEffect
             if (listState.layoutInfo.totalItemsCount == 0) return@LaunchedEffect
 
+            // Music Style Dynamic Velocity
+            val dynamicAnimationSpec = if (useAnimatedLyrics) {
+                val currentLineTime = lines.getOrNull(currentLineIndex)?.time ?: 0
+                val nextLineTime = lines.getOrNull(currentLineIndex + 1)?.time ?: (currentLineTime + 1000)
+                val timeDiff = (nextLineTime - currentLineTime).coerceIn(250, 2000) // Bound the duration
+                
+                tween<Float>(
+                    durationMillis = timeDiff,
+                    easing = FastOutSlowInEasing
+                )
+            } else {
+                autoscrollAnimationSpec
+            }
+
             animateToSnapIndex(
                 listState = listState,
                 layoutInfo = snapperLayoutInfo,
                 targetIndex = currentLineIndex,
-                animationSpec = autoscrollAnimationSpec
+                animationSpec = dynamicAnimationSpec
             )
         }
 
@@ -934,6 +971,23 @@ fun SyncedLyricsList(
                 ) { index, line ->
                     val nextTime = lines.getOrNull(index + 1)?.time ?: Int.MAX_VALUE
                     val distanceFromCurrent = if (currentLineIndex != -1) abs(currentLineIndex - index) else 100
+                    
+                    val parallaxModifier = if (useAnimatedLyrics) {
+                        Modifier.graphicsLayer {
+                            // Calculate translation dynamically inside graphicsLayer to avoid recomposing the row during scroll
+                            val currentLayoutInfo = listState.layoutInfo
+                            val lineItemInfo = currentLayoutInfo.visibleItemsInfo.find { it.index == index }
+                            val itemCenter = lineItemInfo?.let { it.offset + (it.size / 2f) }
+                            val viewportCenter = currentLayoutInfo.viewportEndOffset / 2f
+                            
+                            val distanceFromCenter = itemCenter?.let { it - viewportCenter } ?: 0f
+                            
+                            val maxTranslation = 40f 
+                            val distanceRatio = (distanceFromCenter / viewportCenter).coerceIn(-1f, 1f)
+                            translationY = distanceRatio * distanceRatio * distanceRatio * maxTranslation 
+                        }
+                    } else Modifier
+
                     if (line.line.isNotBlank()) {
                         LyricLineRow(
                             line = line,
@@ -941,10 +995,12 @@ fun SyncedLyricsList(
                             position = position,
                             distanceFromCurrent = distanceFromCurrent,
                             useAnimatedLyrics = useAnimatedLyrics,
+                            animatedLyricsBlurEnabled = animatedLyricsBlurEnabled,
+                            animatedLyricsBlurStrength = animatedLyricsBlurStrength,
                             immersiveMode = immersiveMode,
                             accentColor = accentColor,
                             style = textStyle,
-                            modifier = Modifier
+                            modifier = parallaxModifier
                                 .fillMaxWidth()
                                 .testTag("synced_line_${line.time}"),
                             onClick = { onLineClick(line) }
@@ -955,7 +1011,7 @@ fun SyncedLyricsList(
                             time = line.time,
                             color = LocalContentColor.current.copy(alpha = 0.6f),
                             nextTime = nextTime,
-                            modifier = Modifier
+                            modifier = parallaxModifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                         )
@@ -989,6 +1045,8 @@ fun LyricLineRow(
     position: Long,
     distanceFromCurrent: Int = 100,
     useAnimatedLyrics: Boolean = false,
+    animatedLyricsBlurEnabled: Boolean = true,
+    animatedLyricsBlurStrength: Float = 2.5f,
     immersiveMode: Boolean = false,
     accentColor: Color,
     style: TextStyle,
@@ -1014,7 +1072,6 @@ fun LyricLineRow(
         ) else tween(durationMillis = 250),
         label = "lineColor"
     )
-
     // Animated mode: fisheye scaling + alpha based on distance from current line
     val targetScale = if (useAnimatedLyrics) when (distanceFromCurrent) {
         0 -> if (immersiveMode) 1.02f else 1.1f; 1 -> 0.95f; else -> 0.85f
@@ -1050,28 +1107,72 @@ fun LyricLineRow(
         ) else tween(durationMillis = 200),
         label = "lineAlpha"
     )
+    
+    // Blur Effect
+    val targetBlur = if (useAnimatedLyrics && animatedLyricsBlurEnabled && distanceFromCurrent > 0) {
+        (distanceFromCurrent * animatedLyricsBlurStrength).coerceAtMost(10f).dp
+    } else 0.dp
+    
+    val blurRadius by animateDpAsState(
+        targetValue = targetBlur,
+        animationSpec = if (useAnimatedLyrics) tween(durationMillis = 400) else tween(durationMillis = 200),
+        label = "lineBlur"
+    )
 
     // Animated mode: apply graphicsLayer for scale/alpha transforms
+    val baseModifier = if (useAnimatedLyrics && !immersiveMode) {
+        modifier.padding(end = 36.dp)
+    } else {
+        modifier
+    }
     val animatedModifier = if (useAnimatedLyrics) {
-        modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-            this.alpha = alpha
-            transformOrigin = TransformOrigin(0f, 0.5f)
-        }
-    } else modifier
+        baseModifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+                transformOrigin = TransformOrigin(0f, 0.5f)
+            }
+            .then(if (blurRadius > 0.dp) Modifier.blur(blurRadius) else Modifier)
+    } else baseModifier
+
+    val translationText = line.translation
+    val translationStyle = remember(style) {
+        style.copy(fontSize = style.fontSize * 0.75f)
+    }
+    val translationColor = lineColor.copy(alpha = lineColor.alpha * 0.7f)
 
     if (sanitizedWords.isNullOrEmpty()) {
-        Text(
-            text = sanitizedLine,
-            style = style,
-            color = lineColor,
-            fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
+        Column(
             modifier = animatedModifier
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
                 .padding(vertical = verticalPadding, horizontal = 2.dp)
-        )
+        ) {
+            Box {
+                // Invisible bold text to reserve layout space and prevent reflow
+                Text(
+                    text = sanitizedLine,
+                    style = style,
+                    color = Color.Transparent,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = sanitizedLine,
+                    style = style,
+                    color = lineColor,
+                    fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+            if (!translationText.isNullOrBlank()) {
+                Text(
+                    text = translationText,
+                    style = translationStyle,
+                    color = translationColor,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
     } else {
         val highlightedWordIndex by remember(position, sanitizedWords, line.time, lineEndTime) {
             derivedStateOf {
@@ -1084,26 +1185,37 @@ fun LyricLineRow(
             }
         }
 
-        FlowRow(
+        Column(
             modifier = animatedModifier
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
-                .padding(vertical = verticalPadding, horizontal = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(vertical = verticalPadding, horizontal = 2.dp)
         ) {
-            sanitizedWords.forEachIndexed { wordIndex, word ->
-                key("${line.time}_${word.time}_${word.word}") {
-                    LyricWordSpan(
-                        word = word,
-                        isHighlighted = isCurrentLine && wordIndex == highlightedWordIndex,
-                        useAnimatedLyrics = useAnimatedLyrics,
-                        style = style,
-                        highlightedColor = accentColor,
-                        unhighlightedColor = unhighlightedColor
-                    )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                sanitizedWords.forEachIndexed { wordIndex, word ->
+                    key("${line.time}_${word.time}_${word.word}") {
+                        LyricWordSpan(
+                            word = word,
+                            isHighlighted = isCurrentLine && wordIndex == highlightedWordIndex,
+                            useAnimatedLyrics = useAnimatedLyrics,
+                            style = style,
+                            highlightedColor = accentColor,
+                            unhighlightedColor = unhighlightedColor
+                        )
+                    }
                 }
-            } // End Column
+            }
+            if (!translationText.isNullOrBlank()) {
+                Text(
+                    text = translationText,
+                    style = translationStyle,
+                    color = translationColor,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
     }
 }
@@ -1126,14 +1238,21 @@ fun LyricWordSpan(
         ) else tween(durationMillis = 200),
         label = "wordColor"
     )
-
-    Text(
-        text = word.word,
-        style = style,
-        color = color,
-        fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
-        modifier = modifier
-    )
+    Box(modifier = modifier) {
+        // Invisible bold text to reserve layout space and prevent reflow
+        Text(
+            text = word.word,
+            style = style,
+            color = Color.Transparent,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = word.word,
+            style = style,
+            color = color,
+            fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
 }
 
 @Composable
@@ -1201,6 +1320,11 @@ internal fun resolveHighlightedWordIndex(
     if (positionMs < lineStartTimeMs || positionMs >= lineEndTimeMs) return -1
     return words.indexOfLast { it.time.toLong() <= positionMs }
 }
+
+internal fun resolveSeekPositionMs(
+    lineTimeMs: Long,
+    lyricsSyncOffsetMs: Int
+): Long = (lineTimeMs - lyricsSyncOffsetMs.toLong()).coerceAtLeast(0L)
 
 internal data class HighlightZoneMetrics(
     val topPadding: Dp,
@@ -1341,16 +1465,6 @@ private fun LyricsTrackInfo(
     if (song == null) return
 
     val albumShape = CircleShape
-
-    val infiniteTransition = rememberInfiniteTransition(label = "vinylRotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing)
-        ),
-        label = "rotation"
-    )
 
     // Helper state to stop rotation when paused, but we want it to pause in place?
     // Using infiniteTransition.animateFloat will reset on recomposition if spec changes or stops.

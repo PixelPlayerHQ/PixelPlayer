@@ -5,39 +5,46 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
-import com.theveloper.pixelplay.data.database.MusicDao
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
 
 object AlbumArtUtils {
 
+    // P2-1: Dedicated app-level scope to replace GlobalScope.
+    // SupervisorJob ensures child failures don't cancel sibling coroutines.
+    // Appropriate for fire-and-forget tasks like cache cleanup that outlive any single component.
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /**
      * Main function to get album art - tries multiple methods
      */
     fun getAlbumArtUri(
         appContext: Context,
-        musicDao: MusicDao,
         path: String,
-        albumId: Long,
         songId: Long,
-        deepScan: Boolean
-    ): String? {
-        // Method 1: Try MediaStore (even though it often fails)
-//        getMediaStoreAlbumArtUri(appContext, albumId)?.let { return it.toString() }
+        forceRefresh: Boolean
+    ): String? = getEmbeddedAlbumArtUri(appContext, path, songId, forceRefresh)?.toString()
 
-        // Method 2: Try embedded art from file
-        getEmbeddedAlbumArtUri(appContext, path, songId, deepScan)?.let { return it.toString() }
-        // Method 3: try from db
-//        musicDao.getAlbumArtUriById(songId)?.let {
-//            return it
-//        }
-        // Method 4: Try external album art files in directory
-//        getExternalAlbumArtUri(path)?.let { return it.toString() }
+    fun getCachedAlbumArtUri(
+        appContext: Context,
+        songId: Long
+    ): Uri? {
+        val cachedFile = albumArtCacheFile(appContext, songId)
+        if (!cachedFile.exists()) return null
 
-        return null
+        cachedFile.setLastModified(System.currentTimeMillis())
+        return shareableCacheUri(appContext, cachedFile)
+    }
+
+    fun hasCachedAlbumArt(
+        appContext: Context,
+        songId: Long
+    ): Boolean {
+        return albumArtCacheFile(appContext, songId).exists()
     }
 
     /**
@@ -49,38 +56,28 @@ object AlbumArtUtils {
         songId: Long,
         deepScan: Boolean
     ): Uri? {
-        if (!File(filePath).exists() || !File(filePath).canRead()) {
+        val audioFile = File(filePath)
+        if (!audioFile.exists() || !audioFile.canRead()) {
             return null
         }
+
+        val cachedFile = albumArtCacheFile(appContext, songId)
+        val noArtFile = noArtMarkerFile(appContext, songId)
+
         if (!deepScan) {
-
-            // 1. Check if art is already cached
-            val cachedFile = File(appContext.cacheDir, "song_art_${songId}.jpg")
-            if (cachedFile.exists()) {
-                // Touch file for LRU tracking
-                cachedFile.setLastModified(System.currentTimeMillis())
-                return try {
-                    FileProvider.getUriForFile(
-                        appContext,
-                        "${appContext.packageName}.provider",
-                        cachedFile
-                    )
-                } catch (e: Exception) {
-                    Uri.fromFile(cachedFile)
+            if (noArtFile.exists()) {
+                if (cachedFile.exists()) {
+                    cachedFile.delete()
                 }
-            }
-        }
-
-        // 2. Check if marked as "no art" to skip extraction
-        val noArtFile = File(appContext.cacheDir, "song_art_${songId}_no.jpg")
-        if (noArtFile.exists()) {
-            if (deepScan)
-                noArtFile.delete()
-            else
                 return null
+            }
+
+            getCachedAlbumArtUri(appContext, songId)?.let { return it }
+        } else {
+            noArtFile.delete()
         }
 
-        // 3. Try to extract embedded art using pooled MediaMetadataRetriever
+        // Try to extract embedded art using pooled MediaMetadataRetriever.
         return MediaMetadataRetrieverPool.withRetriever { retriever ->
             try {
                 retriever.setDataSource(filePath)
@@ -96,10 +93,10 @@ object AlbumArtUtils {
             }
 
             val bytes = retriever.embeddedPicture
-            if (bytes != null) {
+            if (bytes != null && bytes.isNotEmpty()) {
                 saveAlbumArtToCache(appContext, bytes, songId)
             } else {
-                // Mark "no art" to avoid trying again
+                cachedFile.delete()
                 noArtFile.createNewFile()
                 null
             }
@@ -184,17 +181,30 @@ object AlbumArtUtils {
      * Save embedded art to cache with unique naming
      */
     fun saveAlbumArtToCache(appContext: Context, bytes: ByteArray, songId: Long): Uri {
-        val file = File(appContext.cacheDir, "song_art_${songId}.jpg")
+        val file = albumArtCacheFile(appContext, songId)
 
         file.outputStream().use { outputStream ->
             outputStream.write(bytes)
         }
+        noArtMarkerFile(appContext, songId).delete()
         
-        // Trigger async cache cleanup if needed (GlobalScope: intentional fire-and-forget app-level task)
-        GlobalScope.launch(Dispatchers.IO) {
+        // Trigger async cache cleanup if needed
+        appScope.launch {
             AlbumArtCacheManager.cleanCacheIfNeeded(appContext)
         }
 
+        return shareableCacheUri(appContext, file)
+    }
+
+    private fun albumArtCacheFile(appContext: Context, songId: Long): File {
+        return File(appContext.cacheDir, "song_art_${songId}.jpg")
+    }
+
+    private fun noArtMarkerFile(appContext: Context, songId: Long): File {
+        return File(appContext.cacheDir, "song_art_${songId}_no.jpg")
+    }
+
+    private fun shareableCacheUri(appContext: Context, file: File): Uri {
         return try {
             FileProvider.getUriForFile(
                 appContext,
@@ -202,7 +212,6 @@ object AlbumArtUtils {
                 file
             )
         } catch (e: Exception) {
-            // Fallback to file URI if FileProvider fails
             Uri.fromFile(file)
         }
     }

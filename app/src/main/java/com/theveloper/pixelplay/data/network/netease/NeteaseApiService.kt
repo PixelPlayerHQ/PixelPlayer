@@ -9,6 +9,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
@@ -260,14 +261,24 @@ class NeteaseApiService @Inject constructor() {
     }
 
     /**
-     * Fetch full track details for a batch of song IDs.
-     * Uses the v3/song/detail endpoint which reliably returns full track objects.
-     * Call in batches of up to ~800 IDs to stay within API limits.
+     * Fetch full track metadata for a list of song IDs.
+     * This is used to complete playlist sync when playlist/detail embeds only a subset of tracks.
      */
     fun getSongDetails(songIds: List<Long>): String {
-        val cArray = songIds.joinToString(",") { """{"id":$it}""" }
+        if (songIds.isEmpty()) {
+            return """{"code":200,"songs":[]}"""
+        }
+
+        val ids = JSONArray()
+        val c = JSONArray()
+        songIds.forEach { id ->
+            ids.put(id)
+            c.put(JSONObject().put("id", id))
+        }
+
         val params = mutableMapOf<String, Any>(
-            "c" to "[$cArray]"
+            "ids" to ids.toString(),
+            "c" to c.toString()
         )
         return request("https://music.163.com/api/v3/song/detail", params, CryptoMode.API, "POST", usePersistedCookies = true)
     }

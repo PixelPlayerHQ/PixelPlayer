@@ -17,6 +17,7 @@ import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.presentation.components.scoped.PrefetchAlbumNeighbors
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.first
+import kotlin.math.abs
 
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 
@@ -27,7 +28,16 @@ import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 fun rememberRoundedParallaxCarouselState(
     initialPage: Int,
     pageCount: () -> Int
-): CarouselState = rememberCarouselState(initialItem = initialPage, itemCount = pageCount)
+): CarouselState {
+    val realItemCount = pageCount()
+    val initialVirtualPage = remember(initialPage, realItemCount) {
+        middleStartPage(realItemCount, initialPage)
+    }
+    return rememberCarouselState(
+        initialItem = initialVirtualPage,
+        itemCount = { if (realItemCount > 0) Int.MAX_VALUE else 0 }
+    )
+}
 
 // ====== TU SECCIÓN: ACOPLADA AL NUEVO API ======
 
@@ -45,6 +55,7 @@ fun AlbumCarouselSection(
     albumArtQuality: AlbumArtQuality = AlbumArtQuality.MEDIUM
 ) {
     if (queue.isEmpty()) return
+    val realItemCount = queue.size
 
     // Mantiene compatibilidad con tu llamada actual
     val initialIndex = remember(currentSong?.id, queue) {
@@ -71,6 +82,7 @@ fun AlbumCarouselSection(
         isActive = expansionFraction > 0.08f,
         pagerState = carouselState.pagerState,
         queue = queue,
+        realItemCount = realItemCount,
         radius = 1,
         targetSize = targetSize
     )
@@ -88,19 +100,26 @@ fun AlbumCarouselSection(
         requestedScrollIndex?.takeIf { it in queue.indices }
     }
     val effectiveTargetIndex = requestedTargetIndex ?: currentSongIndex
+    val effectiveTargetVirtualPage = remember(effectiveTargetIndex, carouselState.pagerState.currentPage, realItemCount) {
+        nearestVirtualPageForRealIndex(
+            currentVirtualPage = carouselState.pagerState.currentPage,
+            targetRealIndex = effectiveTargetIndex,
+            realItemCount = realItemCount
+        )
+    }
     val smoothCarouselSpec = remember { tween<Float>(durationMillis = 360, easing = FastOutSlowInEasing) }
-    var ignoreNextSettledSelectionForPage by remember { mutableStateOf<Int?>(null) }
+    var ignoreNextSettledSelectionForIndex by remember { mutableStateOf<Int?>(null) }
     var programmaticScrollInProgress by remember { mutableStateOf(false) }
-    LaunchedEffect(effectiveTargetIndex, requestedTargetIndex, queue) {
+    LaunchedEffect(effectiveTargetVirtualPage, requestedTargetIndex, queue) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
             .first { !it }
-        if (carouselState.pagerState.currentPage != effectiveTargetIndex) {
+        if (carouselState.pagerState.currentPage != effectiveTargetVirtualPage) {
             if (requestedTargetIndex != null) {
-                ignoreNextSettledSelectionForPage = effectiveTargetIndex
+                ignoreNextSettledSelectionForIndex = normalizeIndex(effectiveTargetIndex, realItemCount)
             }
             programmaticScrollInProgress = true
             try {
-                carouselState.animateScrollToItem(effectiveTargetIndex, animationSpec = smoothCarouselSpec)
+                carouselState.animateScrollToItem(effectiveTargetVirtualPage, animationSpec = smoothCarouselSpec)
             } finally {
                 programmaticScrollInProgress = false
             }
@@ -114,14 +133,14 @@ fun AlbumCarouselSection(
             .distinctUntilChanged()
             .filter { !it }
             .collect {
-                val settled = carouselState.pagerState.currentPage
-                if (ignoreNextSettledSelectionForPage == settled) {
-                    ignoreNextSettledSelectionForPage = null
+                val settledIndex = normalizeIndex(carouselState.pagerState.currentPage, realItemCount)
+                if (ignoreNextSettledSelectionForIndex == settledIndex) {
+                    ignoreNextSettledSelectionForIndex = null
                     return@collect
                 }
-                if (settled != currentSongIndex) {
+                if (settledIndex != currentSongIndex) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    queue.getOrNull(settled)?.let(onSongSelected)
+                    queue.getOrNull(settledIndex)?.let(onSongSelected)
                 }
             }
     }
@@ -137,10 +156,11 @@ fun AlbumCarouselSection(
             itemSpacing = itemSpacing,
             itemCornerRadius = corner,
             suppressNoPeekSettleCorrection = requestedTargetIndex != null || programmaticScrollInProgress,
-            carouselStyle = if (carouselState.pagerState.pageCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
+            carouselStyle = if (realItemCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
             carouselWidth = availableWidth // Pass the full width for layout calculations
         ) { index ->
-            val song = queue[index]
+            val realIndex = normalizeIndex(index, realItemCount)
+            val song = queue[realIndex]
             key(song.id) {
                 Box(
                     Modifier
@@ -161,3 +181,40 @@ fun AlbumCarouselSection(
         }
     }
 }
+
+private const val InfiniteCarouselVirtualCount = Int.MAX_VALUE
+
+private fun normalizeIndex(index: Int, realItemCount: Int): Int {
+    if (realItemCount <= 0) return 0
+    val mod = index % realItemCount
+    return if (mod >= 0) mod else mod + realItemCount
+}
+
+private fun middleStartPage(realItemCount: Int, initialRealIndex: Int): Int {
+    if (realItemCount <= 0) return 0
+    val middle = InfiniteCarouselVirtualCount / 2
+    val alignedMiddle = middle - normalizeIndex(middle, realItemCount)
+    return alignedMiddle + normalizeIndex(initialRealIndex, realItemCount)
+}
+
+private fun nearestVirtualPageForRealIndex(
+    currentVirtualPage: Int,
+    targetRealIndex: Int,
+    realItemCount: Int
+): Int {
+    if (realItemCount <= 0) return 0
+
+    val normalizedTarget = normalizeIndex(targetRealIndex, realItemCount)
+    val normalizedCurrent = normalizeIndex(currentVirtualPage, realItemCount)
+    val base = currentVirtualPage - normalizedCurrent
+
+    val candidates = buildList {
+        add(base + normalizedTarget)
+        add(base + normalizedTarget + realItemCount)
+        add(base + normalizedTarget - realItemCount)
+    }.filter { it in 0 until InfiniteCarouselVirtualCount }
+
+    return candidates.minByOrNull { abs(it - currentVirtualPage) }
+        ?: (base + normalizedTarget).coerceIn(0, InfiniteCarouselVirtualCount - 1)
+}
+

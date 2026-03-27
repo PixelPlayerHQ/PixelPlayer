@@ -52,19 +52,25 @@ fun PrefetchAlbumNeighbors(
     isActive: Boolean,
     pagerState: PagerState,
     queue: ImmutableList<Song>,
+    realItemCount: Int = queue.size,
     radius: Int = 1,
     targetSize: Size = Size(600, 600)
 ) {
-    if (!isActive || queue.isEmpty()) return
+    if (!isActive || queue.isEmpty() || realItemCount <= 0) return
     val context = LocalContext.current
     val imageLoader = coil.Coil.imageLoader(context)
 
     LaunchedEffect(pagerState, queue) {
         snapshotFlow { pagerState.currentPage }
             .distinctUntilChanged()
-            .collect { page ->
-                val indices = (page - radius..page + radius)
-                    .filter { it in queue.indices && it != page }
+            .collect { virtualPage ->
+                val currentRealIndex = normalizeCarouselIndex(virtualPage, realItemCount)
+                val indices = (-radius..radius)
+                    .asSequence()
+                    .map { delta -> normalizeCarouselIndex(currentRealIndex + delta, realItemCount) }
+                    .distinct()
+                    .filter { it != currentRealIndex }
+                    .toList()
                 indices.forEach { idx ->
                     queue[idx].albumArtUriString?.let { uri ->
                         val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(uri)) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED
@@ -82,3 +88,10 @@ fun PrefetchAlbumNeighbors(
             }
     }
 }
+
+private fun normalizeCarouselIndex(index: Int, itemCount: Int): Int {
+    if (itemCount <= 0) return 0
+    val mod = index % itemCount
+    return if (mod >= 0) mod else mod + itemCount
+}
+

@@ -541,9 +541,17 @@ private class CarouselItemModifierNode(
 
                 val itemSizeWithSpacing =
                     strategyResult.itemMainAxisSize + strategyResult.itemSpacing
-                val unadjustedCenter =
-                    (index * itemSizeWithSpacing) +
-                            (strategyResult.itemMainAxisSize / 2f) - scrollOffset
+                val currentPage = state.pagerState.currentPage
+                val currentPageOffsetFraction = state.pagerState.currentPageOffsetFraction
+                val currentSnapOffset = getSnapPositionOffset(
+                    strategyResult,
+                    currentPage,
+                    state.pagerState.pageCount
+                ).toFloat()
+                // Keep calculations near zero to avoid Float precision loss with Int.MAX_VALUE pages.
+                val relativeIndex = index - currentPage
+                val unadjustedCenter = ((relativeIndex - currentPageOffsetFraction) * itemSizeWithSpacing) +
+                            (strategyResult.itemMainAxisSize / 2f) + currentSnapOffset
 
                 val before = keylines.getKeylineBefore(unadjustedCenter)
                 val after = keylines.getKeylineAfter(unadjustedCenter)

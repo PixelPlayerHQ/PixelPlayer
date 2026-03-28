@@ -261,7 +261,7 @@ fun DailyMixHeader(thumbnails: ImmutableList<Song>) {
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
-                    modifier = Modifier.padding(start = 1.dp),
+                    modifier = Modifier.padding(start = 0.5.dp),
                     text = "Based on History",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Normal,
@@ -411,7 +411,7 @@ private fun rememberDailyMixTitleStyle(): TextStyle {
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
                         FontVariation.weight(630),
-                        FontVariation.width(110f),
+                        FontVariation.width(100f),
                         FontVariation.grade(40),
                         FontVariation.Setting("ROND", 100f),
                         FontVariation.Setting("XTRA", 520f),

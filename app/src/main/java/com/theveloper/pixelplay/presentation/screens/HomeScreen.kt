@@ -482,7 +482,7 @@ fun YourMixHeader(
                 text = song,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 4.dp)
             )
         }
         // Play Button - color changes based on shuffle state
@@ -629,7 +629,7 @@ private fun rememberYourMixTitleStyle(): TextStyle {
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
                         FontVariation.weight(636),
-                        FontVariation.width(152f),
+                        FontVariation.width(100f),
                         FontVariation.Setting("ROND", 50f),
                         FontVariation.Setting("XTRA", 520f),
                         FontVariation.Setting("YOPQ", 90f),

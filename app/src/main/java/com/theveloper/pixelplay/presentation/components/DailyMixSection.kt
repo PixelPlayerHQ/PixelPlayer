@@ -411,7 +411,7 @@ private fun rememberDailyMixTitleStyle(): TextStyle {
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
                         FontVariation.weight(630),
-                        FontVariation.width(136f),
+                        FontVariation.width(110f),
                         FontVariation.grade(40),
                         FontVariation.Setting("ROND", 100f),
                         FontVariation.Setting("XTRA", 520f),

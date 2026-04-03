@@ -289,6 +289,8 @@ private fun RoundedCarousel(
             RoundedCornerShape(itemCornerRadius)
         }
 
+        val reusablePath = remember { Path() }
+
         val clipShape = remember(cachedShape) {
             object : Shape {
                 override fun createOutline(
@@ -305,25 +307,13 @@ private fun RoundedCarousel(
                     val localSize = Size(rect.width, rect.height)
                     val baseOutline = cachedShape.createOutline(localSize, layoutDirection, density)
 
-                    // 3) Lo pasamos a Path y lo trasladamos a (left,top) del maskRect
-                    val path = Path().apply {
-                        addOutline(baseOutline)
-                        translate(Offset(rect.left, rect.top))
-                    }
-                    return Outline.Generic(path)
+                    reusablePath.reset()
+                    reusablePath.addOutline(baseOutline)
+                    reusablePath.translate(Offset(rect.left, rect.top))
+                    return Outline.Generic(reusablePath)
                 }
             }
         }
-
-//        val clipShape = remember {
-//            object : Shape {
-//                override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-//                    return Outline.Rectangle(carouselItemInfo.maskRect) // <-- RECTÁNGULO: causa el corte plano
-//                }
-//            }
-//        }
-
-        //val clipShape = rememberRoundedClipShape(carouselItemInfo, itemCornerRadius)
 
         val animatedAlpha by animateFloatAsState(
             targetValue = if (carouselStyle == CarouselStyle.ONE_PEEK && page > state.pagerState.currentPage + 1) 0f else 1f,
@@ -1041,16 +1031,22 @@ private fun KeylineSnapPosition(pageSize: CarouselPageSize): SnapPosition =
 
 @OptIn(ExperimentalMaterial3Api::class)
 private fun calculateCurrentScrollOffset(state: CarouselState, strategy: Strategy): Float {
-    val w = strategy.itemMainAxisSize + strategy.itemSpacing
-    val curr = (state.pagerState.currentPage * w) + (state.pagerState.currentPageOffsetFraction * w)
-    return curr - getSnapPositionOffset(strategy, state.pagerState.currentPage, state.pagerState.pageCount)
+    // Use Double precision to avoid Float overflow with Int.MAX_VALUE pages
+    val w = (strategy.itemMainAxisSize + strategy.itemSpacing).toDouble()
+    val currentPage = state.pagerState.currentPage.toDouble()
+    val offsetFraction = state.pagerState.currentPageOffsetFraction.toDouble()
+    val curr = (currentPage * w) + (offsetFraction * w)
+    val snapOffset = getSnapPositionOffset(strategy, state.pagerState.currentPage, state.pagerState.pageCount).toDouble()
+    return (curr - snapOffset).toFloat()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 private fun calculateMaxScrollOffset(state: CarouselState, strategy: Strategy): Float {
-    val itemCount = state.pagerState.pageCount.toFloat()
-    val maxScroll = (strategy.itemMainAxisSize * itemCount) + (strategy.itemSpacing * (itemCount - 1))
-    return (maxScroll - strategy.availableSpace).coerceAtLeast(0f)
+    // Use Double to avoid precision loss with large page counts
+    val itemCount = state.pagerState.pageCount.toDouble()
+    val maxScroll = (strategy.itemMainAxisSize.toDouble() * itemCount) + 
+                    (strategy.itemSpacing.toDouble() * (itemCount - 1))
+    return (maxScroll - strategy.availableSpace).coerceAtLeast(0.0).toFloat()
 }
 
 private fun getProgress(before: Keyline, after: Keyline, unadjustedOffset: Float): Float {

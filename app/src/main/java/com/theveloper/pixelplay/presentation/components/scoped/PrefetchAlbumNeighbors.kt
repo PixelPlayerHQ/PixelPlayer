@@ -14,7 +14,9 @@ import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 
 @Composable
 fun PrefetchAlbumNeighborsImg(
@@ -58,22 +60,27 @@ fun PrefetchAlbumNeighbors(
 ) {
     if (!isActive || queue.isEmpty() || realItemCount <= 0) return
     val context = LocalContext.current
-    val imageLoader = coil.Coil.imageLoader(context)
+    val imageLoader = Coil.imageLoader(context)
 
     LaunchedEffect(pagerState, queue) {
         snapshotFlow { pagerState.currentPage }
             .distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
             .collect { virtualPage ->
                 val currentRealIndex = normalizeCarouselIndex(virtualPage, realItemCount)
                 val indices = (-radius..radius)
-                    .asSequence()
                     .map { delta -> normalizeCarouselIndex(currentRealIndex + delta, realItemCount) }
                     .distinct()
                     .filter { it != currentRealIndex }
-                    .toList()
+
                 indices.forEach { idx ->
-                    queue[idx].albumArtUriString?.let { uri ->
-                        val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(uri)) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED
+                    val song = queue.getOrNull(idx) ?: return@forEach
+                    song.albumArtUriString?.let { uri ->
+                        val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(uri)) {
+                            coil.request.CachePolicy.DISABLED
+                        } else {
+                            coil.request.CachePolicy.ENABLED
+                        }
                         val req = coil.request.ImageRequest.Builder(context)
                             .data(uri)
                             .size(targetSize)

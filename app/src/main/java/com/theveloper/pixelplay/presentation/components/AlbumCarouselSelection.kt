@@ -208,13 +208,17 @@ private fun nearestVirtualPageForRealIndex(
     val normalizedCurrent = normalizeIndex(currentVirtualPage, realItemCount)
     val base = currentVirtualPage - normalizedCurrent
 
-    val candidates = buildList {
-        add(base + normalizedTarget)
-        add(base + normalizedTarget + realItemCount)
-        add(base + normalizedTarget - realItemCount)
-    }.filter { it in 0 until InfiniteCarouselVirtualCount }
+    val candidate1 = base.toLong() + normalizedTarget
+    val candidate2 = base.toLong() + normalizedTarget + realItemCount
+    val candidate3 = base.toLong() + normalizedTarget - realItemCount
 
-    return candidates.minByOrNull { abs(it - currentVirtualPage) }
-        ?: (base + normalizedTarget).coerceIn(0, InfiniteCarouselVirtualCount - 1)
+    val currentLong = currentVirtualPage.toLong()
+    val maxValid = InfiniteCarouselVirtualCount.toLong()
+
+    val candidates = listOf(candidate1, candidate2, candidate3)
+        .filter { it in 0L until maxValid }
+
+    return candidates.minByOrNull { abs(it - currentLong) }?.toInt()
+        ?: (base.toLong() + normalizedTarget).coerceIn(0L, maxValid - 1L).toInt()
 }
 

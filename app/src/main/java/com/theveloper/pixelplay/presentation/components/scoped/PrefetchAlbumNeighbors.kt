@@ -65,7 +65,6 @@ fun PrefetchAlbumNeighbors(
     LaunchedEffect(pagerState, queue) {
         snapshotFlow { pagerState.currentPage }
             .distinctUntilChanged()
-            .flowOn(Dispatchers.Default)
             .collect { virtualPage ->
                 val currentRealIndex = normalizeCarouselIndex(virtualPage, realItemCount)
                 val indices = (-radius..radius)

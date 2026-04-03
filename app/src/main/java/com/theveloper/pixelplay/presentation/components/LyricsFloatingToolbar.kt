@@ -52,6 +52,7 @@ fun LyricsFloatingToolbar(
     onNavigateBack: () -> Unit,
     showSyncedLyrics: Boolean?,
     onShowSyncedLyricsChange: (Boolean) -> Unit,
+    hasSyncedLyrics: Boolean,
     onMoreClick: () -> Unit,
     backgroundColor: Color,
     onBackgroundColor: Color,
@@ -91,6 +92,7 @@ fun LyricsFloatingToolbar(
             ToggleSegmentButton(
                 modifier = Modifier.weight(1f).height(50.dp),
                 active = showSyncedLyrics,
+                enabled = hasSyncedLyrics,
                 activeColor = accentColor,
                 inactiveColor = backgroundColor,
                 activeContentColor = onAccentColor,
@@ -103,6 +105,7 @@ fun LyricsFloatingToolbar(
             ToggleSegmentButton(
                 modifier = Modifier.weight(1f).height(50.dp),
                 active = !showSyncedLyrics,
+                enabled = true,
                 activeColor = accentColor,
                 inactiveColor = backgroundColor,
                 activeContentColor = onAccentColor,

@@ -564,7 +564,8 @@ fun PlaylistDetailScreen(
                         ) {
                             itemsIndexed(
                                 localReorderableSongs,
-                                key = { _, item -> item.id }) { _, song ->
+                                key = { _, item -> item.id },
+                                contentType = { _, _ -> "playlist_song" }) { _, song ->
                                 ReorderableItem(
                                     state = reorderableState,
                                     key = song.id,
@@ -854,6 +855,12 @@ fun PlaylistDetailScreen(
                     navController.navigateSafely(Screen.ArtistDetail.createRoute(currentSong.artistId))
                     showSongInfoBottomSheet = false
                 },
+                onNavigateToGenre = {
+                    currentSong.genre?.let {
+                        navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                    }
+                    showSongInfoBottomSheet = false
+                },
                 onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         currentSong,
@@ -912,9 +919,13 @@ fun PlaylistDetailScreen(
             SortOption.SongTitleAZ,
             SortOption.SongTitleZA,
             SortOption.SongArtist,
+            SortOption.SongArtistDesc,
             SortOption.SongAlbum,
+            SortOption.SongAlbumDesc,
             SortOption.SongDateAdded,
-            SortOption.SongDuration
+            SortOption.SongDateAddedAsc,
+            SortOption.SongDuration,
+            SortOption.SongDurationAsc
         )
 
         LibrarySortBottomSheet(
@@ -930,6 +941,13 @@ fun PlaylistDetailScreen(
                      kotlinx.coroutines.delay(100)
                      listState.animateScrollToItem(0)
                  }
+            },
+            onDirectionToggle = { option ->
+                playlistViewModel.sortPlaylistSongs(option)
+                scope.launch {
+                    kotlinx.coroutines.delay(100)
+                    listState.animateScrollToItem(0)
+                }
             },
             showViewToggle = false 
         )

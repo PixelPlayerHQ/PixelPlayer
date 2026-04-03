@@ -220,7 +220,7 @@ fun TelegramDashboardScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .fillMaxSize()
-                        //.padding(top = currentTopBarHeightDp + 8.dp)
+                    //.padding(top = currentTopBarHeightDp + 8.dp)
                     ,
                     onAdd = onAddChannel
                 )
@@ -582,10 +582,16 @@ private fun TopicRow(topic: TelegramTopicEntity) {
                 .background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = topic.iconEmoji?.let { "\uD83C\uDFB5" } ?: "🎵",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+//            Text(
+//                text = topic.iconEmoji?.takeIf { it.isNotBlank() } ?: "🎵",
+//                style = MaterialTheme.typography.bodyMedium,
+//                color = MaterialTheme.colorScheme.primary,
+//            )
+            Icon(
+                imageVector = Icons.Rounded.Topic,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
             )
         }
 

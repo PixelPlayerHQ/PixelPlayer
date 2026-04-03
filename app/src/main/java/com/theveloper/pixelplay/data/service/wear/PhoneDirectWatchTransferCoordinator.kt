@@ -432,31 +432,19 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
         val knownSize = (resolved?.second ?: 0L).coerceAtLeast(0L)
 
         val proxy = telegramStreamProxy.get()
-        if (!proxy.isReady()) {
-            proxy.start()
-            val ready = proxy.awaitReady(5_000L)
-            if (!ready) {
-                Timber.tag(TAG).w("Telegram stream proxy not ready for watch handoff")
-                return null
-            }
+        val ready = proxy.ensureReady(5_000L)
+        if (!ready) {
+            Timber.tag(TAG).w("Telegram stream proxy not ready for watch handoff")
+            return null
         }
         return proxy.getProxyUrl(fileId, knownSize)
     }
 
     private suspend fun ensureCloudProxyReady(proxy: Any): Boolean {
         return when (proxy) {
-            is NeteaseStreamProxy -> {
-                if (!proxy.isReady()) proxy.start()
-                proxy.awaitReady(5_000L)
-            }
-            is QqMusicStreamProxy -> {
-                if (!proxy.isReady()) proxy.start()
-                proxy.awaitReady(5_000L)
-            }
-            is NavidromeStreamProxy -> {
-                if (!proxy.isReady()) proxy.start()
-                proxy.awaitReady(5_000L)
-            }
+            is NeteaseStreamProxy -> proxy.ensureReady(5_000L)
+            is QqMusicStreamProxy -> proxy.ensureReady(5_000L)
+            is NavidromeStreamProxy -> proxy.ensureReady(5_000L)
             else -> false
         }
     }

@@ -13,7 +13,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -90,8 +89,10 @@ import kotlin.math.abs
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicInteger
 
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 // Acciones personalizadas para compatibilidad con el widget existente
 
@@ -163,6 +164,7 @@ class MusicService : MediaLibraryService() {
     private var shouldResumeAfterHeadsetReconnect = false
     private var lastNoisyPauseRealtimeMs = 0L
     private var resumeOnHeadsetReconnectEnabled = false
+    private var temporaryForegroundStartedInOnCreate = false
 
     companion object {
         private const val TAG = "MusicService_PixelPlay"
@@ -171,6 +173,7 @@ class MusicService : MediaLibraryService() {
         const val EXTRA_FORCE_FOREGROUND_ON_START =
             "com.theveloper.pixelplay.extra.FORCE_FOREGROUND_ON_START"
         private const val PLAYBACK_SNAPSHOT_DEBOUNCE_MS = 350L
+        private val pendingMediaButtonForegroundStarts = AtomicInteger(0)
 
         private const val APP_PACKAGE_PREFIX = "com.theveloper.pixelplay"
         private val BLOCKED_WEAR_CONTROLLER_PREFIXES = listOf(
@@ -199,6 +202,30 @@ class MusicService : MediaLibraryService() {
         private const val DEFAULT_STREAM_BUFFER_SIZE = 8 * 1024
         private const val WIDGET_ART_FAILURE_RETRY_MS = 30_000L
         private const val HEADSET_RECONNECT_RESUME_WINDOW_MS = 15_000L
+
+        fun markPendingMediaButtonForegroundStart() {
+            pendingMediaButtonForegroundStarts.incrementAndGet()
+        }
+
+        fun unmarkPendingMediaButtonForegroundStart() {
+            while (true) {
+                val currentCount = pendingMediaButtonForegroundStarts.get()
+                if (currentCount <= 0) return
+                if (pendingMediaButtonForegroundStarts.compareAndSet(currentCount, currentCount - 1)) {
+                    return
+                }
+            }
+        }
+
+        private fun consumePendingMediaButtonForegroundStart(): Boolean {
+            while (true) {
+                val currentCount = pendingMediaButtonForegroundStarts.get()
+                if (currentCount <= 0) return false
+                if (pendingMediaButtonForegroundStarts.compareAndSet(currentCount, currentCount - 1)) {
+                    return true
+                }
+            }
+        }
     }
 
     private val playerSwapListener: (Player) -> Unit = { newPlayer ->
@@ -239,6 +266,14 @@ class MusicService : MediaLibraryService() {
         }
 
         super.onCreate()
+
+        // A MEDIA_BUTTON broadcast starts the foreground-service timeout before
+        // MusicService reaches onStartCommand(). Promote as early as possible so
+        // cold-start initialization cannot consume the whole timeout window.
+        temporaryForegroundStartedInOnCreate = consumePendingMediaButtonForegroundStart()
+        if (temporaryForegroundStartedInOnCreate) {
+            startTemporaryForegroundForCommand()
+        }
         
         // Ensure engine is ready (re-initialize if service was restarted)
         engine.initialize()
@@ -747,19 +782,12 @@ class MusicService : MediaLibraryService() {
                         pendingIntent,
                     )
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            } else
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent,
                 )
-            } else {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent,
-                )
-            }
             Timber.tag(TAG).d("Sleep timer set from Wear for %d minutes", minutes)
         } catch (e: SecurityException) {
             Timber.tag(TAG).w(e, "Exact alarm denied; using inexact sleep timer")
@@ -791,7 +819,6 @@ class MusicService : MediaLibraryService() {
     }
 
     private fun startTemporaryForegroundForCommand() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val notification = NotificationCompat.Builder(
             this,
             PixelPlayApplication.NOTIFICATION_CHANNEL_ID
@@ -820,12 +847,18 @@ class MusicService : MediaLibraryService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val startedTemporaryForegroundInOnCreate = temporaryForegroundStartedInOnCreate
+        temporaryForegroundStartedInOnCreate = false
+        val pendingMediaButtonForegroundStart = consumePendingMediaButtonForegroundStart()
         val forcedForegroundStart =
             intent?.getBooleanExtra(EXTRA_FORCE_FOREGROUND_ON_START, false) == true
         val isMediaButtonIntent = intent?.action == Intent.ACTION_MEDIA_BUTTON
         val needsTemporaryForeground = forcedForegroundStart ||
-            (isMediaButtonIntent && !isServiceAlreadyForeground())
-        if (needsTemporaryForeground) {
+            pendingMediaButtonForegroundStart ||
+            (isMediaButtonIntent &&
+                !startedTemporaryForegroundInOnCreate &&
+                !isServiceAlreadyForeground())
+        if (needsTemporaryForeground && !startedTemporaryForegroundInOnCreate) {
             startTemporaryForegroundForCommand()
         }
 
@@ -855,7 +888,7 @@ class MusicService : MediaLibraryService() {
                     if (songId != -1L) {
                         val timeline = player.currentTimeline
                         if (!timeline.isEmpty) {
-                            val window = androidx.media3.common.Timeline.Window()
+                            val window = Timeline.Window()
                             for (i in 0 until timeline.windowCount) {
                                 timeline.getWindow(i, window)
                                 if (window.mediaItem.mediaId.toLongOrNull() == songId) {
@@ -1041,8 +1074,8 @@ class MusicService : MediaLibraryService() {
         }
 
         val mediaId = mediaItem.mediaId
-        val filePath = mediaItem.mediaMetadata?.extras
-            ?.getString(com.theveloper.pixelplay.utils.MediaItemBuilder.EXTERNAL_EXTRA_FILE_PATH)
+        val filePath = mediaItem.mediaMetadata.extras
+            ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_FILE_PATH)
 
         if (filePath.isNullOrBlank()) {
             Timber.tag(TAG).d("ReplayGain: No file path for track, keeping user-selected volume")
@@ -1055,7 +1088,7 @@ class MusicService : MediaLibraryService() {
         val useAlbumGain = replayGainUseAlbumGain
         // Read ReplayGain tags on IO thread to avoid blocking main
         replayGainJob = serviceScope.launch {
-            val rgValues = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val rgValues = withContext(Dispatchers.IO) {
                 replayGainManager.readReplayGain(filePath)
             }
 
@@ -1078,12 +1111,14 @@ class MusicService : MediaLibraryService() {
                 // Store for application after transition completes
                 pendingReplayGainVolume = volume
                 Timber.tag(TAG).d("ReplayGain: Stored pending volume=%.2f for %s (transition running)",
-                    volume, mediaItem.mediaMetadata?.title)
+                    volume, mediaItem.mediaMetadata.title
+                )
             } else {
                 pendingReplayGainVolume = null
                 setPlayerVolume(player, volume)
                 Timber.tag(TAG).d("ReplayGain: Applied volume=%.2f for %s",
-                    volume, mediaItem.mediaMetadata?.title)
+                    volume, mediaItem.mediaMetadata.title
+                )
             }
         }
     }
@@ -1614,12 +1649,11 @@ class MusicService : MediaLibraryService() {
         val streamDurationMs = remoteClient.streamDuration.takeIf { it > 0L }
         val effectiveDurationMs = (streamDurationMs ?: durationHintMs ?: 0L).coerceAtLeast(0L)
         val imageUri = metadata
-            ?.images
-            ?.firstOrNull()
-            ?.url
-            ?.toString()
-            ?.takeIf { it.isNotBlank() }
-            ?.let { Uri.parse(it) }
+                ?.images
+                ?.firstOrNull()
+                ?.url
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }?.toUri()
 
         val mappedRepeatMode = when (mediaStatus.queueRepeatMode) {
             MediaStatus.REPEAT_MODE_REPEAT_SINGLE -> Player.REPEAT_MODE_ONE
@@ -1761,7 +1795,7 @@ class MusicService : MediaLibraryService() {
         var currentPosition = 0L
         var totalDuration = 0L
         var snapshotWindowIndex = 0
-        var snapshotTimeline: androidx.media3.common.Timeline = androidx.media3.common.Timeline.EMPTY
+        var snapshotTimeline: Timeline = Timeline.EMPTY
 
         withContext(Dispatchers.Main) {
             currentItem = player.currentMediaItem
@@ -1782,10 +1816,10 @@ class MusicService : MediaLibraryService() {
         var artworkData = currentItem?.mediaMetadata?.artworkData
 
         resolveCastRemoteSnapshot()?.let { remote ->
-            if (!remote.title.isNullOrBlank()) {
+            if (remote.title.isNotBlank()) {
                 title = remote.title
             }
-            if (!remote.artist.isNullOrBlank()) {
+            if (remote.artist.isNotBlank()) {
                 artist = remote.artist
             }
             if (!remote.songId.isNullOrBlank()) {
@@ -1873,7 +1907,7 @@ class MusicService : MediaLibraryService() {
         val queueItems = mutableListOf<com.theveloper.pixelplay.data.model.QueueItem>()
         // Reuse snapshotTimeline / snapshotWindowIndex captured at the top — no extra main-thread hop
         if (!snapshotTimeline.isEmpty) {
-            val window = androidx.media3.common.Timeline.Window()
+            val window = Timeline.Window()
 
             // Empezar desde la siguiente canción en la cola
             val startIndex = if (snapshotWindowIndex + 1 < snapshotTimeline.windowCount) snapshotWindowIndex + 1 else 0
@@ -1936,7 +1970,6 @@ class MusicService : MediaLibraryService() {
         if (artUriString.isNullOrBlank()) {
             return@withContext null to artUriString
         }
-        val safeArtUri = artUri ?: return@withContext null to artUriString
 
         if (artUriString == cachedWidgetArtUri && cachedWidgetArtBytes != null) {
             return@withContext cachedWidgetArtBytes to artUriString
@@ -1948,7 +1981,7 @@ class MusicService : MediaLibraryService() {
             }
         }
 
-        val loadedBytes = loadArtworkBytesForWidget(safeArtUri)
+        val loadedBytes = loadArtworkBytesForWidget(artUri)
         if (loadedBytes != null) {
             cachedWidgetArtUri = artUriString
             cachedWidgetArtBytes = loadedBytes
@@ -1969,7 +2002,7 @@ class MusicService : MediaLibraryService() {
             ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_ALBUM_ART)
             ?.takeIf { it.isNotBlank() }
             ?: return null
-        return runCatching { Uri.parse(extrasUri) }.getOrNull()
+        return runCatching { extrasUri.toUri() }.getOrNull()
     }
 
     private fun loadArtworkBytesForWidget(uri: Uri): ByteArray? {
@@ -2051,12 +2084,13 @@ class MusicService : MediaLibraryService() {
             }
             
             if (glanceIds.isNotEmpty() || barGlanceIds.isNotEmpty() || controlGlanceIds.isNotEmpty() || gridGlanceIds.isNotEmpty()) {
-                 Log.d(TAG, "Widgets actualizados: ${playerInfo.songTitle} (Original: ${glanceIds.size}, Bar: ${barGlanceIds.size}, Control: ${controlGlanceIds.size})")
+                Timber.tag(TAG)
+                    .d("Widgets actualizados: ${playerInfo.songTitle} (Original: ${glanceIds.size}, Bar: ${barGlanceIds.size}, Control: ${controlGlanceIds.size})")
             } else {
-                Log.w(TAG, "No se encontraron widgets para actualizar")
+                Timber.tag(TAG).w("No se encontraron widgets para actualizar")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error al actualizar el widget", e)
+            Timber.tag(TAG).e(e, "Error al actualizar el widget")
         }
     }
 

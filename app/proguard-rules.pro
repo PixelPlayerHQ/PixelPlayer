@@ -167,6 +167,16 @@
 # Keep Kotlin reflection if needed by Ktor/Serialization in Release
 -keep class kotlin.reflect.** { *; }
 
+# Kuromoji
+-keep class com.atilika.kuromoji.** { *; }
+-keepnames class com.atilika.kuromoji.** { *; }
+-dontwarn com.atilika.kuromoji.**
+
+# Pinyin4J
+-keep class net.sourceforge.pinyin4j.** { *; }
+-keepclassmembers class net.sourceforge.pinyin4j.** { *; }
+-dontwarn net.sourceforge.pinyin4j.**
+
 # =============================================================================
 # TIMBER LOGGING OPTIMIZATION FOR RELEASE BUILDS
 # =============================================================================

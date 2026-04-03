@@ -26,6 +26,7 @@ class MusicDaoTest {
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, PixelPlayDatabase::class.java)
+            .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
             .allowMainThreadQueries() // Permite consultas en el hilo principal para tests
             .build()
         musicDao = db.musicDao()
@@ -64,6 +65,7 @@ class MusicDaoTest {
             artistId = 101L,
             albumArtUriString = "art_uri_$id",
             songCount = 5,
+            dateAdded = 0L,
             year = 2023
         )
     }

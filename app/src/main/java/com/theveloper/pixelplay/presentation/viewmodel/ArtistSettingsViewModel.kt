@@ -16,6 +16,8 @@ import javax.inject.Inject
 
 data class ArtistSettingsUiState(
     val artistDelimiters: List<String> = UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+    val wordDelimiters: List<String> = UserPreferencesRepository.DEFAULT_ARTIST_WORD_DELIMITERS,
+    val extractArtistsFromTitle: Boolean = true,
     val groupByAlbumArtist: Boolean = false,
     val rescanRequired: Boolean = false,
     val isResyncing: Boolean = false
@@ -41,6 +43,18 @@ class ArtistSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.artistDelimitersFlow.collect { delimiters ->
                 _uiState.update { it.copy(artistDelimiters = delimiters) }
+            }
+        }
+
+        viewModelScope.launch {
+            userPreferencesRepository.artistWordDelimitersFlow.collect { delimiters ->
+                _uiState.update { it.copy(wordDelimiters = delimiters) }
+            }
+        }
+
+        viewModelScope.launch {
+            userPreferencesRepository.extractArtistsFromTitleFlow.collect { enabled ->
+                _uiState.update { it.copy(extractArtistsFromTitle = enabled) }
             }
         }
 
@@ -100,6 +114,38 @@ class ArtistSettingsViewModel @Inject constructor(
     fun resetDelimitersToDefault() {
         viewModelScope.launch {
             userPreferencesRepository.resetArtistDelimitersToDefault()
+        }
+    }
+
+    fun addWordDelimiter(delimiter: String): Boolean {
+        val trimmed = delimiter.trim()
+        if (trimmed.isEmpty()) return false
+
+        val current = _uiState.value.wordDelimiters
+        if (current.any { it.equals(trimmed, ignoreCase = true) }) return false
+
+        viewModelScope.launch {
+            userPreferencesRepository.setArtistWordDelimiters(current + trimmed)
+        }
+        return true
+    }
+
+    fun removeWordDelimiter(delimiter: String) {
+        val current = _uiState.value.wordDelimiters
+        viewModelScope.launch {
+            userPreferencesRepository.setArtistWordDelimiters(current - delimiter)
+        }
+    }
+
+    fun resetWordDelimitersToDefault() {
+        viewModelScope.launch {
+            userPreferencesRepository.resetArtistWordDelimitersToDefault()
+        }
+    }
+
+    fun setExtractArtistsFromTitle(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setExtractArtistsFromTitle(enabled)
         }
     }
 

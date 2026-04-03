@@ -15,6 +15,15 @@ data class GenreThemeColor(
 
 object GenreThemeUtils {
     private val genreColorSchemeCache = LruCache<Int, ColorScheme>(96)
+    private val unknownSeedColor = Color(0xFF7C7D84)
+    private val unknownLightThemeColor = GenreThemeColor(
+        container = Color(0xFFE5E5EA),
+        onContainer = Color(0xFF1B1B20)
+    )
+    private val unknownDarkThemeColor = GenreThemeColor(
+        container = Color(0xFF3A3B42),
+        onContainer = Color(0xFFF2F1F6)
+    )
     
     private val darkColors = listOf(
         GenreThemeColor(Color(0xFF004A77), Color(0xFFC2E7FF)), // Blue
@@ -62,7 +71,21 @@ object GenreThemeUtils {
         GenreThemeColor(Color(0xFFFFDEA5), Color(0xFF261900))  // Amber
     )
 
+    private fun isUnknownGenreId(genreId: String): Boolean {
+        return genreId
+            .trim()
+            .lowercase()
+            .let { normalized ->
+                normalized == "unknown" ||
+                    normalized == "unknown genre" ||
+                    normalized == "unknown_genre"
+            }
+    }
+
     fun getGenreThemeColor(genreId: String, isDark: Boolean): GenreThemeColor {
+        if (isUnknownGenreId(genreId)) {
+            return if (isDark) unknownDarkThemeColor else unknownLightThemeColor
+        }
         val hash = abs(genreId.hashCode())
         val index = hash % darkColors.size
         return if (isDark) darkColors[index] else lightColors[index]
@@ -73,6 +96,10 @@ object GenreThemeUtils {
         isDark: Boolean,
         fallbackGenreId: String = "unknown"
     ): GenreThemeColor {
+        val effectiveGenreId = genre?.id?.takeIf { it.isNotBlank() } ?: fallbackGenreId
+        if (isUnknownGenreId(effectiveGenreId)) {
+            return if (isDark) unknownDarkThemeColor else unknownLightThemeColor
+        }
         val seed = resolveSeedColor(genre = genre, isDark = isDark, fallbackGenreId = fallbackGenreId)
         val explicitOnColor = parseHexColor(
             if (isDark) genre?.onDarkColorHex else genre?.onLightColorHex
@@ -103,18 +130,30 @@ object GenreThemeUtils {
         genreIdFallback: String = "unknown",
         paletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.EXPRESSIVE
     ): ColorScheme {
-        val seed = resolveSeedColor(
-            genre = genre,
-            isDark = isDark,
-            fallbackGenreId = genreIdFallback
-        )
-        val cacheKey = ((seed.toArgb() * 31) + if (isDark) 1 else 0) * 31 + paletteStyle.ordinal
+        val effectiveGenreId = genre?.id?.takeIf { it.isNotBlank() } ?: genreIdFallback
+        val forceMonochrome = isUnknownGenreId(effectiveGenreId)
+        val seed = if (forceMonochrome) {
+            unknownSeedColor
+        } else {
+            resolveSeedColor(
+                genre = genre,
+                isDark = isDark,
+                fallbackGenreId = genreIdFallback
+            )
+        }
+        val cacheKey =
+            (((seed.toArgb() * 31) + if (isDark) 1 else 0) * 31 + paletteStyle.ordinal) * 31 +
+                if (forceMonochrome) 1 else 0
         genreColorSchemeCache.get(cacheKey)?.let { return it }
 
-        val pair = generateColorSchemeFromSeed(
-            seedColor = seed,
-            paletteStyle = paletteStyle
-        )
+        val pair = if (forceMonochrome) {
+            generateMonochromeColorSchemeFromSeed(seed)
+        } else {
+            generateColorSchemeFromSeed(
+                seedColor = seed,
+                paletteStyle = paletteStyle
+            )
+        }
         val scheme = if (isDark) pair.dark else pair.light
         genreColorSchemeCache.put(cacheKey, scheme)
         return scheme

@@ -47,6 +47,11 @@
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_album">Unknown album</string>
     <string name="artist_picker_title">Pick an Artist</string>
+    <string name="artist_picker_supporting_text">Open any credited artist for this track.</string>
+    <string name="artist_picker_count_single">1 artist</string>
+    <string name="artist_picker_count_multiple">%1$d artists</string>
+    <string name="artist_picker_primary_label">Primary artist</string>
+    <string name="artist_picker_shortcut_label">Artist page</string>
     <string name="external_queue_label">Quick play</string>
     <string name="external_playback_error">Unable to open that audio file.</string>
     <string name="open_full_player">Open full player</string>

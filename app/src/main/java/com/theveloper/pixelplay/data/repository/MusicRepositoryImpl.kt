@@ -12,6 +12,7 @@ import android.util.Log
 
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.ArtistImageRepository
+import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -56,11 +57,16 @@ import com.theveloper.pixelplay.utils.StorageUtils
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -87,8 +93,8 @@ class MusicRepositoryImpl @Inject constructor(
     private val musicDao: MusicDao,
     private val lyricsRepository: LyricsRepository,
     private val telegramDao: TelegramDao,
-    private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
-    override val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository,
+    private val telegramCacheManagerProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>,
+    private val telegramRepositoryProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramRepository>,
     private val songRepository: SongRepository,
     private val favoritesDao: FavoritesDao,
     private val artistImageRepository: ArtistImageRepository,
@@ -106,9 +112,52 @@ class MusicRepositoryImpl @Inject constructor(
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     // Tracks the active prefetch job so a new flow emission cancels the previous one.
     @Volatile private var prefetchJob: Job? = null
+    @Volatile private var currentSongArtistPrefetchJob: Job? = null
+    @Volatile private var currentSongArtistPrefetchSongId: Long? = null
+    @Volatile private var telegramDownloadSyncObserverStarted = false
+    private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager
+        get() = telegramCacheManagerProvider.get()
+    override val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository
+        get() = telegramRepositoryProvider.get()
 
     private fun normalizePath(path: String): String =
         runCatching { File(path).canonicalPath }.getOrElse { File(path).absolutePath }
+
+    /** Cached directory filter — recomputed only when allowed/blocked dirs preferences change. */
+    data class CachedDirFilter(val allowedParentDirs: List<String> = emptyList(), val applyFilter: Boolean = false)
+
+    private val cachedDirFilter: StateFlow<CachedDirFilter> = combine(
+        userPreferencesRepository.allowedDirectoriesFlow,
+        userPreferencesRepository.blockedDirectoriesFlow
+    ) { allowed, blocked ->
+        val (dirs, apply) = DirectoryFilterUtils.computeAllowedParentDirs(
+            allowedDirs = allowed,
+            blockedDirs = blocked,
+            getAllParentDirs = { musicDao.getDistinctParentDirectories() },
+            normalizePath = ::normalizePath
+        )
+        CachedDirFilter(dirs, apply)
+    }.stateIn(repositoryScope, SharingStarted.Eagerly, CachedDirFilter())
+
+    private fun ensureTelegramDownloadSyncObserverStarted() {
+        if (telegramDownloadSyncObserverStarted) return
+        telegramDownloadSyncObserverStarted = true
+
+        repositoryScope.launch {
+            telegramRepository.songFileUpdated.collect {
+                androidx.work.WorkManager.getInstance(context).enqueue(
+                    com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
+                )
+            }
+        }
+    }
+
+    private fun List<Artist>.missingImageCandidates(): List<Pair<Long, String>> =
+        asSequence()
+            .filter { it.effectiveImageUrl.isNullOrBlank() && it.name.isNotBlank() }
+            .map { it.id to it.name }
+            .distinctBy { (_, name) -> name.trim().lowercase() }
+            .toList()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAudioFiles(): Flow<List<Song>> {
@@ -156,18 +205,16 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getRandomSongs(limit: Int): List<Song> = withContext(Dispatchers.IO) {
-        // Use DAO's optimized random query with filter support
-        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
-        val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
-        val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
-
-        musicDao.getRandomSongs(limit, allowedParentDirs, applyFilter).map { it.toSong() }
+        val filter = cachedDirFilter.value
+        musicDao.getRandomSongs(limit, filter.allowedParentDirs, filter.applyFilter).map { it.toSong() }
     }
 
     override suspend fun saveTelegramSongs(songs: List<Song>) {
         val entities = songs.mapNotNull { it.toTelegramEntity() }
         if (entities.isNotEmpty()) {
+            ensureTelegramDownloadSyncObserverStarted()
             telegramDao.insertSongs(entities)
+            telegramRepository.warmUpArtworkForSongs(entities)
             // Trigger sync to update main DB
             androidx.work.WorkManager.getInstance(context).enqueue(
                 com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
@@ -177,9 +224,11 @@ class MusicRepositoryImpl @Inject constructor(
 
     override suspend fun replaceTelegramSongsForChannel(chatId: Long, songs: List<Song>) {
         val entities = songs.mapNotNull { it.toTelegramEntity() }.filter { it.chatId == chatId }
+        ensureTelegramDownloadSyncObserverStarted()
         telegramDao.deleteSongsByChatId(chatId)
         if (entities.isNotEmpty()) {
             telegramDao.insertSongs(entities)
+            telegramRepository.warmUpArtworkForSongs(entities)
         }
         // Trigger sync to update main DB (and remove deleted songs)
         androidx.work.WorkManager.getInstance(context).enqueue(
@@ -246,11 +295,7 @@ class MusicRepositoryImpl @Inject constructor(
                 .map { entities ->
                     val artists = entities.map { it.toArtist() }
                     // Trigger prefetch for missing images (non-blocking)
-                    val missingImages = artists.asSequence()
-                        .filter { it.imageUrl.isNullOrEmpty() && it.name.isNotBlank() }
-                        .map { it.id to it.name }
-                        .distinctBy { (_, name) -> name.trim().lowercase() }
-                        .toList()
+                    val missingImages = artists.missingImageCandidates()
                     if (missingImages.isNotEmpty()) {
                         // Cancel any in-flight prefetch before starting a new one — the flow
                         // can emit multiple times during sync, and concurrent launches would
@@ -276,9 +321,28 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override fun getArtistsForSong(songId: Long): Flow<List<Artist>> {
-        return musicDao.getArtistsForSong(songId).map { entities ->
-            entities.map { it.toArtist() }
-        }.flowOn(Dispatchers.IO)
+        return musicDao.getArtistsForSong(songId)
+            .map { entities -> entities.map { it.toArtist() } }
+            .distinctUntilChanged()
+            .onEach { artists ->
+                val missingImages = artists.missingImageCandidates()
+                if (missingImages.isNotEmpty()) {
+                    val isNewSong = currentSongArtistPrefetchSongId != songId
+                    if (isNewSong) {
+                        currentSongArtistPrefetchJob?.cancel()
+                        currentSongArtistPrefetchSongId = songId
+                    } else if (currentSongArtistPrefetchJob?.isActive == true) {
+                        // Room re-emits as artist rows are updated; keep the current song batch
+                        // alive so one successful image write does not cancel the remaining fetches.
+                        return@onEach
+                    }
+
+                    currentSongArtistPrefetchJob = repositoryScope.launch {
+                        artistImageRepository.prefetchArtistImages(missingImages)
+                    }
+                }
+            }
+            .flowOn(Dispatchers.IO)
     }
 
     override fun getSongsForArtist(artistId: Long): Flow<List<Song>> {
@@ -765,9 +829,11 @@ class MusicRepositoryImpl @Inject constructor(
         val entities = songs.mapNotNull { it.toTelegramEntityWithThread(threadId) }
             .filter { it.chatId == chatId }
 
+        ensureTelegramDownloadSyncObserverStarted()
         telegramDao.deleteSongsByTopicId(chatId, threadId)
         if (entities.isNotEmpty()) {
             telegramDao.insertSongs(entities)
+            telegramRepository.warmUpArtworkForSongs(entities)
         }
 
         // Create/update the per-topic app playlist
@@ -783,17 +849,25 @@ class MusicRepositoryImpl @Inject constructor(
         sortOption: SortOption,
         storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
     ): List<Long> = withContext(Dispatchers.IO) {
-        val allowedDirsFlow = userPreferencesRepository.allowedDirectoriesFlow.first()
-        val blockedDirsFlow = userPreferencesRepository.blockedDirectoriesFlow.first()
-        val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirsFlow, blockedDirsFlow)
-
-        val filterMode = storageFilter.toFilterMode()
-
+        val filter = cachedDirFilter.value
         musicDao.getSongIdsSorted(
-            allowedParentDirs = allowedParentDirs,
-            applyDirectoryFilter = applyFilter,
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
             sortOrder = sortOption.storageKey,
-            filterMode = filterMode
+            filterMode = storageFilter.toFilterMode()
+        )
+    }
+
+    override suspend fun getFavoriteSongIdsSorted(
+        sortOption: SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): List<Long> = withContext(Dispatchers.IO) {
+        val filter = cachedDirFilter.value
+        musicDao.getFavoriteSongIdsSorted(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = storageFilter.toFilterMode()
         )
     }
 }

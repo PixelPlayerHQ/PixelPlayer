@@ -18,6 +18,8 @@ import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.network.lyrics.LrcLibApiService
 import com.theveloper.pixelplay.data.network.lyrics.LrcLibResponse
+import com.theveloper.pixelplay.utils.LyricsImportSecurity
+import com.theveloper.pixelplay.utils.LyricsImportValidationResult
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.LyricsUtils
 import com.theveloper.pixelplay.utils.NetworkRetryUtils
@@ -257,7 +259,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
         // Define source fetchers (matching Rhythm pattern)
         val fetchFromLocal: suspend () -> Lyrics? = {
-            findLocalLrcFile(song)
+            findLocalLyricsFile(song)
         }
 
         val fetchFromEmbedded: suspend () -> Lyrics? = {
@@ -612,52 +614,49 @@ class LyricsRepositoryImpl @Inject constructor(
     /**
      * Find local .lrc file next to the music file (matching Rhythm)
      */
-    private suspend fun findLocalLrcFile(song: Song): Lyrics? = withContext(Dispatchers.IO) {
+    private suspend fun findLocalLyricsFile(song: Song): Lyrics? = withContext(Dispatchers.IO) {
         try {
             val songFile = File(song.path)
             val directory = songFile.parentFile ?: return@withContext null
             val songNameWithoutExt = songFile.nameWithoutExtension
 
             if (directory.exists()) {
-                // Look for .lrc file with same name as the song
-                val lrcFile = File(directory, "$songNameWithoutExt.lrc")
-                if (lrcFile.exists() && lrcFile.canRead()) {
-                    val lrcContent = lrcFile.readText()
-                    val parsed = parseLrcFile(lrcContent)
-                    if (parsed != null) {
-                        Log.d(TAG, "===== FOUND LOCAL .LRC FILE: ${lrcFile.name} =====")
-                        return@withContext parsed
+                for (extension in LyricsImportSecurity.supportedFileExtensions()) {
+                    val lyricsFile = File(directory, "$songNameWithoutExt.$extension")
+                    if (!lyricsFile.exists() || !lyricsFile.canRead()) continue
+
+                    val validated = readValidatedLocalLyrics(lyricsFile)
+                    if (validated != null) {
+                        Log.d(TAG, "===== FOUND LOCAL LYRICS FILE: ${lyricsFile.name} =====")
+                        return@withContext validated.parsedLyrics
                     }
                 }
 
-                // Also try with artist - title pattern
                 val cleanArtist = song.displayArtist.replace(Regex("[^a-zA-Z0-9]"), "_")
                 val cleanTitle = song.title.replace(Regex("[^a-zA-Z0-9]"), "_")
-                val alternativeLrcFile = File(directory, "${cleanArtist}_${cleanTitle}.lrc")
-                if (alternativeLrcFile.exists() && alternativeLrcFile.canRead()) {
-                    val lrcContent = alternativeLrcFile.readText()
-                    val parsed = parseLrcFile(lrcContent)
-                    if (parsed != null) {
-                        Log.d(TAG, "===== FOUND LOCAL .LRC FILE (alt pattern): ${alternativeLrcFile.name} =====")
-                        return@withContext parsed
+
+                for (extension in LyricsImportSecurity.supportedFileExtensions()) {
+                    val alternativeLyricsFile = File(directory, "${cleanArtist}_${cleanTitle}.$extension")
+                    if (!alternativeLyricsFile.exists() || !alternativeLyricsFile.canRead()) continue
+
+                    val validated = readValidatedLocalLyrics(alternativeLyricsFile)
+                    if (validated != null) {
+                        Log.d(TAG, "===== FOUND LOCAL LYRICS FILE (alt pattern): ${alternativeLyricsFile.name} =====")
+                        return@withContext validated.parsedLyrics
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error searching for .lrc file", e)
+            Log.e(TAG, "Error searching for local lyrics file", e)
         }
         return@withContext null
     }
 
-    /**
-     * Parse .lrc file content into Lyrics format (matching Rhythm)
-     */
-    private fun parseLrcFile(lrcContent: String): Lyrics? {
-        if (lrcContent.isBlank()) return null
-        
-        // Use existing LyricsUtils parser
-        val parsed = LyricsUtils.parseLyrics(lrcContent)
-        return if (parsed.isValid()) parsed else null
+    private fun readValidatedLocalLyrics(file: File): com.theveloper.pixelplay.utils.ValidatedLyricsImport? {
+        return when (val validation = LyricsImportSecurity.validateLocalLyricsFile(file)) {
+            is LyricsImportValidationResult.Valid -> validation.value
+            is LyricsImportValidationResult.Invalid -> null
+        }
     }
 
     /**
@@ -747,9 +746,11 @@ class LyricsRepositoryImpl @Inject constructor(
             if (words.isNullOrEmpty()) {
                 linePrefix + line.line
             } else {
-                val wordsPart = words.joinToString("") { word ->
-                    "<${formatTimestamp(word.time)}>${word.word}"
+                val wordsPart = words.mapIndexed { index, word ->
+                    val separator = if (index > 0 && word.startsNewWord) " " else ""
+                    "$separator<${formatTimestamp(word.time)}>${word.word}"
                 }
+                    .joinToString("")
                 linePrefix + wordsPart
             }
         }
@@ -1164,31 +1165,36 @@ class LyricsRepositoryImpl @Inject constructor(
                                 var foundFile: File? = null
                                 
                                 // Strategy 1: Exact match name
-                                val exactMatch = File(directory, "${songFile.nameWithoutExtension}.lrc")
-                                if (exactMatch.exists() && exactMatch.canRead()) {
-                                    foundFile = exactMatch
+                                for (extension in LyricsImportSecurity.supportedFileExtensions()) {
+                                    val exactMatch = File(directory, "${songFile.nameWithoutExtension}.$extension")
+                                    if (exactMatch.exists() && exactMatch.canRead()) {
+                                        foundFile = exactMatch
+                                        break
+                                    }
                                 }
                                 
                                 // Strategy 2: Artist - Title
                                 if (foundFile == null) {
                                     val cleanArtist = song.displayArtist.replace(Regex("[^a-zA-Z0-9]"), "_")
                                     val cleanTitle = song.title.replace(Regex("[^a-zA-Z0-9]"), "_")
-                                    val altMatch = File(directory, "${cleanArtist}_${cleanTitle}.lrc")
-                                    if (altMatch.exists() && altMatch.canRead()) {
-                                        foundFile = altMatch
+                                    for (extension in LyricsImportSecurity.supportedFileExtensions()) {
+                                        val altMatch = File(directory, "${cleanArtist}_${cleanTitle}.$extension")
+                                        if (altMatch.exists() && altMatch.canRead()) {
+                                            foundFile = altMatch
+                                            break
+                                        }
                                     }
                                 }
                                 
                                 if (foundFile != null) {
-                                    val content = foundFile.readText()
-                                    // Verify validity
-                                    if (LyricsUtils.parseLyrics(content).isValid()) {
+                                    val validated = readValidatedLocalLyrics(foundFile)
+                                    if (validated != null) {
                                         try {
                                             lyricsDao.insert(
                                                  com.theveloper.pixelplay.data.database.LyricsEntity(
                                                      songId = song.id.toLong(),
-                                                     content = content,
-                                                     isSynced = LyricsUtils.parseLyrics(content).synced?.isNotEmpty() == true,
+                                                     content = validated.sanitizedContent,
+                                                     isSynced = validated.parsedLyrics.synced?.isNotEmpty() == true,
                                                      source = "local_file"
                                                  )
                                             )

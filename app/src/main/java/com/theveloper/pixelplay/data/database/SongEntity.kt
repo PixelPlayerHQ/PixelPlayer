@@ -10,6 +10,28 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 import com.theveloper.pixelplay.utils.normalizeMetadataText
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
+import org.json.JSONArray
+import org.json.JSONObject
+
+/** Integer constants for the `source_type` column — faster than LIKE checks on URI scheme. */
+object SourceType {
+    const val LOCAL = 0
+    const val TELEGRAM = 1
+    const val NETEASE = 2
+    const val GDRIVE = 3
+    const val QQMUSIC = 4
+    const val NAVIDROME = 5
+
+    /** Derive source type from a content URI string (fallback for migration / conversion). */
+    fun fromContentUri(uri: String): Int = when {
+        uri.startsWith("telegram://") -> TELEGRAM
+        uri.startsWith("netease://") -> NETEASE
+        uri.startsWith("gdrive://") -> GDRIVE
+        uri.startsWith("qqmusic://") -> QQMUSIC
+        uri.startsWith("navidrome://") -> NAVIDROME
+        else -> LOCAL
+    }
+}
 
 @Entity(
     tableName = "songs",
@@ -17,12 +39,13 @@ import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
         Index(value = ["title"], unique = false),
         Index(value = ["album_id"], unique = false),
         Index(value = ["artist_id"], unique = false),
-        Index(value = ["artist_name"], unique = false), // Nuevo índice para búsquedas por nombre de artista
+        Index(value = ["artist_name"], unique = false),
         Index(value = ["genre"], unique = false),
-        Index(value = ["parent_directory_path"], unique = false), // Índice para filtrado por directorio
+        Index(value = ["parent_directory_path"], unique = false),
         Index(value = ["content_uri_string"], unique = false),
         Index(value = ["date_added"], unique = false),
-        Index(value = ["duration"], unique = false)
+        Index(value = ["duration"], unique = false),
+        Index(value = ["source_type"], unique = false)
     ],
     foreignKeys = [
         ForeignKey(
@@ -64,8 +87,10 @@ data class SongEntity(
     @ColumnInfo(name = "mime_type") val mimeType: String? = null,
     @ColumnInfo(name = "bitrate") val bitrate: Int? = null, // bits per second
     @ColumnInfo(name = "sample_rate") val sampleRate: Int? = null, // Hz
-    @ColumnInfo(name = "telegram_chat_id") val telegramChatId: Long? = null, // Added for Telegram integration
-    @ColumnInfo(name = "telegram_file_id") val telegramFileId: Int? = null // Added for Telegram integration
+    @ColumnInfo(name = "telegram_chat_id") val telegramChatId: Long? = null,
+    @ColumnInfo(name = "telegram_file_id") val telegramFileId: Int? = null,
+    @ColumnInfo(name = "artists_json") val artistsJson: String? = null,
+    @ColumnInfo(name = "source_type", defaultValue = "0") val sourceType: Int = SourceType.LOCAL
 )
 
 private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
@@ -119,7 +144,43 @@ private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
 }
 
 fun SongEntity.toSong(): Song {
-    return toSongInternal(artists = emptyList())
+    val artists = parseArtistsJson(this.artistsJson)
+    return toSongInternal(artists = artists)
+}
+
+/**
+ * Parses the artists_json column back into a list of ArtistRef.
+ */
+private fun parseArtistsJson(json: String?): List<ArtistRef> {
+    if (json.isNullOrBlank()) return emptyList()
+    return try {
+        val arr = JSONArray(json)
+        (0 until arr.length()).map { i ->
+            val obj = arr.getJSONObject(i)
+            ArtistRef(
+                id = obj.getLong("id"),
+                name = obj.getString("name"),
+                isPrimary = obj.optBoolean("primary", false)
+            )
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+}
+
+/**
+ * Serializes a list of ArtistRef to JSON for storage in artists_json column.
+ */
+fun serializeArtistRefs(artists: List<ArtistRef>): String {
+    val arr = JSONArray()
+    artists.forEach { ref ->
+        arr.put(JSONObject().apply {
+            put("id", ref.id)
+            put("name", ref.name)
+            put("primary", ref.isPrimary)
+        })
+    }
+    return arr.toString()
 }
 
 /**
@@ -148,7 +209,7 @@ fun List<SongEntity>.toSongs(): List<Song> {
 // filePath y parentDirectoryPath se poblarán desde MediaStore en el SyncWorker.
 fun Song.toEntity(filePathFromMediaStore: String, parentDirFromMediaStore: String): SongEntity {
     return SongEntity(
-        id = this.id.toLong(), // Asumiendo que el ID del modelo Song puede convertirse a Long
+        id = this.id.toLong(),
         title = this.title,
         artistName = this.artist,
         artistId = this.artistId,
@@ -169,7 +230,8 @@ fun Song.toEntity(filePathFromMediaStore: String, parentDirFromMediaStore: Strin
         year = this.year,
         mimeType = this.mimeType,
         bitrate = this.bitrate,
-        sampleRate = this.sampleRate
+        sampleRate = this.sampleRate,
+        sourceType = SourceType.fromContentUri(this.contentUriString)
     )
 }
 
@@ -201,12 +263,13 @@ fun Song.toEntityWithoutPaths(): SongEntity {
         lyrics = this.lyrics,
         trackNumber = this.trackNumber,
         discNumber = this.discNumber,
-        filePath = "", // Default o manejar como no disponible
-        parentDirectoryPath = "", // Default o manejar como no disponible
+        filePath = "",
+        parentDirectoryPath = "",
         dateAdded = this.dateAdded,
         year = this.year,
         mimeType = this.mimeType,
         bitrate = this.bitrate,
-        sampleRate = this.sampleRate
+        sampleRate = this.sampleRate,
+        sourceType = SourceType.fromContentUri(this.contentUriString)
     )
 }

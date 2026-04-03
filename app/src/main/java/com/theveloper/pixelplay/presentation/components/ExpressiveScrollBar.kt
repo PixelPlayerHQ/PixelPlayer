@@ -444,12 +444,16 @@ fun ExpressiveScrollBar(
                         displayedProgress.snapTo(targetProgress)
                         hasSyncedDisplayedProgress = true
                     } else {
+                        val sourceIsScrolling =
+                            listState?.isScrollInProgress == true ||
+                                gridState?.isScrollInProgress == true
                         val handleDeltaPx =
                             abs(targetProgress - displayedProgress.value) * stats.scrollableHeight
                         val estimatedStepPx =
                             stats.scrollableHeight / stats.maxScrollIndex.coerceAtLeast(1).toFloat()
                         val shouldSmoothJump =
-                            estimatedStepPx >= coarseJumpThresholdPx &&
+                            !sourceIsScrolling &&
+                                estimatedStepPx >= coarseJumpThresholdPx &&
                                 handleDeltaPx >= smoothJumpMinDistancePx
 
                         if (shouldSmoothJump) {

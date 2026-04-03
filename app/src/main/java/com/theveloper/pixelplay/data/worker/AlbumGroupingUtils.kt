@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.data.worker
 
 import com.theveloper.pixelplay.data.database.AlbumEntity
 import com.theveloper.pixelplay.data.database.SongEntity
+import com.theveloper.pixelplay.utils.LocalArtworkUri
 import com.theveloper.pixelplay.utils.normalizeMetadataText
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
 import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
@@ -29,7 +30,8 @@ internal fun buildAlbumGroupingKey(song: SongEntity): AlbumGroupingKey {
         albumArtist = song.albumArtist,
         albumArtUriString = song.albumArtUriString,
         parentDirectoryPath = song.parentDirectoryPath,
-        fallbackAlbumId = song.albumId
+        fallbackAlbumId = song.albumId,
+        preferStableLocalIdentity = LocalArtworkUri.isLikelyLocalMedia(song.contentUriString)
     )
 }
 
@@ -42,6 +44,13 @@ internal fun buildAlbumGroupingKeys(album: AlbumEntity): List<AlbumGroupingKey> 
         albumArtUriString = album.albumArtUriString,
         parentDirectoryPath = null,
         fallbackAlbumId = album.id
+    )
+
+    albumKeys += AlbumGroupingKey(
+        normalizedTitle = album.title.normalizeMetadataTextOrEmpty()
+            .ifBlank { "Unknown Album" }
+            .lowercase(),
+        identity = "media:${album.id}"
     )
 
     if (!album.albumArtUriString.isNullOrBlank()) {
@@ -85,12 +94,13 @@ internal fun resolveAlbumDisplayArtistId(
     displayArtist: String,
     songs: List<SongEntity>,
     artistNameToId: Map<String, Long>,
-    artistDelimiters: List<String>
+    artistDelimiters: List<String>,
+    wordDelimiters: List<String> = emptyList()
 ): Long {
     artistNameToId[displayArtist.trim()]?.let { return it }
 
     val primaryArtistName = displayArtist
-        .splitArtistsByDelimiters(artistDelimiters)
+        .splitArtistsByDelimiters(artistDelimiters, wordDelimiters)
         .firstOrNull()
         ?.trim()
     if (!primaryArtistName.isNullOrEmpty()) {
@@ -115,14 +125,26 @@ private fun buildAlbumGroupingKey(
     albumArtist: String?,
     albumArtUriString: String?,
     parentDirectoryPath: String?,
-    fallbackAlbumId: Long
+    fallbackAlbumId: Long,
+    preferStableLocalIdentity: Boolean = false
 ): AlbumGroupingKey {
     val normalizedTitle = albumName.normalizeMetadataTextOrEmpty()
         .ifBlank { "Unknown Album" }
         .lowercase()
+    val stableLocalIdentity = when {
+        !parentDirectoryPath.isNullOrBlank() -> {
+            "dir:${parentDirectoryPath.trim().lowercase()}"
+        }
+        else -> {
+            "media:$fallbackAlbumId"
+        }
+    }
     val identity = when {
         !albumArtist.isNullOrBlank() -> {
             "artist:${albumArtist.normalizeMetadataTextOrEmpty().lowercase()}"
+        }
+        preferStableLocalIdentity -> {
+            stableLocalIdentity
         }
         !albumArtUriString.isNullOrBlank() -> {
             "art:${albumArtUriString.trim()}"

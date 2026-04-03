@@ -54,7 +54,7 @@ fun ExpressiveTopBarContent(
     val titleContainerHeight = lerp(containerHeightRange.first, containerHeightRange.second, clampedFraction)
     val subtitleAlpha = if (fadeSubtitleOnCollapse) 1f - clampedFraction else 1f
     val subtitleMaxLines = if (clampedFraction < 0.5f) expandedSubtitleMaxLines else collapsedSubtitleMaxLines
-    val titleFontSize = titleFontSizeRange?.let { lerp(it.first, it.second, clampedFraction) } ?: titleStyle.fontSize
+    val titleFontSize = (titleFontSizeRange?.let { lerp(it.first, it.second, clampedFraction) } ?: titleStyle.fontSize) * titleScale
 
     Box(modifier = modifier.fillMaxSize()) {
         Box(
@@ -76,8 +76,8 @@ fun ExpressiveTopBarContent(
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     lineHeight = titleFontSize * 1.1f,
                     modifier = Modifier.graphicsLayer {
-                        scaleX = titleScale
-                        scaleY = titleScale
+                        // Removed scaleX/scaleY scaling from graphicsLayer to allow proper ellipsis during layout.
+                        // Scaling font size directly ensures Text component is measured with correct constraints.
                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f) // Scale from left center
                     }
                 )

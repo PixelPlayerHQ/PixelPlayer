@@ -54,15 +54,20 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.snapshotFlow
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,6 +101,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.scoped.PlayerAlbumNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerArtistNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerSheetPredictiveBackHandler
 import com.theveloper.pixelplay.presentation.components.scoped.QueueSheetRuntimeEffects
@@ -149,9 +155,13 @@ fun UnifiedPlayerSheet(
     isNavBarHidden: Boolean = false
 ) {
     val context = LocalContext.current
-    LaunchedEffect(key1 = Unit) {
-        playerViewModel.toastEvents.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val latestContext by rememberUpdatedState(context)
+    LaunchedEffect(playerViewModel, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            playerViewModel.toastEvents.collect { message ->
+                Toast.makeText(latestContext, message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -195,13 +205,14 @@ fun UnifiedPlayerSheet(
     val predictiveBackSwipeEdge by playerViewModel.predictiveBackSwipeEdge.collectAsStateWithLifecycle()
     val prewarmFullPlayer = rememberPrewarmFullPlayer(infrequentPlayerState.currentSong?.id)
 
-    val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
-    val navBarStyle by playerViewModel.navBarStyle.collectAsStateWithLifecycle()
-    val carouselStyle by playerViewModel.carouselStyle.collectAsStateWithLifecycle()
-    val fullPlayerLoadingTweaks by playerViewModel.fullPlayerLoadingTweaks.collectAsStateWithLifecycle()
-    val tapBackgroundClosesPlayer by playerViewModel.tapBackgroundClosesPlayer.collectAsStateWithLifecycle()
-    val useSmoothCorners by playerViewModel.useSmoothCorners.collectAsStateWithLifecycle()
-    val playerThemePreference by playerViewModel.playerThemePreference.collectAsStateWithLifecycle()
+    val playerConfig by playerViewModel.playerConfigSlice.collectAsStateWithLifecycle()
+    val navBarCornerRadius = playerConfig.navBarCornerRadius
+    val navBarStyle = playerConfig.navBarStyle
+    val carouselStyle = playerConfig.carouselStyle
+    val fullPlayerLoadingTweaks = playerConfig.fullPlayerLoadingTweaks
+    val tapBackgroundClosesPlayer = playerConfig.tapBackgroundClosesPlayer
+    val useSmoothCorners = playerConfig.useSmoothCorners
+    val playerThemePreference = playerConfig.playerThemePreference
 
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -269,6 +280,12 @@ fun UnifiedPlayerSheet(
         sheetMotionController = sheetMotionController,
         playerViewModel = playerViewModel
     )
+    PlayerAlbumNavigationEffect(
+        navController = navController,
+        sheetCollapsedTargetY = sheetCollapsedTargetY,
+        sheetMotionController = sheetMotionController,
+        playerViewModel = playerViewModel
+    )
 
     val fullPlayerVisualState = rememberFullPlayerVisualState(
         expansionFraction = playerContentExpansionFraction,
@@ -289,8 +306,12 @@ fun UnifiedPlayerSheet(
         )
     }
 
-    LaunchedEffect(sheetCollapsedTargetY) {
-        sheetMotionController.syncToExpansion(sheetCollapsedTargetY)
+    val sheetCollapsedTargetYState = rememberUpdatedState(sheetCollapsedTargetY)
+    LaunchedEffect(sheetMotionController) {
+        snapshotFlow { sheetCollapsedTargetYState.value }
+            .collect { collapsedTargetY ->
+                sheetMotionController.syncToExpansion(collapsedTargetY)
+            }
     }
 
     var previousSheetState by remember { mutableStateOf(currentSheetContentState) }
@@ -692,7 +713,8 @@ fun UnifiedPlayerSheet(
                     onEndQueueDrag = sheetActionHandlers.endQueueDrag,
                     onLaunchSaveQueueOverlay = sheetActionHandlers.onLaunchSaveQueueOverlay,
                     onNavigateToAlbum = sheetActionHandlers.onNavigateToAlbum,
-                    onNavigateToArtist = sheetActionHandlers.onNavigateToArtist
+                    onNavigateToArtist = sheetActionHandlers.onNavigateToArtist,
+                    onNavigateToGenre = sheetActionHandlers.onNavigateToGenre
                 )
 
             }

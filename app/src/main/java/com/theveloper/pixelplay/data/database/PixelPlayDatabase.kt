@@ -10,6 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AlbumArtThemeEntity::class,
         SearchHistoryEntity::class,
         SongEntity::class,
+        SongSearchFtsEntity::class,
         AlbumEntity::class,
         ArtistEntity::class,
         TransitionRuleEntity::class,
@@ -31,7 +32,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NavidromePlaylistEntity::class,
         TelegramTopicEntity::class
     ],
-         version = 32, // Add Telegram forum topic support
+         version = 36, // Add songs FTS table for indexed title/artist search
 
     exportSchema = true
 )
@@ -945,6 +946,81 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             )
         }
 
+        private fun createSongsSearchVirtualTable(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts
+                    USING fts4(
+                        title,
+                        artist_name,
+                        tokenize=unicode61
+                    )
+                """.trimIndent()
+            )
+        }
+
+        fun installSongsSearchSyncTriggers(db: SupportSQLiteDatabase) {
+            createSongsSearchVirtualTable(db)
+
+            db.execSQL("DROP TRIGGER IF EXISTS trg_songs_fts_insert")
+            db.execSQL("DROP TRIGGER IF EXISTS trg_songs_fts_update")
+            db.execSQL("DROP TRIGGER IF EXISTS trg_songs_fts_delete")
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_songs_fts_insert
+                    AFTER INSERT ON songs
+                    BEGIN
+                        INSERT INTO songs_fts(rowid, title, artist_name)
+                        VALUES (NEW.id, NEW.title, NEW.artist_name);
+                    END
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_songs_fts_update
+                    AFTER UPDATE ON songs
+                    BEGIN
+                        DELETE FROM songs_fts WHERE rowid = OLD.id;
+                        INSERT INTO songs_fts(rowid, title, artist_name)
+                        VALUES (NEW.id, NEW.title, NEW.artist_name);
+                    END
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                    CREATE TRIGGER IF NOT EXISTS trg_songs_fts_delete
+                    AFTER DELETE ON songs
+                    BEGIN
+                        DELETE FROM songs_fts WHERE rowid = OLD.id;
+                    END
+                """.trimIndent()
+            )
+        }
+
+        private fun rebuildSongsSearchIndex(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM songs_fts")
+            db.execSQL(
+                """
+                    INSERT INTO songs_fts(rowid, title, artist_name)
+                    SELECT id, title, artist_name
+                    FROM songs
+                """.trimIndent()
+            )
+        }
+
+        fun createRuntimeArtifactsCallback(): RoomDatabase.Callback {
+            return object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    installFavoriteSyncTriggers(db)
+                    installSongsSearchSyncTriggers(db)
+                }
+            }
+        }
+
         /**
          * Add QQ Music support tables.
          */
@@ -1157,6 +1233,55 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_topics_chat_id ON telegram_topics(chat_id)")
+            }
+        }
+
+        val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if ("date_added" !in getTableColumns(db, "albums")) {
+                    db.execSQL("ALTER TABLE albums ADD COLUMN date_added INTEGER NOT NULL DEFAULT 0")
+                }
+
+                db.execSQL(
+                    """
+                        UPDATE albums
+                        SET date_added = COALESCE(
+                            (
+                                SELECT MAX(songs.date_added)
+                                FROM songs
+                                WHERE songs.album_id = albums.id
+                            ),
+                            0
+                        )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN artists_json TEXT DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN source_type INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_songs_source_type ON songs(source_type)")
+                // Backfill source_type from content_uri_string for existing rows
+                db.execSQL("UPDATE songs SET source_type = 1 WHERE content_uri_string LIKE 'telegram://%'")
+                db.execSQL("UPDATE songs SET source_type = 2 WHERE content_uri_string LIKE 'netease://%'")
+                db.execSQL("UPDATE songs SET source_type = 3 WHERE content_uri_string LIKE 'gdrive://%'")
+                db.execSQL("UPDATE songs SET source_type = 4 WHERE content_uri_string LIKE 'qqmusic://%'")
+                db.execSQL("UPDATE songs SET source_type = 5 WHERE content_uri_string LIKE 'navidrome://%'")
+            }
+        }
+
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                createSongsSearchVirtualTable(db)
+                installSongsSearchSyncTriggers(db)
+                rebuildSongsSearchIndex(db)
             }
         }
 

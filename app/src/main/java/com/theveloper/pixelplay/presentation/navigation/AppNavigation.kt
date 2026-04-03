@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.navigation
 
 import DelimiterConfigScreen
+import WordDelimiterConfigScreen
 import android.annotation.SuppressLint
 import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition
@@ -495,6 +496,17 @@ fun AppNavigation(
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     DelimiterConfigScreen(navController = navController)
+                }
+            }
+            composable(
+                Screen.WordDelimiterConfig.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    WordDelimiterConfigScreen(navController = navController)
                 }
             }
             composable(

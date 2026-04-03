@@ -45,6 +45,7 @@ import com.theveloper.pixelplay.data.repository.TransitionRepositoryImpl
 import com.theveloper.pixelplay.data.repository.FolderTreeBuilder
 import dagger.Module
 import dagger.Provides
+import dagger.Lazy
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
@@ -136,16 +137,14 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_28_29,
             PixelPlayDatabase.MIGRATION_29_30,
             PixelPlayDatabase.MIGRATION_30_31,
-            PixelPlayDatabase.MIGRATION_31_32
+            PixelPlayDatabase.MIGRATION_31_32,
+            PixelPlayDatabase.MIGRATION_32_33,
+            PixelPlayDatabase.MIGRATION_33_34,
+            PixelPlayDatabase.MIGRATION_34_35,
+            PixelPlayDatabase.MIGRATION_35_36
         )
-            .addCallback(
-                object : RoomDatabase.Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        PixelPlayDatabase.installFavoriteSyncTriggers(db)
-                    }
-                }
-            )
+            .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
+            .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
 
         // P2-4: Only allow destructive migration in debug builds.
         // In release, a migration bug will crash the app (revealing the problem)
@@ -328,8 +327,8 @@ object AppModule {
         musicDao: MusicDao,
         lyricsRepository: LyricsRepository,
         telegramDao: com.theveloper.pixelplay.data.database.TelegramDao,
-        telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
-        telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository,
+        telegramCacheManager: Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>,
+        telegramRepository: Lazy<com.theveloper.pixelplay.data.telegram.TelegramRepository>,
         songRepository: SongRepository,
         favoritesDao: FavoritesDao,
         artistImageRepository: ArtistImageRepository,
@@ -343,8 +342,8 @@ object AppModule {
             musicDao = musicDao,
             lyricsRepository = lyricsRepository,
             telegramDao = telegramDao,
-            telegramCacheManager = telegramCacheManager,
-            telegramRepository = telegramRepository,
+            telegramCacheManagerProvider = telegramCacheManager,
+            telegramRepositoryProvider = telegramRepository,
             songRepository = songRepository,
             favoritesDao = favoritesDao,
             artistImageRepository = artistImageRepository,
@@ -366,9 +365,10 @@ object AppModule {
     fun provideSongMetadataEditor(
         @ApplicationContext context: Context,
         musicDao: MusicDao,
-        telegramDao: com.theveloper.pixelplay.data.database.TelegramDao
+        telegramDao: com.theveloper.pixelplay.data.database.TelegramDao,
+        userPreferencesRepository: UserPreferencesRepository
     ): SongMetadataEditor {
-        return SongMetadataEditor(context, musicDao, telegramDao)
+        return SongMetadataEditor(context, musicDao, telegramDao, userPreferencesRepository)
     }
 
     /**
@@ -449,8 +449,7 @@ object AppModule {
             // Use modern TLS connection spec
             .connectionSpecs(listOf(
                 okhttp3.ConnectionSpec.MODERN_TLS,
-                okhttp3.ConnectionSpec.COMPATIBLE_TLS,
-                okhttp3.ConnectionSpec.CLEARTEXT
+                okhttp3.ConnectionSpec.COMPATIBLE_TLS
             ))
             .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)

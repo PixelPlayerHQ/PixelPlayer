@@ -32,6 +32,8 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
+import com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode
+import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -43,6 +45,7 @@ import javax.inject.Inject
 data class PlaylistUiState(
     val playlists: List<Playlist> = emptyList(),
     val showTelegramCloudPlaylists: Boolean = true,
+    val telegramTopicDisplayMode: TelegramTopicDisplayMode = TelegramTopicDisplayMode.CHANNELS_AND_TOPICS,
     val currentPlaylistSongs: List<Song> = emptyList(),
     val currentPlaylistDetails: Playlist? = null,
     val isLoading: Boolean = false,
@@ -59,7 +62,7 @@ data class PlaylistUiState(
     val currentPlaylistSongsSortOption: SortOption = SortOption.SongTitleAZ,
     val playlistSongsOrderMode: PlaylistSongsOrderMode = PlaylistSongsOrderMode.Sorted(SortOption.SongTitleAZ),
     val playlistOrderModes: Map<String, PlaylistSongsOrderMode> = emptyMap(),
-    
+
     // AI Generation State
     val isAiGenerating: Boolean = false,
     val aiGenerationError: String? = null
@@ -75,7 +78,7 @@ class PlaylistViewModel @Inject constructor(
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val musicRepository: MusicRepository,
     private val dailyMixManager: DailyMixManager,
-    private val aiPlaylistGenerator: com.theveloper.pixelplay.data.ai.AiPlaylistGenerator,
+    private val aiPlaylistGenerator: AiPlaylistGenerator,
     private val m3uManager: M3uManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -109,6 +112,7 @@ class PlaylistViewModel @Inject constructor(
     init {
         loadPlaylistsAndInitialSortOption()
         observeTelegramCloudPlaylistVisibility()
+        observeTelegramTopicDisplayMode()
         loadMoreSongsForSelection(isInitialLoad = true)
         observePlaylistOrderModes()
     }
@@ -135,12 +139,7 @@ class PlaylistViewModel @Inject constructor(
             playlistPreferencesRepository.userPlaylistsFlow.collect { playlists ->
                 val currentSortOption =
                     _uiState.value.currentPlaylistSortOption // Use the most up-to-date sort option
-                val sortedPlaylists = when (currentSortOption) {
-                    SortOption.PlaylistNameAZ -> playlists.sortedBy { it.name.lowercase() }
-                    SortOption.PlaylistNameZA -> playlists.sortedByDescending { it.name.lowercase() }
-                    SortOption.PlaylistDateCreated -> playlists.sortedByDescending { it.lastModified }
-                    else -> playlists.sortedBy { it.name.lowercase() } // Default to NameAZ
-                }
+                val sortedPlaylists = sortPlaylistsList(playlists, currentSortOption)
                 _uiState.update { it.copy(playlists = sortedPlaylists) }
             }
         }
@@ -161,6 +160,21 @@ class PlaylistViewModel @Inject constructor(
             playlistPreferencesRepository.showTelegramCloudPlaylistsFlow.collect { show ->
                 _uiState.update { it.copy(showTelegramCloudPlaylists = show) }
             }
+        }
+    }
+
+    private fun observeTelegramTopicDisplayMode() {
+        viewModelScope.launch {
+            playlistPreferencesRepository.telegramTopicDisplayModeFlow.collect { mode ->
+                _uiState.update { it.copy(telegramTopicDisplayMode = mode) }
+            }
+        }
+    }
+
+    fun setTelegramTopicDisplayMode(mode: TelegramTopicDisplayMode) { // Simplified
+        _uiState.update { it.copy(telegramTopicDisplayMode = mode) }
+        viewModelScope.launch {
+            playlistPreferencesRepository.setTelegramTopicDisplayMode(mode)
         }
     }
 
@@ -293,8 +307,8 @@ class PlaylistViewModel @Inject constructor(
                     }
                 } else {
                     // Obtener la playlist de las preferencias del usuario
-                        val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
-                            .find { it.id == playlistId }
+                    val playlist = playlistPreferencesRepository.userPlaylistsFlow.first()
+                        .find { it.id == playlistId }
 
                     if (playlist != null) {
                         val orderMode = _uiState.value.playlistOrderModes[playlistId]
@@ -371,12 +385,12 @@ class PlaylistViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             var savedCoverPath: String? = null
-            
+
             if (coverImageUri != null) {
                 // Generate a unique ID for the image file since we don't have the playlist ID yet
                 val imageId = UUID.randomUUID().toString()
                 savedCoverPath = saveCoverImageToInternalStorage(
-                    Uri.parse(coverImageUri), 
+                    Uri.parse(coverImageUri),
                     imageId,
                     cropScale,
                     cropPanX,
@@ -491,7 +505,7 @@ class PlaylistViewModel @Inject constructor(
 
 
     suspend fun saveCoverImageToInternalStorage(
-        uri: Uri, 
+        uri: Uri,
         uniqueId: String,
         cropScale: Float,
         cropPanX: Float,
@@ -502,74 +516,74 @@ class PlaylistViewModel @Inject constructor(
                 // Load original bitmap
                 val originalBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, _, _ ->
-                         // Optimization: Mutable to support software rendering if needed
-                         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE 
-                         // Use HARWARE if possible but need to copy for Canvas? 
-                         // Software is safer for manual Canvas drawing.
+                        // Optimization: Mutable to support software rendering if needed
+                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                        // Use HARWARE if possible but need to copy for Canvas?
+                        // Software is safer for manual Canvas drawing.
                     }
                 } else {
                     @Suppress("DEPRECATION")
                     MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                 }
-                
+
                 // Target dimensions (Square)
                 val targetSize = 1024
-                
+
                 // create target bitmap
                 val targetBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
                 val canvas = android.graphics.Canvas(targetBitmap)
-                
+
                 // Calculate base dimensions (fitting smallest dimension to target)
                 // Logic must match ImageCropView
                 val bitmapWidth = originalBitmap.width.toFloat()
                 val bitmapHeight = originalBitmap.height.toFloat()
                 val bitmapRatio = bitmapWidth / bitmapHeight
-                
+
                 val (baseWidth, baseHeight) = if (bitmapRatio > 1f) {
-                     // Wide: Height matches target
-                     targetSize * bitmapRatio to targetSize.toFloat()
+                    // Wide: Height matches target
+                    targetSize * bitmapRatio to targetSize.toFloat()
                 } else {
-                     // Tall: Width matches target
-                     targetSize.toFloat() to targetSize / bitmapRatio
+                    // Tall: Width matches target
+                    targetSize.toFloat() to targetSize / bitmapRatio
                 }
-                
+
                 // Calculate transformations
                 // Scaled Dimensions
                 val scaledWidth = baseWidth * cropScale
                 val scaledHeight = baseHeight * cropScale
-                
+
                 // Center + Pan
                 // Center of target is targetSize/2
                 // We want to center the Scaled Image at (Center + Pan)
                 // TopLeft = CenterX - ScaledW/2 + PanX
-                
+
                 // Pan is normalized relative to Viewport (TargetSize)
                 val panPxX = cropPanX * targetSize
                 val panPxY = cropPanY * targetSize
-                
+
                 val dx = (targetSize - scaledWidth) / 2f + panPxX
                 val dy = (targetSize - scaledHeight) / 2f + panPxY
-                
+
                 // Draw
                 // We draw the original bitmap scaled to (scaledWidth, scaledHeight) at (dx, dy)
                 val matrix = android.graphics.Matrix()
                 matrix.postScale(scaledWidth / bitmapWidth, scaledHeight / bitmapHeight)
                 matrix.postTranslate(dx, dy)
-                
+
                 canvas.drawBitmap(originalBitmap, matrix, null)
-                
+
                 // Save
                 val fileName = "playlist_cover_$uniqueId.jpg"
                 val file = File(context.filesDir, fileName)
                 FileOutputStream(file).use { out ->
                     targetBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                 }
-                
+
                 // Recycle
                 if (originalBitmap != targetBitmap) originalBitmap.recycle()
-                // Target bitmap is not recycled here, let GC handle? 
+                // Target bitmap is not recycled here, let GC handle?
                 // Or recycle explicitly if immediate memory pressure concern.
-                
+
                 file.absolutePath
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -660,20 +674,20 @@ class PlaylistViewModel @Inject constructor(
             // But if the user selected a new image, it will be a content content:// uri.
 
             if (coverImageUri != null && coverImageUri != currentPlaylist.coverImageUri) {
-                 // Check if it is a content URI or a file path that is NOT the existing saved path
-                 if (coverImageUri.startsWith("content://") || (coverImageUri.startsWith("/") && coverImageUri != currentPlaylist.coverImageUri)) {
-                     val imageId = UUID.randomUUID().toString()
-                     val newPath = saveCoverImageToInternalStorage(
-                         Uri.parse(coverImageUri),
-                         imageId,
-                         cropScale,
-                         cropPanX,
-                         cropPanY
-                     )
-                     if (newPath != null) {
-                         savedCoverPath = newPath
-                     }
-                 }
+                // Check if it is a content URI or a file path that is NOT the existing saved path
+                if (coverImageUri.startsWith("content://") || (coverImageUri.startsWith("/") && coverImageUri != currentPlaylist.coverImageUri)) {
+                    val imageId = UUID.randomUUID().toString()
+                    val newPath = saveCoverImageToInternalStorage(
+                        Uri.parse(coverImageUri),
+                        imageId,
+                        cropScale,
+                        cropPanX,
+                        cropPanY
+                    )
+                    if (newPath != null) {
+                        savedCoverPath = newPath
+                    }
+                }
             } else if (coverImageUri == null) {
                 // If passed null, it might mean remove cover? Or just no change?
                 // For this implementation let's assume if the user cleared it, the UI passes null.
@@ -682,7 +696,7 @@ class PlaylistViewModel @Inject constructor(
                 // Let's assume the UI sends the desired final state.
                 // NOTE: If the user didn't change the image, the UI might send the existing coverImageUri (which is a file path).
                 // Or if they removed it, they send null.
-                
+
                 // However, we also have crop parameters. If image is unchanged but crop changed, we should re-save (re-crop)
                 // if we have the original source. But we don't have the original source for the existing cover (we only have the cropped result).
                 // So, we can only re-crop if we have a source URI.
@@ -794,15 +808,14 @@ class PlaylistViewModel @Inject constructor(
 
     //Sort funs
     fun sortPlaylists(sortOption: SortOption) {
+        if (_uiState.value.currentPlaylistSortOption.storageKey == sortOption.storageKey) {
+            return
+        }
+
         _uiState.update { it.copy(currentPlaylistSortOption = sortOption) }
 
         val currentPlaylists = _uiState.value.playlists
-        val sortedPlaylists = when (sortOption) {
-            SortOption.PlaylistNameAZ -> currentPlaylists.sortedBy { it.name.lowercase() }
-            SortOption.PlaylistNameZA -> currentPlaylists.sortedByDescending { it.name.lowercase() }
-            SortOption.PlaylistDateCreated -> currentPlaylists.sortedByDescending { it.lastModified }
-            else -> currentPlaylists
-        }.toList()
+        val sortedPlaylists = sortPlaylistsList(currentPlaylists, sortOption)
 
         _uiState.update { it.copy(playlists = sortedPlaylists) }
 
@@ -822,7 +835,7 @@ class PlaylistViewModel @Inject constructor(
 
     fun sortPlaylistSongs(sortOption: SortOption) {
         val playlistId = _uiState.value.currentPlaylistDetails?.id
-        
+
         // If SongDefaultOrder is selected, reload the playlist to get original order
         if (sortOption == SortOption.SongDefaultOrder) {
             if (playlistId != null) {
@@ -840,15 +853,7 @@ class PlaylistViewModel @Inject constructor(
         }
 
         val currentSongs = _uiState.value.currentPlaylistSongs
-        val sortedSongs = when (sortOption) {
-            SortOption.SongTitleAZ -> currentSongs.sortedBy { it.title.lowercase() }
-            SortOption.SongTitleZA -> currentSongs.sortedByDescending { it.title.lowercase() }
-            SortOption.SongArtist -> currentSongs.sortedBy { it.artist.lowercase() }
-            SortOption.SongAlbum -> currentSongs.sortedBy { it.album.lowercase() }
-            SortOption.SongDuration -> currentSongs.sortedBy { it.duration }
-            SortOption.SongDateAdded -> currentSongs.sortedByDescending { it.dateAdded }
-            else -> currentSongs
-        }
+        val sortedSongs = sortSongsList(currentSongs, sortOption)
 
         _uiState.update {
             val updatedModes = if (playlistId != null) {
@@ -900,13 +905,97 @@ class PlaylistViewModel @Inject constructor(
     }
 
     private fun applySortToSongs(songs: List<Song>, sortOption: SortOption): List<Song> {
+        return sortSongsList(songs, sortOption)
+    }
+
+    private fun sortPlaylistsList(
+        playlists: List<com.theveloper.pixelplay.data.model.Playlist>,
+        sortOption: SortOption
+    ): List<com.theveloper.pixelplay.data.model.Playlist> {
         return when (sortOption) {
-            SortOption.SongTitleAZ -> songs.sortedBy { it.title.lowercase() }
-            SortOption.SongTitleZA -> songs.sortedByDescending { it.title.lowercase() }
-            SortOption.SongArtist -> songs.sortedBy { it.artist.lowercase() }
-            SortOption.SongAlbum -> songs.sortedBy { it.album.lowercase() }
-            SortOption.SongDuration -> songs.sortedBy { it.duration }
-            SortOption.SongDateAdded -> songs.sortedByDescending { it.dateAdded }
+            SortOption.PlaylistNameAZ -> playlists.sortedWith(
+                compareBy<com.theveloper.pixelplay.data.model.Playlist> { it.name.lowercase() }
+                    .thenByDescending { it.lastModified }
+                    .thenBy { it.id }
+            )
+            SortOption.PlaylistNameZA -> playlists.sortedWith(
+                compareByDescending<com.theveloper.pixelplay.data.model.Playlist> { it.name.lowercase() }
+                    .thenByDescending { it.lastModified }
+                    .thenBy { it.id }
+            )
+            SortOption.PlaylistDateCreated -> playlists.sortedWith(
+                compareByDescending<com.theveloper.pixelplay.data.model.Playlist> { it.lastModified }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.PlaylistDateCreatedAsc -> playlists.sortedWith(
+                compareBy<com.theveloper.pixelplay.data.model.Playlist> { it.lastModified }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            else -> playlists.sortedWith(
+                compareBy<com.theveloper.pixelplay.data.model.Playlist> { it.name.lowercase() }
+                    .thenByDescending { it.lastModified }
+                    .thenBy { it.id }
+            )
+        }
+    }
+
+    private fun sortSongsList(
+        songs: List<Song>,
+        sortOption: SortOption
+    ): List<Song> {
+        return when (sortOption) {
+            SortOption.SongTitleAZ -> songs.sortedWith(
+                compareBy<Song> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongTitleZA -> songs.sortedWith(
+                compareByDescending<Song> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongArtist -> songs.sortedWith(
+                compareBy<Song> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongArtistDesc -> songs.sortedWith(
+                compareByDescending<Song> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongAlbum -> songs.sortedWith(
+                compareBy<Song> { it.album.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongAlbumDesc -> songs.sortedWith(
+                compareByDescending<Song> { it.album.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongDuration -> songs.sortedWith(
+                compareByDescending<Song> { it.duration }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongDurationAsc -> songs.sortedWith(
+                compareBy<Song> { it.duration }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongDateAdded -> songs.sortedWith(
+                compareByDescending<Song> { it.dateAdded }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.SongDateAddedAsc -> songs.sortedWith(
+                compareBy<Song> { it.dateAdded }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
             else -> songs
         }
     }
@@ -923,7 +1012,7 @@ class PlaylistViewModel @Inject constructor(
     fun generateAiPlaylist(prompt: String, minLength: Int = 10, maxLength: Int = 50) {
         viewModelScope.launch {
             _uiState.update { it.copy(isAiGenerating = true, aiGenerationError = null) }
-            
+
             try {
                 // Fetch all library songs
                 val allSongs = withContext(Dispatchers.IO) {
@@ -937,18 +1026,18 @@ class PlaylistViewModel @Inject constructor(
                     minLength = minLength,
                     maxLength = maxLength
                 )
-                
+
                 result.onSuccess { selectedSongs ->
                     // Create Playlist
-                    val playlistName = "AI: $prompt".take(50) 
-                    
+                    val playlistName = "AI: $prompt".take(50)
+
                     playlistPreferencesRepository.createPlaylist(
                         name = playlistName,
                         songIds = selectedSongs.map { it.id },
                         isAiGenerated = true,
                         source = "AI" // Mark as AI source
                     )
-                    
+
                     _uiState.update { it.copy(isAiGenerating = false) }
                     _playlistCreationEvent.emit(true)
                 }.onFailure { e ->
@@ -965,7 +1054,7 @@ class PlaylistViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun clearAiError() {
         _uiState.update { it.copy(aiGenerationError = null) }
     }
@@ -989,7 +1078,7 @@ class PlaylistViewModel @Inject constructor(
      */
     fun mergeSelectedPlaylists(playlistIds: List<String>, newPlaylistName: String) {
         if (newPlaylistName.isBlank()) return
-        
+
         viewModelScope.launch {
             try {
                 // Get all songs from selected playlists
@@ -1034,13 +1123,13 @@ class PlaylistViewModel @Inject constructor(
             Log.w("PlaylistViewModel", "Activity is null, cannot share")
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 Log.d("PlaylistViewModel", "Starting share of ${playlistIds.size} playlists")
                 // Get all selected playlists with their songs
                 val playlistsWithSongs = getPlaylistsWithSongs(playlistIds)
-                
+
                 if (playlistsWithSongs.isEmpty()) {
                     Log.w("PlaylistViewModel", "No playlists found to share")
                     Toast.makeText(context, "No playlists to share", Toast.LENGTH_SHORT).show()
@@ -1050,7 +1139,7 @@ class PlaylistViewModel @Inject constructor(
                 val shareFile: File
                 val shareFileName: String
                 val shareMimeType: String
-                
+
                 if (playlistsWithSongs.size == 1) {
                     // Single playlist: share M3U file directly
                     val (playlist, songs) = playlistsWithSongs.first()
@@ -1065,7 +1154,7 @@ class PlaylistViewModel @Inject constructor(
                     val zipFileName = "Playlists_${playlistsWithSongs.first().first.name}_and_${playlistsWithSongs.size - 1}_more.zip"
                     shareFile = File(context.cacheDir, zipFileName)
                     val outputStream = FileOutputStream(shareFile)
-                    
+
                     java.util.zip.ZipOutputStream(outputStream).use { zipOut ->
                         playlistsWithSongs.forEach { (playlist, songs) ->
                             val m3uContent = m3uManager.generateM3u(playlist, songs)
@@ -1075,7 +1164,7 @@ class PlaylistViewModel @Inject constructor(
                             zipOut.closeEntry()
                         }
                     }
-                    
+
                     shareFileName = zipFileName
                     shareMimeType = "application/zip"
                     Log.d("PlaylistViewModel", "Created ZIP file: ${shareFile.absolutePath}, size: ${shareFile.length()} bytes")
@@ -1087,17 +1176,17 @@ class PlaylistViewModel @Inject constructor(
                     "${context.packageName}.provider",
                     shareFile
                 )
-                
+
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = shareMimeType
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                
+
                 Log.d("PlaylistViewModel", "Launching share intent for: $shareFileName")
                 activity.startActivity(Intent.createChooser(shareIntent, "Share Playlists"))
                 Toast.makeText(context, "Sharing ${playlistsWithSongs.size} playlist(s)", Toast.LENGTH_SHORT).show()
-                
+
             } catch (e: Exception) {
                 Log.e("PlaylistViewModel", "Error sharing playlists", e)
                 Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_LONG).show()
@@ -1112,12 +1201,12 @@ class PlaylistViewModel @Inject constructor(
      */
     fun mergePlaylistsIntoOne(playlistIds: List<String>, newPlaylistName: String) {
         if (playlistIds.isEmpty() || newPlaylistName.isEmpty()) return
-        
+
         viewModelScope.launch {
             try {
                 // Get all playlists first
                 val currentPlaylists = _uiState.value.playlists
-                
+
                 // Get all songs from selected playlists
                 val allSongs = mutableSetOf<String>()
                 playlistIds.forEach { playlistId ->
@@ -1144,9 +1233,9 @@ class PlaylistViewModel @Inject constructor(
                     isAiGenerated = false,
                     isQueueGenerated = false
                 )
-                
+
                 Log.d("PlaylistViewModel", "Successfully merged ${playlistIds.size} playlists into '$newPlaylistName' with ${allSongs.size} total unique songs")
-                
+
             } catch (e: Exception) {
                 Log.e("PlaylistViewModel", "Error merging playlists", e)
             }
@@ -1158,7 +1247,7 @@ class PlaylistViewModel @Inject constructor(
      */
     fun exportPlaylistsAsM3u(playlistIds: List<String>) {
         if (playlistIds.isEmpty()) return
-        
+
         viewModelScope.launch {
             try {
                 Log.d("PlaylistViewModel", "Starting export of ${playlistIds.size} playlists")
@@ -1166,29 +1255,29 @@ class PlaylistViewModel @Inject constructor(
                 if (!musicDir.exists()) {
                     musicDir.mkdirs()
                 }
-                
+
                 val exportDir = File(musicDir, "PixelPlayer Exports")
                 if (!exportDir.exists()) {
                     exportDir.mkdirs()
                 }
-                
+
                 val playlistsWithSongs = getPlaylistsWithSongs(playlistIds)
                 if (playlistsWithSongs.isEmpty()) {
                     Log.w("PlaylistViewModel", "No playlists found to export")
                     Toast.makeText(context, "No playlists to export", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                
+
                 playlistsWithSongs.forEach { (playlist, songs) ->
                     val m3uContent = m3uManager.generateM3u(playlist, songs)
                     val file = File(exportDir, "${playlist.name}.m3u")
                     file.writeText(m3uContent)
                     Log.d("PlaylistViewModel", "Exported playlist '${playlist.name}' to ${file.absolutePath}")
                 }
-                
+
                 Log.d("PlaylistViewModel", "Successfully exported ${playlistIds.size} playlists to $exportDir")
                 Toast.makeText(context, "Exported ${playlistsWithSongs.size} playlist(s) to Music/PixelPlayer Exports", Toast.LENGTH_SHORT).show()
-                
+
             } catch (e: Exception) {
                 Log.e("PlaylistViewModel", "Error exporting playlists", e)
                 Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()

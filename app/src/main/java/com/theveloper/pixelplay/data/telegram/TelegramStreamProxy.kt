@@ -37,7 +37,15 @@ class TelegramStreamProxy @Inject constructor(
     private var startJob: Job? = null
 
     private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(CIO, host = "127.0.0.1", port = port) {
+        return embeddedServer(
+            CIO,
+            host = "127.0.0.1",
+            port = port,
+            configure = {
+                // Fast proxy restarts can otherwise fail if the previous socket is still draining.
+                reuseAddress = true
+            }
+        ) {
             routing {
                 get("/stream/{fileId}") {
                     val fileId = call.parameters["fileId"]?.toIntOrNull()
@@ -259,6 +267,11 @@ class TelegramStreamProxy @Inject constructor(
 
     private var actualPort: Int = 0
 
+    fun startIfNeeded() {
+        if (isReady() || startJob?.isActive == true) return
+        start()
+    }
+
     fun start() {
         startJob?.cancel()
         startJob = proxyScope.launch {
@@ -328,6 +341,11 @@ class TelegramStreamProxy @Inject constructor(
         }
         LogUtils.e("StreamProxy", null, "awaitReady: Timeout after ${timeoutMs}ms")
         return false
+    }
+
+    suspend fun ensureReady(timeoutMs: Long = 10_000L): Boolean {
+        startIfNeeded()
+        return awaitReady(timeoutMs)
     }
     
 }

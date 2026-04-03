@@ -261,4 +261,9 @@ interface MusicRepository {
         sortOption: com.theveloper.pixelplay.data.model.SortOption,
         storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
     ): List<Long>
+
+    suspend fun getFavoriteSongIdsSorted(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): List<Long>
 }

@@ -23,6 +23,9 @@ interface TelegramDao {
     @Query("SELECT * FROM telegram_songs WHERE chat_id = :chatId AND thread_id = :threadId ORDER BY date_added DESC")
     suspend fun getSongsByTopicId(chatId: Long, threadId: Long): List<TelegramSongEntity>
 
+    @Query("SELECT * FROM telegram_songs WHERE file_id = :fileId LIMIT 1")
+    suspend fun getSongByFileId(fileId: Int): TelegramSongEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSongs(songs: List<TelegramSongEntity>)
 

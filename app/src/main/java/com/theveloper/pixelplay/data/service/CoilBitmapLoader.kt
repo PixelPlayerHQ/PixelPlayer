@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import coil.size.Precision
 import coil.size.Size
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
@@ -18,6 +19,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class)
 class CoilBitmapLoader(private val context: Context, private val scope: CoroutineScope) : BitmapLoader {
+
+    companion object {
+        // Large enough for lock screen / media surfaces, but bounded so we never hand
+        // unbounded original artwork to MediaSession/SystemUI IPC.
+        private const val MAX_NOTIFICATION_ARTWORK_SIZE_PX = 1024
+    }
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
         return loadBitmapInternal(uri)
@@ -34,9 +41,10 @@ class CoilBitmapLoader(private val context: Context, private val scope: Coroutin
             try {
                 val request = ImageRequest.Builder(context)
                     .data(data)
-                    // Let Media3 and System UI downscale from the real artwork instead of
-                    // forcing a 256 px thumbnail into the notification pipeline.
-                    .size(Size.ORIGINAL)
+                    // Preserve enough resolution for media surfaces while preventing huge
+                    // album art from destabilizing notification/SystemUI rendering.
+                    .size(MAX_NOTIFICATION_ARTWORK_SIZE_PX, MAX_NOTIFICATION_ARTWORK_SIZE_PX)
+                    .precision(Precision.INEXACT)
                     .allowHardware(false) // Bitmap must not be hardware for MediaSession
                     // Disable memory cache so Coil does not hold a second reference to this
                     // bitmap. Without this, Coil may recycle the cached copy while Media3

@@ -38,6 +38,9 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.theveloper.pixelplay.R
 
+val SmartImageCompactListTargetSize = Size(96, 96)
+val SmartImageListTargetSize = Size(128, 128)
+
 @Composable
 fun SmartImage(
     model: Any?,
@@ -81,8 +84,18 @@ fun SmartImage(
         ) ?: model
     }
 
-    if (model is ImageVector || model is Painter || model is ImageBitmap || model is Bitmap) {
-        // Already rendered inside handleDirectModel.
+    if (model == null || model is ImageVector || model is Painter || model is ImageBitmap || model is Bitmap) {
+        if (model == null) {
+            Placeholder(
+                modifier = clippedModifier,
+                drawableResId = placeholderResId,
+                contentDescription = contentDescription,
+                containerColor = placeHolderBackgroundColor,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                alpha = alpha
+            )
+        }
+        // Already rendered or null.
         return
     }
 

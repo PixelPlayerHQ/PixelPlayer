@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AudioFile
+import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MusicNote
@@ -56,6 +57,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -96,6 +98,7 @@ fun SongInfoBottomSheet(
     onDeleteFromDevice: (activity: Activity, song: Song, onResult: (Boolean) -> Unit) -> Unit,
     onNavigateToAlbum: () -> Unit,
     onNavigateToArtist: () -> Unit,
+    onNavigateToGenre: () -> Unit,
     onEditSong: (title: String, artist: String, album: String, genre: String, lyrics: String, trackNumber: Int, discNumber: Int?, coverArtUpdate: CoverArtUpdate?) -> Unit,
     generateAiMetadata: suspend (List<String>) -> Result<SongMetadata>,
     removeFromListTrigger: () -> Unit,
@@ -240,6 +243,12 @@ fun SongInfoBottomSheet(
             cornerRadiusBL = favoriteButtonCornerRadius, smoothnessAsPercentTR = 60
         )
     }
+    val infoSegmentContainerShape = remember {
+        RoundedCornerShape(20.dp)
+    }
+    val infoSegmentItemShape = remember {
+        RoundedCornerShape(8.dp)
+    }
 
     val audioMetaLabel = remember(audioMeta) {
         val meta = audioMeta ?: return@remember null
@@ -254,6 +263,9 @@ fun SongInfoBottomSheet(
             formatLabel?.let { add(it) }
         }
         parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+    }
+    val songLocationInfo = remember(song.path, song.contentUriString) {
+        songInfoViewModel.getSongLocationInfo(song)
     }
 
     LaunchedEffect(song.id) {
@@ -618,66 +630,67 @@ fun SongInfoBottomSheet(
                                         verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         item {
-                                            ListItem(
-                                                modifier = Modifier.clip(shape = listItemShape),
-                                                headlineContent = { Text("Duration") },
-                                                supportingContent = { Text(formatDuration(song.duration)) },
-                                                leadingContent = { Icon(Icons.Rounded.Schedule, contentDescription = "Duration icon") }
-                                            )
-                                        }
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(infoSegmentContainerShape),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                SongInfoSegmentedListItem(
+                                                    headline = "Duration",
+                                                    supporting = formatDuration(song.duration),
+                                                    icon = Icons.Rounded.Schedule,
+                                                    iconDescription = "Duration icon",
+                                                    shape = infoSegmentItemShape,
+                                                )
 
-                                        if (!song.genre.isNullOrEmpty()) {
-                                            item {
-                                                ListItem(
-                                                    modifier = Modifier
-                                                        .clip(shape = listItemShape)
-                                                        .clickable(onClick = onNavigateToArtist),
-                                                    headlineContent = { Text("Genre") },
-                                                    supportingContent = { Text(song.genre) },
-                                                    leadingContent = { Icon(Icons.Rounded.MusicNote, contentDescription = "Genre icon") }
+                                                if (!song.genre.isNullOrEmpty()) {
+                                                    SongInfoSegmentedListItem(
+                                                        headline = "Genre",
+                                                        supporting = song.genre,
+                                                        icon = Icons.Rounded.MusicNote,
+                                                        iconDescription = "Genre icon",
+                                                        shape = infoSegmentItemShape,
+                                                        onClick = onNavigateToGenre,
+                                                    )
+                                                }
+
+                                                SongInfoSegmentedListItem(
+                                                    headline = "Album",
+                                                    supporting = song.album,
+                                                    icon = Icons.Rounded.Album,
+                                                    iconDescription = "Album icon",
+                                                    shape = infoSegmentItemShape,
+                                                    onClick = onNavigateToAlbum,
+                                                )
+
+                                                SongInfoSegmentedListItem(
+                                                    headline = "Artist",
+                                                    supporting = song.displayArtist,
+                                                    icon = Icons.Rounded.Person,
+                                                    iconDescription = "Artist icon",
+                                                    shape = infoSegmentItemShape,
+                                                    onClick = onNavigateToArtist,
+                                                )
+
+                                                if (!audioMetaLabel.isNullOrEmpty()) {
+                                                    SongInfoSegmentedListItem(
+                                                        headline = "Song info",
+                                                        supporting = audioMetaLabel,
+                                                        icon = Icons.Rounded.Info,
+                                                        iconDescription = "Audio format icon",
+                                                        shape = infoSegmentItemShape,
+                                                    )
+                                                }
+
+                                                SongInfoSegmentedListItem(
+                                                    headline = songLocationInfo.label,
+                                                    supporting = songLocationInfo.value,
+                                                    icon = if (songLocationInfo.isCloud) Icons.Rounded.Cloud else Icons.Rounded.AudioFile,
+                                                    iconDescription = if (songLocationInfo.isCloud) "Provider icon" else "File icon",
+                                                    shape = infoSegmentItemShape,
                                                 )
                                             }
-                                        }
-
-                                        item {
-                                            ListItem(
-                                                modifier = Modifier
-                                                    .clip(shape = listItemShape)
-                                                    .clickable(onClick = onNavigateToAlbum),
-                                                headlineContent = { Text("Album") },
-                                                supportingContent = { Text(song.album) },
-                                                leadingContent = { Icon(Icons.Rounded.Album, contentDescription = "Album icon") }
-                                            )
-                                        }
-
-                                        item {
-                                            ListItem(
-                                                modifier = Modifier
-                                                    .clip(shape = listItemShape)
-                                                    .clickable(onClick = onNavigateToArtist),
-                                                headlineContent = { Text("Artist") },
-                                                supportingContent = { Text(song.displayArtist) },
-                                                leadingContent = { Icon(Icons.Rounded.Person, contentDescription = "Artist icon") }
-                                            )
-                                        }
-                                        if (!audioMetaLabel.isNullOrEmpty()) {
-                                            item {
-                                                ListItem(
-                                                    modifier = Modifier.clip(shape = listItemShape),
-                                                    headlineContent = { Text("Song info") },
-                                                    supportingContent = { Text(audioMetaLabel) },
-                                                    leadingContent = { Icon(Icons.Rounded.Info, contentDescription = "Audio format icon") }
-                                                )
-                                            }
-                                        }
-                                        item {
-                                            ListItem(
-                                                modifier = Modifier
-                                                    .clip(shape = listItemShape),
-                                                headlineContent = { Text("Path") },
-                                                supportingContent = { Text(song.path) },
-                                                leadingContent = { Icon(Icons.Rounded.AudioFile, contentDescription = "File icon") }
-                                            )
                                         }
                                         item {
                                             Spacer(Modifier.height(80.dp))
@@ -770,4 +783,43 @@ fun SongInfoBottomSheet(
         },
         generateAiMetadata = generateAiMetadata
     )
+}
+
+@Composable
+private fun SongInfoSegmentedListItem(
+    headline: String,
+    supporting: String,
+    icon: ImageVector,
+    iconDescription: String,
+    shape: Shape,
+    onClick: (() -> Unit)? = null,
+) {
+    val modifier = Modifier
+        .fillMaxWidth()
+        .clip(shape)
+        .let { baseModifier ->
+            if (onClick != null) {
+                baseModifier.clickable(onClick = onClick)
+            } else {
+                baseModifier
+            }
+        }
+
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            headlineContent = { Text(headline) },
+            supportingContent = { Text(supporting) },
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = iconDescription,
+                )
+            }
+        )
+    }
 }

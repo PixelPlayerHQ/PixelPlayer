@@ -199,10 +199,13 @@ fun ArtistSettingsScreen(
                         )
                     }
                 ) {
-                    Column(modifier = Modifier.clip(shape = RoundedCornerShape(24.dp))) {
-                        // Configure Delimiters
+                    Column(
+                        modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        // Configure Character Delimiters
                         SettingsItem(
-                            title = "Configure Delimiters",
+                            title = "Character Delimiters",
                             subtitle = "Current: ${uiState.artistDelimiters.joinToString(", ")}",
                             leadingIcon = {
                                 Icon(
@@ -220,6 +223,45 @@ fun ArtistSettingsScreen(
                             },
                             onClick = {
                                 navController.navigateSafely("delimiter_config")
+                            }
+                        )
+
+                        // Configure Word Delimiters
+                        SettingsItem(
+                            title = "Word Delimiters",
+                            subtitle = if (uiState.wordDelimiters.isEmpty()) "None"
+                                       else "Current: ${uiState.wordDelimiters.take(5).joinToString(", ")}${if (uiState.wordDelimiters.size > 5) "..." else ""}",
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Settings,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.ChevronRight,
+                                    contentDescription = "Configure",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            onClick = {
+                                navController.navigateSafely("word_delimiter_config")
+                            }
+                        )
+
+                        // Extract from title toggle
+                        SwitchSettingItem(
+                            title = "Extract Artists from Title",
+                            subtitle = "Detect feat., ft., with in song titles",
+                            checked = uiState.extractArtistsFromTitle,
+                            onCheckedChange = { viewModel.setExtractArtistsFromTitle(it) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.LibraryMusic,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
                             }
                         )
                     }
@@ -260,7 +302,7 @@ fun ArtistSettingsScreen(
             item {
                 InfoCard(
                     title = "About Multi-Artist Parsing",
-                    content = "PixelPlayer automatically splits artist tags containing multiple artists. This is useful for songs downloaded with yt-dlp or other tools that use delimiters like '/' to separate artists.\n\nBackslash (\\) can be used to escape delimiters."
+                    content = "PixelPlay splits artist tags using character delimiters (/, ;, &) and word delimiters (feat., ft., vs., x). Word delimiters are matched case-insensitively.\n\n\"Extract Artists from Title\" detects patterns like (feat. Artist) in song titles.\n\nBackslash (\\) can be used to escape character delimiters."
                 )
             }
 
@@ -269,7 +311,9 @@ fun ArtistSettingsScreen(
                 ExamplesCard(
                     examples = listOf(
                         "\"Artist1/Artist2\"" to "Artist1, Artist2",
-                        "\"A + B + C\"" to "A, B, C",
+                        "\"Drake feat. Rihanna\"" to "Drake, Rihanna",
+                        "\"Marshmello x Bastille\"" to "Marshmello, Bastille",
+                        "\"Song (ft. B)\" by A" to "A, B",
                         "\"AC\\DC\"" to "AC/DC (escaped)"
                     )
                 )

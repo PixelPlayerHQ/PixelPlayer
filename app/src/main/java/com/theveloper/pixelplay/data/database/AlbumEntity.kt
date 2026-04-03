@@ -23,20 +23,14 @@ data class AlbumEntity(
     @ColumnInfo(name = "artist_id") val artistId: Long, // ID del artista principal del álbum (si aplica)
     @ColumnInfo(name = "album_art_uri_string") val albumArtUriString: String?,
     @ColumnInfo(name = "song_count") val songCount: Int,
+    @ColumnInfo(name = "date_added") val dateAdded: Long,
     @ColumnInfo(name = "year") val year: Int
 )
 
-private fun mediaStoreAlbumArtUri(albumId: Long): String {
-    return android.content.ContentUris.withAppendedId(
-        android.net.Uri.parse("content://media/external/audio/albumart"),
-        albumId
-    ).toString()
-}
-
 fun AlbumEntity.toAlbum(): Album {
     val effectiveAlbumArtUri = when {
-        this.albumArtUriString.isNullOrBlank() -> mediaStoreAlbumArtUri(this.id)
-        LocalArtworkUri.looksLikeVolatileArtworkUri(this.albumArtUriString) -> mediaStoreAlbumArtUri(this.id)
+        this.albumArtUriString.isNullOrBlank() -> null
+        LocalArtworkUri.looksLikeVolatileArtworkUri(this.albumArtUriString) -> null
         else -> this.albumArtUriString
     }
 
@@ -46,6 +40,7 @@ fun AlbumEntity.toAlbum(): Album {
         artist = this.artistName.normalizeMetadataTextOrEmpty(),
         albumArtUriString = effectiveAlbumArtUri,
         songCount = this.songCount,
+        dateAdded = this.dateAdded,
         year = this.year
     )
 }
@@ -62,6 +57,7 @@ fun Album.toEntity(artistIdForAlbum: Long): AlbumEntity { // Necesitamos pasar e
         artistId = artistIdForAlbum, // Asignar el ID del artista
         albumArtUriString = this.albumArtUriString,
         songCount = this.songCount,
+        dateAdded = this.dateAdded,
         year = this.year
     )
 }

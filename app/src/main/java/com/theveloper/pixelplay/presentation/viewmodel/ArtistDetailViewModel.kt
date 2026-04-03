@@ -191,8 +191,10 @@ class ArtistDetailViewModel @Inject constructor(
 
                     _artistColorScheme.value = newScheme
                     _uiState.update { state ->
+                        // Cache-busting: add timestamp to internalPath to force Coil to reload
+                        val effectiveUrlWithBust = "$internalPath?t=${System.currentTimeMillis()}"
                         state.copy(
-                            effectiveImageUrl = internalPath,
+                            effectiveImageUrl = effectiveUrlWithBust,
                             artist = state.artist?.copy(customImageUri = internalPath)
                         )
                     }

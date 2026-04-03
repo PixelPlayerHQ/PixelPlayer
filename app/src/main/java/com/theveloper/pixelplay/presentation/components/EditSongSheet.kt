@@ -51,6 +51,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.rounded.Notes
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.ui.platform.LocalContext
@@ -140,6 +141,7 @@ private fun EditSongContent(
     var discNumber by remember { mutableStateOf(song.discNumber?.toString() ?: "") }
     var coverArtPreview by remember { mutableStateOf<ImageBitmap?>(null) }
     var editedCoverArt by remember { mutableStateOf<CoverArtUpdate?>(null) }
+    var isCoverArtDeleted by remember { mutableStateOf(false) }
     var showCoverArtCropper by remember { mutableStateOf(false) }
     var pendingCoverArtUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -165,6 +167,7 @@ private fun EditSongContent(
         discNumber = song.discNumber?.toString() ?: ""
         coverArtPreview = null
         editedCoverArt = null
+        isCoverArtDeleted = false
 
         // Try to read embedded lyrics if they were not cached in the database
         if (lyrics.isBlank() && song.path.isNotBlank()) {
@@ -232,6 +235,7 @@ private fun EditSongContent(
             onConfirm = { result ->
                 coverArtPreview = result.preview
                 editedCoverArt = result.update
+                isCoverArtDeleted = false
                 showCoverArtCropper = false
                 pendingCoverArtUri = null
             }
@@ -358,14 +362,21 @@ private fun EditSongContent(
                     modifier = Modifier.fillMaxWidth(),
                     albumArtUri = song.albumArtUriString,
                     preview = coverArtPreview,
+                    isDeleted = isCoverArtDeleted,
                     onPickNewArt = {
                         pickCoverArtLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
+                    onDelete = {
+                        coverArtPreview = null
+                        isCoverArtDeleted = true
+                        editedCoverArt = CoverArtUpdate(isDeletion = true)
+                    },
                     onReset = {
                         coverArtPreview = null
                         editedCoverArt = null
+                        isCoverArtDeleted = false
                     }
                 )
             }
@@ -621,7 +632,9 @@ private fun CoverArtEditorCard(
     modifier: Modifier = Modifier,
     albumArtUri: String?,
     preview: ImageBitmap?,
+    isDeleted: Boolean,
     onPickNewArt: () -> Unit,
+    onDelete: () -> Unit,
     onReset: () -> Unit,
 ) {
     Surface(
@@ -665,6 +678,15 @@ private fun CoverArtEditorCard(
                     contentAlignment = Alignment.Center
                 ) {
                     when {
+                        isDeleted -> {
+                            Icon(
+                                painter = painterResource(id = R.drawable.rounded_music_note_24),
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         preview != null -> {
                             Image(
                                 bitmap = preview,
@@ -680,14 +702,14 @@ private fun CoverArtEditorCard(
                                 contentDescription = "Current song cover art",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
-                                placeholderResId = R.drawable.rounded_album_24,
+                                placeholderResId = R.drawable.rounded_music_note_24,
                                 errorResId = R.drawable.rounded_broken_image_24
                             )
                         }
 
                         else -> {
                             Icon(
-                                painter = painterResource(id = R.drawable.rounded_album_24),
+                                painter = painterResource(id = R.drawable.rounded_music_note_24),
                                 contentDescription = null,
                                 modifier = Modifier.size(72.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -719,7 +741,7 @@ private fun CoverArtEditorCard(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
             ) {
                 FilledTonalButton(onClick = onPickNewArt) {
                     Icon(Icons.Rounded.Image, contentDescription = null)
@@ -727,11 +749,23 @@ private fun CoverArtEditorCard(
                     Text("Change cover art")
                 }
 
-                if (preview != null) {
+                if (preview != null || isDeleted) {
                     TextButton(onClick = onReset) {
                         Icon(Icons.Rounded.Restore, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Reset")
+                    }
+                } else if (albumArtUri != null) {
+                    FilledTonalButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
+                        Icon(Icons.Rounded.Delete, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Delete cover art")
                     }
                 }
             }
@@ -776,14 +810,18 @@ private fun CoverArtCropperDialog(
         offset = Offset.Zero
     }
 
-    LaunchedEffect(containerSize, scale) {
-        offset = clampOffset(offset, scale, containerSize)
+    LaunchedEffect(containerSize, scale, loadedBitmap) {
+        loadedBitmap?.let { bitmap ->
+            offset = clampOffset(offset, scale, containerSize, bitmap.width, bitmap.height)
+        }
     }
 
     val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
         val newScale = (scale * zoomChange).coerceIn(1f, 4f)
         scale = newScale
-        offset = clampOffset(offset + panChange, newScale, containerSize)
+        loadedBitmap?.let { bitmap ->
+            offset = clampOffset(offset + panChange, newScale, containerSize, bitmap.width, bitmap.height)
+        }
     }
 
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
@@ -855,7 +893,12 @@ private fun CoverArtCropperDialog(
                                     )
                                 }
 
-                                loadedBitmap != null -> {
+                                 loadedBitmap != null -> {
+                                    val bitmap = loadedBitmap!!
+                                    val baseScale = maxOf(containerSize / bitmap.width, containerSize / bitmap.height)
+                                    val displayWidth = with(LocalDensity.current) { (bitmap.width * baseScale).toDp() }
+                                    val displayHeight = with(LocalDensity.current) { (bitmap.height * baseScale).toDp() }
+
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -866,17 +909,16 @@ private fun CoverArtCropperDialog(
                                             .transformable(transformableState)
                                     ) {
                                         Image(
-                                            bitmap = loadedBitmap!!,
+                                            bitmap = bitmap,
                                             contentDescription = null,
                                             modifier = Modifier
-                                                .fillMaxSize()
+                                                .requiredSize(displayWidth, displayHeight)
                                                 .graphicsLayer {
                                                     scaleX = scale
                                                     scaleY = scale
                                                     translationX = offset.x
                                                     translationY = offset.y
-                                                },
-                                            contentScale = ContentScale.Crop
+                                                }
                                         )
                                     }
 
@@ -969,13 +1011,30 @@ private fun CoverArtCropperDialog(
 
 private const val COVER_ART_MIME_TYPE = "image/jpeg"
 
-private fun clampOffset(offset: Offset, scale: Float, containerSize: Float): Offset {
-    if (containerSize <= 0f) return Offset.Zero
-    val maxTranslation = (containerSize * (scale - 1f)) / 2f
-    if (maxTranslation <= 0f) return Offset.Zero
+private fun clampOffset(
+    offset: Offset,
+    scale: Float,
+    containerSize: Float,
+    bitmapWidth: Int,
+    bitmapHeight: Int
+): Offset {
+    if (containerSize <= 0f || bitmapWidth <= 0 || bitmapHeight <= 0) return Offset.Zero
+
+    // When using ContentScale.Crop, the image is scaled to fill the container size.
+    // The base scale factor is the maximum of the width and height ratios.
+    val baseScale = maxOf(containerSize / bitmapWidth, containerSize / bitmapHeight)
+    val totalScale = baseScale * scale
+
+    val scaledWidth = bitmapWidth * totalScale
+    val scaledHeight = bitmapHeight * totalScale
+
+    // Calculate maximum translation bounds (half of the overflow).
+    val maxX = maxOf(0f, (scaledWidth - containerSize) / 2f)
+    val maxY = maxOf(0f, (scaledHeight - containerSize) / 2f)
+
     return Offset(
-        x = offset.x.coerceIn(-maxTranslation, maxTranslation),
-        y = offset.y.coerceIn(-maxTranslation, maxTranslation)
+        x = offset.x.coerceIn(-maxX, maxX),
+        y = offset.y.coerceIn(-maxY, maxY)
     )
 }
 

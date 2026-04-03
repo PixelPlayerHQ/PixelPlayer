@@ -283,7 +283,7 @@ fun NavidromeLoginScreen(
                         onValueChange = { serverUrl = it },
                         label = "Server URL",
                         placeholder = "https://music.example.com",
-                        supportingText = "Use the full base address of your server.",
+                        supportingText = "Use the full https:// base address of your server.",
                         leadingIcon = Icons.Rounded.CloudQueue,
                         enabled = !isLoading,
                         keyboardOptions = KeyboardOptions(

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.ConcurrentHashMap
 
 @Singleton
 class ThemeStateHolder @Inject constructor(
@@ -129,27 +130,57 @@ class ThemeStateHolder @Inject constructor(
         }
     }
 
-    fun getAlbumColorSchemeFlow(uriString: String): StateFlow<ColorSchemePair?> {
-        val existingFlow = individualAlbumColorSchemes[uriString]
-        if (existingFlow != null) return existingFlow.asStateFlow()
+    private val pendingAlbumColorSchemeRequests = ConcurrentHashMap.newKeySet<String>()
 
-        val newFlow = MutableStateFlow<ColorSchemePair?>(null)
-        individualAlbumColorSchemes[uriString] = newFlow
+    private fun requestAlbumColorSchemeGeneration(
+        uriString: String,
+        targetFlow: MutableStateFlow<ColorSchemePair?>
+    ) {
+        if (!pendingAlbumColorSchemeRequests.add(uriString)) return
 
-        // Trigger generation asynchronously
         scope?.launch(Dispatchers.IO) {
             try {
                 val scheme = colorSchemeProcessor.getOrGenerateColorScheme(
                     albumArtUri = uriString,
                     paletteStyle = currentPaletteStyle
                 )
-                newFlow.value = scheme
-            } catch (e: Exception) {
+                targetFlow.value = scheme
+            } catch (_: Exception) {
                 // Ignore or log
+            } finally {
+                pendingAlbumColorSchemeRequests.remove(uriString)
             }
+        }
+    }
+
+    fun getAlbumColorSchemeFlow(
+        uriString: String,
+        eager: Boolean = true
+    ): StateFlow<ColorSchemePair?> {
+        val existingFlow = individualAlbumColorSchemes[uriString]
+        if (existingFlow != null) {
+            if (eager && existingFlow.value == null) {
+                requestAlbumColorSchemeGeneration(uriString, existingFlow)
+            }
+            return existingFlow.asStateFlow()
+        }
+
+        val newFlow = MutableStateFlow<ColorSchemePair?>(null)
+        individualAlbumColorSchemes[uriString] = newFlow
+
+        if (eager) {
+            requestAlbumColorSchemeGeneration(uriString, newFlow)
         }
 
         return newFlow.asStateFlow()
+    }
+
+    fun ensureAlbumColorScheme(uriString: String) {
+        val targetFlow = individualAlbumColorSchemes[uriString]
+            ?: MutableStateFlow<ColorSchemePair?>(null).also { individualAlbumColorSchemes[uriString] = it }
+
+        if (targetFlow.value != null) return
+        requestAlbumColorSchemeGeneration(uriString, targetFlow)
     }
     
     suspend fun getOrGenerateColorScheme(uriString: String): ColorSchemePair? {
@@ -160,9 +191,15 @@ class ThemeStateHolder @Inject constructor(
     }
 
     suspend fun forceRegenerateColorScheme(
-        uriString: String,
+        uriString: String?,
         regenerateAllStyles: Boolean = false
     ) {
+         if (uriString == null) {
+             _currentAlbumArtColorSchemePair.value = null
+             _currentAlbumArtUri.value = null
+             return
+         }
+
          android.util.Log.d("ThemeStateHolder", "forceRegenerateColorScheme called for: $uriString")
          android.util.Log.d("ThemeStateHolder", "Current tracked global URI: ${_currentAlbumArtUri.value}")
          

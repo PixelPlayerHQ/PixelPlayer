@@ -15,12 +15,12 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.transform
@@ -567,6 +567,66 @@ class TelegramRepository @Inject constructor(
 
     private val _downloadCompleted = MutableSharedFlow<Int>(extraBufferCapacity = 16)
     val downloadCompleted: SharedFlow<Int> = _downloadCompleted.asSharedFlow()
+    private val _songFileUpdated = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    val songFileUpdated: SharedFlow<String> = _songFileUpdated.asSharedFlow()
+
+    fun warmUpArtworkForSongs(
+        songs: List<TelegramSongEntity>,
+        maxSongs: Int = 24
+    ) {
+        val targets = songs.asSequence()
+            .map { it.chatId to it.messageId }
+            .distinct()
+            .take(maxSongs)
+            .toList()
+
+        if (targets.isEmpty()) return
+
+        repositoryScope.launch {
+            targets.forEach { (chatId, messageId) ->
+                try {
+                    warmUpArtwork(chatId, messageId)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Timber.v(e, "Artwork warm-up failed for $chatId/$messageId")
+                }
+            }
+        }
+    }
+
+    private suspend fun warmUpArtwork(chatId: Long, messageId: Long) {
+        val message = getMessage(chatId, messageId) ?: return
+        val fileId = extractArtworkFileId(message.content) ?: return
+        val existingFile = getFile(fileId)
+        if (existingFile?.local?.isDownloadingCompleted == true && existingFile.local.path.isNotEmpty()) {
+            resolvedPathCache[fileId] = existingFile.local.path
+            return
+        }
+        downloadFileAwait(fileId, priority = 1)
+    }
+
+    private fun extractArtworkFileId(content: TdApi.MessageContent?): Int? {
+        return when (content) {
+            is TdApi.MessageAudio -> {
+                val thumbnail = content.audio.albumCoverThumbnail
+                    ?: content.audio.externalAlbumCovers?.maxByOrNull { it.width * it.height }
+                thumbnail?.file?.id
+            }
+            is TdApi.MessageDocument -> content.document.thumbnail?.file?.id
+            else -> null
+        }
+    }
+
+    private suspend fun persistSongFilePathIfNeeded(fileId: Int, path: String?) {
+        if (path.isNullOrBlank()) return
+
+        val existingSong = dao.getSongByFileId(fileId) ?: return
+        if (existingSong.filePath == path) return
+
+        dao.insertSongs(listOf(existingSong.copy(filePath = path)))
+        _songFileUpdated.tryEmit(existingSong.id)
+    }
 
     suspend fun downloadFileAwait(fileId: Int, priority: Int = 1): String? {
         resolvedPathCache[fileId]?.let { path ->
@@ -584,6 +644,7 @@ class TelegramRepository @Inject constructor(
                     if (currentFile?.local?.isDownloadingCompleted == true) {
                         currentFile.local.path.takeIf { it.isNotEmpty() }?.let {
                             resolvedPathCache[fileId] = it
+                            persistSongFilePathIfNeeded(fileId, it)
                             _downloadCompleted.tryEmit(fileId)
                             return@withPermit it
                         }
@@ -599,6 +660,7 @@ class TelegramRepository @Inject constructor(
                             }
                             if (resultFile.local.isDownloadingCompleted && resultFile.local.path.isNotEmpty()) {
                                 resolvedPathCache[fileId] = resultFile.local.path
+                                persistSongFilePathIfNeeded(fileId, resultFile.local.path)
                                 _downloadCompleted.tryEmit(fileId)
                                 resultFile.local.path
                             } else null
@@ -636,12 +698,14 @@ class TelegramRepository @Inject constructor(
 
                     if (completedPath != null) {
                         resolvedPathCache[fileId] = completedPath
+                        persistSongFilePathIfNeeded(fileId, completedPath)
                         _downloadCompleted.tryEmit(fileId)
                         return@withPermit completedPath
                     }
 
                     val finalFile = getFile(fileId)
                     return@withPermit if (finalFile?.local?.isDownloadingCompleted == true && finalFile.local.path.isNotEmpty()) {
+                        persistSongFilePathIfNeeded(fileId, finalFile.local.path)
                         _downloadCompleted.tryEmit(fileId)
                         finalFile.local.path
                     } else null

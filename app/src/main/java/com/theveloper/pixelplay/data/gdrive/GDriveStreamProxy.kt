@@ -107,7 +107,15 @@ class GDriveStreamProxy @Inject constructor(
     }
 
     private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(CIO, host = "127.0.0.1", port = port) {
+        return embeddedServer(
+            CIO,
+            host = "127.0.0.1",
+            port = port,
+            configure = {
+                // Keep behavior consistent with the other local proxies during quick restarts.
+                reuseAddress = true
+            }
+        ) {
             routing {
                 get("/gdrive/{fileId}") {
                     val fileId = call.parameters["fileId"]

@@ -13,6 +13,7 @@ import com.google.android.material.color.utilities.MathUtils
 import com.google.android.material.color.utilities.QuantizerCelebi
 import com.google.android.material.color.utilities.SchemeExpressive
 import com.google.android.material.color.utilities.SchemeFruitSalad
+import com.google.android.material.color.utilities.SchemeMonochrome
 import com.google.android.material.color.utilities.SchemeTonalSpot
 import com.google.android.material.color.utilities.SchemeVibrant
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
@@ -45,6 +46,11 @@ private data class ScoredHct(
     val score: Double
 )
 
+private data class RepresentativeArtworkColor(
+    val argb: Int,
+    val hct: Hct
+)
+
 private val extractedColorCache = LruCache<Int, Color>(32)
 private const val GRAYSCALE_CHROMA_THRESHOLD = 12.0
 private const val NEUTRAL_PIXEL_CHROMA_THRESHOLD = 8.0
@@ -53,6 +59,21 @@ private const val REQUIRED_NEUTRAL_POPULATION = 0.92
 private const val MAX_HIGH_CHROMA_POPULATION = 0.03
 private const val MAX_WEIGHTED_CHROMA_FOR_NEUTRAL = 9.0
 private const val MAX_GRAYSCALE_CHANNEL_DELTA = 10
+private const val REPRESENTATIVE_PIXEL_CHROMA_THRESHOLD = 10.0
+private const val MIN_REPRESENTATIVE_PIXEL_RATIO = 0.04
+private const val MIN_REFINEMENT_PIXEL_RATIO = 0.08
+private const val MIN_VISIBLE_RGB_SUM = 36
+private const val MIN_VISIBLE_PIXEL_ALPHA = 28
+private const val FIDELITY_HUE_WINDOW = 90.0
+private const val FIDELITY_CHROMA_WINDOW = 32.0
+private const val FIDELITY_TONE_WINDOW = 28.0
+private const val FIDELITY_HUE_WEIGHT = 18.0
+private const val FIDELITY_CHROMA_WEIGHT = 7.0
+private const val FIDELITY_TONE_WEIGHT = 3.0
+private const val EXCESS_CHROMA_PENALTY_START = 18.0
+private const val EXCESS_CHROMA_PENALTY_WEIGHT = 0.18
+private const val LOCAL_REFINEMENT_HUE_WINDOW = 32.0
+private const val LOCAL_REFINEMENT_BLEND_RATIO = 0.42f
 
 fun clearExtractedColorCache() {
     extractedColorCache.evictAll()
@@ -79,21 +100,7 @@ fun extractSeedColor(
             workingBitmap.height
         )
 
-        val fallbackArgb = averageColorArgb(pixels)
-        val quantized = QuantizerCelebi.quantize(pixels, config.quantizerMaxColors)
-        val mostlyNeutralArtwork = isMostlyNeutralArtwork(quantized)
-
-        if (mostlyNeutralArtwork && isArgbNearGrayscale(fallbackArgb)) {
-            return@runCatching Color(fallbackArgb)
-        }
-
-        val rankedSeeds = scoreQuantizedColors(
-            colorsToPopulation = quantized,
-            scoring = config.scoring,
-            fallbackColorArgb = fallbackArgb
-        )
-
-        Color(rankedSeeds.firstOrNull() ?: fallbackArgb)
+        Color(selectSeedColorArgbFromPixels(pixels, config))
     }.getOrElse { DarkColorScheme.primary }
 
     extractedColorCache.put(cacheKey, seedColor)
@@ -135,6 +142,47 @@ fun generateColorSchemeFromSeed(
     }
 }
 
+fun generateMonochromeColorSchemeFromSeed(seedColor: Color): ColorSchemePair {
+    return runCatching {
+        val sourceHct = Hct.fromInt(seedColor.toArgb())
+        ColorSchemePair(
+            light = SchemeMonochrome(sourceHct, false, 0.0).toComposeColorScheme(),
+            dark = SchemeMonochrome(sourceHct, true, 0.0).toComposeColorScheme()
+        )
+    }.getOrElse {
+        ColorSchemePair(LightColorScheme, DarkColorScheme)
+    }
+}
+
+internal fun selectSeedColorArgbFromPixels(
+    pixels: IntArray,
+    config: ColorExtractionConfig = ColorExtractionConfig()
+): Int {
+    val fallbackArgb = averageColorArgb(pixels)
+    val quantized = QuantizerCelebi.quantize(pixels, config.quantizerMaxColors)
+    val mostlyNeutralArtwork = isMostlyNeutralArtwork(quantized)
+
+    if (mostlyNeutralArtwork && isArgbNearGrayscale(fallbackArgb)) {
+        return fallbackArgb
+    }
+
+    val representativeColor = calculateRepresentativeArtworkColor(pixels)
+    val rankedSeeds = scoreQuantizedColors(
+        colorsToPopulation = quantized,
+        scoring = config.scoring,
+        fallbackColorArgb = fallbackArgb,
+        representativeColor = representativeColor
+    )
+    val selectedSeed = rankedSeeds.firstOrNull() ?: fallbackArgb
+
+    return refineSeedColorArgb(
+        candidateArgb = selectedSeed,
+        pixels = pixels,
+        representativeColor = representativeColor,
+        cutoffChroma = config.scoring.cutoffChroma
+    )
+}
+
 private fun resizeForExtraction(bitmap: Bitmap, maxDimension: Int): Bitmap {
     if (maxDimension <= 0) return bitmap
     if (bitmap.width <= maxDimension && bitmap.height <= maxDimension) return bitmap
@@ -148,7 +196,8 @@ private fun resizeForExtraction(bitmap: Bitmap, maxDimension: Int): Bitmap {
 private fun scoreQuantizedColors(
     colorsToPopulation: Map<Int, Int>,
     scoring: ColorScoringConfig,
-    fallbackColorArgb: Int
+    fallbackColorArgb: Int,
+    representativeColor: RepresentativeArtworkColor?
 ): List<Int> {
     if (colorsToPopulation.isEmpty()) return listOf(fallbackColorArgb)
 
@@ -188,7 +237,18 @@ private fun scoreQuantizedColors(
         val chromaWeight =
             if (hct.chroma < scoring.targetChroma) scoring.weightChromaBelow else scoring.weightChromaAbove
         val chromaScore = (hct.chroma - scoring.targetChroma) * chromaWeight
-        scoredColors.add(ScoredHct(hct, proportionScore + chromaScore))
+        val fidelityScore = representativeColor?.let { representative ->
+            calculateRepresentativeFidelityScore(hct, representative.hct)
+        } ?: 0.0
+        val excessChromaPenalty = representativeColor?.let { representative ->
+            calculateExcessChromaPenalty(hct, representative.hct)
+        } ?: 0.0
+        scoredColors.add(
+            ScoredHct(
+                hct = hct,
+                score = proportionScore + chromaScore + fidelityScore - excessChromaPenalty
+            )
+        )
     }
 
     if (scoredColors.isEmpty()) return listOf(fallbackColorArgb)
@@ -215,6 +275,167 @@ private fun scoreQuantizedColors(
 
     if (chosen.isEmpty()) return listOf(fallbackColorArgb)
     return chosen.map { it.toInt() }
+}
+
+private fun calculateRepresentativeArtworkColor(pixels: IntArray): RepresentativeArtworkColor? {
+    if (pixels.isEmpty()) return null
+
+    var totalRed = 0.0
+    var totalGreen = 0.0
+    var totalBlue = 0.0
+    var totalWeight = 0.0
+    var representativePixelCount = 0
+
+    for (argb in pixels) {
+        val alpha = (argb ushr 24) and 0xFF
+        if (alpha < MIN_VISIBLE_PIXEL_ALPHA) continue
+
+        val red = (argb ushr 16) and 0xFF
+        val green = (argb ushr 8) and 0xFF
+        val blue = argb and 0xFF
+        if (red + green + blue <= MIN_VISIBLE_RGB_SUM) continue
+
+        val hct = Hct.fromInt(argb)
+        if (hct.chroma < REPRESENTATIVE_PIXEL_CHROMA_THRESHOLD) continue
+
+        val weight = 1.0 +
+            ((hct.chroma - REPRESENTATIVE_PIXEL_CHROMA_THRESHOLD) / 24.0).coerceAtLeast(0.0) +
+            (hct.tone / 100.0)
+
+        totalRed += red * weight
+        totalGreen += green * weight
+        totalBlue += blue * weight
+        totalWeight += weight
+        representativePixelCount++
+    }
+
+    if (totalWeight <= 0.0) return null
+    if (representativePixelCount.toDouble() / pixels.size.toDouble() < MIN_REPRESENTATIVE_PIXEL_RATIO) {
+        return null
+    }
+
+    val argb = (
+        (0xFF shl 24) or
+            ((totalRed / totalWeight).roundToInt().coerceIn(0, 255) shl 16) or
+            ((totalGreen / totalWeight).roundToInt().coerceIn(0, 255) shl 8) or
+            (totalBlue / totalWeight).roundToInt().coerceIn(0, 255)
+        )
+    val hct = Hct.fromInt(argb)
+
+    return RepresentativeArtworkColor(argb = argb, hct = hct)
+}
+
+private fun calculateRepresentativeFidelityScore(candidate: Hct, representative: Hct): Double {
+    val hueDistance = MathUtils.differenceDegrees(candidate.hue, representative.hue)
+    val chromaDistance = abs(candidate.chroma - representative.chroma)
+    val toneDistance = abs(candidate.tone - representative.tone)
+
+    val hueScore =
+        ((FIDELITY_HUE_WINDOW - hueDistance).coerceAtLeast(0.0) / FIDELITY_HUE_WINDOW) * FIDELITY_HUE_WEIGHT
+    val chromaScore =
+        ((FIDELITY_CHROMA_WINDOW - chromaDistance).coerceAtLeast(0.0) / FIDELITY_CHROMA_WINDOW) *
+            FIDELITY_CHROMA_WEIGHT
+    val toneScore =
+        ((FIDELITY_TONE_WINDOW - toneDistance).coerceAtLeast(0.0) / FIDELITY_TONE_WINDOW) * FIDELITY_TONE_WEIGHT
+
+    return hueScore + chromaScore + toneScore
+}
+
+private fun calculateExcessChromaPenalty(candidate: Hct, representative: Hct): Double {
+    val excessChroma = candidate.chroma - representative.chroma - EXCESS_CHROMA_PENALTY_START
+    if (excessChroma <= 0.0) return 0.0
+    return excessChroma * EXCESS_CHROMA_PENALTY_WEIGHT
+}
+
+private fun refineSeedColorArgb(
+    candidateArgb: Int,
+    pixels: IntArray,
+    representativeColor: RepresentativeArtworkColor?,
+    cutoffChroma: Double
+): Int {
+    if (pixels.isEmpty()) return candidateArgb
+
+    val candidateHct = Hct.fromInt(candidateArgb)
+    var totalRed = 0.0
+    var totalGreen = 0.0
+    var totalBlue = 0.0
+    var totalWeight = 0.0
+    var matchingPixelCount = 0
+
+    for (argb in pixels) {
+        val alpha = (argb ushr 24) and 0xFF
+        if (alpha < MIN_VISIBLE_PIXEL_ALPHA) continue
+
+        val red = (argb ushr 16) and 0xFF
+        val green = (argb ushr 8) and 0xFF
+        val blue = argb and 0xFF
+        if (red + green + blue <= MIN_VISIBLE_RGB_SUM) continue
+
+        val hct = Hct.fromInt(argb)
+        if (hct.chroma < cutoffChroma) continue
+
+        val hueDistance = MathUtils.differenceDegrees(candidateHct.hue, hct.hue)
+        if (hueDistance > LOCAL_REFINEMENT_HUE_WINDOW) continue
+
+        val weight = 1.0 +
+            ((LOCAL_REFINEMENT_HUE_WINDOW - hueDistance) / LOCAL_REFINEMENT_HUE_WINDOW) +
+            ((hct.chroma - cutoffChroma) / 32.0).coerceAtLeast(0.0)
+
+        totalRed += red * weight
+        totalGreen += green * weight
+        totalBlue += blue * weight
+        totalWeight += weight
+        matchingPixelCount++
+    }
+
+    if (totalWeight <= 0.0) return candidateArgb
+    if (matchingPixelCount.toDouble() / pixels.size.toDouble() < MIN_REFINEMENT_PIXEL_RATIO) {
+        return candidateArgb
+    }
+
+    val localAverageArgb = (
+        (0xFF shl 24) or
+            ((totalRed / totalWeight).roundToInt().coerceIn(0, 255) shl 16) or
+            ((totalGreen / totalWeight).roundToInt().coerceIn(0, 255) shl 8) or
+            (totalBlue / totalWeight).roundToInt().coerceIn(0, 255)
+        )
+    val localAverageHct = Hct.fromInt(localAverageArgb)
+    if (MathUtils.differenceDegrees(candidateHct.hue, localAverageHct.hue) > LOCAL_REFINEMENT_HUE_WINDOW) {
+        return candidateArgb
+    }
+
+    val refinedArgb = blendArgb(candidateArgb, localAverageArgb, LOCAL_REFINEMENT_BLEND_RATIO)
+    if (representativeColor == null) return refinedArgb
+
+    return if (MathUtils.differenceDegrees(localAverageHct.hue, representativeColor.hct.hue) <= FIDELITY_HUE_WINDOW) {
+        blendArgb(refinedArgb, representativeColor.argb, LOCAL_REFINEMENT_BLEND_RATIO / 2f)
+    } else {
+        refinedArgb
+    }
+}
+
+private fun blendArgb(firstArgb: Int, secondArgb: Int, ratio: Float): Int {
+    val clampedRatio = ratio.coerceIn(0f, 1f)
+    val inverseRatio = 1f - clampedRatio
+
+    val alpha = (
+        ((firstArgb ushr 24) and 0xFF) * inverseRatio +
+            ((secondArgb ushr 24) and 0xFF) * clampedRatio
+        ).roundToInt().coerceIn(0, 255)
+    val red = (
+        ((firstArgb ushr 16) and 0xFF) * inverseRatio +
+            ((secondArgb ushr 16) and 0xFF) * clampedRatio
+        ).roundToInt().coerceIn(0, 255)
+    val green = (
+        ((firstArgb ushr 8) and 0xFF) * inverseRatio +
+            ((secondArgb ushr 8) and 0xFF) * clampedRatio
+        ).roundToInt().coerceIn(0, 255)
+    val blue = (
+        (firstArgb and 0xFF) * inverseRatio +
+            (secondArgb and 0xFF) * clampedRatio
+        ).roundToInt().coerceIn(0, 255)
+
+    return (alpha shl 24) or (red shl 16) or (green shl 8) or blue
 }
 
 private fun createDynamicScheme(

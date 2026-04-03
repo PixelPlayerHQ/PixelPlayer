@@ -74,6 +74,27 @@ class QueueUtilsTest {
         )
     }
 
+    @Test
+    fun buildAnchoredShuffleQueueSuspending_startAtZero_placesAnchorFirst() = runBlocking {
+        val songs = buildSongs(32)
+        val anchorIndex = 11
+
+        val shuffled = QueueUtils.buildAnchoredShuffleQueueSuspending(
+            currentQueue = songs,
+            anchorIndex = anchorIndex,
+            startAtZero = true,
+            random = Random(99)
+        )
+
+        assertEquals("Anchor song must become the first item", songs[anchorIndex].id, shuffled.first().id)
+        assertEquals("Queue size must stay the same", songs.size, shuffled.size)
+        assertEquals(
+            "Shuffled queue must contain the same songs",
+            songs.map { it.id }.toSet(),
+            shuffled.map { it.id }.toSet()
+        )
+    }
+
     private fun buildSongs(count: Int): List<Song> = List(count) { index ->
         Song(
             id = "song-$index",

@@ -24,6 +24,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.cio.*
+import io.ktor.server.plugins.origin
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CoroutineScope
@@ -102,6 +103,27 @@ class MediaFileHttpServerService : Service() {
         var lastFailureReason: FailureReason? = null
         @Volatile
         var lastFailureMessage: String? = null
+        @Volatile
+        private var castAccessPolicy: CastAccessPolicy = CastAccessPolicy.EMPTY
+
+        internal fun configureCastSessionAccess(
+            allowedSongIds: Collection<String>,
+            castDeviceIpHint: String?
+        ): CastAccessPolicy {
+            val updatedPolicy = CastSessionSecurity.buildAccessPolicy(
+                existingToken = castAccessPolicy.authToken,
+                allowedSongIds = allowedSongIds,
+                castDeviceIpHint = castDeviceIpHint
+            )
+            castAccessPolicy = updatedPolicy
+            return updatedPolicy
+        }
+
+        internal fun currentCastAccessPolicy(): CastAccessPolicy = castAccessPolicy
+
+        internal fun clearCastSessionAccess() {
+            castAccessPolicy = CastAccessPolicy.EMPTY
+        }
     }
 
     enum class FailureReason {
@@ -255,12 +277,23 @@ class MediaFileHttpServerService : Service() {
                 lastFailureReason = null
                 lastFailureMessage = null
 
-                server = embeddedServer(CIO, port = serverPort, host = "0.0.0.0") {
+                server = embeddedServer(
+                    CIO,
+                    port = serverPort,
+                    host = "0.0.0.0",
+                    configure = {
+                        // Keep Ktor's bind behavior consistent with our port probe and reduce
+                        // false "Address already in use" failures on quick Cast server restarts.
+                        reuseAddress = true
+                    }
+                ) {
                         routing {
                             get("/health") {
+                                if (!call.ensureLoopbackHealthRequest()) return@get
                                 call.respond(HttpStatusCode.OK, "ok")
                             }
                             head("/health") {
+                                if (!call.ensureLoopbackHealthRequest()) return@head
                                 call.respond(HttpStatusCode.OK)
                             }
                             get("/song/{songId}") {
@@ -269,6 +302,7 @@ class MediaFileHttpServerService : Service() {
                                     call.respond(HttpStatusCode.BadRequest, "Song ID is missing")
                                     return@get
                                 }
+                                if (!call.ensureAuthorizedCastMediaRequest(songId)) return@get
 
                                 val song = resolveSongForServing(songId)
                                 if (song == null) {
@@ -351,6 +385,7 @@ class MediaFileHttpServerService : Service() {
                                     call.respond(HttpStatusCode.BadRequest)
                                     return@head
                                 }
+                                if (!call.ensureAuthorizedCastMediaRequest(songId)) return@head
 
                                 val song = resolveSongForServing(songId)
                                 if (song == null) {
@@ -413,6 +448,7 @@ class MediaFileHttpServerService : Service() {
                                     call.respond(HttpStatusCode.BadRequest, "Song ID is missing")
                                     return@get
                                 }
+                                if (!call.ensureAuthorizedCastMediaRequest(songId)) return@get
 
                                 val song = resolveSongForServing(songId)
                                 if (song == null) {
@@ -468,6 +504,7 @@ class MediaFileHttpServerService : Service() {
                                     call.respond(HttpStatusCode.BadRequest)
                                     return@head
                                 }
+                                if (!call.ensureAuthorizedCastMediaRequest(songId)) return@head
 
                                 val song = resolveSongForServing(songId)
                                 if (song == null) {
@@ -666,6 +703,54 @@ class MediaFileHttpServerService : Service() {
     private fun NetworkCapabilities.isLocalLanTransport(): Boolean {
         return hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
             hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    }
+
+    private suspend fun ApplicationCall.ensureLoopbackHealthRequest(): Boolean {
+        val remoteAddress = request.origin.remoteHost
+        if (CastSessionSecurity.isLoopbackAddress(remoteAddress)) {
+            return true
+        }
+        Timber.tag(castHttpLogTag).w("Rejected Cast health request from non-loopback client=%s", remoteAddress)
+        respond(HttpStatusCode.Forbidden, "Forbidden")
+        return false
+    }
+
+    private suspend fun ApplicationCall.ensureAuthorizedCastMediaRequest(songId: String): Boolean {
+        val remoteAddress = request.origin.remoteHost
+        val policy = currentCastAccessPolicy()
+
+        if (!CastSessionSecurity.isAuthorizedClientAddress(remoteAddress, policy)) {
+            Timber.tag(castHttpLogTag).w(
+                "Rejected Cast media request from unauthorized client=%s songId=%s",
+                remoteAddress,
+                songId
+            )
+            respond(HttpStatusCode.Forbidden, "Forbidden")
+            return false
+        }
+
+        val providedToken = request.queryParameters[CastSessionSecurity.AUTH_QUERY_PARAMETER]
+        if (!CastSessionSecurity.isAuthorizedSongRequest(providedToken, songId, policy)) {
+            val hasValidToken = !policy.authToken.isNullOrBlank() && providedToken == policy.authToken
+            if (!hasValidToken) {
+                Timber.tag(castHttpLogTag).w(
+                    "Rejected Cast media request with invalid token client=%s songId=%s",
+                    remoteAddress,
+                    songId
+                )
+                respond(HttpStatusCode.Unauthorized, "Unauthorized")
+            } else {
+                Timber.tag(castHttpLogTag).w(
+                    "Rejected Cast media request for non-whitelisted song client=%s songId=%s",
+                    remoteAddress,
+                    songId
+                )
+                respond(HttpStatusCode.NotFound, "Song not found")
+            }
+            return false
+        }
+
+        return true
     }
 
     private fun resolveAudioStreamSource(song: Song, uri: Uri): AudioStreamSource? {
@@ -1392,6 +1477,7 @@ class MediaFileHttpServerService : Service() {
         serverHostAddress = null
         serverPrefixLength = -1
         castDeviceIpHint = null
+        clearCastSessionAccess()
         synchronized(serverStartLock) {
             startInProgress = false
         }

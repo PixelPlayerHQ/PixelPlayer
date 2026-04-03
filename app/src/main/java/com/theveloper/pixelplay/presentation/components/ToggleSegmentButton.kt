@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -35,6 +36,7 @@ import com.theveloper.pixelplay.presentation.components.LocalMaterialTheme
 fun ToggleSegmentButton(
     modifier: Modifier,
     active: Boolean,
+    enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
     activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
@@ -47,6 +49,7 @@ fun ToggleSegmentButton(
     ToggleSegmentButtonContainer(
         modifier = modifier,
         active = active,
+        enabled = enabled,
         activeColor = activeColor,
         inactiveColor = inactiveColor,
         activeCornerRadius = activeCornerRadius,
@@ -65,6 +68,7 @@ fun ToggleSegmentButton(
 fun ToggleSegmentButton(
     modifier: Modifier,
     active: Boolean,
+    enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
     activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
@@ -77,6 +81,7 @@ fun ToggleSegmentButton(
     ToggleSegmentButtonContainer(
         modifier = modifier,
         active = active,
+        enabled = enabled,
         activeColor = activeColor,
         inactiveColor = inactiveColor,
         activeCornerRadius = activeCornerRadius,
@@ -95,6 +100,7 @@ fun ToggleSegmentButton(
 fun ToggleSegmentButton(
     modifier: Modifier,
     active: Boolean,
+    enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
     activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
@@ -106,6 +112,7 @@ fun ToggleSegmentButton(
     ToggleSegmentButtonContainer(
         modifier = modifier,
         active = active,
+        enabled = enabled,
         activeColor = activeColor,
         inactiveColor = inactiveColor,
         activeCornerRadius = activeCornerRadius,
@@ -124,6 +131,7 @@ fun ToggleSegmentButton(
 fun ToggleSegmentButton(
     modifier: Modifier,
     active: Boolean,
+    enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
     activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
@@ -136,6 +144,7 @@ fun ToggleSegmentButton(
     ToggleSegmentButtonContainer(
         modifier = modifier,
         active = active,
+        enabled = enabled,
         activeColor = activeColor,
         inactiveColor = inactiveColor,
         activeCornerRadius = activeCornerRadius,
@@ -168,14 +177,16 @@ fun ToggleSegmentButton(
 private fun ToggleSegmentButtonContainer(
     modifier: Modifier,
     active: Boolean,
+    enabled: Boolean,
     activeColor: Color,
     inactiveColor: Color,
     activeCornerRadius: Dp,
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val targetBgColor = if (active) activeColor else inactiveColor
     val bgColor by animateColorAsState(
-        targetValue = if (active) activeColor else inactiveColor,
+        targetValue = if (enabled) targetBgColor else targetBgColor.copy(alpha = 0.5f),
         animationSpec = tween(durationMillis = 250),
         label = ""
     )
@@ -190,9 +201,11 @@ private fun ToggleSegmentButtonContainer(
             .fillMaxSize()
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        content()
+        Box(modifier = Modifier.graphicsLayer(alpha = if (enabled) 1f else 0.38f)) {
+            content()
+        }
     }
 }

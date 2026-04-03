@@ -57,6 +57,7 @@ import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.GenreSortBottomSheet
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
+import com.theveloper.pixelplay.presentation.components.SmartImageCompactListTargetSize
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
@@ -95,13 +96,10 @@ fun GenreDetailScreen(
     val playlistUiState by playlistViewModel.uiState.collectAsStateWithLifecycle()
     val libraryGenres by playerViewModel.genres.collectAsStateWithLifecycle()
     
-    // Track transition state to defer heavy list rendering
+    // Defer heavy list rendering until navigation transition settles
     var isTransitionFinished by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        // We wait slightly longer than the navigation transition duration (500ms)
-        // to ensure the heavy list content only populates after the screen is fully static.
-        // Increased delay slightly to ensure absolute smoothness before full list populates.
-        kotlinx.coroutines.delay(800) 
+        kotlinx.coroutines.delay(300)
         isTransitionFinished = true
     }
 
@@ -121,6 +119,12 @@ fun GenreDetailScreen(
     val collapseFraction by remember(minTopBarHeightPx, maxTopBarHeightPx) {
         derivedStateOf {
             1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)).coerceIn(0f, 1f)
+        }
+    }
+    val showScrollBar by remember {
+        derivedStateOf {
+            collapseFraction > 0.95f &&
+                (lazyListState.canScrollForward || lazyListState.canScrollBackward)
         }
     }
 
@@ -256,7 +260,7 @@ fun GenreDetailScreen(
                 contentPadding = PaddingValues(
                     top = minTopBarHeight + 8.dp, // FIXED padding
                     start = 8.dp,
-                    end = 8.dp, // Stabilize padding to avoid remeasure during transition
+                    end = if (showScrollBar) 24.dp else 8.dp,
                     bottom = fabBottomPadding + 148.dp
                 ),
                 modifier = Modifier
@@ -294,17 +298,14 @@ fun GenreDetailScreen(
                             )
                         }
                         is GenreDetailListItem.SongItem -> {
-                            // Use key to avoid unnecessary recomposition of this stable wrapper
-                            key(item.key) {
-                                GenreSongItemWrapper(
-                                    item = item,
-                                    stablePlayerState = stablePlayerState,
-                                    onSongClick = { song ->
-                                        playerViewModel.showAndPlaySong(song, uiState.sortedSongs, genreDisplayName)
-                                    },
-                                    onMoreOptionsClick = { song -> showSongOptionsSheet = song }
-                                )
-                            }
+                            GenreSongItemWrapper(
+                                item = item,
+                                stablePlayerState = stablePlayerState,
+                                onSongClick = { song ->
+                                    playerViewModel.showAndPlaySong(song, uiState.sortedSongs, genreDisplayName)
+                                },
+                                onMoreOptionsClick = { song -> showSongOptionsSheet = song }
+                            )
                         }
                         is GenreDetailListItem.Spacer -> {
                             Spacer(
@@ -332,7 +333,7 @@ fun GenreDetailScreen(
             }
 
             // Only show scrollbar when the top bar is mostly collapsed to avoid visual conflict
-            if (collapseFraction > 0.95f) {
+            if (showScrollBar) {
                 ExpressiveScrollBar(
                     listState = lazyListState,
                     modifier = Modifier
@@ -361,7 +362,7 @@ fun GenreDetailScreen(
             Box(
                  modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = fabBottomPadding + 16.dp, end = 16.dp)
+                    .padding(bottom = fabBottomPadding + 26.dp, end = 16.dp)
                     .zIndex(10f) // Ensure FAB is above everything
             ) {
                  MediumFloatingActionButton(
@@ -481,6 +482,13 @@ fun GenreDetailScreen(
                         },
                         onNavigateToArtist = {
                             com.theveloper.pixelplay.presentation.navigation.Screen.ArtistDetail.createRoute(song.artistId).let { route ->
+                                navController.navigateSafely(route)
+                            }
+                            showSongOptionsSheet = null
+                        },
+                        onNavigateToGenre = {
+                            song.genre?.let {
+                                val route = com.theveloper.pixelplay.presentation.navigation.Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8"))
                                 navController.navigateSafely(route)
                             }
                             showSongOptionsSheet = null
@@ -708,6 +716,7 @@ fun GenreAlbumHeader(
             SmartImage(
                 model = album.artUri,
                 contentDescription = null,
+                targetSize = SmartImageCompactListTargetSize,
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -806,4 +815,3 @@ fun GenreSongItemWrapper(
         }
     }
 }
-

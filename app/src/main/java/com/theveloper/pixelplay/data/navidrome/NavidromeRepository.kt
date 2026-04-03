@@ -11,6 +11,7 @@ import com.theveloper.pixelplay.data.database.NavidromeSongEntity
 import com.theveloper.pixelplay.data.database.toEntity
 import com.theveloper.pixelplay.data.database.SongArtistCrossRef
 import com.theveloper.pixelplay.data.database.SongEntity
+import com.theveloper.pixelplay.data.database.SourceType
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.navidrome.model.NavidromeCredentials
@@ -87,9 +88,16 @@ class NavidromeRepository @Inject constructor(
 
         if (!serverUrl.isNullOrBlank() && !username.isNullOrBlank() && !password.isNullOrBlank()) {
             val credentials = NavidromeCredentials(serverUrl, username, password)
+            val validationError = credentials.connectionValidationError()
+            if (validationError != null) {
+                Timber.w("$TAG: Ignoring insecure or invalid saved Navidrome server URL: $validationError")
+                api.clearCredentials()
+                _isLoggedInFlow.value = false
+                return
+            }
             api.setCredentials(credentials)
             _isLoggedInFlow.value = true
-            Timber.d("$TAG: Restored credentials for $username@$serverUrl")
+            Timber.d("$TAG: Restored credentials for $username@${credentials.normalizedServerUrl}")
         }
     }
 
@@ -125,6 +133,11 @@ class NavidromeRepository @Inject constructor(
                 Timber.d("$TAG: Attempting login to $serverUrl as $username")
 
                 val credentials = NavidromeCredentials(serverUrl, username, password)
+                val validationError = credentials.connectionValidationError()
+                if (validationError != null) {
+                    api.clearCredentials()
+                    return@withContext Result.failure(IllegalArgumentException(validationError))
+                }
                 api.setCredentials(credentials)
 
                 // Test connection
@@ -138,7 +151,7 @@ class NavidromeRepository @Inject constructor(
 
                 // Save credentials
                 prefs.edit()
-                    .putString(KEY_SERVER_URL, serverUrl.trimEnd('/'))
+                    .putString(KEY_SERVER_URL, credentials.normalizedServerUrl)
                     .putString(KEY_USERNAME, username)
                     .putString(KEY_PASSWORD, password)
                     .apply()
@@ -431,7 +444,11 @@ class NavidromeRepository @Inject constructor(
             // Sync playlists
             val playlistResult = syncPlaylists().getOrElse {
                 // Playlists failed but library songs may have synced
-                syncUnifiedLibrarySongsFromNavidrome()
+                try {
+                    syncUnifiedLibrarySongsFromNavidrome()
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG: Failed to sync unified library after playlist fetch failure")
+                }
                 return@withContext Result.success(
                     BulkSyncResult(
                         playlistCount = 0,
@@ -453,7 +470,11 @@ class NavidromeRepository @Inject constructor(
             }
 
             // Sync to unified library once after everything is synced
-            syncUnifiedLibrarySongsFromNavidrome()
+            try {
+                syncUnifiedLibrarySongsFromNavidrome()
+            } catch (e: Exception) {
+                Timber.e(e, "$TAG: Failed to sync unified library")
+            }
 
             Result.success(
                 BulkSyncResult(
@@ -641,8 +662,10 @@ class NavidromeRepository @Inject constructor(
                     artistName = primaryArtistName,
                     artistId = primaryArtistId,
                     songCount = 0,
+                    dateAdded = navidromeSong.dateAdded,
                     year = navidromeSong.year,
-                    albumArtUriString = getCoverArtUrl(navidromeSong.coverArtId)
+                    albumArtUriString = navidromeSong.coverArtId?.takeIf { it.isNotBlank() }
+                        ?.let { "navidrome_cover://$it" }
                 )
             )
 
@@ -656,7 +679,8 @@ class NavidromeRepository @Inject constructor(
                     albumName = albumName,
                     albumId = albumId,
                     contentUriString = "navidrome://${navidromeSong.navidromeId}",
-                    albumArtUriString = getCoverArtUrl(navidromeSong.coverArtId),
+                    albumArtUriString = navidromeSong.coverArtId?.takeIf { it.isNotBlank() }
+                        ?.let { "navidrome_cover://$it" },
                     duration = navidromeSong.duration,
                     genre = navidromeSong.genre ?: NAVIDROME_GENRE,
                     filePath = navidromeSong.path,
@@ -671,7 +695,8 @@ class NavidromeRepository @Inject constructor(
                     bitrate = navidromeSong.bitRate,
                     sampleRate = null,
                     telegramChatId = null,
-                    telegramFileId = null
+                    telegramFileId = null,
+                    sourceType = SourceType.NAVIDROME
                 )
             )
         }

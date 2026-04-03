@@ -689,6 +689,7 @@ class NeteaseRepository @Inject constructor(
                     artistName = primaryArtistName,
                     artistId = primaryArtistId,
                     songCount = 0,
+                    dateAdded = neteaseSong.dateAdded,
                     year = 0,
                     albumArtUriString = neteaseSong.albumArtUrl
                 )

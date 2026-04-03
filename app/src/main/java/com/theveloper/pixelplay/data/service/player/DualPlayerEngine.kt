@@ -14,6 +14,8 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mp4.Mp4Extractor
 //import androidx.media3.exoplayer.ffmpeg.FfmpegAudioRenderer
 import com.theveloper.pixelplay.data.model.TransitionSettings
 import com.theveloper.pixelplay.utils.envelope
@@ -340,6 +342,10 @@ class DualPlayerEngine @Inject constructor(
         
         val dataSourceFactory = DefaultDataSource.Factory(context)
         val resolvingFactory = ResolvingDataSource.Factory(dataSourceFactory, resolver)
+        val extractorsFactory = DefaultExtractorsFactory()
+            // Some vendor-produced M4A files expose broken edit lists that make seek
+            // drift or snap back. Ignore them so MP4-family local playback stays seekable.
+            .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
 
         // Tune LoadControl to prevent "loop of death" (underrun -> start -> underrun)
         // Increase bufferForPlaybackMs to wait for more data before starting/resuming.
@@ -353,7 +359,7 @@ class DualPlayerEngine @Inject constructor(
             .build()
 
         return ExoPlayer.Builder(context, renderersFactory)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(resolvingFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(resolvingFactory, extractorsFactory))
             .setLoadControl(loadControl)
             .build().apply {
             setAudioAttributes(audioAttributes, handleAudioFocus)
@@ -449,14 +455,10 @@ class DualPlayerEngine @Inject constructor(
 
         Timber.tag("DualPlayerEngine").d("File $fileId not downloaded. Using StreamProxy.")
 
-        // Wait for StreamProxy to be ready (non-blocking — runs on coroutine)
-        if (!telegramStreamProxy.isReady()) {
-            Timber.tag("DualPlayerEngine").w("StreamProxy not ready, awaiting...")
-            val proxyReady = telegramStreamProxy.awaitReady(5_000L)
-            if (!proxyReady) {
-                Timber.tag("DualPlayerEngine").e("StreamProxy not ready after timeout")
-                return null
-            }
+        val proxyReady = telegramStreamProxy.ensureReady(5_000L)
+        if (!proxyReady) {
+            Timber.tag("DualPlayerEngine").e("StreamProxy not ready after timeout")
+            return null
         }
 
         val proxyUrl = telegramStreamProxy.getProxyUrl(fileId, fileSize)
@@ -466,13 +468,10 @@ class DualPlayerEngine @Inject constructor(
     private suspend fun resolveNeteaseUriAsync(uriString: String): Uri? {
         Timber.tag("DualPlayerEngine").d("Async resolving Netease URI: $uriString")
 
-        if (!neteaseStreamProxy.isReady()) {
-            Timber.tag("DualPlayerEngine").w("NeteaseStreamProxy not ready, awaiting...")
-            val proxyReady = neteaseStreamProxy.awaitReady(5_000L)
-            if (!proxyReady) {
-                Timber.tag("DualPlayerEngine").e("NeteaseStreamProxy not ready after timeout")
-                return null
-            }
+        val proxyReady = neteaseStreamProxy.ensureReady(5_000L)
+        if (!proxyReady) {
+            Timber.tag("DualPlayerEngine").e("NeteaseStreamProxy not ready after timeout")
+            return null
         }
 
         val proxyUrl = neteaseStreamProxy.resolveNeteaseUri(uriString)
@@ -487,13 +486,10 @@ class DualPlayerEngine @Inject constructor(
     private suspend fun resolveQqMusicUriAsync(uriString: String): Uri? {
         Timber.tag("DualPlayerEngine").d("Async resolving QQ Music URI: $uriString")
 
-        if (!qqMusicStreamProxy.isReady()) {
-            Timber.tag("DualPlayerEngine").w("QqMusicStreamProxy not ready, awaiting...")
-            val proxyReady = qqMusicStreamProxy.awaitReady(5_000L)
-            if (!proxyReady) {
-                Timber.tag("DualPlayerEngine").e("QqMusicStreamProxy not ready after timeout")
-                return null
-            }
+        val proxyReady = qqMusicStreamProxy.ensureReady(5_000L)
+        if (!proxyReady) {
+            Timber.tag("DualPlayerEngine").e("QqMusicStreamProxy not ready after timeout")
+            return null
         }
 
         // Pre-fetch the real stream URL now (network call) so the proxy cache is
@@ -512,13 +508,10 @@ class DualPlayerEngine @Inject constructor(
     private suspend fun resolveNavidromeUriAsync(uriString: String): Uri? {
         Timber.tag("DualPlayerEngine").d("Async resolving Navidrome URI: $uriString")
 
-        if (!navidromeStreamProxy.isReady()) {
-            Timber.tag("DualPlayerEngine").w("NavidromeStreamProxy not ready, awaiting...")
-            val proxyReady = navidromeStreamProxy.awaitReady(5_000L)
-            if (!proxyReady) {
-                Timber.tag("DualPlayerEngine").e("NavidromeStreamProxy not ready after timeout")
-                return null
-            }
+        val proxyReady = navidromeStreamProxy.ensureReady(5_000L)
+        if (!proxyReady) {
+            Timber.tag("DualPlayerEngine").e("NavidromeStreamProxy not ready after timeout")
+            return null
         }
 
         // Pre-fetch the real stream URL now (network call) so the proxy cache is

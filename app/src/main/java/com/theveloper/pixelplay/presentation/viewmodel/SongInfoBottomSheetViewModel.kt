@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -29,6 +30,12 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private val transferStateStore: PhoneWatchTransferStateStore,
     private val musicDao: MusicDao,
 ) : ViewModel() {
+
+    data class SongLocationInfo(
+        val label: String,
+        val value: String,
+        val isCloud: Boolean,
+    )
 
     private val _audioMeta = MutableStateFlow<AudioMeta?>(null)
     private val _isPixelPlayWatchAvailable = MutableStateFlow(false)
@@ -59,7 +66,8 @@ class SongInfoBottomSheetViewModel @Inject constructor(
         activeWatchTransfer
     ) { isRequesting, activeTransfer ->
         isRequesting || activeTransfer != null
-    }.stateIn(
+    }.distinctUntilChanged()
+        .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
         initialValue = false,
@@ -76,6 +84,23 @@ class SongInfoBottomSheetViewModel @Inject constructor(
                 deepScan = false
             )
             _audioMeta.value = meta
+        }
+    }
+
+    fun getSongLocationInfo(song: Song): SongLocationInfo {
+        val provider = getCloudProviderLabel(song.contentUriString)
+        return if (provider != null) {
+            SongLocationInfo(
+                label = "Provider",
+                value = provider,
+                isCloud = true,
+            )
+        } else {
+            SongLocationInfo(
+                label = "Path",
+                value = song.path,
+                isCloud = false,
+            )
         }
     }
 
@@ -97,17 +122,13 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     }
 
     fun isLocalSongForWatchTransfer(song: Song): Boolean {
-        val uri = song.contentUriString
-        val isCloudSong = uri.startsWith("telegram://") ||
-            uri.startsWith("netease://") ||
-               uri.startsWith("qqmusic://") ||
-            uri.startsWith("gdrive://")
-        if (isCloudSong) return false
+        if (getCloudProviderLabel(song.contentUriString) != null) return false
 
         if (song.path.isNotBlank()) {
             return File(song.path).exists()
         }
 
+        val uri = song.contentUriString
         return uri.startsWith("content://") || uri.startsWith("file://")
     }
 
@@ -158,5 +179,16 @@ class SongInfoBottomSheetViewModel @Inject constructor(
 
     fun isSongSavedOnAllReachableWatches(songId: String): Boolean {
         return transferStateStore.isSongSavedOnAllReachableWatches(songId)
+    }
+
+    private fun getCloudProviderLabel(contentUriString: String): String? {
+        return when {
+            contentUriString.startsWith("telegram://") -> "Telegram"
+            contentUriString.startsWith("netease://") -> "Netease Cloud Music"
+            contentUriString.startsWith("qqmusic://") -> "QQ Music"
+            contentUriString.startsWith("navidrome://") -> "Navidrome"
+            contentUriString.startsWith("gdrive://") -> "Google Drive"
+            else -> null
+        }
     }
 }

@@ -51,6 +51,50 @@ class ColorRolesTest {
         }
     }
 
+    @Test
+    fun selectSeedColorArgbFromPixels_keepsDistinctGreenAlbumsFromCollapsingIntoSharedAccent() {
+        val sharedAccent = 0xFF39FF88.toInt()
+
+        val warmOliveBase = 0xFF708238.toInt()
+        val warmOliveSupport = 0xFF8A9B4F.toInt()
+        val coolJadeBase = 0xFF2C7A5F.toInt()
+        val coolJadeSupport = 0xFF4C9A7C.toInt()
+
+        val warmSeed = selectSeedColorArgbFromPixels(
+            pixels = pixelsOf(
+                550 to warmOliveBase,
+                300 to warmOliveSupport,
+                150 to sharedAccent
+            )
+        )
+        val coolSeed = selectSeedColorArgbFromPixels(
+            pixels = pixelsOf(
+                550 to coolJadeBase,
+                300 to coolJadeSupport,
+                150 to sharedAccent
+            )
+        )
+
+        assertThat(hueDistance(warmSeed, warmOliveBase))
+            .isLessThan(hueDistance(warmSeed, sharedAccent))
+        assertThat(hueDistance(coolSeed, coolJadeBase))
+            .isLessThan(hueDistance(coolSeed, sharedAccent))
+        assertThat(hueDistance(warmSeed, coolSeed)).isGreaterThan(12.0)
+    }
+
+    @Test
+    fun selectSeedColorArgbFromPixels_keepsMostlyNeutralArtworkNearNeutral() {
+        val result = selectSeedColorArgbFromPixels(
+            pixels = pixelsOf(
+                940 to 0xFF7A7A7A.toInt(),
+                40 to 0xFF848484.toInt(),
+                20 to 0xFF70758A.toInt()
+            )
+        )
+
+        assertThat(Hct.fromInt(result).chroma).isLessThan(12.0)
+    }
+
     private fun expectedScheme(
         style: AlbumArtPaletteStyle,
         sourceHct: Hct,
@@ -174,5 +218,20 @@ class ColorRolesTest {
         val hsl = FloatArray(3)
         ColorUtils.colorToHSL(argb, hsl)
         return hsl[1] == 0f
+    }
+
+    private fun pixelsOf(vararg entries: Pair<Int, Int>): IntArray {
+        return buildList {
+            entries.forEach { (count, color) ->
+                repeat(count) { add(color) }
+            }
+        }.toIntArray()
+    }
+
+    private fun hueDistance(firstArgb: Int, secondArgb: Int): Double {
+        return com.google.android.material.color.utilities.MathUtils.differenceDegrees(
+            Hct.fromInt(firstArgb).hue,
+            Hct.fromInt(secondArgb).hue
+        )
     }
 }

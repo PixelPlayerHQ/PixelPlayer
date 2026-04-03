@@ -81,6 +81,11 @@ abstract class CloudStreamProxy<K : Any>(
 
     fun isReady(): Boolean = actualPort > 0
 
+    fun startIfNeeded() {
+        if (isReady() || startJob?.isActive == true) return
+        start()
+    }
+
     suspend fun awaitReady(timeoutMs: Long = 10_000L): Boolean {
         if (isReady()) return true
         val stepMs = 50L
@@ -91,6 +96,11 @@ abstract class CloudStreamProxy<K : Any>(
             elapsed += stepMs
         }
         return false
+    }
+
+    suspend fun ensureReady(timeoutMs: Long = 10_000L): Boolean {
+        startIfNeeded()
+        return awaitReady(timeoutMs)
     }
 
     fun getProxyUrl(id: K): String {
@@ -158,7 +168,16 @@ abstract class CloudStreamProxy<K : Any>(
     }
 
     private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(CIO, host = "127.0.0.1", port = port) {
+        return embeddedServer(
+            CIO,
+            host = "127.0.0.1",
+            port = port,
+            configure = {
+                // Match our port-probing behavior and make fast restarts less likely to fail
+                // with "Address already in use" while sockets from the previous server drain.
+                reuseAddress = true
+            }
+        ) {
             routing {
                 get(routePath) {
                     val rawParam = call.parameters[routeParamName]

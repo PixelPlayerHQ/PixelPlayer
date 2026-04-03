@@ -318,6 +318,11 @@ fun HomeScreen(
                             onNavigateToArtist = { song ->
                                 navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
                             },
+                            onNavigateToGenre = { song ->
+                                song.genre?.let {
+                                    navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                                }
+                            },
                             playerViewModel = playerViewModel
                         )
                     }

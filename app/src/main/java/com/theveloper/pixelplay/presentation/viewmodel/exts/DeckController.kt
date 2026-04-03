@@ -2,11 +2,21 @@ package com.theveloper.pixelplay.presentation.viewmodel.exts
 
 import android.content.Context
 import android.net.Uri
+import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
-import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import com.theveloper.pixelplay.data.service.player.HiResSampleRateCapAudioProcessor
+import com.theveloper.pixelplay.data.service.player.SurroundDownmixProcessor
 
+@OptIn(UnstableApi::class)
 class DeckController(
     private val context: Context
 ) {
@@ -15,10 +25,56 @@ class DeckController(
 
     fun loadSong(songUri: Uri) {
         release()
-        player = ExoPlayer.Builder(context).build().apply {
+        player = buildSafePlayer().apply {
             setMediaItem(MediaItem.fromUri(songUri))
             prepare()
         }
+    }
+
+    private fun buildSafePlayer(): ExoPlayer {
+        val renderersFactory = object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean
+            ): AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(false)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                    .setAudioProcessorChain(
+                        DefaultAudioSink.DefaultAudioProcessorChain(
+                            HiResSampleRateCapAudioProcessor(),
+                            SurroundDownmixProcessor()
+                        )
+                    )
+                    .build()
+            }
+        }.setEnableAudioFloatOutput(false)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
+        val audioAttributes = AudioAttributes.Builder()
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setUsage(C.USAGE_MEDIA)
+            .build()
+
+        return ExoPlayer.Builder(context, renderersFactory)
+            .build()
+            .apply {
+                setAudioAttributes(audioAttributes, false)
+                val offloadDisabledPrefs = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                    .setAudioOffloadMode(
+                        TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                    )
+                    .build()
+                setTrackSelectionParameters(
+                    trackSelectionParameters
+                        .buildUpon()
+                        .setAudioOffloadPreferences(offloadDisabledPrefs)
+                        .build()
+                )
+                setHandleAudioBecomingNoisy(true)
+                setWakeMode(C.WAKE_MODE_NETWORK)
+            }
     }
 
     fun playPause() {

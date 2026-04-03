@@ -159,7 +159,8 @@ internal fun UnifiedPlayerSongInfoLayer(
     currentQueueSourceNameProvider: () -> String,
     onDismissSongInfo: () -> Unit,
     onNavigateToAlbum: (Song) -> Unit,
-    onNavigateToArtist: (Song) -> Unit
+    onNavigateToArtist: (Song) -> Unit,
+    onNavigateToGenre: (Song) -> Unit
 ) {
     selectedSongForInfo?.let { staticSong ->
         val context = LocalContext.current
@@ -212,6 +213,7 @@ internal fun UnifiedPlayerSongInfoLayer(
                 },
                 onNavigateToAlbum = { onNavigateToAlbum(liveSong) },
                 onNavigateToArtist = { onNavigateToArtist(liveSong) },
+                onNavigateToGenre = { onNavigateToGenre(liveSong) },
                 onEditSong = { title, artist, album, genre, lyrics, trackNumber, discNumber, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         liveSong,
@@ -273,7 +275,8 @@ internal fun UnifiedPlayerQueueAndSongInfoHost(
     onEndQueueDrag: (Float, Float) -> Unit,
     onLaunchSaveQueueOverlay: (List<Song>, String, (String, Set<String>) -> Unit) -> Unit,
     onNavigateToAlbum: (Song) -> Unit,
-    onNavigateToArtist: (Song) -> Unit
+    onNavigateToArtist: (Song) -> Unit,
+    onNavigateToGenre: (Song) -> Unit
 ) {
     if (!shouldRenderHost) return
 
@@ -400,7 +403,8 @@ internal fun UnifiedPlayerQueueAndSongInfoHost(
                 currentQueueSourceNameProvider = queueSourceNameProvider,
                 onDismissSongInfo = { onSelectedSongForInfoChange(null) },
                 onNavigateToAlbum = onNavigateToAlbum,
-                onNavigateToArtist = onNavigateToArtist
+                onNavigateToArtist = onNavigateToArtist,
+                onNavigateToGenre = onNavigateToGenre
             )
         }
     }

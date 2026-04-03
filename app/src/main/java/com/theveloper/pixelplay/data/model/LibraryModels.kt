@@ -11,6 +11,7 @@ data class Album(
     val title: String,
     val artist: String,
     val year: Int,
+    val dateAdded: Long,
     val albumArtUriString: String?,
     val songCount: Int
 ) : Parcelable {
@@ -19,6 +20,7 @@ data class Album(
             id = -1,
             title = "",
             artist = "",
+            dateAdded = 0,
             year = 0,
             albumArtUriString = null,
             songCount = 0

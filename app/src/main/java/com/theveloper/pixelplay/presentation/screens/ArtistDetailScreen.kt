@@ -75,6 +75,7 @@ import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
+import com.theveloper.pixelplay.presentation.components.SmartImageCompactListTargetSize
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -112,10 +113,10 @@ fun ArtistDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     
-    // Optimization: Defer heavy list rendering until transition is finished
+    // Optimization: Defer heavy list rendering until navigation transition settles
     var isTransitionFinished by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(600)
+        delay(300)
         isTransitionFinished = true
     }
 
@@ -493,6 +494,12 @@ fun ArtistDetailScreen(
                     navController.navigateSafely(Screen.ArtistDetail.createRoute(currentSong.artistId))
                     showSongInfoBottomSheet = false
                 },
+                onNavigateToGenre = {
+                    currentSong.genre?.let {
+                        navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                    }
+                    showSongInfoBottomSheet = false
+                },
                 onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
                     playerViewModel.editSongMetadata(currentSong, newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate)
                 },
@@ -571,6 +578,7 @@ private fun CollapsibleAlbumSectionHeader(
             SmartImage(
                 model = section.albumArtUriString,
                 contentDescription = section.title,
+                targetSize = SmartImageCompactListTargetSize,
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -773,7 +781,7 @@ private fun SharedArtistTopBarProbe(
             expandedTitleStartPadding = 24.dp,
             collapsedTitleEndPadding = 88.dp,
             expandedTitleEndPadding = 136.dp,
-            containerHeightRange = 92.dp to 56.dp,
+            containerHeightRange = 112.dp to 56.dp,
             titleStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.SemiBold,

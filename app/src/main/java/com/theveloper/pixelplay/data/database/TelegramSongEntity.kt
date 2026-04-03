@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.theveloper.pixelplay.data.model.Song
+import java.io.File
 import kotlin.math.absoluteValue
 
 @Entity(
@@ -38,6 +39,18 @@ data class TelegramSongEntity(
     @ColumnInfo(name = "thread_id") val threadId: Long? = null
 )
 
+fun TelegramSongEntity.resolveAlbumArtUri(): String? {
+    val localFile = filePath.takeIf { it.isNotBlank() }?.let(::File)
+    val hasLocalFile = localFile?.exists() == true
+    val baseUri = albumArtUriString?.substringBefore('?')?.takeIf { it.isNotBlank() }
+        ?: if (hasLocalFile) "telegram_art://$chatId/$messageId" else null
+
+    if (baseUri == null) return null
+
+    val version = localFile?.lastModified()?.takeIf { hasLocalFile && it > 0L } ?: return baseUri
+    return "$baseUri?v=$version"
+}
+
 fun TelegramSongEntity.toSong(channelTitle: String? = null, topicName: String? = null): Song {
     val resolvedPath = if (this.filePath.isNotEmpty()) {
         this.filePath
@@ -61,9 +74,9 @@ fun TelegramSongEntity.toSong(channelTitle: String? = null, topicName: String? =
         albumArtist = channelTitle ?: "Telegram",
         path = resolvedPath,
         contentUriString = this.filePath.ifEmpty { "telegram://${this.chatId}/${this.messageId}" },
-        albumArtUriString = this.albumArtUriString,
+        albumArtUriString = resolveAlbumArtUri(),
         duration = this.duration,
-        genre = "Telegram",
+        genre = null,
         lyrics = null,
         isFavorite = false,
         trackNumber = 0,

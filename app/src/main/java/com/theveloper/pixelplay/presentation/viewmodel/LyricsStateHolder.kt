@@ -11,7 +11,10 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.LyricsSearchResult
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.NoLyricsFoundException
+import com.theveloper.pixelplay.utils.LyricsImportSecurity
+import com.theveloper.pixelplay.utils.LyricsImportValidationResult
 import com.theveloper.pixelplay.utils.LyricsUtils
+import com.theveloper.pixelplay.utils.ValidatedLyricsImport
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -185,10 +188,10 @@ class LyricsStateHolder @Inject constructor(
                 LyricsSourcePreference.API_FIRST -> emptyList()
                 LyricsSourcePreference.EMBEDDED_FIRST -> listOf(
                     { readEmbeddedLyricsFromFile(song)?.let { it to R.string.lyrics_embedded_already_available } },
-                    { readLocalLrcFile(song)?.let { it to R.string.local_lrc_already_available } }
+                    { readLocalLyricsFile(song)?.let { it to R.string.local_lrc_already_available } }
                 )
                 LyricsSourcePreference.LOCAL_FIRST -> listOf(
-                    { readLocalLrcFile(song)?.let { it to R.string.local_lrc_already_available } },
+                    { readLocalLyricsFile(song)?.let { it to R.string.local_lrc_already_available } },
                     { readEmbeddedLyricsFromFile(song)?.let { it to R.string.lyrics_embedded_already_available } }
                 )
             }
@@ -288,14 +291,16 @@ class LyricsStateHolder @Inject constructor(
     /**
      * Import from file.
      */
-    fun importLyricsFromFile(songId: Long, lyricsContent: String, currentSong: Song?) {
+    fun importLyricsFromFile(songId: Long, validatedImport: ValidatedLyricsImport, currentSong: Song?) {
         scope?.launch {
-            musicRepository.updateLyrics(songId, lyricsContent)
+            val sanitizedContent = validatedImport.sanitizedContent
+            val parsedLyrics = validatedImport.parsedLyrics
+
+            musicRepository.updateLyrics(songId, sanitizedContent)
 
             if (currentSong != null && currentSong.id.toLongOrNull() == songId) {
-                val parsedLyrics = LyricsUtils.parseLyrics(lyricsContent)
-                val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, lyricsContent)
-                val updatedSong = currentSong.withPersistedLyrics(lyricsContent, refreshedAlbumArtUri)
+                val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, sanitizedContent)
+                val updatedSong = currentSong.withPersistedLyrics(sanitizedContent, refreshedAlbumArtUri)
                 _songUpdates.emit(updatedSong to parsedLyrics.takeIf(::hasValidLyrics))
             }
 
@@ -340,14 +345,20 @@ class LyricsStateHolder @Inject constructor(
         }.getOrNull()
     }
 
-    private fun readLocalLrcFile(song: Song): String? {
+    private fun readLocalLyricsFile(song: Song): String? {
         return runCatching {
             val songFile = File(song.path)
             val directory = songFile.parentFile ?: return@runCatching null
-            val lrcFile = File(directory, "${songFile.nameWithoutExtension}.lrc")
-            if (lrcFile.exists() && lrcFile.canRead()) {
-                lrcFile.readText().trim().takeIf { it.isNotBlank() }
-            } else null
+            for (extension in LyricsImportSecurity.supportedFileExtensions()) {
+                val lyricsFile = File(directory, "${songFile.nameWithoutExtension}.$extension")
+                if (!lyricsFile.exists() || !lyricsFile.canRead()) continue
+
+                when (val validation = LyricsImportSecurity.validateLocalLyricsFile(lyricsFile)) {
+                    is LyricsImportValidationResult.Valid -> return@runCatching validation.value.sanitizedContent
+                    is LyricsImportValidationResult.Invalid -> continue
+                }
+            }
+            null
         }.getOrNull()
     }
 

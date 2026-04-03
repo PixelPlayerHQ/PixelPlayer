@@ -11,6 +11,7 @@ import com.theveloper.pixelplay.data.network.deezer.DeezerApiService
 import com.theveloper.pixelplay.utils.NetworkRetryUtils
 import com.theveloper.pixelplay.utils.isRetryableNetworkError
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Mutex
@@ -18,10 +19,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.max
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import timber.log.Timber
+import androidx.core.graphics.scale
 
 /**
  * Repository for fetching and caching artist images from Deezer API.
@@ -39,6 +44,23 @@ class ArtistImageRepository @Inject constructor(
         private val deezerSizeRegex = Regex("/\\d{2,4}x\\d{2,4}([\\-.])")
         private const val NETWORK_RETRY_ATTEMPTS = 3
         private const val NETWORK_RETRY_INITIAL_DELAY_MS = 500L
+        private const val MAX_CUSTOM_IMAGE_SOURCE_BYTES = 24L * 1024L * 1024L
+        private const val MAX_CUSTOM_IMAGE_DIMENSION_PX = 16_384
+        private const val MAX_CUSTOM_IMAGE_TOTAL_PIXELS = 80_000_000L
+        private const val TARGET_CUSTOM_IMAGE_MAX_DIMENSION_PX = 2_048
+        private const val TARGET_CUSTOM_IMAGE_MAX_PIXELS = 4_194_304L // 2048x2048
+
+        internal fun calculateCustomImageSampleSize(width: Int, height: Int): Int {
+            var sampleSize = 1
+            while (
+                width / sampleSize > TARGET_CUSTOM_IMAGE_MAX_DIMENSION_PX ||
+                height / sampleSize > TARGET_CUSTOM_IMAGE_MAX_DIMENSION_PX ||
+                (width.toLong() / sampleSize) * (height.toLong() / sampleSize) > TARGET_CUSTOM_IMAGE_MAX_PIXELS
+            ) {
+                sampleSize = sampleSize shl 1
+            }
+            return sampleSize.coerceAtLeast(1)
+        }
     }
 
     // In-memory LRU cache for quick access
@@ -114,9 +136,13 @@ class ArtistImageRepository @Inject constructor(
                             prefetchSemaphore.withPermit {
                                 getArtistImageUrl(artistName, artistId)
                             }
+                        } else {
+                            Timber.tag(TAG).d("Skipping prefetch for $artistName") //check
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to prefetch image for $artistName: ${e.message}")
+                        Timber.tag(TAG).w("Failed to prefetch image for $artistName: ${e.message}")
                     }
                 }
             }.awaitAll()
@@ -159,20 +185,22 @@ class ArtistImageRepository @Inject constructor(
                         
                         // Cache in database
                         musicDao.updateArtistImageUrl(artistId, imageUrl)
-                        
-                        Log.d(TAG, "Fetched and cached image for $artistName: $imageUrl")
+
+                        Timber.tag(TAG).d("Fetched and cached image for $artistName: $imageUrl")
                         imageUrl
                     } else {
                         null
                     }
                 } else {
-                    Log.d(TAG, "No Deezer artist found for: $artistName")
+                    Timber.tag(TAG).d("No Deezer artist found for: $artistName")
                     failedFetches.add(normalizedName) // Mark as failed
                     null
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching artist image for $artistName: ${e.message}")
+            Timber.tag(TAG).e("Error fetching artist image for $artistName: ${e.message}")
             // Consider transient errors? For now treating as failed to avoid spam.
             if(e !is java.net.SocketTimeoutException) {
                 failedFetches.add(normalizedName)
@@ -197,10 +225,8 @@ class ArtistImageRepository @Inject constructor(
             initialDelayMs = initialDelayMs,
             shouldRetry = { throwable -> throwable.isRetryableNetworkError() },
             onRetry = { attempt, attempts, throwable ->
-                Log.d(
-                    TAG,
-                    "Retrying $operationName after failure ($attempt/$attempts): ${throwable.message}"
-                )
+                Timber.tag(TAG)
+                    .d("Retrying $operationName after failure ($attempt/$attempts): ${throwable.message}")
             },
             block = block
         )
@@ -240,37 +266,108 @@ class ArtistImageRepository @Inject constructor(
     suspend fun setCustomArtistImage(context: Context, artistId: Long, sourceUri: Uri): String? {
         return withContext(Dispatchers.IO) {
             try {
-                // 1. Open and decode the bitmap from the content URI
-                val inputStream = context.contentResolver.openInputStream(sourceUri) ?: return@withContext null
-                val bitmap: Bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream.close()
+                val bitmap = decodeCustomArtistBitmap(context, sourceUri) ?: return@withContext null
+                val scaledBitmap = scaleBitmapIfNeeded(bitmap)
+                try {
+                    // 2. Write to internal storage as JPEG (compact and predictable for caching)
+                    val destFile = File(context.filesDir, "artist_art_${artistId}.jpg")
+                    FileOutputStream(destFile).use { out ->
+                        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    }
 
-                // 2. Write to internal storage as JPEG (lossless enough, small file)
-                val destFile = File(context.filesDir, "artist_art_${artistId}.jpg")
-                FileOutputStream(destFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    val internalPath = destFile.absolutePath
+
+                    // 3. Persist to DB
+                    musicDao.updateArtistCustomImage(artistId, internalPath)
+
+                    // 4. The ViewModel reloads the effective image URL on success, so we only need
+                    // to persist the internal file path here.
+                    Timber.tag(TAG).d("Custom artist image saved: $internalPath")
+                    internalPath
+                } finally {
+                    if (scaledBitmap !== bitmap) {
+                        bitmap.recycle()
+                    }
+                    scaledBitmap.recycle()
                 }
-                bitmap.recycle()
-
-                val internalPath = destFile.absolutePath
-
-                // 3. Persist to DB
-                musicDao.updateArtistCustomImage(artistId, internalPath)
-
-                // 4. Bust the memory cache so next call picks up the new image
-                val normalizedName = withContext(Dispatchers.IO) {
-                    // We can't easily reverse artistId → name here, so just evict via ID prefix if cached
-                    // The ViewModel will reload effectively from getEffectiveArtistImageUrl
-                    null
-                }
-
-                Log.d(TAG, "Custom artist image saved: $internalPath")
-                internalPath
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save custom artist image for id=$artistId: ${e.message}")
+                Timber.tag(TAG)
+                    .e("Failed to save custom artist image for id=$artistId: ${e.message}")
                 null
             }
         }
+    }
+
+    private fun decodeCustomArtistBitmap(context: Context, sourceUri: Uri): Bitmap? {
+        val resolver = context.contentResolver
+        val mimeType = resolver.getType(sourceUri)?.lowercase()
+        if (mimeType != null && !mimeType.startsWith("image/")) {
+            Timber.tag(TAG).w("Rejected custom artist image with unsupported MIME type: $mimeType")
+            return null
+        }
+
+        runCatching { resolver.openAssetFileDescriptor(sourceUri, "r") }.getOrNull()?.use { descriptor ->
+            val declaredLength = descriptor.length
+            if (declaredLength > MAX_CUSTOM_IMAGE_SOURCE_BYTES) {
+                Timber.tag(TAG)
+                    .w("Rejected custom artist image larger than allowed source size: $declaredLength")
+                return null
+            }
+        }
+
+        val bounds = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        
+        // Fetch dimensions without loading the full bitmap into memory.
+        // decodeStream returns null when inJustDecodeBounds is true.
+        resolver.openInputStream(sourceUri)?.use { inputStream ->
+            BitmapFactory.decodeStream(inputStream, null, bounds)
+        }
+
+        val width = bounds.outWidth
+        val height = bounds.outHeight
+        if (width <= 0 || height <= 0) {
+            Timber.tag(TAG)
+                .w("Rejected custom artist image with invalid bounds: ${width}x${height}")
+            return null
+        }
+        if (width > MAX_CUSTOM_IMAGE_DIMENSION_PX || height > MAX_CUSTOM_IMAGE_DIMENSION_PX) {
+            Timber.tag(TAG)
+                .w("Rejected custom artist image with oversized bounds: ${width}x${height}")
+            return null
+        }
+        if (width.toLong() * height.toLong() > MAX_CUSTOM_IMAGE_TOTAL_PIXELS) {
+            Timber.tag(TAG)
+                .w("Rejected custom artist image with excessive pixel count: ${width}x${height}")
+            return null
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = calculateCustomImageSampleSize(width, height)
+            inPreferredConfig = Bitmap.Config.RGB_565
+        }
+
+        return try {
+            resolver.openInputStream(sourceUri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+            }
+        } catch (oom: OutOfMemoryError) {
+            Timber.tag(TAG).e(oom, "Failed to decode custom artist image due to OOM")
+            null
+        }
+    }
+
+    private fun scaleBitmapIfNeeded(bitmap: Bitmap): Bitmap {
+        val longestEdge = max(bitmap.width, bitmap.height)
+        if (longestEdge <= TARGET_CUSTOM_IMAGE_MAX_DIMENSION_PX) {
+            return bitmap
+        }
+
+        val scale = TARGET_CUSTOM_IMAGE_MAX_DIMENSION_PX.toFloat() / longestEdge.toFloat()
+        val scaledWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+        val scaledHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+        return bitmap.scale(scaledWidth, scaledHeight)
     }
 
     /**
@@ -286,12 +383,13 @@ class ArtistImageRepository @Inject constructor(
                 val destFile = File(context.filesDir, "artist_art_${artistId}.jpg")
                 if (destFile.exists()) {
                     destFile.delete()
-                    Log.d(TAG, "Deleted custom artist image file: ${destFile.absolutePath}")
+                    Timber.tag(TAG).d("Deleted custom artist image file: ${destFile.absolutePath}")
                 }
                 // Clear from DB
                 musicDao.updateArtistCustomImage(artistId, null)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to clear custom artist image for id=$artistId: ${e.message}")
+                Timber.tag(TAG)
+                    .e("Failed to clear custom artist image for id=$artistId: ${e.message}")
             }
         }
     }

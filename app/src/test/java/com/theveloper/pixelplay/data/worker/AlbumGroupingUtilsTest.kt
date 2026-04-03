@@ -53,6 +53,51 @@ class AlbumGroupingUtilsTest {
     }
 
     @Test
+    fun `buildAlbumGroupingKey ignores reused artwork for local same-titled albums`() {
+        val firstAlbum = testSong(
+            artistName = "Artist A",
+            albumArtist = null,
+            albumArtUriString = "pixelplay_local_art://song/10",
+            parentDirectoryPath = "/music/Artist A/Feels",
+            albumName = "Unknown Album",
+            albumId = 10L
+        )
+        val secondAlbum = testSong(
+            artistName = "Artist B",
+            albumArtist = null,
+            albumArtUriString = "pixelplay_local_art://song/10",
+            parentDirectoryPath = "/music/Artist B/Feels",
+            albumName = "Unknown Album",
+            albumId = 11L
+        )
+
+        assertThat(buildAlbumGroupingKey(firstAlbum)).isNotEqualTo(buildAlbumGroupingKey(secondAlbum))
+    }
+
+    @Test
+    fun `buildAlbumGroupingKeys keeps media fallback even when artwork exists`() {
+        val album = com.theveloper.pixelplay.data.database.AlbumEntity(
+            id = 77L,
+            title = "Unknown Album",
+            artistName = "",
+            artistId = 0L,
+            albumArtUriString = "pixelplay_local_art://song/10",
+            songCount = 1,
+            dateAdded = 0L,
+            year = 0
+        )
+
+        val keys = buildAlbumGroupingKeys(album)
+
+        assertThat(keys).contains(
+            AlbumGroupingKey(
+                normalizedTitle = "unknown album",
+                identity = "media:77"
+            )
+        )
+    }
+
+    @Test
     fun `chooseAlbumDisplayArtist prefers dominant track artist when grouping is off`() {
         val songs = listOf(
             testSong(artistName = "The Weeknd", albumArtist = "The Weeknd & Justice"),

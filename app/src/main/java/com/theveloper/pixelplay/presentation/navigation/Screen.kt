@@ -47,6 +47,7 @@ sealed class Screen(val route: String) {
 
     object ArtistSettings : Screen("artist_settings")
     object DelimiterConfig : Screen("delimiter_config")
+    object WordDelimiterConfig : Screen("word_delimiter_config")
     object Equalizer : Screen("equalizer")
     object DeviceCapabilities : Screen("device_capabilities")
     object NeteaseDashboard : Screen("netease_dashboard")

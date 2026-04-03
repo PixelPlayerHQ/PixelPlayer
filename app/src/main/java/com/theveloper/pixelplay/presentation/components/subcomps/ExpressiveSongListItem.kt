@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.SmartImage
+import com.theveloper.pixelplay.presentation.components.SmartImageListTargetSize
 import com.theveloper.pixelplay.utils.formatDuration
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
@@ -55,6 +56,7 @@ fun ExpressiveSongListItem(
             SmartImage(
                 model = song.albumArtUriString,
                 contentDescription = "Album art for ${song.title}",
+                targetSize = SmartImageListTargetSize,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(AbsoluteSmoothCornerShape(12.dp, 60)),

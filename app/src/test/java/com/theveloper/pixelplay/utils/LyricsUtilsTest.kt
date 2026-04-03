@@ -193,7 +193,8 @@ class LyricsUtilsTest {
         val words = requireNotNull(first.words)
 
         assertEquals("To fall in love\\n怦然心动", first.line)
-        assertEquals(listOf("To ", "fall ", "in ", "love"), words.map { it.word })
+        assertEquals(listOf("To", "fall", "in", "love"), words.map { it.word })
+        assertEquals(listOf(true, true, true, true), words.map { it.startsNewWord })
         assertTrue(words.none { it.word.contains("怦然心动") })
     }
 
@@ -298,8 +299,35 @@ class LyricsUtilsTest {
         val words = requireNotNull(synced.single().words)
 
         assertEquals("Hello world", synced.single().line)
-        assertEquals(listOf("Hello ", "world"), words.map { it.word })
+        assertEquals(listOf("Hello", "world"), words.map { it.word })
         assertEquals(listOf(10_000, 10_500), words.map { it.time })
+        assertEquals(listOf(true, true), words.map { it.startsNewWord })
+    }
+
+    @Test
+    fun parseLyrics_wordByWord_marksSyllablesAsSameVisualWord() {
+        val lrc = "[00:10.00]<00:10.00>to<00:10.20>geth<00:10.40>er <00:10.60>now"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+        val words = requireNotNull(synced.single().words)
+
+        assertEquals("together now", synced.single().line)
+        assertEquals(listOf("to", "geth", "er", "now"), words.map { it.word })
+        assertEquals(listOf(true, false, false, true), words.map { it.startsNewWord })
+    }
+
+    @Test
+    fun parseLyrics_wordByWord_standaloneWhitespaceStillStartsNextWord() {
+        val lrc = "[00:10.00]<00:10.00>To<00:10.20> <00:10.40>fall"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+        val words = requireNotNull(synced.single().words)
+
+        assertEquals("To fall", synced.single().line)
+        assertEquals(listOf("To", "fall"), words.map { it.word })
+        assertEquals(listOf(true, true), words.map { it.startsNewWord })
     }
 
     @Test

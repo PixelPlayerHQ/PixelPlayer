@@ -21,6 +21,7 @@ class LyricsSheetLogicTest {
 
         assertEquals(listOf("Hello", "world"), sanitized.map { it.word })
         assertEquals(listOf(120, 240), sanitized.map { it.time })
+        assertTrue(sanitized.all { it.startsNewWord })
     }
 
     @Test
@@ -120,18 +121,35 @@ class LyricsSheetLogicTest {
     }
 
     @Test
-    fun sanitizeSyncedWords_mergesWhitespaceOnlyTokensIntoPreviousWord() {
+    fun sanitizeSyncedWords_promotesFirstVisibleWordAfterLeadingMarker() {
         val words = listOf(
-            SyncedWord(time = 1000, word = "To"),
-            SyncedWord(time = 1200, word = " "),
-            SyncedWord(time = 1400, word = "fall")
+            SyncedWord(time = 1000, word = "v1:"),
+            SyncedWord(time = 1200, word = "fall", startsNewWord = false)
         )
 
         val sanitized = sanitizeSyncedWords(words)
 
-        assertEquals(2, sanitized.size)
-        assertEquals("To ", sanitized[0].word)
-        assertEquals("fall", sanitized[1].word)
+        assertEquals(1, sanitized.size)
+        assertEquals("fall", sanitized[0].word)
+        assertTrue(sanitized[0].startsNewWord)
+    }
+
+    @Test
+    fun clusterSyncedWords_keepsSyllablesInsideSameWord() {
+        val clusters = clusterSyncedWords(
+            listOf(
+                SyncedWord(time = 1000, word = "to", startsNewWord = true),
+                SyncedWord(time = 1100, word = "geth", startsNewWord = false),
+                SyncedWord(time = 1200, word = "er", startsNewWord = false),
+                SyncedWord(time = 1500, word = "now", startsNewWord = true)
+            )
+        )
+
+        assertEquals(2, clusters.size)
+        assertEquals(listOf("to", "geth", "er"), clusters[0].words.map { it.word })
+        assertEquals(listOf("now"), clusters[1].words.map { it.word })
+        assertEquals(0, clusters[0].startIndex)
+        assertEquals(3, clusters[1].startIndex)
     }
 
     @Test

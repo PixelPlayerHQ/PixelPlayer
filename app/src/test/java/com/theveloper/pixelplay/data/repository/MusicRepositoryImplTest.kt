@@ -11,6 +11,7 @@ import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.TelegramDao
+import dagger.Lazy
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,6 +41,8 @@ class MusicRepositoryImplTest {
     private val mockTelegramDao: TelegramDao = mockk(relaxed = true)
     private val mockTelegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager = mockk(relaxed = true)
     private val mockTelegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository = mockk(relaxed = true)
+    private val mockTelegramCacheManagerProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager> = mockk()
+    private val mockTelegramRepositoryProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramRepository> = mockk()
     private val mockSongRepository: SongRepository = mockk(relaxed = true)
     private val mockFavoritesDao: FavoritesDao = mockk(relaxed = true)
     private val mockArtistImageRepository: ArtistImageRepository = mockk(relaxed = true)
@@ -61,6 +64,8 @@ class MusicRepositoryImplTest {
         )
         every { mockMusicDao.getAllArtistsRaw() } returns flowOf(dummyArtists)
         coEvery { mockMusicDao.getDistinctParentDirectories() } returns listOf("/music/folder1", "/music/folder2")
+        every { mockTelegramCacheManagerProvider.get() } returns mockTelegramCacheManager
+        every { mockTelegramRepositoryProvider.get() } returns mockTelegramRepository
 
         every { mockMusicDao.getAllSongArtistCrossRefs() } returns flowOf(emptyList())
         every { mockMusicDao.getAllSongs(any(), any()) } answers {
@@ -102,8 +107,8 @@ class MusicRepositoryImplTest {
             musicDao = mockMusicDao,
             lyricsRepository = mockLyricsRepository,
             telegramDao = mockTelegramDao,
-            telegramCacheManager = mockTelegramCacheManager,
-            telegramRepository = mockTelegramRepository,
+            telegramCacheManagerProvider = mockTelegramCacheManagerProvider,
+            telegramRepositoryProvider = mockTelegramRepositoryProvider,
             songRepository = mockSongRepository,
 
             favoritesDao = mockFavoritesDao,
@@ -179,9 +184,9 @@ class MusicRepositoryImplTest {
             createSongEntity(4L, "S4", "A3", "G", "/allowed/s4.mp3", "/allowed").copy(albumId = 203L)
         )
         val allAlbumEntities = listOf(
-            AlbumEntity(201L, "Album1", "ArtistName1", 101L, "art_uri1", 10, 2023), // El songCount original del DAO
-            AlbumEntity(202L, "Album2", "ArtistName2", 102L, "art_uri2", 5, 2022),
-            AlbumEntity(203L, "Album3", "ArtistName3", 103L, "art_uri3", 3, 2021)
+            AlbumEntity(201L, "Album1", "ArtistName1", 101L, "art_uri1", 10, 0L, 2023), // El songCount original del DAO
+            AlbumEntity(202L, "Album2", "ArtistName2", 102L, "art_uri2", 5, 0L, 2022),
+            AlbumEntity(203L, "Album3", "ArtistName3", 103L, "art_uri3", 3, 0L, 2021)
         )
         val allowedDirs = setOf("/allowed")
 

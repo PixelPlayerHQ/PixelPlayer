@@ -62,7 +62,8 @@ credentials = "1.5.0"
 googleid = "1.2.0"
 androidxTestCore = "1.6.1"
 junit5 = "5.10.1"
-
+kuromoji = "0.9.0"
+pinyin4j = "2.5.1"
 
 # DI
 dagger = "2.53.1"
@@ -238,6 +239,12 @@ play-services-wearable = { module = "com.google.android.gms:play-services-wearab
 
 # Coroutines Play Services (for .await() on GMS Tasks)
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinx-coroutines" }
+
+# Kuromoji
+kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromoji" }
+
+# Pinyin
+pinyin4j-core = { module = "com.belerweb:pinyin4j", version.ref = "pinyin4j" }
 
 
 [plugins]

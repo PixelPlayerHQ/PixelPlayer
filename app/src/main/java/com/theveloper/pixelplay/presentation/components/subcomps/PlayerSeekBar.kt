@@ -45,6 +45,7 @@ fun PlayerSeekBar(
     currentPosition: Long,
     totalDuration: Long,
     onSeek: (Long) -> Unit,
+    onSeekPreview: ((Long?) -> Unit)? = null,
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -98,6 +99,7 @@ fun PlayerSeekBar(
             onValueChange = { newFraction ->
                 isUserSeeking = true
                 seekFraction = newFraction
+                onSeekPreview?.invoke((newFraction * totalDuration).roundToLong())
                 val quantized = (newFraction.coerceIn(0f, 1f) * 20f).toInt()
                 if (quantized != lastHapticStep[0]) {
                     lastHapticStep[0] = quantized
@@ -106,6 +108,7 @@ fun PlayerSeekBar(
             },
             onValueChangeFinished = {
                 onSeek((seekFraction * totalDuration).roundToLong())
+                onSeekPreview?.invoke(null)
                 isUserSeeking = false
             },
             strokeWidth = 5.dp, // Was trackHeight

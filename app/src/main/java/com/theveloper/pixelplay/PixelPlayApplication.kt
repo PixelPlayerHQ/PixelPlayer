@@ -12,7 +12,6 @@ import coil.ImageLoaderFactory
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.MediaMetadataRetrieverPool
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -24,22 +23,6 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
 
     @Inject
     lateinit var imageLoader: dagger.Lazy<ImageLoader>
-
-    // Use dagger.Lazy to defer construction (and TDLib native library loading) off the main thread.
-    @Inject
-    lateinit var telegramStreamProxy: dagger.Lazy<com.theveloper.pixelplay.data.telegram.TelegramStreamProxy>
-
-    @Inject
-    lateinit var neteaseStreamProxy: com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
-
-    @Inject
-    lateinit var qqMusicStreamProxy: com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
-
-    @Inject
-    lateinit var navidromeStreamProxy: com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
-
-    @Inject
-    lateinit var telegramCacheManager: dagger.Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>
 
     @Inject
     lateinit var telegramCoilFetcherFactory: dagger.Lazy<com.theveloper.pixelplay.data.image.TelegramCoilFetcher.Factory>
@@ -79,33 +62,6 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
             )
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
-        }
-        
-        // Start Netease proxy immediately (no heavy native deps)
-        neteaseStreamProxy.start()
-
-        // Start QQ Music proxy immediately (no heavy native deps)
-        qqMusicStreamProxy.start()
-
-        // Start Navidrome proxy immediately (no heavy native deps)
-        navidromeStreamProxy.start()
-
-        // Start Telegram proxy and schedule cache cleanup on IO thread to avoid blocking
-        // Application.onCreate() with TDLib native library loading (System.loadLibrary("tdjni")).
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            // First .get() call constructs TelegramStreamProxy (and transitively TelegramClientManager),
-            // loading the tdjni native library here on the IO thread instead of the main thread.
-            telegramStreamProxy.get().start()
-
-            try {
-                // Wait a bit for TDLib to initialize before cleaning up
-                kotlinx.coroutines.delay(5000)
-                Timber.d("Performing startup Telegram cache cleanup...")
-                telegramCacheManager.get().clearTdLibCache()
-                telegramCacheManager.get().trimEmbeddedArtCache()
-            } catch (e: Exception) {
-                Timber.e(e, "Error during startup cache cleanup")
-            }
         }
     }
 

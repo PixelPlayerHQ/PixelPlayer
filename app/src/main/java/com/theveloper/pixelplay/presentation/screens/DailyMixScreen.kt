@@ -189,7 +189,13 @@ fun DailyMixScreen(
                 showSongInfoSheet = false
             },
             onNavigateToArtist = {
-                // TODO: Implement navigation to artist screen. Might require finding artist by name.
+                navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
+                showSongInfoSheet = false
+            },
+            onNavigateToGenre = {
+                song.genre?.let {
+                    navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                }
                 showSongInfoSheet = false
             },
             onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->

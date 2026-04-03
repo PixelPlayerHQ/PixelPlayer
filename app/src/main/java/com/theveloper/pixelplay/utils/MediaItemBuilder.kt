@@ -13,6 +13,28 @@ import java.io.File
 object MediaItemBuilder {
     private const val EXTERNAL_MEDIA_ID_PREFIX = "external:"
     private const val EXTERNAL_EXTRA_PREFIX = "com.theveloper.pixelplay.external."
+    private val DIRECT_FILE_URI_MIME_TYPES = setOf(
+        "audio/mp4",
+        "audio/m4a",
+        "audio/x-m4a",
+        "audio/mp4a-latm",
+        "audio/aac",
+        "audio/x-aac",
+        "audio/3gp",
+        "audio/3gpp",
+        "audio/3gpp2",
+    )
+    private val DIRECT_FILE_URI_EXTENSIONS = setOf(
+        "m4a",
+        "m4b",
+        "m4p",
+        "mp4",
+        "aac",
+        "3ga",
+        "3gp",
+        "3gpp",
+        "alac",
+    )
     private val SUPPORTED_ARTWORK_SCHEMES = setOf(
         "content",
         "file",
@@ -37,7 +59,8 @@ object MediaItemBuilder {
     fun build(song: Song): MediaItem {
         return MediaItem.Builder()
             .setMediaId(song.id)
-            .setUri(playbackUri(song.contentUriString))
+            .setUri(playbackUri(song))
+            .setMimeType(song.mimeType)
             .setMediaMetadata(buildMediaMetadataForSong(song))
             .build()
     }
@@ -45,7 +68,8 @@ object MediaItemBuilder {
     fun buildForExternalController(context: Context, song: Song): MediaItem {
         return MediaItem.Builder()
             .setMediaId(song.id)
-            .setUri(playbackUri(song.contentUriString))
+            .setUri(playbackUri(song))
+            .setMimeType(song.mimeType)
             .setMediaMetadata(
                 buildMediaMetadataForSong(
                     song = song,
@@ -55,13 +79,20 @@ object MediaItemBuilder {
             .build()
     }
 
-    fun playbackUri(contentUriString: String): Uri {
+    fun playbackUri(song: Song): Uri = playbackUri(
+        contentUriString = song.contentUriString,
+        filePath = song.path,
+        mimeType = song.mimeType
+    )
+
+    fun playbackUri(
+        contentUriString: String,
+        filePath: String? = null,
+        mimeType: String? = null
+    ): Uri {
+        directLocalFileUri(contentUriString, filePath, mimeType)?.let { return it }
         val uri = runCatching { Uri.parse(contentUriString) }.getOrNull()
-            ?: return if (contentUriString.startsWith("/")) {
-                Uri.fromFile(File(contentUriString))
-            } else {
-                Uri.fromFile(File(contentUriString))
-            }
+            ?: return Uri.fromFile(File(contentUriString))
         // Telegram downloaded files can be stored as absolute paths (without file://).
         // Normalize them so ExoPlayer always gets a canonical local-file URI.
         return if (uri.scheme.isNullOrBlank() && contentUriString.startsWith("/")) {
@@ -69,6 +100,49 @@ object MediaItemBuilder {
         } else {
             uri
         }
+    }
+
+    private fun directLocalFileUri(
+        contentUriString: String,
+        filePath: String?,
+        mimeType: String?
+    ): Uri? {
+        val normalizedPath = filePath?.takeIf { it.startsWith("/") } ?: return null
+        if (!shouldPreferDirectLocalFileUri(contentUriString, normalizedPath, mimeType)) {
+            return null
+        }
+
+        return Uri.fromFile(File(normalizedPath))
+    }
+
+    internal fun shouldPreferDirectLocalFileUri(
+        contentUriString: String,
+        filePath: String?,
+        mimeType: String?
+    ): Boolean {
+        val normalizedPath = filePath?.takeIf { it.startsWith("/") } ?: return false
+        if (!LocalArtworkUri.isLikelyLocalMedia(contentUriString)) {
+            return false
+        }
+
+        if (!contentUriString.startsWith("content://")) {
+            return false
+        }
+
+        return shouldPreferDirectFileUri(normalizedPath, mimeType)
+    }
+
+    private fun shouldPreferDirectFileUri(
+        filePath: String,
+        mimeType: String?
+    ): Boolean {
+        val normalizedMimeType = mimeType?.lowercase()
+        if (normalizedMimeType != null && normalizedMimeType in DIRECT_FILE_URI_MIME_TYPES) {
+            return true
+        }
+
+        val extension = filePath.substringAfterLast('.', "").lowercase()
+        return extension in DIRECT_FILE_URI_EXTENSIONS
     }
 
     /**

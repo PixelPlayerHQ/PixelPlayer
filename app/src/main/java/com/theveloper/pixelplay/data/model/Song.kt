@@ -2,8 +2,6 @@ package com.theveloper.pixelplay.data.model
 
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
-import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
-import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Immutable
@@ -44,22 +42,17 @@ data class Song(
     val qqMusicMid: String? = null, // QQ Music song MID
     val navidromeId: String? = null, // Navidrome song ID
 ) : Parcelable {
-    @IgnoredOnParcel
-    private val defaultArtistDelimiters = listOf("/", ";", ",", "+", "&")
-
     /**
      * Returns the display string for artists.
-     * If multiple artists exist, joins them with ", ".
-     * Falls back to splitting the legacy artist string using common delimiters,
-     * and finally the raw artist field if nothing else is available.
+     * If multiple artists exist (populated during sync), joins them with ", ".
+     * Falls back to the raw artist field (splitting is done at sync time, not display time).
      */
     val displayArtist: String
         get() {
             if (artists.isNotEmpty()) {
                 return artists.sortedByDescending { it.isPrimary }.joinToString(", ") { it.name }
             }
-            val split = artist.splitArtistsByDelimiters(defaultArtistDelimiters)
-            return if (split.isNotEmpty()) split.joinToString(", ") else artist
+            return artist
         }
 
     /**

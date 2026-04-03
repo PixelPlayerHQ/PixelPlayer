@@ -18,6 +18,7 @@ import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.service.http.CastSessionSecurity
 import com.theveloper.pixelplay.data.service.http.MediaFileHttpServerService
 import com.theveloper.pixelplay.data.service.player.CastPlayer
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
@@ -549,8 +550,12 @@ class CastTransferStateHolder @Inject constructor(
                 return@launch
             }
 
+            val accessPolicy = MediaFileHttpServerService.configureCastSessionAccess(
+                allowedSongIds = currentQueue.map(Song::id),
+                castDeviceIpHint = castDeviceIpHint
+            )
             val preflightSong = currentQueue.getOrNull(safeStartIndex)
-            if (preflightSong != null && !waitForSongEndpointReady(serverAddress, preflightSong)) {
+            if (preflightSong != null && !waitForSongEndpointReady(serverAddress, preflightSong, accessPolicy.authToken)) {
                 Timber.tag(CAST_LOG_TAG).w(
                     "Song endpoint preflight failed for songId=%s; continuing with queueLoad to avoid false negatives.",
                     preflightSong.id
@@ -566,6 +571,7 @@ class CastTransferStateHolder @Inject constructor(
                     startPosition = currentPosition,
                     repeatMode = castRepeatMode,
                     serverAddress = serverAddress,
+                    authToken = accessPolicy.authToken,
                     autoPlay = wasPlaying, // Simplification
                     onComplete = loadResult@{ success, detail ->
                         if (!success && initialLoadAttempt < 2) {
@@ -727,11 +733,12 @@ class CastTransferStateHolder @Inject constructor(
     private suspend fun waitForSongEndpointReady(
         serverAddress: String,
         song: Song,
+        authToken: String?,
         attempts: Int = 12,
         delayMs: Long = 250L
     ): Boolean {
         repeat(attempts) { attempt ->
-            if (isSongEndpointReady(serverAddress, song)) {
+            if (isSongEndpointReady(serverAddress, song, authToken)) {
                 return true
             }
             if (attempt < attempts - 1) {
@@ -741,9 +748,8 @@ class CastTransferStateHolder @Inject constructor(
         return false
     }
 
-    private suspend fun isSongEndpointReady(serverAddress: String, song: Song): Boolean {
-        val songId = Uri.encode(song.id)
-        val localEndpoint = buildLoopbackEndpoint(serverAddress, "/song/$songId") ?: return false
+    private suspend fun isSongEndpointReady(serverAddress: String, song: Song, authToken: String?): Boolean {
+        val localEndpoint = buildLoopbackEndpoint(serverAddress, song.id, authToken) ?: return false
         return isHttpEndpointReady(localEndpoint, method = "HEAD")
     }
 
@@ -766,12 +772,12 @@ class CastTransferStateHolder @Inject constructor(
         }
     }
 
-    private fun buildLoopbackEndpoint(serverAddress: String, path: String): String? {
-        val uri = Uri.parse(serverAddress)
-        val port = uri.port
-        if (port <= 0) return null
-        val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        return "http://127.0.0.1:$port$normalizedPath"
+    private fun buildLoopbackEndpoint(serverAddress: String, songId: String, authToken: String?): String? {
+        return CastSessionSecurity.buildLoopbackSongUrl(
+            serverAddress = serverAddress,
+            songId = songId,
+            authToken = authToken
+        )
     }
 
     /**
@@ -1061,6 +1067,10 @@ class CastTransferStateHolder @Inject constructor(
 
         val castPlayer = castStateHolder.castPlayer
         if (castPlayer != null) {
+            val accessPolicy = MediaFileHttpServerService.configureCastSessionAccess(
+                allowedSongIds = songsToPlay.map(Song::id),
+                castDeviceIpHint = castDeviceIpHint
+            )
             val completionDeferred = CompletableDeferred<Boolean>()
             castPlayer.loadQueue(
                 songs = songsToPlay,
@@ -1068,6 +1078,7 @@ class CastTransferStateHolder @Inject constructor(
                 startPosition = 0L,
                 repeatMode = castRepeatMode,
                 serverAddress = serverAddress,
+                authToken = accessPolicy.authToken,
                 autoPlay = true,
                 onComplete = { success, detail ->
                     if (!success) {

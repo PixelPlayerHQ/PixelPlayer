@@ -3,6 +3,8 @@ package com.theveloper.pixelplay.presentation.components
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.*
@@ -49,6 +51,7 @@ fun AlbumCarouselSection(
     expansionFraction: Float,
     requestedScrollIndex: Int? = null,
     onSongSelected: (Song) -> Unit,
+    onAlbumClick: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
     carouselStyle: String = CarouselStyle.NO_PEEK,
     itemSpacing: Dp = 8.dp,
@@ -156,9 +159,10 @@ fun AlbumCarouselSection(
             itemSpacing = itemSpacing,
             itemCornerRadius = corner,
             suppressNoPeekSettleCorrection = requestedTargetIndex != null || programmaticScrollInProgress,
-            carouselStyle = if (realItemCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
+            carouselStyle = if (carouselState.pagerState.pageCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
             carouselWidth = availableWidth // Pass the full width for layout calculations
         ) { index ->
+            val isFocusedItem = carouselState.pagerState.currentPage == index
             val realIndex = normalizeIndex(index, realItemCount)
             val song = queue[realIndex]
             key(song.id) {
@@ -166,6 +170,12 @@ fun AlbumCarouselSection(
                     Modifier
                         .fillMaxSize()
                         .aspectRatio(1f)
+                        .clickable(
+                            enabled = isFocusedItem && song.albumId != -1L,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onAlbumClick(song) }
+                        )
                 ) { // Enforce 1:1 aspect ratio for the item itself
                     OptimizedAlbumArt(
                         uri = song.albumArtUriString,

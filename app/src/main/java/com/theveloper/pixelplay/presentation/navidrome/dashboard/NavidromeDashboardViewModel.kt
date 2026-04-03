@@ -7,6 +7,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,8 +38,8 @@ class NavidromeDashboardViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = repository.isLoggedInFlow
 
     init {
-        // Auto-sync playlists when the dashboard opens
-        syncPlaylists()
+        // Auto-sync full library (songs + playlists) when dashboard opens
+        syncAllPlaylistsAndSongs()
     }
 
     fun syncAllPlaylistsAndSongs() {
@@ -80,8 +81,11 @@ class NavidromeDashboardViewModel @Inject constructor(
             val result = repository.syncPlaylistSongs(playlistId)
             result.fold(
                 onSuccess = { count ->
-                    // Sync to unified library after successfully syncing individual playlist
-                    repository.syncUnifiedLibrarySongsFromNavidrome()
+                    try {
+                        repository.syncUnifiedLibrarySongsFromNavidrome()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to sync unified library after playlist sync")
+                    }
                     _syncMessage.value = "Synced $count songs"
                 },
                 onFailure = { _syncMessage.value = "Sync failed: ${it.message}" }

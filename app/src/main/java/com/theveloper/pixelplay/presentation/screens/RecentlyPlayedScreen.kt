@@ -222,7 +222,7 @@ fun RecentlyPlayedScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
-                        items(group.songs, key = { songUi -> songUi.song.id }) { item ->
+                        items(group.songs, key = { songUi -> songUi.song.id }, contentType = { "recently_played_song" }) { item ->
                             EnhancedSongListItem(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 song = item.song,
@@ -282,6 +282,12 @@ fun RecentlyPlayedScreen(
                 },
                 onNavigateToArtist = {
                     navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
+                    showSongInfoBottomSheet = false
+                },
+                onNavigateToGenre = {
+                    song.genre?.let {
+                        navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                    }
                     showSongInfoBottomSheet = false
                 },
                 onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->

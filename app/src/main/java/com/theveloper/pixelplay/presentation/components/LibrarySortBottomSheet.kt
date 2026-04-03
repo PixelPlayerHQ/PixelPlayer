@@ -1,7 +1,12 @@
 package com.theveloper.pixelplay.presentation.components
 
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,8 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,13 +41,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.theveloper.pixelplay.data.model.SortDirection
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -53,13 +64,15 @@ fun LibrarySortBottomSheet(
     selectedOption: SortOption?,
     onDismiss: () -> Unit,
     onOptionSelected: (SortOption) -> Unit,
+    onDirectionToggle: (SortOption) -> Unit = onOptionSelected,
     showViewToggle: Boolean = false,
     viewSectionTitle: String = "View",
     viewToggleLabel: String = "Playlist View",
     viewToggleChecked: Boolean = false,
     onViewToggleChange: (Boolean) -> Unit = {},
     viewToggleContent: (@Composable () -> Unit)? = null,
-    sourceToggleContent: (@Composable () -> Unit)? = null
+    sourceToggleContent: (@Composable () -> Unit)? = null,
+    extraContent: (@Composable () -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -102,7 +115,50 @@ fun LibrarySortBottomSheet(
 
             // Cast to nullable list to handle potential runtime nulls, then filter
             @Suppress("UNCHECKED_CAST")
-            val safeOptions = (options as List<SortOption?>).filterNotNull()
+            val safeOptions = remember(options) {
+                (options as List<SortOption?>).filterNotNull()
+            }
+            val resolvedSelectedOption = remember(safeOptions, selectedOption) {
+                safeOptions.firstOrNull { option ->
+                    option.storageKey == selectedOption?.storageKey
+                } ?: selectedOption ?: safeOptions.firstOrNull()
+            }
+            val methodOptions = remember(safeOptions) {
+                safeOptions
+                    .map { it.methodOption() }
+                    .distinctBy { it.methodKey }
+            }
+            val selectedDirection = resolvedSelectedOption?.direction
+            val shouldShowDirectionToggle = remember(methodOptions) {
+                methodOptions.any { it.canFlipDirection }
+            }
+
+            if (shouldShowDirectionToggle && resolvedSelectedOption != null) {
+                val directionLabel = when (selectedDirection) {
+                    SortDirection.Descending -> "Descending"
+                    SortDirection.Ascending -> "Ascending"
+                    null -> "Original Order"
+                }
+                val directionHint = when {
+                    resolvedSelectedOption.canFlipDirection && selectedDirection == SortDirection.Descending ->
+                        "Tap to switch to ascending"
+                    resolvedSelectedOption.canFlipDirection && selectedDirection == SortDirection.Ascending ->
+                        "Tap to switch to descending"
+                    else -> "This sort keeps its original order"
+                }
+                val isDescending = selectedDirection == SortDirection.Descending
+
+                LibrarySheetSortDirectionCard(
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    label = directionLabel,
+                    supportingText = directionHint,
+                    isDescending = isDescending,
+                    enabled = resolvedSelectedOption.canFlipDirection,
+                    onClick = {
+                        onDirectionToggle(resolvedSelectedOption.flipDirection())
+                    }
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -116,9 +172,8 @@ fun LibrarySortBottomSheet(
                     ),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                safeOptions.forEach { option ->
-                    // Defensive null-check for selectedOption in case it's null at runtime
-                    val isSelected = selectedOption?.storageKey == option.storageKey
+                methodOptions.forEach { option ->
+                    val isSelected = resolvedSelectedOption?.methodKey == option.methodKey
                     val containerColor = remember(isSelected) {
                         if (isSelected) selectedColor else unselectedColor
                     }
@@ -139,7 +194,9 @@ fun LibrarySortBottomSheet(
                             )
                             .selectable(
                                 selected = isSelected,
-                                onClick = { onOptionSelected(option) },
+                                onClick = {
+                                    onOptionSelected(option.resolveForDirection(selectedDirection))
+                                },
                                 role = Role.RadioButton
                             )
                             .semantics { this.selected = isSelected }
@@ -152,7 +209,7 @@ fun LibrarySortBottomSheet(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = option.displayName,
+                                text = option.methodLabel,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                             )
@@ -200,7 +257,137 @@ fun LibrarySortBottomSheet(
                 sourceToggleContent()
             }
 
+            if (extraContent != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                extraContent()
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun LibrarySheetSortDirectionCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    supportingText: String,
+    isDescending: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val transition = updateTransition(
+        targetState = isDescending,
+        label = "sortDirectionTransition"
+    )
+    val containerColor by transition.animateColor(
+        transitionSpec = {
+            spring(
+                dampingRatio = 0.82f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        },
+        label = "sortDirectionContainerColor"
+    ) { descending ->
+        when {
+            !enabled -> MaterialTheme.colorScheme.surfaceContainerLow
+            descending -> MaterialTheme.colorScheme.tertiaryContainer
+            else -> MaterialTheme.colorScheme.primaryContainer
+        }
+    }
+    val contentColor by transition.animateColor(
+        transitionSpec = {
+            spring(
+                dampingRatio = 0.86f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        },
+        label = "sortDirectionContentColor"
+    ) { descending ->
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+            descending -> MaterialTheme.colorScheme.onTertiaryContainer
+            else -> MaterialTheme.colorScheme.onPrimaryContainer
+        }
+    }
+    val iconContainerColor by animateColorAsState(
+        targetValue = contentColor.copy(alpha = if (enabled) 0.16f else 0.1f),
+        label = "sortDirectionIconContainerColor"
+    )
+    val iconRotation by transition.animateFloat(
+        transitionSpec = {
+            spring(
+                dampingRatio = 0.7f,
+                stiffness = Spring.StiffnessLow
+            )
+        },
+        label = "sortDirectionIconRotation"
+    ) { descending ->
+        if (descending) 0f else 180f
+    }
+    val iconScale by transition.animateFloat(
+        transitionSpec = {
+            spring(
+                dampingRatio = 0.62f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        },
+        label = "sortDirectionIconScale"
+    ) { descending ->
+        if (descending) 1f else 1.08f
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.72f)
+            .clip(AbsoluteSmoothCornerShape(18.dp, 60))
+            .background(containerColor)
+            .clickable(enabled = enabled, onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(iconContainerColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ArrowDownward,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .rotate(iconRotation)
+                        .scale(iconScale)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Order",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor.copy(alpha = 0.82f)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor
+                )
+//                Text(
+//                    text = supportingText,
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = contentColor.copy(alpha = 0.78f)
+//                )
+            }
         }
     }
 }

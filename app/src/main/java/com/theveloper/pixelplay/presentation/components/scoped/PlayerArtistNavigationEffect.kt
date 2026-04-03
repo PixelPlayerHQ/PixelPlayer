@@ -4,6 +4,8 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -16,9 +18,10 @@ internal fun PlayerArtistNavigationEffect(
     sheetMotionController: SheetMotionController,
     playerViewModel: PlayerViewModel
 ) {
-    LaunchedEffect(navController, sheetCollapsedTargetY) {
+    val latestSheetCollapsedTargetY by rememberUpdatedState(sheetCollapsedTargetY)
+    LaunchedEffect(navController) {
         playerViewModel.artistNavigationRequests.collectLatest { artistId ->
-            sheetMotionController.snapCollapsed(sheetCollapsedTargetY)
+            sheetMotionController.snapCollapsed(latestSheetCollapsedTargetY)
             playerViewModel.collapsePlayerSheet()
 
             navController.navigateSafely(Screen.ArtistDetail.createRoute(artistId)) {

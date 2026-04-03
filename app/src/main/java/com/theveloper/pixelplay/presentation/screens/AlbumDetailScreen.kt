@@ -78,6 +78,7 @@ import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import coil.compose.AsyncImagePainter
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
@@ -94,7 +95,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.AlbumDetailViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -113,13 +113,6 @@ fun AlbumDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
-    
-    // Optimization: Defer list processing until transition is finished
-    var isTransitionFinished by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(600)
-        isTransitionFinished = true
-    }
 
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
@@ -130,12 +123,20 @@ fun AlbumDetailScreen(
     val baseColorScheme = MaterialTheme.colorScheme
     val albumArtUri = uiState.album?.albumArtUriString?.takeIf { it.isNotBlank() }
     val albumColorSchemeFlow = remember(albumArtUri) {
-        albumArtUri?.let { playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(it) }
+        albumArtUri?.let { playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(it, eager = false) }
     }
     val albumColorSchemePair = albumColorSchemeFlow?.collectAsStateWithLifecycle()?.value
     val albumColorScheme = remember(albumColorSchemePair, isDarkTheme, baseColorScheme) {
         albumColorSchemePair?.let { pair -> if (isDarkTheme) pair.dark else pair.light }
             ?: baseColorScheme
+    }
+    var headerArtworkLoaded by remember(albumArtUri) { mutableStateOf(albumArtUri == null) }
+    var themeRequestIssued by remember(albumArtUri) { mutableStateOf(albumArtUri == null) }
+    LaunchedEffect(albumArtUri, headerArtworkLoaded, themeRequestIssued) {
+        if (!themeRequestIssued && headerArtworkLoaded && albumArtUri != null) {
+            themeRequestIssued = true
+            playerViewModel.themeStateHolder.ensureAlbumColorScheme(albumArtUri)
+        }
     }
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -179,12 +180,6 @@ fun AlbumDetailScreen(
                 val album = uiState.album!!
                 val songs = uiState.songs
                 val lazyListState = rememberLazyListState()
-                var isTransitionFinished by remember { mutableStateOf(false) }
-
-                LaunchedEffect(Unit) {
-                    delay(600) // Ensure transition is finished
-                    isTransitionFinished = true
-                }
 
                 val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                 val minTopBarHeight = 64.dp + statusBarHeight
@@ -304,9 +299,8 @@ fun AlbumDetailScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        val displayedSongs = if (isTransitionFinished) songs else songs.take(20)
                         items(
-                            items = displayedSongs,
+                            items = songs,
                             key = { song -> "album_song_${song.id}" },
                             contentType = { "album_song" }
                         ) { song ->
@@ -343,6 +337,11 @@ fun AlbumDetailScreen(
                             collapseFraction = collapseFraction,
                             headerHeight = currentTopBarHeightDp,
                             headerImageRequestSize = headerImageRequestSize,
+                            onHeaderArtworkState = { state ->
+                                if (state is AsyncImagePainter.State.Success) {
+                                    headerArtworkLoaded = true
+                                }
+                            },
                             onBackPressed = { navController.popBackStack() },
                             onPlayClick = {
                                 if (songs.isNotEmpty()) {
@@ -358,6 +357,11 @@ fun AlbumDetailScreen(
                             collapseFraction = collapseFraction,
                             headerHeight = currentTopBarHeightDp,
                             headerImageRequestSize = headerImageRequestSize,
+                            onHeaderArtworkState = { state ->
+                                if (state is AsyncImagePainter.State.Success) {
+                                    headerArtworkLoaded = true
+                                }
+                            },
                             onBackPressed = { navController.popBackStack() },
                             onPlayClick = {
                                 if (songs.isNotEmpty()) {
@@ -413,6 +417,12 @@ fun AlbumDetailScreen(
                         navController.navigateSafely(Screen.ArtistDetail.createRoute(currentSong.artistId))
                         showSongInfoBottomSheet = false
                     },
+                    onNavigateToGenre = {
+                        currentSong.genre?.let {
+                            navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                        }
+                        showSongInfoBottomSheet = false
+                    },
                     onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
                         playerViewModel.editSongMetadata(
                             currentSong,
@@ -454,6 +464,7 @@ private fun SharedAlbumTopBarProbe(
     collapseFraction: Float,
     headerHeight: Dp,
     headerImageRequestSize: Size,
+    onHeaderArtworkState: ((AsyncImagePainter.State) -> Unit)? = null,
     onBackPressed: () -> Unit,
     onPlayClick: () -> Unit
 ) {
@@ -494,6 +505,7 @@ private fun SharedAlbumTopBarProbe(
                 allowHardware = true,
                 crossfadeDurationMillis = 0,
                 alpha = expandedContentAlpha,
+                onState = onHeaderArtworkState,
                 modifier = Modifier.fillMaxSize()
             )
             Box(
@@ -522,7 +534,7 @@ private fun SharedAlbumTopBarProbe(
             expandedTitleStartPadding = 24.dp,
             collapsedTitleEndPadding = 24.dp,
             expandedTitleEndPadding = 136.dp,
-            containerHeightRange = 92.dp to 56.dp,
+            containerHeightRange = 112.dp to 56.dp,
             titleStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.SemiBold,
@@ -564,6 +576,7 @@ private fun CollapsingAlbumTopBar(
     collapseFraction: Float,
     headerHeight: Dp,
     headerImageRequestSize: Size,
+    onHeaderArtworkState: ((AsyncImagePainter.State) -> Unit)? = null,
     onBackPressed: () -> Unit,
     onPlayClick: () -> Unit
 ) {
@@ -628,6 +641,7 @@ private fun CollapsingAlbumTopBar(
                     allowHardware = true,
                     crossfadeDurationMillis = 0,
                     alpha = headerContentAlpha,
+                    onState = onHeaderArtworkState,
                     modifier = Modifier.fillMaxSize()
                 )
                 Box(

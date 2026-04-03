@@ -19,6 +19,7 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.api.PendingResult
 import com.google.android.gms.common.images.WebImage
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.service.http.CastSessionSecurity
 import org.json.JSONObject
 import timber.log.Timber
 import java.util.Locale
@@ -218,6 +219,7 @@ class CastPlayer(
         startPosition: Long,
         repeatMode: Int,
         serverAddress: String,
+        authToken: String?,
         autoPlay: Boolean,
         onComplete: (Boolean, String?) -> Unit
     ) {
@@ -261,7 +263,12 @@ class CastPlayer(
                 )
             }
             val mediaItems = songs.map { song ->
-                song.toMediaQueueItem(serverAddress, forcedMimeBySongId[song.id], queueLoadNonce)
+                song.toMediaQueueItem(
+                    serverAddress = serverAddress,
+                    authToken = authToken,
+                    forcedMimeType = forcedMimeBySongId[song.id],
+                    queueLoadNonce = queueLoadNonce
+                )
             }.toTypedArray()
 
             Timber.tag(castLogTag).i(
@@ -280,6 +287,7 @@ class CastPlayer(
                 songs = songs,
                 startIndex = safeStartIndex,
                 serverAddress = serverAddress,
+                authToken = authToken,
                 queueLoadNonce = queueLoadNonce
             )
 
@@ -347,10 +355,10 @@ class CastPlayer(
 
     private fun Song.toMediaQueueItem(
         serverAddress: String,
+        authToken: String?,
         forcedMimeType: String? = null,
         queueLoadNonce: String? = null
     ): MediaQueueItem {
-        val encodedSongId = Uri.encode(this.id)
         val contentType = forcedMimeType ?: resolveCastContentType()
         val durationHintMs = this.duration.coerceAtLeast(0L)
         // Some library entries report inaccurate duration metadata. Let Cast infer duration
@@ -361,10 +369,20 @@ class CastPlayer(
         val mediaMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK)
         mediaMetadata.putString(MediaMetadata.KEY_TITLE, this.title)
         mediaMetadata.putString(MediaMetadata.KEY_ARTIST, this.displayArtist)
-        val artUrl = "$serverAddress/art/$encodedSongId?v=$streamRevision"
+        val artUrl = CastSessionSecurity.buildArtUrl(
+            serverAddress = serverAddress,
+            songId = this.id,
+            streamRevision = streamRevision,
+            authToken = authToken
+        )
         mediaMetadata.addImage(WebImage(Uri.parse(artUrl)))
 
-        val mediaUrl = "$serverAddress/song/$encodedSongId?v=$streamRevision"
+        val mediaUrl = CastSessionSecurity.buildSongUrl(
+            serverAddress = serverAddress,
+            songId = this.id,
+            streamRevision = streamRevision,
+            authToken = authToken
+        )
         val mediaInfo = MediaInfo.Builder(mediaUrl)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
             .setContentType(contentType)
@@ -797,6 +815,7 @@ class CastPlayer(
         songs: List<Song>,
         startIndex: Int,
         serverAddress: String,
+        authToken: String?,
         queueLoadNonce: String
     ) {
         if (songs.isEmpty()) return
@@ -826,8 +845,22 @@ class CastPlayer(
                     "audio/webm",
                     "audio/amr"
                 )
-                val mediaUrl = "$serverAddress/song/${Uri.encode(song.id)}?v=$streamRevision"
-                val artUrl = "$serverAddress/art/${Uri.encode(song.id)}?v=$streamRevision"
+                val mediaUrl = CastSessionSecurity.redactAuthToken(
+                    CastSessionSecurity.buildSongUrl(
+                        serverAddress = serverAddress,
+                        songId = song.id,
+                        streamRevision = streamRevision,
+                        authToken = authToken
+                    )
+                )
+                val artUrl = CastSessionSecurity.redactAuthToken(
+                    CastSessionSecurity.buildArtUrl(
+                        serverAddress = serverAddress,
+                        songId = song.id,
+                        streamRevision = streamRevision,
+                        authToken = authToken
+                    )
+                )
                 Timber.tag(castLogTag).d(
                     "queueItem[%d] id=%s mimeRaw=%s mimeResolved=%s supported=%s durationHintMs=%d streamDurationSentMs=%d mediaUrl=%s artUrl=%s",
                     index,

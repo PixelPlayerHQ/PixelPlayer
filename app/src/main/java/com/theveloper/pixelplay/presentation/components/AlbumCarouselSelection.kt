@@ -10,14 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.drop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CarouselStyle
-import com.theveloper.pixelplay.presentation.components.scoped.PrefetchAlbumNeighbors
+import com.theveloper.pixelplay.presentation.components.scoped.PrefetchAlbumNeighborsWithMapping
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.first
 
@@ -87,12 +86,13 @@ fun AlbumCarouselSection(
         else Size(albumArtQuality.maxSize, albumArtQuality.maxSize)
     }
 
-    PrefetchAlbumNeighbors(
+    PrefetchAlbumNeighborsWithMapping(
         isActive = expansionFraction > 0.08f,
         pagerState = carouselState.pagerState,
         queue = queue,
         radius = 1,
-        targetSize = targetSize
+        targetSize = targetSize,
+        virtualToRealIndex = { virtualIndexToReal(it) }
     )
 
     // Player -> Carousel
@@ -134,6 +134,14 @@ fun AlbumCarouselSection(
     }
 
     val hapticFeedback = LocalHapticFeedback.current
+    
+    fun notifySelectionIfChanged(realIndex: Int) {
+        if (realIndex != currentSongRealIndex) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            queue.getOrNull(realIndex)?.let(onSongSelected)
+        }
+    }
+    
     // Carousel -> Player (cuando se detiene el scroll)
     LaunchedEffect(carouselState, currentSongRealIndex, queue, enableLoop) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
@@ -149,28 +157,26 @@ fun AlbumCarouselSection(
                         // The last song corresponding to the actual queue
                         0 -> {
                             loopJumpInProgress = true
-                            val targetVirtual = realItemCount
-                            val targetRealIndex = virtualIndexToReal(targetVirtual)
-                            ignoreNextSettledSelectionForVirtualPage = targetVirtual
-                            carouselState.scrollToItem(targetVirtual)
-                            loopJumpInProgress = false
-                            if (targetRealIndex != currentSongRealIndex) {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                queue.getOrNull(targetRealIndex)?.let(onSongSelected)
+                            try {
+                                val targetVirtual = realItemCount
+                                ignoreNextSettledSelectionForVirtualPage = targetVirtual
+                                carouselState.scrollToItem(targetVirtual)
+                                notifySelectionIfChanged(virtualIndexToReal(targetVirtual))
+                            } finally {
+                                loopJumpInProgress = false
                             }
                             return@collect
                         }
                         // The first song corresponding to the actual queue
                         virtualItemCount - 1 -> {
                             loopJumpInProgress = true
-                            val targetVirtual = 1
-                            val targetRealIndex = virtualIndexToReal(targetVirtual)
-                            ignoreNextSettledSelectionForVirtualPage = targetVirtual
-                            carouselState.scrollToItem(targetVirtual)
-                            loopJumpInProgress = false
-                            if (targetRealIndex != currentSongRealIndex) {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                queue.getOrNull(targetRealIndex)?.let(onSongSelected)
+                            try {
+                                val targetVirtual = 1
+                                ignoreNextSettledSelectionForVirtualPage = targetVirtual
+                                carouselState.scrollToItem(targetVirtual)
+                                notifySelectionIfChanged(virtualIndexToReal(targetVirtual))
+                            } finally {
+                                loopJumpInProgress = false
                             }
                             return@collect
                         }
@@ -182,11 +188,7 @@ fun AlbumCarouselSection(
                     return@collect
                 }
                 
-                val settledRealIndex = virtualIndexToReal(settledVirtual)
-                if (settledRealIndex != currentSongRealIndex) {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    queue.getOrNull(settledRealIndex)?.let(onSongSelected)
-                }
+                notifySelectionIfChanged(virtualIndexToReal(settledVirtual))
             }
     }
 

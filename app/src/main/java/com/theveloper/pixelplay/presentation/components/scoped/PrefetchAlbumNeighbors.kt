@@ -82,3 +82,50 @@ fun PrefetchAlbumNeighbors(
             }
     }
 }
+
+/**
+ * Prefetch album art for neighboring pages with virtual-to-real index mapping.
+ * Use this when the pager uses virtual indices (e.g., for infinite looping).
+ */
+@Composable
+fun PrefetchAlbumNeighborsWithMapping(
+    isActive: Boolean,
+    pagerState: PagerState,
+    queue: ImmutableList<Song>,
+    radius: Int = 1,
+    targetSize: Size = Size(600, 600),
+    virtualToRealIndex: (Int) -> Int
+) {
+    if (!isActive || queue.isEmpty()) return
+    val context = LocalContext.current
+    val imageLoader = coil.Coil.imageLoader(context)
+
+    LaunchedEffect(pagerState, queue) {
+        snapshotFlow { pagerState.currentPage }
+            .distinctUntilChanged()
+            .collect { virtualPage ->
+                val currentRealIndex = virtualToRealIndex(virtualPage)
+                val neighborRealIndices = (currentRealIndex - radius..currentRealIndex + radius)
+                    .filter { it in queue.indices && it != currentRealIndex }
+                    .toSet()
+                
+                neighborRealIndices.forEach { realIdx ->
+                    queue[realIdx].albumArtUriString?.let { uri ->
+                        val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(uri)) 
+                            coil.request.CachePolicy.DISABLED 
+                        else 
+                            coil.request.CachePolicy.ENABLED
+                        val req = coil.request.ImageRequest.Builder(context)
+                            .data(uri)
+                            .size(targetSize)
+                            .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                            .diskCachePolicy(diskPolicy)
+                            .networkCachePolicy(coil.request.CachePolicy.ENABLED)
+                            .allowHardware(true)
+                            .build()
+                        imageLoader.enqueue(req)
+                    }
+                }
+            }
+    }
+}

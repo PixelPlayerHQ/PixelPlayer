@@ -139,9 +139,10 @@ object AlbumArtUtils {
         appContext: Context,
         uri: Uri
     ): InputStream? {
+        val uriString = uri.toString()
         return when {
-            uri.scheme.equals(LocalArtworkUri.SCHEME, ignoreCase = true) -> {
-                val songId = LocalArtworkUri.parseSongId(uri.toString()) ?: return null
+            LocalArtworkUri.isLocalArtworkUri(uriString) -> {
+                val songId = LocalArtworkUri.parseSongId(uriString) ?: return null
                 val resolvedPath = resolveSongMediaStoreInfo(appContext, songId)?.path
                 ensureAlbumArtCachedFile(
                     appContext = appContext,

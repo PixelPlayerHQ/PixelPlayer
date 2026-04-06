@@ -35,7 +35,23 @@ object MediaItemBuilder {
         "3gpp",
         "alac",
     )
-    private val SUPPORTED_ARTWORK_SCHEMES = setOf(
+    private val EXTRACTOR_FIRST_MIME_TYPES = setOf(
+        "audio/mp4",
+        "audio/m4a",
+        "audio/x-m4a",
+        "audio/mp4a-latm",
+        "audio/alac",
+        "audio/x-alac",
+    )
+    private val SUPPORTED_INTERNAL_ARTWORK_SCHEMES = setOf(
+        LocalArtworkUri.SCHEME,
+        "content",
+        "file",
+        "android.resource",
+        "http",
+        "https",
+    )
+    private val SUPPORTED_EXTERNAL_ARTWORK_SCHEMES = setOf(
         "content",
         "file",
         "android.resource",
@@ -60,7 +76,7 @@ object MediaItemBuilder {
         return MediaItem.Builder()
             .setMediaId(song.id)
             .setUri(playbackUri(song))
-            .setMimeType(song.mimeType)
+            .setMimeType(playbackMimeType(song))
             .setMediaMetadata(buildMediaMetadataForSong(song))
             .build()
     }
@@ -69,7 +85,7 @@ object MediaItemBuilder {
         return MediaItem.Builder()
             .setMediaId(song.id)
             .setUri(playbackUri(song))
-            .setMimeType(song.mimeType)
+            .setMimeType(playbackMimeType(song))
             .setMediaMetadata(
                 buildMediaMetadataForSong(
                     song = song,
@@ -80,6 +96,12 @@ object MediaItemBuilder {
     }
 
     fun playbackUri(song: Song): Uri = playbackUri(
+        contentUriString = song.contentUriString,
+        filePath = song.path,
+        mimeType = song.mimeType
+    )
+
+    internal fun playbackMimeType(song: Song): String? = playbackMimeType(
         contentUriString = song.contentUriString,
         filePath = song.path,
         mimeType = song.mimeType
@@ -99,6 +121,37 @@ object MediaItemBuilder {
             Uri.fromFile(File(contentUriString))
         } else {
             uri
+        }
+    }
+
+    internal fun playbackMimeType(
+        contentUriString: String,
+        filePath: String?,
+        mimeType: String?
+    ): String? {
+        val normalizedMimeType = mimeType?.trim()?.lowercase()
+        if (normalizedMimeType.isNullOrBlank()) {
+            return null
+        }
+
+        val isLikelyLocalMedia = LocalArtworkUri.isLikelyLocalMedia(contentUriString) ||
+            filePath?.startsWith("/") == true
+        if (!isLikelyLocalMedia) {
+            return mimeType
+        }
+
+        val extension = filePath
+            ?.substringAfterLast('.', "")
+            ?.lowercase()
+            .orEmpty()
+
+        return if (
+            normalizedMimeType in EXTRACTOR_FIRST_MIME_TYPES ||
+            extension in DIRECT_FILE_URI_EXTENSIONS
+        ) {
+            null
+        } else {
+            mimeType
         }
     }
 
@@ -150,25 +203,17 @@ object MediaItemBuilder {
      * Keep only schemes that these surfaces can usually resolve, and normalize raw paths.
      */
     fun artworkUri(rawArtworkUri: String?): Uri? {
-        if (rawArtworkUri.isNullOrBlank()) {
-            return null
-        }
-
-        if (rawArtworkUri.startsWith("/")) {
-            return Uri.fromFile(File(rawArtworkUri))
-        }
-
-        val uri = rawArtworkUri.toUri()
-        val scheme = uri.scheme?.lowercase()
-        return if (scheme != null && scheme in SUPPORTED_ARTWORK_SCHEMES) {
-            uri
-        } else {
-            null
-        }
+        return normalizeArtworkUri(rawArtworkUri, SUPPORTED_INTERNAL_ARTWORK_SCHEMES)
     }
 
     fun externalControllerArtworkUri(context: Context, rawArtworkUri: String?): Uri? {
-        val normalizedUri = artworkUri(rawArtworkUri) ?: return null
+        if (LocalArtworkUri.isLocalArtworkUri(rawArtworkUri)) {
+            val songId = rawArtworkUri?.let(LocalArtworkUri::parseSongId) ?: return null
+            return AlbumArtUtils.getCachedAlbumArtUri(context.applicationContext, songId)
+        }
+
+        val normalizedUri = normalizeArtworkUri(rawArtworkUri, SUPPORTED_EXTERNAL_ARTWORK_SCHEMES)
+            ?: return null
         return when (normalizedUri.scheme?.lowercase()) {
             "file" -> normalizedUri.path
                 ?.takeIf { it.isNotBlank() }
@@ -213,6 +258,35 @@ object MediaItemBuilder {
 
         metadataBuilder.setExtras(extras)
         return metadataBuilder.build()
+    }
+
+    private fun normalizeArtworkUri(
+        rawArtworkUri: String?,
+        supportedSchemes: Set<String>
+    ): Uri? {
+        if (rawArtworkUri.isNullOrBlank()) {
+            return null
+        }
+
+        if (LocalArtworkUri.isLocalArtworkUri(rawArtworkUri)) {
+            return if (LocalArtworkUri.SCHEME in supportedSchemes) {
+                Uri.parse(rawArtworkUri)
+            } else {
+                null
+            }
+        }
+
+        if (rawArtworkUri.startsWith("/")) {
+            return Uri.fromFile(File(rawArtworkUri))
+        }
+
+        val uri = rawArtworkUri.toUri()
+        val scheme = uri.scheme?.lowercase()
+        return if (scheme != null && scheme in supportedSchemes) {
+            uri
+        } else {
+            null
+        }
     }
 
     private fun providerBackedArtworkUri(context: Context, file: File): Uri? {

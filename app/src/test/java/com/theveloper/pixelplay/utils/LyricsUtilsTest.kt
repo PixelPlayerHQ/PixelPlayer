@@ -163,6 +163,55 @@ class LyricsUtilsTest {
     }
 
     @Test
+    fun parseLyrics_convertsAppleTtmlWithXmlDeclarationAndNamespaces() {
+        val ttml = """
+            <?xml version='1.0' encoding='utf-8'?>
+            <tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" xmlns:ttm="http://www.w3.org/ns/ttml#metadata" itunes:timing="Word" xml:lang="en">
+              <head>
+                <metadata>
+                  <ttm:agent type="person" xml:id="v1">
+                    <ttm:name type="full">Chase Atlantic</ttm:name>
+                  </ttm:agent>
+                </metadata>
+              </head>
+              <body dur="0:15.000">
+                <div begin="7.531" end="12.005" itunes:songPart="Verse">
+                  <p begin="7.531" end="12.005" itunes:key="L1" ttm:agent="v1"><span begin="7.531" end="7.782">Yeah,</span> <span begin="9.208" end="9.443">I</span> <span begin="9.443" end="9.675">bet</span></p>
+                </div>
+              </body>
+            </tt>
+        """.trimIndent()
+
+        val lyrics = LyricsUtils.parseLyrics(ttml)
+        val synced = requireNotNull(lyrics.synced)
+        val first = synced.first()
+
+        assertEquals(1, synced.size)
+        assertEquals(7_530, first.time)
+        assertEquals("Yeah, I bet", first.line)
+        assertEquals(listOf("Yeah,", "I", "bet"), requireNotNull(first.words).map { it.word })
+    }
+
+    @Test
+    fun parseLyrics_doesNotExposeBrokenTtmlAsPlainText() {
+        val malformedTtml = """
+            <?xml version='1.0' encoding='utf-8'?>
+            <tt xmlns="http://www.w3.org/ns/ttml">
+              <body>
+                <div>
+                  <p begin="00:01.000">Hello
+                </div>
+              </body>
+            </tt>
+        """.trimIndent()
+
+        val lyrics = LyricsUtils.parseLyrics(malformedTtml)
+
+        assertTrue(lyrics.synced.isNullOrEmpty())
+        assertTrue(lyrics.plain.isNullOrEmpty())
+    }
+
+    @Test
     fun parseLyrics_stripsAdditionalLrcTimestampsFromLines() {
         val lrc = """
             [00:12.57] Sinking under

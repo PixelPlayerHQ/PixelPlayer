@@ -24,9 +24,9 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.worker.collectArtistNames
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.LocalArtworkUri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first // Added
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withContext
 import org.gagravarr.opus.OpusFile
 import org.gagravarr.opus.OpusTags
 import org.jaudiotagger.audio.AudioFileIO
@@ -39,7 +39,6 @@ import java.io.IOException
 import java.util.Locale
 
 private const val TAG = "SongMetadataEditor"
-private const val METADATA_EDIT_TIMEOUT_MS = 30_000L
 
 /**
  * Error types for metadata editing operations
@@ -193,7 +192,7 @@ class SongMetadataEditor(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun editSongMetadata(
+    suspend fun editSongMetadata(
         songId: Long,
         newTitle: String,
         newArtist: String,
@@ -203,12 +202,11 @@ class SongMetadataEditor(
         newTrackNumber: Int,
         newDiscNumber: Int?,
         coverArtUpdate: CoverArtUpdate? = null,
-    ): SongMetadataEditResult {
-        // Input validation first
+    ): SongMetadataEditResult = withContext(Dispatchers.IO) {
         val validationError = validateMetadataInput(newTitle, newArtist, newAlbum, newGenre, newLyrics)
         if (validationError != null) {
             Timber.w("Metadata validation failed: $validationError")
-            return SongMetadataEditResult(
+            return@withContext SongMetadataEditResult(
                 success = false,
                 updatedAlbumArtUri = null,
                 error = MetadataEditError.INVALID_INPUT,
@@ -216,22 +214,21 @@ class SongMetadataEditor(
             )
         }
 
-        return try {
+        try {
             val trimmedLyrics = newLyrics.trim()
             val trimmedGenre = newGenre.trim()
             val normalizedGenre = trimmedGenre.takeIf { it.isNotBlank() }
 
-            // 1. FIRST: Get file path (Handle both MediaStore and Telegram/Negative IDs)
             val isTelegramSong = songId < 0
             val filePath = if (isTelegramSong) {
-                runBlocking { musicDao.getSongById(songId).first()?.filePath }
+                musicDao.getSongById(songId).first()?.filePath
             } else {
                 getFilePathFromMediaStore(songId)
             }
 
             if (filePath.isNullOrBlank() && !isTelegramSong) {
                 Timber.tag(TAG).e("Could not get file path for songId: $songId")
-                return SongMetadataEditResult(
+                return@withContext SongMetadataEditResult(
                     success = false,
                     updatedAlbumArtUri = null,
                     error = MetadataEditError.FILE_NOT_FOUND,
@@ -239,10 +236,9 @@ class SongMetadataEditor(
                 )
             }
 
-            // Check write permissions before attempting edit
             if (!filePath.isNullOrBlank() && !checkFileWritePermission(filePath)) {
                 Timber.tag(TAG).e("No write permission for file: $filePath")
-                return SongMetadataEditResult(
+                return@withContext SongMetadataEditResult(
                     success = false,
                     updatedAlbumArtUri = null,
                     error = MetadataEditError.NO_WRITE_PERMISSION,
@@ -250,29 +246,21 @@ class SongMetadataEditor(
                 )
             }
 
-            // Get file extension to determine which library to use
             val finalFilePath = filePath ?: ""
             val extension = finalFilePath.substringAfterLast('.', "").lowercase(Locale.ROOT)
-            
-            // Analyze FLAC properties
             val flacAnalysis = isProblematicFlacFile(finalFilePath)
             val isHighResFlac = flacAnalysis is FlacAnalysisResult.Problematic
-            
-            // Determine the primary editor based on format and quality
-            // JAudioTagger handles WAV, OGG (Vorbis), and High-Res FLAC much better than current TagLib logic.
             val useJAudioTaggerPrimary = extension in setOf("wav", "ogg") || isHighResFlac
-
-            // Update the actual file with ALL metadata (if it exists)
             val fileExists = finalFilePath.isNotBlank() && File(finalFilePath).exists()
-            
+
             val fileUpdateSuccess = if (!fileExists) {
                 if (isTelegramSong) {
                     Timber.tag(TAG)
                         .w("METADATA_EDIT: Telegram file not found (streaming?). Skipping file tags, updating DB only.")
-                     true
+                    true
                 } else {
                     Timber.tag(TAG).e("METADATA_EDIT: File does not exist: $finalFilePath")
-                     false
+                    false
                 }
             } else if (useJAudioTaggerPrimary) {
                 Timber.tag(TAG)
@@ -301,8 +289,7 @@ class SongMetadataEditor(
                     newDiscNumber = newDiscNumber,
                     coverArtUpdate = coverArtUpdate
                 )
-                
-                // Fallback to JAudioTagger if TagLib fails for standard formats
+
                 if (!tagLibSuccess) {
                     Timber.tag(TAG)
                         .w("METADATA_EDIT: TagLib failed for $extension, falling back to JAudioTagger")
@@ -324,7 +311,7 @@ class SongMetadataEditor(
 
             if (!fileUpdateSuccess) {
                 Timber.tag(TAG).e("Failed to update file metadata for songId: $songId")
-                return SongMetadataEditResult(
+                return@withContext SongMetadataEditResult(
                     success = false,
                     updatedAlbumArtUri = null,
                     error = MetadataEditError.TAGLIB_ERROR,
@@ -332,31 +319,21 @@ class SongMetadataEditor(
                 )
             }
 
-            // 3. Update MediaStore (Local) OR Telegram Database (Telegram)
             if (isTelegramSong) {
-                // Update Telegram Database
-                 runBlocking {
-                    // Update the cached items so SyncWorker doesn't overwrite our changes
-                     val songEntity = musicDao.getSongById(songId).first()
-                     if (songEntity?.telegramChatId != null && songEntity.telegramFileId != null) {
-                        val telegramId = "${songEntity.telegramChatId}_${songEntity.telegramFileId}"
-                         // Currently we don't have a direct update method in TelegramDao,
-                         // assuming we fetch, modify, insert (REPLACE)
-                         val telegramSong = telegramDao.getSongsByIds(listOf(telegramId)).first().firstOrNull()
-                         if (telegramSong != null) {
-                             val updatedTelegramSong = telegramSong.copy(
-                                 title = newTitle,
-                                 artist = newArtist,
-                                 // Telegram entity doesn't have album/genre/lyrics fields in current schema
-                                 // but updating title/artist is the most important
-                             )
-                             telegramDao.insertSongs(listOf(updatedTelegramSong))
-                             Timber.d("Updated TelegramDao for song: $telegramId")
-                         }
-                     }
-                 }
+                val songEntity = musicDao.getSongById(songId).first()
+                if (songEntity?.telegramChatId != null && songEntity.telegramFileId != null) {
+                    val telegramId = "${songEntity.telegramChatId}_${songEntity.telegramFileId}"
+                    val telegramSong = telegramDao.getSongsByIds(listOf(telegramId)).first().firstOrNull()
+                    if (telegramSong != null) {
+                        val updatedTelegramSong = telegramSong.copy(
+                            title = newTitle,
+                            artist = newArtist,
+                        )
+                        telegramDao.insertSongs(listOf(updatedTelegramSong))
+                        Timber.d("Updated TelegramDao for song: $telegramId")
+                    }
+                }
             } else {
-                // Update MediaStore to reflect the changes
                 val mediaStoreSuccess = updateMediaStoreMetadata(
                     songId = songId,
                     title = newTitle,
@@ -366,41 +343,34 @@ class SongMetadataEditor(
                     trackNumber = newTrackNumber,
                     discNumber = newDiscNumber
                 )
-    
                 if (!mediaStoreSuccess) {
                     Timber.w("MediaStore update failed, but file was updated for songId: $songId")
-                    // Continue anyway since the file was updated
                 }
             }
 
-            // 3. Update local database and save cover art preview
             var storedCoverArtUri: String? = null
-            runBlocking {
-                updateSongArtistMetadata(
-                    songId = songId,
-                    title = newTitle,
-                    artist = newArtist,
-                    album = newAlbum,
-                    genre = normalizedGenre,
-                    trackNumber = newTrackNumber,
-                    discNumber = newDiscNumber
-                )
+            updateSongArtistMetadata(
+                songId = songId,
+                title = newTitle,
+                artist = newArtist,
+                album = newAlbum,
+                genre = normalizedGenre,
+                trackNumber = newTrackNumber,
+                discNumber = newDiscNumber
+            )
 
-                coverArtUpdate?.let {
-                    AlbumArtUtils.clearCacheForSong(context, songId)
-                    storedCoverArtUri = if (it.isDeletion) null else LocalArtworkUri.buildSongUriWithTimestamp(songId)
-                    musicDao.updateSongAlbumArt(songId, storedCoverArtUri)
-                }
+            coverArtUpdate?.let {
+                AlbumArtUtils.clearCacheForSong(context, songId)
+                storedCoverArtUri = if (it.isDeletion) null else LocalArtworkUri.buildSongUriWithTimestamp(songId)
+                musicDao.updateSongAlbumArt(songId, storedCoverArtUri)
             }
 
-            // 4. Force media rescan with the known file path
             if (finalFilePath.isNotBlank()) {
                 forceMediaRescan(finalFilePath)
             }
 
             Timber.tag(TAG).e("METADATA_EDIT: Successfully updated metadata for songId: $songId")
             SongMetadataEditResult(success = true, updatedAlbumArtUri = storedCoverArtUri)
-
         } catch (e: SecurityException) {
             Timber.e(e, "Security exception editing metadata for songId: $songId")
             SongMetadataEditResult(
@@ -427,7 +397,6 @@ class SongMetadataEditor(
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to update metadata for songId: $songId")
-            // Determine error type from exception
             val errorType = when {
                 e.message?.contains("corrupt", ignoreCase = true) == true -> MetadataEditError.FILE_CORRUPTED
                 e.message?.contains("unsupported", ignoreCase = true) == true -> MetadataEditError.UNSUPPORTED_FORMAT
@@ -868,20 +837,12 @@ class SongMetadataEditor(
             val file = File(filePath)
             if (file.exists()) {
                 Timber.tag(TAG).e("RESCAN: Starting MediaScanner for: $filePath")
-                // Use MediaScannerConnection to force rescan
-                val latch = java.util.concurrent.CountDownLatch(1)
                 MediaScannerConnection.scanFile(
                     context,
                     arrayOf(filePath),
                     null
                 ) { path, uri ->
                     Timber.tag(TAG).e("RESCAN: Completed for: $path, new URI: $uri")
-                    latch.countDown()
-                }
-                // Wait for scan to complete (max 5 seconds)
-                val completed = latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
-                if (!completed) {
-                    Timber.tag(TAG).w("RESCAN: MediaScanner timeout for: $filePath")
                 }
             } else {
                 Timber.tag(TAG).e("RESCAN: File does not exist: $filePath")

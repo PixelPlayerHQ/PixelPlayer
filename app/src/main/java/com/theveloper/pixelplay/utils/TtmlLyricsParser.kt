@@ -14,6 +14,11 @@ internal object TtmlLyricsParser {
 
     fun parseToEnhancedLrc(ttmlText: String): String? {
         return runCatching {
+            val normalizedTtml = normalizeTtmlDocument(ttmlText)
+            if (normalizedTtml.isBlank()) {
+                return null
+            }
+
             val builder = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
                 isXIncludeAware = false
@@ -29,7 +34,7 @@ internal object TtmlLyricsParser {
                 setEntityResolver(EntityResolver { _, _ -> InputSource(StringReader("")) })
             }
 
-            val document = builder.parse(InputSource(StringReader(ttmlText)))
+            val document = builder.parse(InputSource(StringReader(normalizedTtml)))
             val paragraphNodes = document.getElementsByTagNameNS("*", "p")
             if (paragraphNodes.length == 0 || paragraphNodes.length > MAX_TTML_PARAGRAPHS) {
                 return null
@@ -47,6 +52,20 @@ internal object TtmlLyricsParser {
                 .joinToString("\n") { it.second }
                 .takeIf { it.isNotBlank() }
         }.getOrNull()
+    }
+
+    private fun normalizeTtmlDocument(raw: String): String {
+        val withoutLeadingNoise = raw.trimStart { char ->
+            char.isWhitespace() ||
+                char == '\uFEFF' ||
+                Character.getType(char).toByte() == Character.FORMAT
+        }
+
+        return if (withoutLeadingNoise.startsWith("<?xml", ignoreCase = true)) {
+            withoutLeadingNoise.substringAfter("?>", missingDelimiterValue = withoutLeadingNoise).trimStart()
+        } else {
+            withoutLeadingNoise
+        }
     }
 
     private fun resolveParagraphStartMs(paragraph: Element): Int? {
@@ -140,6 +159,10 @@ internal object TtmlLyricsParser {
 
         if (normalized.endsWith("s", ignoreCase = true)) {
             val seconds = normalized.removeSuffix("s").toDoubleOrNull() ?: return null
+            return (seconds * 1000).roundToInt()
+        }
+
+        normalized.toDoubleOrNull()?.let { seconds ->
             return (seconds * 1000).roundToInt()
         }
 

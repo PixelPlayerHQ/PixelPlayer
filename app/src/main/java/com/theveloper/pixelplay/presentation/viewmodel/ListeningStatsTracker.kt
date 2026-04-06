@@ -8,12 +8,12 @@ import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import timber.log.Timber
@@ -34,6 +34,7 @@ class ListeningStatsTracker @Inject constructor(
     private var currentSession: ActiveSession? = null
     private var pendingVoluntarySongId: String? = null
     private var scope: CoroutineScope? = null
+    private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _playbackHistory = MutableStateFlow<List<PlaybackStatsRepository.PlaybackHistoryEntry>>(emptyList())
     val playbackHistory: StateFlow<List<PlaybackStatsRepository.PlaybackHistoryEntry>> = _playbackHistory.asStateFlow()
 
@@ -199,18 +200,18 @@ class ListeningStatsTracker @Inject constructor(
         forceSynchronous: Boolean
     ) {
         val coroutineScope = scope
-        if (!forceSynchronous && coroutineScope != null && coroutineScope.isActive()) {
+        if (!forceSynchronous && coroutineScope != null && coroutineScope.coroutineContext[Job]?.isActive == true) {
             coroutineScope.launch(Dispatchers.IO) {
                 persistPlaybackInternal(songId = songId, listened = listened, timestamp = timestamp)
             }
             return
         }
-        runCatching {
-            runBlocking(Dispatchers.IO) {
+        persistenceScope.launch {
+            runCatching {
                 persistPlaybackInternal(songId = songId, listened = listened, timestamp = timestamp)
+            }.onFailure { throwable ->
+                Timber.e(throwable, "Failed to persist listening session for song=%s", songId)
             }
-        }.onFailure { throwable ->
-            Timber.e(throwable, "Failed to persist listening session for song=%s", songId)
         }
     }
 

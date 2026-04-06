@@ -37,4 +37,26 @@ class MediaItemBuilderTest {
 
         assertThat(shouldPreferFile).isFalse()
     }
+
+    @Test
+    fun playbackMimeType_clearsAmbiguousLocalM4aMimeType() {
+        val playbackMimeType = MediaItemBuilder.playbackMimeType(
+            contentUriString = "content://media/external/audio/media/42",
+            filePath = "/storage/emulated/0/Music/test-track.m4a",
+            mimeType = "audio/mp4"
+        )
+
+        assertThat(playbackMimeType).isNull()
+    }
+
+    @Test
+    fun playbackMimeType_keepsNonMp4MimeTypeForLocalPlayback() {
+        val playbackMimeType = MediaItemBuilder.playbackMimeType(
+            contentUriString = "content://media/external/audio/media/84",
+            filePath = "/storage/emulated/0/Music/test-track.flac",
+            mimeType = "audio/flac"
+        )
+
+        assertThat(playbackMimeType).isEqualTo("audio/flac")
+    }
 }

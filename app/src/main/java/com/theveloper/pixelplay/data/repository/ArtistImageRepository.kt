@@ -318,9 +318,12 @@ class ArtistImageRepository @Inject constructor(
         val bounds = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
         }
+        
+        // Fetch dimensions without loading the full bitmap into memory.
+        // decodeStream returns null when inJustDecodeBounds is true.
         resolver.openInputStream(sourceUri)?.use { inputStream ->
             BitmapFactory.decodeStream(inputStream, null, bounds)
-        } ?: return null
+        }
 
         val width = bounds.outWidth
         val height = bounds.outHeight

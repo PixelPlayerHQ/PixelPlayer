@@ -130,6 +130,6 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
      */
     fun clearCrashLog() {
         if (!::appContext.isInitialized) return
-        prefs.edit().clear().commit()
+        prefs.edit().clear().apply()
     }
 }

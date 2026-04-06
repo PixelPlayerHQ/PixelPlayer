@@ -178,14 +178,13 @@ class PlaybackStatsRepository @Inject constructor(
             startTimestamp = start,
             endTimestamp = coercedTimestamp
         )
-        val writeSucceeded = synchronized(fileLock) {
-            val events = readEventsLocked()
+        val writeSucceeded = updateEventsAtomically { events ->
             val cutoff = sanitizedEvent.endMillis() - MAX_HISTORY_AGE_MS
             if (cutoff > 0) {
                 events.removeAll { it.endMillis() < cutoff }
             }
             events += sanitizedEvent
-            writeEventsLocked(events)
+            events
         }
         if (writeSucceeded) {
             notifyStatsChanged()
@@ -438,9 +437,7 @@ class PlaybackStatsRepository @Inject constructor(
     }
 
     suspend fun exportEventsForBackup(): List<PlaybackEvent> = withContext(Dispatchers.IO) {
-        synchronized(fileLock) {
-        readEventsLocked().map { event -> sanitizeEvent(event) }
-        }
+        readEvents().map { event -> sanitizeEvent(event) }
     }
 
     suspend fun loadPlaybackHistory(limit: Int = DEFAULT_PLAYBACK_HISTORY_LIMIT): List<PlaybackHistoryEntry> = withContext(Dispatchers.IO) {
@@ -463,11 +460,11 @@ class PlaybackStatsRepository @Inject constructor(
         events: List<PlaybackEvent>,
         clearExisting: Boolean = true
     ) = withContext(Dispatchers.IO) {
-        val writeSucceeded = synchronized(fileLock) {
+        val writeSucceeded = updateEventsAtomically { existingEvents ->
             val base = if (clearExisting) {
                 emptyList()
             } else {
-                readEventsLocked()
+                existingEvents
             }
             val merged = (base + events)
                 .map { event -> sanitizeEvent(event) }
@@ -476,7 +473,7 @@ class PlaybackStatsRepository @Inject constructor(
                 }
                 .sortedBy { event -> event.timestamp }
                 .toMutableList()
-            writeEventsLocked(merged)
+            merged
         }
         if (writeSucceeded) {
             notifyStatsChanged()
@@ -487,10 +484,13 @@ class PlaybackStatsRepository @Inject constructor(
         notifyStatsChanged()
     }
 
-    private fun readEvents(): List<PlaybackEvent> = synchronized(fileLock) { readEventsLocked() }
+    private fun readEvents(): List<PlaybackEvent> {
+        val raw = synchronized(fileLock) { readRawHistoryLocked() }
+        return parseEvents(raw)
+    }
 
-    private fun readEventsLocked(): MutableList<PlaybackEvent> {
-        val raw = runCatching {
+    private fun readRawHistoryLocked(): String? {
+        return runCatching {
             atomicHistoryFile.openRead().bufferedReader(Charsets.UTF_8).use { it.readText() }
         }
             .onFailure { throwable ->
@@ -500,7 +500,12 @@ class PlaybackStatsRepository @Inject constructor(
             }
             .getOrNull()
             ?.takeIf { it.isNotBlank() }
-            ?: return mutableListOf()
+    }
+
+    private fun parseEvents(raw: String?): MutableList<PlaybackEvent> {
+        if (raw.isNullOrBlank()) {
+            return mutableListOf()
+        }
 
         return runCatching {
             val element = gson.fromJson(raw, JsonElement::class.java)
@@ -785,15 +790,45 @@ class PlaybackStatsRepository @Inject constructor(
         return sessions
     }
 
-    private fun writeEventsLocked(events: MutableList<PlaybackEvent>): Boolean {
+    private fun updateEventsAtomically(
+        transform: (MutableList<PlaybackEvent>) -> MutableList<PlaybackEvent>
+    ): Boolean {
+        repeat(MAX_FILE_UPDATE_RETRIES) {
+            val rawSnapshot = synchronized(fileLock) { readRawHistoryLocked() }
+            val updatedEvents = transform(parseEvents(rawSnapshot))
+            val payload = serializeEvents(updatedEvents)
+
+            val writeSucceeded = synchronized(fileLock) {
+                val latestRaw = readRawHistoryLocked()
+                if (latestRaw != rawSnapshot) {
+                    return@synchronized false
+                }
+                writePayloadLocked(payload)
+            }
+            if (writeSucceeded) {
+                return true
+            }
+        }
+
+        val fallbackRawSnapshot = synchronized(fileLock) { readRawHistoryLocked() }
+        val payload = serializeEvents(transform(parseEvents(fallbackRawSnapshot)))
+        return synchronized(fileLock) {
+            writePayloadLocked(payload)
+        }
+    }
+
+    private fun serializeEvents(events: List<PlaybackEvent>): ByteArray {
         val sanitized = events.map { sanitizeEvent(it) }
+        return gson.toJson(sanitized).toByteArray(Charsets.UTF_8)
+    }
+
+    private fun writePayloadLocked(payload: ByteArray): Boolean {
         var outputStream: FileOutputStream? = null
         return runCatching {
             val parent = historyFile.parentFile
             if (parent != null && !parent.exists() && !parent.mkdirs()) {
                 Timber.w("Unable to ensure playback history directory: ${parent.absolutePath}")
             }
-            val payload = gson.toJson(sanitized).toByteArray(Charsets.UTF_8)
             outputStream = atomicHistoryFile.startWrite()
             outputStream?.write(payload)
             outputStream?.fd?.sync()
@@ -1031,6 +1066,7 @@ class PlaybackStatsRepository @Inject constructor(
     companion object {
         private const val DEFAULT_PLAYBACK_HISTORY_LIMIT = 500
         private const val MAX_PLAYBACK_HISTORY_LIMIT = 5_000
+        private const val MAX_FILE_UPDATE_RETRIES = 3
         private val MAX_HISTORY_AGE_MS = TimeUnit.DAYS.toMillis(730) // Keep roughly two years of history
         private val MAX_REASONABLE_EVENT_DURATION_MS = TimeUnit.HOURS.toMillis(8)
         private val SEGMENT_JOIN_TOLERANCE_MS = TimeUnit.SECONDS.toMillis(2)

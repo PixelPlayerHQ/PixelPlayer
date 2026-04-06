@@ -20,6 +20,7 @@ import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.service.MusicService
 import com.theveloper.pixelplay.data.service.MusicNotificationProvider
+import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import com.theveloper.pixelplay.shared.WearBrowseRequest
 import com.theveloper.pixelplay.shared.WearBrowseResponse
 import com.theveloper.pixelplay.shared.WearDataPaths
@@ -63,6 +64,7 @@ class WearCommandReceiver : WearableListenerService() {
 
     @Inject lateinit var musicRepository: MusicRepository
     @Inject lateinit var playlistPreferencesRepository: PlaylistPreferencesRepository
+    @Inject lateinit var dualPlayerEngine: DualPlayerEngine
     @Inject lateinit var directTransferCoordinator: PhoneDirectWatchTransferCoordinator
     @Inject lateinit var transferCancellationStore: PhoneWatchTransferCancellationStore
     @Inject lateinit var transferStateStore: PhoneWatchTransferStateStore
@@ -81,6 +83,7 @@ class WearCommandReceiver : WearableListenerService() {
         private const val MAX_SONGS = 500
         private const val MAX_ALBUMS = 200
         private const val MAX_ARTISTS = 200
+        private const val MAX_QUEUE_ITEMS = 20
         private const val TRANSFER_CHUNK_SIZE = 8192
         private const val PROGRESS_UPDATE_INTERVAL_BYTES = 65536L
     }
@@ -202,8 +205,9 @@ class WearCommandReceiver : WearableListenerService() {
                     return@launch
                 }
 
-                val mediaItems = songs.map { MediaItemBuilder.build(it) }
+                val mediaItems = songs.map { MediaItemBuilder.build(it) }.toMutableList()
                 val startIndex = songs.indexOfFirst { it.id == songId }.coerceAtLeast(0)
+                mediaItems[startIndex] = dualPlayerEngine.resolveMediaItem(mediaItems[startIndex])
 
                 getOrBuildMediaController { controller ->
                     controller.setMediaItems(mediaItems, startIndex, 0L)
@@ -440,7 +444,10 @@ class WearCommandReceiver : WearableListenerService() {
             }
         }
 
-        return queueIndices.map { actualIndex ->
+        return queueIndices
+            .asSequence()
+            .take(MAX_QUEUE_ITEMS)
+            .map { actualIndex ->
             val mediaItem = controller.getMediaItemAt(actualIndex)
             val metadata = mediaItem.mediaMetadata
             val title = metadata.title?.toString()?.takeIf { it.isNotBlank() }
@@ -459,6 +466,7 @@ class WearCommandReceiver : WearableListenerService() {
                 type = WearLibraryItem.TYPE_SONG,
             )
         }
+            .toList()
     }
 
     // ---- Volume handling ----

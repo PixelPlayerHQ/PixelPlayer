@@ -103,7 +103,13 @@ object MultiLangRomanizer {
     private val KYRGYZ_SPECIFIC_CYRILLIC_LETTERS = setOf("Ң", "ң", "Ө", "ө", "Ү", "ү")
     private val MACEDONIAN_SPECIFIC_CYRILLIC_LETTERS = setOf("Ѓ", "ѓ", "Ѕ", "ѕ", "Ќ", "ќ")
 
-    fun isJapanese(text: String) = text.any { it in '\u3040'..'\u309F' || it in '\u30A0'..'\u30FF' }
+    fun isJapanese(text: String): Boolean {
+        // Detect Hiragana or Katakana
+        if (text.any { it in '\u3040'..'\u309F' || it in '\u30A0'..'\u30FF' }) return true
+        
+        // Treat Kanji-only lines as Japanese (prioritized over Chinese in the main parsing loop)
+        return text.any { it in '\u4E00'..'\u9FFF' }
+    }
     fun isKorean(text: String) = text.any { it in '\uAC00'..'\uD7A3' }
     fun isHindi(text: String) = text.any { it in '\u0900'..'\u097F' }
     fun isPunjabi(text: String) = text.any { it in '\u0A00'..'\u0A7F' }
@@ -136,13 +142,34 @@ object MultiLangRomanizer {
 
         return try {
             val tokens = tokenizer.tokenize(japaneseText)
+            val katakanaBuilder = StringBuilder()
 
-            val katakanaText = tokens.joinToString(" ") { token ->
+            // Handle irregular readings and token merging
+            val processedReadings = mutableListOf<Triple<String, String, String>>() // <Reading, POS1, POS2>
+            var i = 0
+            while (i < tokens.size) {
+                val token = tokens[i]
+                val nextToken = if (i + 1 < tokens.size) tokens[i + 1] else null
+                
+                // Merge irregular counts (e.g., hitori, futari)
+                if (token.surface == "一" && nextToken?.surface == "人") {
+                    processedReadings.add(Triple("ヒトリ", "名詞", "一般"))
+                    i += 2
+                    continue
+                }
+                if (token.surface == "二" && nextToken?.surface == "人") {
+                    processedReadings.add(Triple("フタリ", "名詞", "一般"))
+                    i += 2
+                    continue
+                }
+                
                 val reading = token.reading
                 val surface = token.surface
-                val pos = token.partOfSpeechLevel1
+                val pos1 = token.partOfSpeechLevel1
+                val pos2 = token.partOfSpeechLevel2
 
-                if (pos == "助詞") {
+                // Handle special particle pronunciations (kunyomi vs particles)
+                val readingText = if (pos1 == "助詞") {
                     when (surface) {
                         "は" -> "ワ"
                         "へ" -> "エ"
@@ -152,7 +179,30 @@ object MultiLangRomanizer {
                 } else {
                     if (!reading.isNullOrBlank() && reading != "*") reading else surface
                 }
-            }.replace("\\s+".toRegex(), " ").trim()
+                processedReadings.add(Triple(readingText, pos1, pos2))
+                i++
+            }
+
+            processedReadings.forEachIndexed { index, pair ->
+                val readingText = pair.first
+                val pos1 = pair.second
+                val pos2 = pair.third
+
+                val prevReading = if (index > 0) processedReadings[index - 1].first else ""
+                val prevEndsWithSokuon = prevReading.endsWith("ッ")
+                
+                // Intelligent spacing:
+                // - Join inflections (after sokuon 'ッ') and auxiliaries (-ta, -masu)
+                // - Add spaces for readability before particles and content words
+                val needsNoSpace = index == 0 || prevEndsWithSokuon || pos1 == "助動詞" || pos2 == "接尾" || pos1 == "記号"
+
+                if (!needsNoSpace) {
+                    katakanaBuilder.append(" ")
+                }
+                katakanaBuilder.append(readingText)
+            }
+
+            val katakanaText = katakanaBuilder.toString().replace("\\s+".toRegex(), " ").trim()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val transliterator = android.icu.text.Transliterator.getInstance("Katakana-Latin; Lower")
@@ -418,6 +468,13 @@ object LyricsUtils {
             return Lyrics(plain = emptyList(), synced = emptyList())
         }
 
+        val normalizedInput = stripLeadingLyricsDocumentNoise(lyricsText)
+        if (looksLikeTtmlDocument(normalizedInput)) {
+            val converted = TtmlLyricsParser.parseToEnhancedLrc(normalizedInput)
+                ?: return Lyrics(plain = emptyList(), synced = emptyList())
+            return parseLyrics(converted)
+        }
+
         val syncedLines = mutableListOf<SyncedLine>()
         val plainLines = mutableListOf<String>()
         var isSynced = false
@@ -675,6 +732,28 @@ object LyricsUtils {
             ""
         }
     }
+}
+
+private fun stripLeadingLyricsDocumentNoise(value: String): String {
+    return value.trimStart { char ->
+        char.isWhitespace() ||
+            char == '\uFEFF' ||
+            Character.getType(char).toByte() == Character.FORMAT
+    }
+}
+
+private fun looksLikeTtmlDocument(value: String): Boolean {
+    if (value.startsWith("<tt", ignoreCase = true)) {
+        return true
+    }
+    if (!value.startsWith("<?xml", ignoreCase = true)) {
+        return false
+    }
+
+    val afterDeclaration = value.substringAfter("?>", missingDelimiterValue = "")
+    return afterDeclaration
+        .trimStart()
+        .startsWith("<tt", ignoreCase = true)
 }
 
 private fun sanitizeLrcLine(rawLine: String): String {

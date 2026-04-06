@@ -2,8 +2,6 @@ package com.theveloper.pixelplay.data.service.wear
 
 import android.app.Application
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color as AndroidColor
 import android.media.AudioManager
 import android.net.Uri
@@ -16,6 +14,7 @@ import com.theveloper.pixelplay.shared.WearDataPaths
 import com.theveloper.pixelplay.shared.WearPlayerState
 import com.theveloper.pixelplay.shared.WearThemePalette
 import com.theveloper.pixelplay.utils.AlbumArtUtils
+import com.theveloper.pixelplay.utils.ArtworkTransportSanitizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,11 +22,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 /**
  * Publishes player state to the Wear Data Layer so the watch app can display it.
@@ -39,7 +37,6 @@ class WearStatePublisher @Inject constructor(
     private val application: Application,
 ) {
     private val dataClient by lazy { Wearable.getDataClient(application) }
-    private val contentResolver by lazy { application.contentResolver }
     private val audioManager by lazy {
         application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
@@ -48,10 +45,6 @@ class WearStatePublisher @Inject constructor(
 
     companion object {
         private const val TAG = "WearStatePublisher"
-        private const val ART_MAX_DIMENSION = 2048 // px, near-original quality on watch screens
-        private const val ART_QUALITY = 99 // JPEG quality
-        private const val MAX_DIRECT_ASSET_BYTES = 10_000_000 // keep full assets when practical
-        private const val MAX_URI_BYTES = 12_000_000 // hard cap for URI direct reads
     }
 
     /**
@@ -134,57 +127,32 @@ class WearStatePublisher @Inject constructor(
     private fun resolveArtworkBytesForWear(playerInfo: PlayerInfo): ByteArray? {
         val uriString = playerInfo.albumArtUri
         if (!uriString.isNullOrBlank()) {
-            readBytesFromUriCapped(uriString, MAX_URI_BYTES)?.let { return it }
-            renderUriArtworkForWear(uriString)?.let { return it }
-        }
-        return playerInfo.albumArtBitmapData
-    }
-
-    private fun readBytesFromUriCapped(uriString: String, maxBytes: Int): ByteArray? {
-        return try {
             val uri = Uri.parse(uriString)
-            AlbumArtUtils.openArtworkInputStream(application, uri)?.use { input ->
-                val buffer = ByteArray(16 * 1024)
-                val output = ByteArrayOutputStream()
-                var total = 0
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read <= 0) break
-                    total += read
-                    if (total > maxBytes) {
-                        Timber.tag(TAG).d(
-                            "Artwork URI too large for direct transfer (%d bytes): %s",
-                            total,
-                            uriString
-                        )
-                        return null
-                    }
-                    output.write(buffer, 0, read)
+            val scheme = uri.scheme?.lowercase()
+            when {
+                com.theveloper.pixelplay.utils.LocalArtworkUri.isLocalArtworkUri(uriString) ||
+                    scheme == "content" ||
+                    scheme == "file" ||
+                    scheme == "android.resource" -> {
+                    AlbumArtUtils.openArtworkInputStream(application, uri)?.use { input ->
+                        readBytesCapped(input, ArtworkTransportSanitizer.WEAR_CONFIG.sourceBytesLimit)
+                            ?.let { bytes ->
+                                ArtworkTransportSanitizer.sanitizeEncodedBytes(
+                                    data = bytes,
+                                    config = ArtworkTransportSanitizer.WEAR_CONFIG,
+                                )
+                            }
+                    }?.let { return it }
                 }
-                output.toByteArray().takeIf { it.isNotEmpty() }
+                scheme == "http" || scheme == "https" -> {
+                    downloadAndSanitizeRemoteArtwork(uriString)?.let { return it }
+                }
             }
-        } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "Failed to read artwork bytes from URI: %s", uriString)
-            null
         }
-    }
-
-    /**
-     * Fallback path when a URI asset can't be transferred as-is (e.g. too large).
-     * Decodes from URI and re-encodes with high quality at bounded dimensions.
-     */
-    private fun renderUriArtworkForWear(uriString: String): ByteArray? {
-        return try {
-            val uri = Uri.parse(uriString)
-            val bounded = decodeBoundedBitmapFromUri(uri, ART_MAX_DIMENSION) ?: return null
-            val output = ByteArrayOutputStream()
-            bounded.compress(Bitmap.CompressFormat.JPEG, ART_QUALITY, output)
-            bounded.recycle()
-            output.toByteArray().takeIf { it.isNotEmpty() }
-        } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "Failed URI artwork fallback render: %s", uriString)
-            null
-        }
+        return ArtworkTransportSanitizer.sanitizeEncodedBytes(
+            data = playerInfo.albumArtBitmapData,
+            config = ArtworkTransportSanitizer.WEAR_CONFIG,
+        )
     }
 
     /**
@@ -192,113 +160,59 @@ class WearStatePublisher @Inject constructor(
      * Uses bounded downscale to preserve sharpness while keeping payload reasonable.
      */
     private fun createAlbumArtAsset(artBitmapData: ByteArray?): Asset? {
-        if (artBitmapData == null || artBitmapData.isEmpty()) return null
-
+        val boundedBytes = ArtworkTransportSanitizer.sanitizeEncodedBytes(
+            data = artBitmapData,
+            config = ArtworkTransportSanitizer.WEAR_CONFIG,
+        ) ?: return null
         return try {
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(artBitmapData, 0, artBitmapData.size, bounds)
-            val srcWidth = bounds.outWidth
-            val srcHeight = bounds.outHeight
-            val srcMax = max(srcWidth, srcHeight)
-            if (
-                srcWidth > 0 &&
-                srcHeight > 0 &&
-                srcMax <= ART_MAX_DIMENSION &&
-                artBitmapData.size <= MAX_DIRECT_ASSET_BYTES
-            ) {
-                // Preserve original bytes when already suitable; avoids second lossy pass.
-                return Asset.createFromBytes(artBitmapData)
-            }
-
-            val scaled = decodeBoundedBitmap(artBitmapData, ART_MAX_DIMENSION)
-                ?: return null
-
-            val stream = ByteArrayOutputStream()
-            scaled.compress(Bitmap.CompressFormat.JPEG, ART_QUALITY, stream)
-            scaled.recycle()
-
-            Asset.createFromBytes(stream.toByteArray())
+            Asset.createFromBytes(boundedBytes)
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "Failed to create album art asset")
             null
         }
     }
 
-    private fun decodeBoundedBitmap(data: ByteArray, maxDimension: Int): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
-        val srcWidth = bounds.outWidth
-        val srcHeight = bounds.outHeight
-        if (srcWidth <= 0 || srcHeight <= 0) return null
-
-        var sampleSize = 1
-        while (
-            (srcWidth / sampleSize) > maxDimension * 2 ||
-            (srcHeight / sampleSize) > maxDimension * 2
-        ) {
-            sampleSize *= 2
+    private fun downloadAndSanitizeRemoteArtwork(uriString: String): ByteArray? {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = (URL(uriString).openConnection() as? HttpURLConnection)
+                ?: return null
+            connection.connectTimeout = 4_000
+            connection.readTimeout = 6_000
+            connection.instanceFollowRedirects = true
+            connection.doInput = true
+            connection.inputStream.use { input ->
+                readBytesCapped(input, ArtworkTransportSanitizer.WEAR_CONFIG.sourceBytesLimit)
+                    ?.let { bytes ->
+                        ArtworkTransportSanitizer.sanitizeEncodedBytes(
+                            data = bytes,
+                            config = ArtworkTransportSanitizer.WEAR_CONFIG,
+                        )
+                    }
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "Failed to download remote artwork for Wear: %s", uriString)
+            null
+        } finally {
+            connection?.disconnect()
         }
-
-        val decodeOptions = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize
-            inJustDecodeBounds = false
-            inMutable = false
-        }
-        val decoded = BitmapFactory.decodeByteArray(data, 0, data.size, decodeOptions) ?: return null
-
-        val decodedMax = max(decoded.width, decoded.height)
-        if (decodedMax <= maxDimension) {
-            return decoded
-        }
-
-        val scale = maxDimension.toFloat() / decodedMax.toFloat()
-        val targetWidth = (decoded.width * scale).roundToInt().coerceAtLeast(1)
-        val targetHeight = (decoded.height * scale).roundToInt().coerceAtLeast(1)
-        val resized = Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true)
-        if (resized !== decoded) {
-            decoded.recycle()
-        }
-        return resized
     }
 
-    private fun decodeBoundedBitmapFromUri(uri: Uri, maxDimension: Int): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        AlbumArtUtils.openArtworkInputStream(application, uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, bounds)
-        } ?: return null
-
-        val srcWidth = bounds.outWidth
-        val srcHeight = bounds.outHeight
-        if (srcWidth <= 0 || srcHeight <= 0) return null
-
-        var sampleSize = 1
-        while (
-            (srcWidth / sampleSize) > maxDimension * 2 ||
-            (srcHeight / sampleSize) > maxDimension * 2
-        ) {
-            sampleSize *= 2
+    private fun readBytesCapped(input: java.io.InputStream, maxBytes: Int): ByteArray? {
+        val buffer = ByteArray(16 * 1024)
+        val output = java.io.ByteArrayOutputStream()
+        var total = 0
+        while (true) {
+            val read = input.read(buffer)
+            if (read <= 0) break
+            total += read
+            if (total > maxBytes) {
+                Timber.tag(TAG).d("Artwork source exceeded hard limit (%d bytes)", total)
+                return null
+            }
+            output.write(buffer, 0, read)
         }
-
-        val decodeOptions = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize
-            inJustDecodeBounds = false
-            inMutable = false
-            inPreferredConfig = Bitmap.Config.ARGB_8888
-        }
-
-        val decoded = AlbumArtUtils.openArtworkInputStream(application, uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, decodeOptions)
-        } ?: return null
-
-        val decodedMax = max(decoded.width, decoded.height)
-        if (decodedMax <= maxDimension) return decoded
-
-        val scale = maxDimension.toFloat() / decodedMax.toFloat()
-        val targetWidth = (decoded.width * scale).roundToInt().coerceAtLeast(1)
-        val targetHeight = (decoded.height * scale).roundToInt().coerceAtLeast(1)
-        val resized = Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true)
-        if (resized !== decoded) decoded.recycle()
-        return resized
+        return output.toByteArray().takeIf { it.isNotEmpty() }
     }
 
     /**

@@ -40,6 +40,8 @@ class TelegramClientManager @Inject constructor(
     val errors = _errors.asSharedFlow()
 
     private var client: Client? = null
+    @Volatile
+    private var recreateClientAfterClose = false
 
     // Handler for incoming updates from TDLib
     private val updateHandler = Client.ResultHandler { update ->
@@ -66,7 +68,9 @@ class TelegramClientManager @Inject constructor(
         initializeClient()
     }
 
+    @Synchronized
     private fun initializeClient() {
+        if (client != null) return
         // Set log verbosity to 1 (Errors only) to prevent heavy logging
         try {
             Client.execute(TdApi.SetLogVerbosityLevel(1))
@@ -129,6 +133,11 @@ class TelegramClientManager @Inject constructor(
             }
             is TdApi.AuthorizationStateClosed -> {
                 Timber.d("Closed")
+                client = null
+                if (recreateClientAfterClose) {
+                    recreateClientAfterClose = false
+                    initializeClient()
+                }
             }
             else -> {}
         }
@@ -148,7 +157,13 @@ class TelegramClientManager @Inject constructor(
     }
 
     fun logout() {
+        recreateClientAfterClose = true
         client?.send(TdApi.LogOut(), defaultHandler)
+    }
+
+    fun closeClient(recreate: Boolean = false) {
+        recreateClientAfterClose = recreate
+        client?.send(TdApi.Close(), defaultHandler)
     }
 
     /**

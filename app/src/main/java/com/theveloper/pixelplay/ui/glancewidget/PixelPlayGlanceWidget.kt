@@ -3,7 +3,6 @@ package com.theveloper.pixelplay.ui.glancewidget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
@@ -1052,7 +1051,7 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
                                             )
                                         )
                                     ),
-                                    bitmapData = queueItem.albumArtBitmapData,
+                                    bitmapData = null,
                                     albumArtUri = queueItem.albumArtUri,
                                     size = itemSize,
                                     context = context,
@@ -1224,48 +1223,22 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         requestedSize: Dp?,
         widgetDpSize: DpSize
     ): Bitmap? {
-        return runCatching {
-            val uri = Uri.parse(rawUri)
-            val scheme = uri.scheme?.lowercase()
-            if (scheme !in setOf("content", "file", "android.resource")) return null
-
-            val (targetWidthPx, targetHeightPx) = with(context.resources.displayMetrics) {
-                if (requestedSize != null) {
-                    val target = (requestedSize.value * density).toInt().coerceAtLeast(1)
-                    target to target
-                } else {
-                    val width = (widgetDpSize.width.value * density).toInt().coerceAtLeast(1)
-                    val height = (widgetDpSize.height.value * density).toInt().coerceAtLeast(1)
-                    width to height
-                }
+        val (targetWidthPx, targetHeightPx) = with(context.resources.displayMetrics) {
+            if (requestedSize != null) {
+                val target = (requestedSize.value * density).toInt().coerceAtLeast(1)
+                target to target
+            } else {
+                val width = (widgetDpSize.width.value * density).toInt().coerceAtLeast(1)
+                val height = (widgetDpSize.height.value * density).toInt().coerceAtLeast(1)
+                width to height
             }
-
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                BitmapFactory.decodeStream(input, null, bounds)
-            } ?: return null
-
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-
-            var inSampleSize = 1
-            if (bounds.outHeight > targetHeightPx || bounds.outWidth > targetWidthPx) {
-                var halfHeight = bounds.outHeight / 2
-                var halfWidth = bounds.outWidth / 2
-                while (halfHeight / inSampleSize >= targetHeightPx &&
-                    halfWidth / inSampleSize >= targetWidthPx
-                ) {
-                    inSampleSize *= 2
-                }
-            }
-
-            val decodeOptions = BitmapFactory.Options().apply {
-                this.inSampleSize = inSampleSize
-                this.inJustDecodeBounds = false
-            }
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                BitmapFactory.decodeStream(input, null, decodeOptions)
-            }
-        }.getOrNull()
+        }
+        return decodeWidgetAlbumArtBitmap(
+            context = context,
+            rawUri = rawUri,
+            targetWidthPx = targetWidthPx,
+            targetHeightPx = targetHeightPx,
+        )
     }
 
     @Composable

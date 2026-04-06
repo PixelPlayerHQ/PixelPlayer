@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.utils
 
+import android.net.Uri
+
 object LocalArtworkUri {
     const val SCHEME = "pixelplay_local_art"
     private const val HOST_SONG = "song"
@@ -9,6 +11,10 @@ object LocalArtworkUri {
 
     fun isLocalArtworkUri(uriString: String?): Boolean {
         return uriString?.startsWith("$SCHEME://") == true
+    }
+
+    fun isLocalArtworkUri(uri: Uri?): Boolean {
+        return uri?.toString()?.let(::isLocalArtworkUri) == true
     }
 
     fun parseSongId(uriString: String): Long? {

@@ -83,6 +83,7 @@ data class SettingsUiState(
     val hapticsEnabled: Boolean = true,
     val immersiveLyricsEnabled: Boolean = false,
     val immersiveLyricsTimeout: Long = 4000L,
+    val desktopLyricsEnabled: Boolean = false,
     val useAnimatedLyrics: Boolean = false,
     val animatedLyricsBlurEnabled: Boolean = true,
     val animatedLyricsBlurStrength: Float = 2.5f,
@@ -152,6 +153,7 @@ private sealed interface SettingsUiUpdate {
         val hapticsEnabled: Boolean,
         val immersiveLyricsEnabled: Boolean,
         val immersiveLyricsTimeout: Long,
+        val desktopLyricsEnabled: Boolean,
         val animatedLyricsBlurEnabled: Boolean,
         val animatedLyricsBlurStrength: Float
     ) : SettingsUiUpdate
@@ -377,6 +379,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.hapticsEnabledFlow,
                 userPreferencesRepository.immersiveLyricsEnabledFlow,
                 userPreferencesRepository.immersiveLyricsTimeoutFlow,
+                userPreferencesRepository.desktopLyricsEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurStrengthFlow
             ) { values ->
@@ -395,8 +398,9 @@ class SettingsViewModel @Inject constructor(
                     hapticsEnabled = values[11] as Boolean,
                     immersiveLyricsEnabled = values[12] as Boolean,
                     immersiveLyricsTimeout = values[13] as Long,
-                    animatedLyricsBlurEnabled = values[14] as Boolean,
-                    animatedLyricsBlurStrength = values[15] as Float
+                    desktopLyricsEnabled = values[14] as Boolean,
+                    animatedLyricsBlurEnabled = values[15] as Boolean,
+                    animatedLyricsBlurStrength = values[16] as Float
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -415,6 +419,7 @@ class SettingsViewModel @Inject constructor(
                         hapticsEnabled = update.hapticsEnabled,
                         immersiveLyricsEnabled = update.immersiveLyricsEnabled,
                         immersiveLyricsTimeout = update.immersiveLyricsTimeout,
+                        desktopLyricsEnabled = update.desktopLyricsEnabled,
                         animatedLyricsBlurEnabled = update.animatedLyricsBlurEnabled,
                         animatedLyricsBlurStrength = update.animatedLyricsBlurStrength
                     )
@@ -838,6 +843,12 @@ class SettingsViewModel @Inject constructor(
     fun setImmersiveLyricsTimeout(timeout: Long) {
         viewModelScope.launch {
             userPreferencesRepository.setImmersiveLyricsTimeout(timeout)
+        }
+    }
+
+    fun setDesktopLyricsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDesktopLyricsEnabled(enabled)
         }
     }
 

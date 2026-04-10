@@ -130,6 +130,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
@@ -162,6 +163,7 @@ import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.LyricsRefreshProgress
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
+import com.theveloper.pixelplay.data.service.DesktopLyricsOverlayService
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -647,6 +649,39 @@ fun SettingsCategoryScreen(
                                     subtitle = "Auto-hide controls and enlarge text.",
                                     checked = uiState.immersiveLyricsEnabled,
                                     onCheckedChange = { settingsViewModel.setImmersiveLyricsEnabled(it) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+
+                                SwitchSettingItem(
+                                    title = "Desktop Lyrics (Overlay)",
+                                    subtitle = "Show current lyric in a floating overlay above other apps.",
+                                    checked = uiState.desktopLyricsEnabled,
+                                    onCheckedChange = { enabled ->
+                                        settingsViewModel.setDesktopLyricsEnabled(enabled)
+                                        if (enabled) {
+                                            if (!Settings.canDrawOverlays(context)) {
+                                                val intent = Intent(
+                                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                    "package:${context.packageName}".toUri()
+                                                )
+                                                context.startActivity(intent)
+                                                Toast.makeText(
+                                                    context,
+                                                    "Please allow display over other apps",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                val serviceIntent = Intent(context, DesktopLyricsOverlayService::class.java)
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                    ContextCompat.startForegroundService(context, serviceIntent)
+                                                } else {
+                                                    context.startService(serviceIntent)
+                                                }
+                                            }
+                                        } else {
+                                            context.stopService(Intent(context, DesktopLyricsOverlayService::class.java))
+                                        }
+                                    },
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
 

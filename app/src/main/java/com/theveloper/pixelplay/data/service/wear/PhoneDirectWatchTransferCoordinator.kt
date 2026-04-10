@@ -15,6 +15,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
 import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
+import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
@@ -64,6 +65,7 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
     private val neteaseStreamProxy: NeteaseStreamProxy,
     private val qqMusicStreamProxy: QqMusicStreamProxy,
     private val navidromeStreamProxy: NavidromeStreamProxy,
+    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy,
     private val gDriveStreamProxy: GDriveStreamProxy,
     private val okHttpClient: OkHttpClient,
 ) {
@@ -406,6 +408,11 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 navidromeStreamProxy.warmUpStreamUrl(rawUri)
                 navidromeStreamProxy.resolveNavidromeUri(rawUri)
             }
+            "jellyfin" -> {
+                ensureCloudProxyReady(jellyfinStreamProxy) || return null
+                jellyfinStreamProxy.warmUpStreamUrl(rawUri)
+                jellyfinStreamProxy.resolveJellyfinUri(rawUri)
+            }
             "gdrive" -> {
                 ensureGDriveProxyReady() || return null
                 gDriveStreamProxy.resolveGDriveUri(rawUri)
@@ -445,6 +452,7 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
             is NeteaseStreamProxy -> proxy.ensureReady(5_000L)
             is QqMusicStreamProxy -> proxy.ensureReady(5_000L)
             is NavidromeStreamProxy -> proxy.ensureReady(5_000L)
+            is com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy -> proxy.ensureReady(5_000L)
             else -> false
         }
     }
@@ -538,7 +546,14 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
             val paletteStyle = AlbumArtPaletteStyle.fromStorageKey(
                 themePreferencesRepository.albumArtPaletteStyleFlow.first().storageKey
             )
-            val schemePair = colorSchemeProcessor.getOrGenerateColorScheme(artUriString, paletteStyle)
+            val colorAccuracyLevel = AlbumArtColorAccuracy.clamp(
+                themePreferencesRepository.albumArtColorAccuracyFlow.first()
+            )
+            val schemePair = colorSchemeProcessor.getOrGenerateColorScheme(
+                albumArtUri = artUriString,
+                paletteStyle = paletteStyle,
+                colorAccuracyLevel = colorAccuracyLevel
+            )
             if (schemePair != null) {
                 return buildWearThemePalette(schemePair.dark)
             }

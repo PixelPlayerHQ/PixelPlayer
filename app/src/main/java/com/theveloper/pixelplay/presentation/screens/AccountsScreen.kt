@@ -77,6 +77,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.netease.auth.NeteaseLoginActivity
+import com.theveloper.pixelplay.presentation.jellyfin.auth.JellyfinLoginActivity
 import com.theveloper.pixelplay.presentation.navidrome.auth.NavidromeLoginActivity
 import com.theveloper.pixelplay.presentation.qqmusic.auth.QqMusicLoginActivity
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
@@ -93,6 +94,7 @@ fun AccountsScreen(
     onOpenNeteaseDashboard: () -> Unit = {},
     onOpenQqMusicDashboard: () -> Unit = {},
     onOpenNavidromeDashboard: () -> Unit = {},
+    onOpenJellyfinDashboard: () -> Unit = {},
     viewModel: AccountsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -207,6 +209,7 @@ fun AccountsScreen(
                                 onOpenNeteaseDashboard = onOpenNeteaseDashboard,
                                 onOpenQqMusicDashboard = onOpenQqMusicDashboard,
                                 onOpenNavidromeDashboard = onOpenNavidromeDashboard,
+                                onOpenJellyfinDashboard = onOpenJellyfinDashboard,
                                 preferNeteaseDashboard = true
                             )
                         },
@@ -231,6 +234,7 @@ fun AccountsScreen(
                                 onOpenNeteaseDashboard = onOpenNeteaseDashboard,
                                 onOpenQqMusicDashboard = onOpenQqMusicDashboard,
                                 onOpenNavidromeDashboard = onOpenNavidromeDashboard,
+                                onOpenJellyfinDashboard = onOpenJellyfinDashboard,
                                 preferNeteaseDashboard = false
                             )
                         }
@@ -625,6 +629,14 @@ private fun servicePalette(service: ExternalServiceAccount): ServicePalette {
             primaryActionContainer = Color(0xFFE3F2FD),
             primaryActionTint = Color(0xFF1565C0)
         )
+        ExternalServiceAccount.JELLYFIN -> ServicePalette(
+            iconContainer = Color(0xFF00A4DC),
+            iconTint = Color.White,
+            statusContainer = Color(0xFFE1F5FE),
+            statusTint = Color(0xFF0277BD),
+            primaryActionContainer = Color(0xFFE3F2FD),
+            primaryActionTint = Color(0xFF1565C0)
+        )
     }
 }
 
@@ -635,6 +647,7 @@ private fun accountIcon(service: ExternalServiceAccount): ImageVector {
         ExternalServiceAccount.NETEASE -> Icons.Rounded.MusicNote
         ExternalServiceAccount.QQ_MUSIC -> Icons.Rounded.MusicNote
         ExternalServiceAccount.NAVIDROME -> Icons.Rounded.CloudQueue
+        ExternalServiceAccount.JELLYFIN -> Icons.Rounded.CloudQueue
     }
 }
 
@@ -664,6 +677,13 @@ private fun ServiceIcon(service: ExternalServiceAccount, tint: Color, modifier: 
                     .offset(x = 16.dp) // Closer overlap offset (was 24dp)
             )
         }
+    } else if (service == ExternalServiceAccount.JELLYFIN) {
+        Icon(
+            painter = painterResource(R.drawable.ic_jellyfin),
+            contentDescription = null,
+            tint = tint,
+            modifier = modifier
+        )
     } else {
         Icon(
             imageVector = accountIcon(service),
@@ -681,6 +701,7 @@ private fun serviceTitle(service: ExternalServiceAccount): String {
         ExternalServiceAccount.NETEASE -> "Netease"
         ExternalServiceAccount.QQ_MUSIC -> "QQ Music"
         ExternalServiceAccount.NAVIDROME -> "Subsonic"
+        ExternalServiceAccount.JELLYFIN -> "Jellyfin"
     }
 }
 
@@ -690,6 +711,7 @@ private fun openService(
     onOpenNeteaseDashboard: () -> Unit,
     onOpenQqMusicDashboard: () -> Unit,
     onOpenNavidromeDashboard: () -> Unit,
+    onOpenJellyfinDashboard: () -> Unit,
     preferNeteaseDashboard: Boolean
 ) {
     when (service) {
@@ -729,6 +751,16 @@ private fun openService(
                 safeStartActivity(
                     context = context,
                     intent = Intent(context, NavidromeLoginActivity::class.java)
+                )
+            }
+        }
+        ExternalServiceAccount.JELLYFIN -> {
+            if (preferNeteaseDashboard) {
+                onOpenJellyfinDashboard()
+            } else {
+                safeStartActivity(
+                    context = context,
+                    intent = Intent(context, JellyfinLoginActivity::class.java)
                 )
             }
         }

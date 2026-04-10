@@ -64,6 +64,7 @@ androidxTestCore = "1.6.1"
 junit5 = "5.10.1"
 kuromoji = "0.9.0"
 pinyin4j = "2.5.1"
+securityCrypto = "1.1.0-alpha06"
 
 # DI
 dagger = "2.53.1"
@@ -145,6 +146,7 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "roomRuntime" }
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "paging" }
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 capturable = { module = "dev.shreyaspatil:capturable", version.ref = "capturable" }
 codeview = { module = "io.github.amrdeveloper:codeview", version.ref = "codeview" }

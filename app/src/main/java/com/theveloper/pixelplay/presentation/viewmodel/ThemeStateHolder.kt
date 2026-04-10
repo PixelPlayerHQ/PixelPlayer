@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.net.Uri
 import android.os.Trace
 import androidx.compose.ui.graphics.Color
+import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.ui.theme.DarkColorScheme
@@ -30,6 +31,8 @@ class ThemeStateHolder @Inject constructor(
     private var scope: CoroutineScope? = null
     @Volatile
     private var currentPaletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.default
+    @Volatile
+    private var currentPaletteAccuracy: Int = AlbumArtColorAccuracy.DEFAULT
 
     private val _currentAlbumArtColorSchemePair = MutableStateFlow<ColorSchemePair?>(null)
     val currentAlbumArtColorSchemePair: StateFlow<ColorSchemePair?> = _currentAlbumArtColorSchemePair.asStateFlow()
@@ -59,20 +62,27 @@ class ThemeStateHolder @Inject constructor(
         }
 
         scope.launch {
-            themePreferencesRepository.albumArtPaletteStyleFlow.collect { style ->
-                val styleChanged = currentPaletteStyle != style
-                currentPaletteStyle = style
+            combine(
+                themePreferencesRepository.albumArtPaletteStyleFlow,
+                themePreferencesRepository.albumArtColorAccuracyFlow
+            ) { style, accuracy -> style to accuracy }
+                .collect { (style, accuracy) ->
+                    val paletteChanged =
+                        currentPaletteStyle != style || currentPaletteAccuracy != accuracy
+                    currentPaletteStyle = style
+                    currentPaletteAccuracy = accuracy
 
-                if (!styleChanged) return@collect
+                    if (!paletteChanged) return@collect
 
-                val uri = _currentAlbumArtUri.value ?: return@collect
-                val refreshedScheme = colorSchemeProcessor.getOrGenerateColorScheme(
-                    albumArtUri = uri,
-                    paletteStyle = style
-                )
-                _currentAlbumArtColorSchemePair.value = refreshedScheme
-                individualAlbumColorSchemes[uri]?.value = refreshedScheme
-            }
+                    val uri = _currentAlbumArtUri.value ?: return@collect
+                    val refreshedScheme = colorSchemeProcessor.getOrGenerateColorScheme(
+                        albumArtUri = uri,
+                        paletteStyle = style,
+                        colorAccuracyLevel = accuracy
+                    )
+                    _currentAlbumArtColorSchemePair.value = refreshedScheme
+                    individualAlbumColorSchemes[uri]?.value = refreshedScheme
+                }
         }
 
         scope.launch {
@@ -97,7 +107,8 @@ class ThemeStateHolder @Inject constructor(
             // Use the optimized ColorSchemeProcessor with LRU cache
             val schemePair = colorSchemeProcessor.getOrGenerateColorScheme(
                 albumArtUri = uriString,
-                paletteStyle = currentPaletteStyle
+                paletteStyle = currentPaletteStyle,
+                colorAccuracyLevel = currentPaletteAccuracy
             )
 
             if (!isPreload && currentSongUriString == uriString) {
@@ -142,7 +153,8 @@ class ThemeStateHolder @Inject constructor(
             try {
                 val scheme = colorSchemeProcessor.getOrGenerateColorScheme(
                     albumArtUri = uriString,
-                    paletteStyle = currentPaletteStyle
+                    paletteStyle = currentPaletteStyle,
+                    colorAccuracyLevel = currentPaletteAccuracy
                 )
                 targetFlow.value = scheme
             } catch (_: Exception) {
@@ -186,7 +198,8 @@ class ThemeStateHolder @Inject constructor(
     suspend fun getOrGenerateColorScheme(uriString: String): ColorSchemePair? {
          return colorSchemeProcessor.getOrGenerateColorScheme(
              albumArtUri = uriString,
-             paletteStyle = currentPaletteStyle
+             paletteStyle = currentPaletteStyle,
+             colorAccuracyLevel = currentPaletteAccuracy
          )
     }
 
@@ -211,6 +224,7 @@ class ThemeStateHolder @Inject constructor(
                  val generated = colorSchemeProcessor.getOrGenerateColorScheme(
                      albumArtUri = uriString,
                      paletteStyle = style,
+                     colorAccuracyLevel = currentPaletteAccuracy,
                      forceRefresh = true
                  )
                  if (style == currentPaletteStyle) {
@@ -222,6 +236,7 @@ class ThemeStateHolder @Inject constructor(
              colorSchemeProcessor.getOrGenerateColorScheme(
                  albumArtUri = uriString,
                  paletteStyle = currentPaletteStyle,
+                 colorAccuracyLevel = currentPaletteAccuracy,
                  forceRefresh = true
              )
          }

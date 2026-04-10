@@ -67,6 +67,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
+import com.theveloper.pixelplay.presentation.components.resolveNavBarSurfaceHeight
 
 const val DEFAULT_NAV_BAR_CORNER_RADIUS = 28f
 
@@ -83,7 +84,8 @@ fun NavBarCornerRadiusScreen(
         onRadiusChange = { settingsViewModel.setNavBarCornerRadius(it) },
         onDone = { navController.popBackStack() },
         onBack = { navController.popBackStack() },
-        isFullWidth = isFullWidth
+        isFullWidth = isFullWidth,
+        isCompactMode = uiState.navBarCompactMode
     )
 }
 
@@ -94,7 +96,8 @@ fun NavBarCornerRadiusContent(
     onRadiusChange: (Int) -> Unit,
     onDone: () -> Unit,
     onBack: () -> Unit,
-    isFullWidth: Boolean
+    isFullWidth: Boolean,
+    isCompactMode: Boolean = false
 ) {
     var sliderValue by remember { mutableFloatStateOf(initialRadius) }
     var hasBeenAdjusted by remember { mutableStateOf(sliderValue != DEFAULT_NAV_BAR_CORNER_RADIUS) }
@@ -305,10 +308,15 @@ fun NavBarCornerRadiusContent(
 
                 // Placeholder
                 val bottomPadding = paddingValues.calculateBottomPadding()
+                val previewHeight = resolveNavBarSurfaceHeight(
+                    navBarStyle = if (isFullWidth) NavBarStyle.FULL_WIDTH else NavBarStyle.DEFAULT,
+                    systemNavBarInset = bottomPadding,
+                    compactMode = isCompactMode
+                )
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (isFullWidth) 80.dp + bottomPadding else 80.dp)
+                        .height(previewHeight)
                         .padding(horizontal = if (isFullWidth) 0.dp else bottomPadding), // Full Width: No horizontal padding
                     color = MaterialTheme.colorScheme.onBackground,
                     shape = if (isFullWidth) {
@@ -341,4 +349,3 @@ fun NavBarCornerRadiusContent(
         }
     }
 }
-

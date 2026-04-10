@@ -393,7 +393,7 @@ private fun LibrarySheetSortDirectionCard(
 }
 
 @Composable
-private fun LibrarySheetToggleCard(
+internal fun LibrarySheetToggleCard(
     label: String,
     checked: Boolean,
     boxBackgroundColor: Color,

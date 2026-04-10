@@ -329,12 +329,12 @@ class DailyMixManager @Inject constructor(
             val noveltyScore = computeNoveltyScore(song.dateAdded, now)
             val favoriteScore = if (favoriteSongIds.contains(song.id)) 1.0 else 0.0
             val baselineScore = if (stats == null) 0.1 else 0.0
-            val noise = random.nextDouble() * 0.03
+            val noise = random.nextDouble() * 0.005 // Significantly reduced noise
 
-            val finalScore = (affinityScore * 0.4) +
-                (preferenceScore * 0.2) +
-                (recencyScore * 0.2) +
-                (favoriteScore * 0.15) +
+            val finalScore = (preferenceScore * 0.45) +
+                (affinityScore * 0.25) +
+                (recencyScore * 0.15) +
+                (favoriteScore * 0.1) +
                 (noveltyScore * 0.05) +
                 baselineScore +
                 noise
@@ -447,6 +447,33 @@ class DailyMixManager @Inject constructor(
         }
 
         return orderedResult.take(limit.coerceAtMost(orderedResult.size))
+    }
+
+    /**
+     * Gets a localized, non-randomized, highly curated list of candidates
+     * optimized to be sent to an LLM for thematic playlist generation.
+     */
+    suspend fun getTopCandidatesForAi(
+        allSongs: List<Song>,
+        favoriteSongIds: Set<String> = emptySet(),
+        limit: Int = 100
+    ): List<Song> {
+        if (allSongs.isEmpty()) {
+            return emptyList()
+        }
+
+        // Use a static seed per day to ensure the AI doesn't get wildly different lists
+        // if called multiple times in one day, preserving prompt caching.
+        val calendar = Calendar.getInstance()
+        val seed = calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR) + 42
+        val random = java.util.Random(seed.toLong())
+
+        val rankedSongs = computeRankedSongs(allSongs, favoriteSongIds, random)
+        if (rankedSongs.isEmpty()) {
+            return allSongs.take(limit.coerceAtMost(allSongs.size))
+        }
+
+        return rankedSongs.take(limit).map { it.song }
     }
 
     private fun pickWithDiversity(

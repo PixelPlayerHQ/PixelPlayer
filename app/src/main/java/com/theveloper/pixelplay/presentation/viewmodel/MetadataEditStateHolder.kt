@@ -61,6 +61,8 @@ class MetadataEditStateHolder @Inject constructor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newReplayGainTrackGainDb: String? = null,
+        newReplayGainAlbumGainDb: String? = null,
         coverArtUpdate: CoverArtUpdate?
     ): MetadataEditResult = withContext(Dispatchers.IO) {
         
@@ -112,6 +114,8 @@ class MetadataEditStateHolder @Inject constructor(
             newLyrics = trimmedLyrics,
             newTrackNumber = newTrackNumber,
             newDiscNumber = newDiscNumber,
+            newReplayGainTrackGainDb = newReplayGainTrackGainDb,
+            newReplayGainAlbumGainDb = newReplayGainAlbumGainDb,
             coverArtUpdate = finalCoverArtUpdate,
             songId = resolvedSongId,
         )

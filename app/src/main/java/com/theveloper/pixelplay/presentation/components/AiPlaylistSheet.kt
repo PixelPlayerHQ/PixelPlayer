@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.components
 
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -32,6 +33,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -59,6 +62,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
@@ -71,7 +75,10 @@ fun AiPlaylistSheet(
     onDismiss: () -> Unit,
     onGenerateClick: (prompt: String, minLength: Int, maxLength: Int) -> Unit,
     isGenerating: Boolean,
-    error: String?
+    isSuccess: Boolean,
+    status: String?,
+    error: String?,
+    onRetry: () -> Unit
 ) {
     var prompt by remember { mutableStateOf("") }
     var minLength by remember { mutableStateOf("5") }
@@ -119,7 +126,7 @@ fun AiPlaylistSheet(
         )
     }
 
-    // Animation for AI icon when generating
+    // AI UI Optimization: Infinite transitions for a "living" generative feel
     val infiniteTransition = rememberInfiniteTransition(label = "ai_animation")
     val iconRotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -140,7 +147,7 @@ fun AiPlaylistSheet(
         label = "scale"
     )
 
-    // Button press animation state
+    // AI UI Optimization: Bouncy haptic interaction for the generate button
     var isPressed by remember { mutableStateOf(false) }
     
     // Animated scale for the button - shrinks when pressed, bounces back when released
@@ -231,18 +238,18 @@ fun AiPlaylistSheet(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "AI",
+                        text = if (isSuccess) "Perfectly Curated" else "Sonic Oracle",
                         style = ExpTitleTypography.displayMedium.copy(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = colors.primary
+                        color = if (isSuccess) colors.tertiary else colors.primary
                     )
                     Text(
-                        text = "Playlist Generator",
+                        text = if (isSuccess) "Your sonic journey is ready" else "AI Playlist Generator",
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = GoogleSansRounded,
-                        color = colors.onSurfaceVariant
+                        color = if (isSuccess) colors.tertiary else colors.onSurfaceVariant
                     )
                 }
             }
@@ -320,7 +327,7 @@ fun AiPlaylistSheet(
                 maxLines = 4
             )
 
-            // Error message
+            // Error message with Retry
             AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn() + scaleIn(initialScale = 0.9f),
@@ -329,14 +336,68 @@ fun AiPlaylistSheet(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = smoothCornerShape,
-                    color = colors.errorContainer
+                    color = colors.errorContainer,
+                    onClick = onRetry
                 ) {
-                    Text(
-                        text = error ?: "",
-                        color = colors.onErrorContainer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = error ?: "",
+                            color = colors.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Rounded.Restore, null, tint = colors.error, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = "Tap to Retry",
+                                color = colors.error,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Success Feedback
+            AnimatedVisibility(
+                visible = isSuccess,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                exit = fadeOut() + scaleOut(targetScale = 0.8f)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = smoothCornerShape,
+                    color = colors.tertiaryContainer,
+                    tonalElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome, 
+                            contentDescription = null, 
+                            tint = colors.onTertiaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = status ?: "Sonic journey synthesized!",
+                            color = colors.onTertiaryContainer,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = GoogleSansRounded
+                        )
+                    }
                 }
             }
 
@@ -356,10 +417,10 @@ fun AiPlaylistSheet(
                         else 
                             colors.primaryContainer
                     )
-                    .pointerInput(prompt, isGenerating) {
+                    .pointerInput(prompt, isGenerating, isSuccess) {
                         detectTapGestures(
                             onPress = {
-                                if (prompt.isNotBlank() && !isGenerating) {
+                                if (prompt.isNotBlank() && !isGenerating && !isSuccess) {
                                     isPressed = true
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     tryAwaitRelease()
@@ -377,7 +438,22 @@ fun AiPlaylistSheet(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isGenerating) {
+                    if (isSuccess) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = colors.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Ready to Play",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onTertiaryContainer
+                        )
+                    } else if (isGenerating) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
                             strokeWidth = 2.5.dp,
@@ -385,7 +461,7 @@ fun AiPlaylistSheet(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Generating...",
+                            text = status ?: "Generating...",
                             style = MaterialTheme.typography.titleMedium,
                             fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.SemiBold,

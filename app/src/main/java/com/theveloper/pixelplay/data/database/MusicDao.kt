@@ -10,6 +10,7 @@ import androidx.room.Update
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.theveloper.pixelplay.utils.AudioMeta
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 private val SONG_SEARCH_QUERY_TOKEN_REGEX = Regex("""[\p{L}\p{N}]+""")
 private const val EMPTY_SONG_SEARCH_MATCH_QUERY = "pixelplayemptyquery*"
@@ -194,6 +195,9 @@ interface MusicDao {
     @Query("SELECT id FROM songs WHERE source_type = 5")
     suspend fun getAllNavidromeSongIds(): List<Long>
 
+    @Query("SELECT id FROM songs WHERE source_type = 6")
+    suspend fun getAllJellyfinSongIds(): List<Long>
+
     @Transaction
     suspend fun deleteSongsAndRelatedData(songIds: List<Long>) {
         if (songIds.isEmpty()) return
@@ -233,6 +237,13 @@ interface MusicDao {
         val navidromeSongIds = getAllNavidromeSongIds()
         if (navidromeSongIds.isEmpty()) return
         deleteSongsAndRelatedData(navidromeSongIds)
+    }
+
+    @Transaction
+    suspend fun clearAllJellyfinSongs() {
+        val jellyfinSongIds = getAllJellyfinSongIds()
+        if (jellyfinSongIds.isEmpty()) return
+        deleteSongsAndRelatedData(jellyfinSongIds)
     }
 
     @Transaction
@@ -381,15 +392,40 @@ interface MusicDao {
         applyDirectoryFilter: Boolean
     ): Flow<List<SongEntity>>
 
+    @Query("""
+        SELECT * FROM songs
+        WHERE (:applyDirectoryFilter = 0 OR id < 0 OR parent_directory_path IN (:allowedParentDirs))
+        AND (title LIKE '%' || :query || '%' OR artist_name LIKE '%' || :query || '%')
+        ORDER BY title ASC
+    """)
+    fun searchSongsLike(
+        query: String,
+        allowedParentDirs: List<String>,
+        applyDirectoryFilter: Boolean
+    ): Flow<List<SongEntity>>
+
     fun searchSongs(
         query: String,
         allowedParentDirs: List<String>,
         applyDirectoryFilter: Boolean
-    ): Flow<List<SongEntity>> = searchSongsMatch(
-        matchQuery = buildSongSearchMatchQuery(query),
-        allowedParentDirs = allowedParentDirs,
-        applyDirectoryFilter = applyDirectoryFilter
-    )
+    ): Flow<List<SongEntity>> {
+        val ftsFlow = searchSongsMatch(
+            matchQuery = buildSongSearchMatchQuery(query),
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter
+        )
+        val likeFlow = searchSongsLike(
+            query = query.trim(),
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter
+        )
+        return ftsFlow.combine(likeFlow) { ftsResults, likeResults ->
+            val seen = LinkedHashMap<Long, SongEntity>(ftsResults.size + likeResults.size)
+            ftsResults.forEach { seen.putIfAbsent(it.id, it) }
+            likeResults.forEach { seen.putIfAbsent(it.id, it) }
+            seen.values.toList()
+        }
+    }
 
     @Query("SELECT COUNT(*) FROM songs")
     fun getSongCount(): Flow<Int>
@@ -675,12 +711,12 @@ interface MusicDao {
     )
 
     /**
-     * Search songs with a result limit for non-paginated contexts.
+     * Search songs with a result limit for non-paginated contexts (FTS).
      */
     @Query("""
         SELECT songs.* FROM songs
         INNER JOIN songs_fts ON songs_fts.rowid = songs.id
-        WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND songs_fts MATCH :matchQuery
         ORDER BY songs.title ASC
         LIMIT :limit
@@ -692,17 +728,48 @@ interface MusicDao {
         limit: Int
     ): Flow<List<SongEntity>>
 
+    /**
+     * LIKE-based fallback search for songs that FTS tokenization may miss.
+     */
+    @Query("""
+        SELECT * FROM songs
+        WHERE (:applyDirectoryFilter = 0 OR id < 0 OR parent_directory_path IN (:allowedParentDirs))
+        AND (title LIKE '%' || :query || '%' OR artist_name LIKE '%' || :query || '%')
+        ORDER BY title ASC
+        LIMIT :limit
+    """)
+    fun searchSongsLimitedLike(
+        query: String,
+        allowedParentDirs: List<String>,
+        applyDirectoryFilter: Boolean,
+        limit: Int
+    ): Flow<List<SongEntity>>
+
     fun searchSongsLimited(
         query: String,
         allowedParentDirs: List<String>,
         applyDirectoryFilter: Boolean,
         limit: Int
-    ): Flow<List<SongEntity>> = searchSongsLimitedMatch(
-        matchQuery = buildSongSearchMatchQuery(query),
-        allowedParentDirs = allowedParentDirs,
-        applyDirectoryFilter = applyDirectoryFilter,
-        limit = limit
-    )
+    ): Flow<List<SongEntity>> {
+        val ftsFlow = searchSongsLimitedMatch(
+            matchQuery = buildSongSearchMatchQuery(query),
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter,
+            limit = limit
+        )
+        val likeFlow = searchSongsLimitedLike(
+            query = query.trim(),
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter,
+            limit = limit
+        )
+        return ftsFlow.combine(likeFlow) { ftsResults, likeResults ->
+            val seen = LinkedHashMap<Long, SongEntity>(ftsResults.size + likeResults.size)
+            ftsResults.forEach { seen.putIfAbsent(it.id, it) }
+            likeResults.forEach { seen.putIfAbsent(it.id, it) }
+            seen.values.toList().take(limit)
+        }
+    }
 
     // --- Paginated Genre Query ---
     /**

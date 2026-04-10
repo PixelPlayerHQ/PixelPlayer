@@ -73,6 +73,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import com.theveloper.pixelplay.data.equalizer.EqualizerManager
 import com.theveloper.pixelplay.data.model.WidgetThemeColors
+import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor
 import androidx.compose.ui.graphics.toArgb
@@ -1887,11 +1888,12 @@ class MusicService : MediaLibraryService() {
             artUris = artworkCandidates,
         )
 
-        // Merge two IO preference reads into a single context switch
-        val (playerTheme, paletteStyle) = withContext(Dispatchers.IO) {
-            Pair(
+        // Merge theme preference reads into a single context switch
+        val (playerTheme, paletteStyle, colorAccuracyLevel) = withContext(Dispatchers.IO) {
+            Triple(
                 themePreferencesRepository.playerThemePreferenceFlow.first(),
-                AlbumArtPaletteStyle.fromStorageKey(themePreferencesRepository.albumArtPaletteStyleFlow.first().storageKey)
+                AlbumArtPaletteStyle.fromStorageKey(themePreferencesRepository.albumArtPaletteStyleFlow.first().storageKey),
+                AlbumArtColorAccuracy.clamp(themePreferencesRepository.albumArtColorAccuracyFlow.first())
             )
         }
 
@@ -1902,13 +1904,22 @@ class MusicService : MediaLibraryService() {
                     dark = dynamicDarkColorScheme(applicationContext)
                 )
             artUriString != null ->
-                // Skip heavy palette recomputation when art + style haven't changed
-                if (artUriString == cachedSchemeArtUri && paletteStyle == cachedSchemePaletteStyle) {
+                // Skip heavy palette recomputation when art, style, and accuracy haven't changed
+                if (
+                    artUriString == cachedSchemeArtUri &&
+                    paletteStyle == cachedSchemePaletteStyle &&
+                    colorAccuracyLevel == cachedSchemeColorAccuracy
+                ) {
                     cachedColorSchemePair
                 } else {
-                    colorSchemeProcessor.getOrGenerateColorScheme(artUriString, paletteStyle).also {
+                    colorSchemeProcessor.getOrGenerateColorScheme(
+                        albumArtUri = artUriString,
+                        paletteStyle = paletteStyle,
+                        colorAccuracyLevel = colorAccuracyLevel
+                    ).also {
                         cachedSchemeArtUri = artUriString
                         cachedSchemePaletteStyle = paletteStyle
+                        cachedSchemeColorAccuracy = colorAccuracyLevel
                         cachedColorSchemePair = it
                     }
                 }
@@ -2003,9 +2014,10 @@ class MusicService : MediaLibraryService() {
         )
     }
 
-    // Color scheme cache: skip recomputation when art URI and palette style haven't changed
+    // Color scheme cache: skip recomputation when art URI, palette style, and accuracy haven't changed
     private var cachedSchemeArtUri: String? = null
     private var cachedSchemePaletteStyle: AlbumArtPaletteStyle? = null
+    private var cachedSchemeColorAccuracy: Int = AlbumArtColorAccuracy.DEFAULT
     private var cachedColorSchemePair: ColorSchemePair? = null
     private var cachedWidgetArtSourceKey: String? = null
     private var cachedWidgetArtResolvedUri: String? = null

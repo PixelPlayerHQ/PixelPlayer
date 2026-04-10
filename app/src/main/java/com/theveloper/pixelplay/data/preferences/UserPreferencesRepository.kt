@@ -108,6 +108,7 @@ constructor(
         val YOUR_MIX_SONG_IDS = stringPreferencesKey("your_mix_song_ids")
         val NAV_BAR_CORNER_RADIUS = intPreferencesKey("nav_bar_corner_radius")
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
+        val NAV_BAR_COMPACT_MODE = booleanPreferencesKey("nav_bar_compact_mode")
         val CAROUSEL_STYLE = stringPreferencesKey("carousel_style")
         val LIBRARY_NAVIGATION_MODE = stringPreferencesKey("library_navigation_mode")
         val LAUNCH_TAB = stringPreferencesKey("launch_tab")
@@ -118,6 +119,7 @@ constructor(
         val IS_FOLDER_FILTER_ACTIVE = booleanPreferencesKey("is_folder_filter_active")
         val IS_FOLDERS_PLAYLIST_VIEW = booleanPreferencesKey("is_folders_playlist_view")
         val SHOW_TELEGRAM_CLOUD_PLAYLISTS = booleanPreferencesKey("show_telegram_cloud_playlists")
+        val HIDE_LOCAL_MEDIA = booleanPreferencesKey("hide_local_media")
         val TELEGRAM_TOPIC_DISPLAY_MODE = stringPreferencesKey("telegram_topic_display_mode")
         val FOLDERS_SOURCE = stringPreferencesKey("folders_source")
         val FOLDER_BACK_GESTURE_NAVIGATION = booleanPreferencesKey("folder_back_gesture_navigation")
@@ -1210,6 +1212,17 @@ constructor(
         dataStore.edit { preferences -> preferences[PreferencesKeys.NAV_BAR_STYLE] = style }
     }
 
+    val navBarCompactModeFlow: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.NAV_BAR_COMPACT_MODE] ?: false
+            }
+
+    suspend fun setNavBarCompactMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.NAV_BAR_COMPACT_MODE] = enabled
+        }
+    }
+
     val libraryNavigationModeFlow: Flow<String> =
             dataStore.data.map { preferences ->
                 preferences[PreferencesKeys.LIBRARY_NAVIGATION_MODE]
@@ -1433,6 +1446,11 @@ constructor(
             preferences[PreferencesKeys.SHOW_TELEGRAM_CLOUD_PLAYLISTS] ?: true
         }
 
+    val hideLocalMediaFlow: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.HIDE_LOCAL_MEDIA] ?: false
+        }
+
     val telegramTopicDisplayModeFlow: Flow<TelegramTopicDisplayMode> = dataStore.data
         .map { preferences ->
             TelegramTopicDisplayMode.fromStorageKey(preferences[PreferencesKeys.TELEGRAM_TOPIC_DISPLAY_MODE])
@@ -1468,6 +1486,12 @@ constructor(
     suspend fun setShowTelegramCloudPlaylists(show: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHOW_TELEGRAM_CLOUD_PLAYLISTS] = show
+        }
+    }
+
+    suspend fun setHideLocalMedia(hide: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDE_LOCAL_MEDIA] = hide
         }
     }
 

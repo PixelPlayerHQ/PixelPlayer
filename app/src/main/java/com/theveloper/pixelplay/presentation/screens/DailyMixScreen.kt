@@ -75,11 +75,11 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.AiPlaylistSheet
 import com.theveloper.pixelplay.presentation.components.DailyMixMenu
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.threeShapeSwitch
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.MainViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -105,8 +105,9 @@ fun DailyMixScreen(
     val currentSongId by remember { playerViewModel.stablePlayerState.map { it.currentSong?.id }.distinctUntilChanged() }.collectAsStateWithLifecycle(initialValue = null)
     val isPlaying by remember { playerViewModel.stablePlayerState.map { it.isPlaying }.distinctUntilChanged() }.collectAsStateWithLifecycle(initialValue = false)
     val isShuffleEnabled by remember { playerViewModel.stablePlayerState.map { it.isShuffleEnabled }.distinctUntilChanged() }.collectAsStateWithLifecycle(initialValue = false)
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomBarHeightDp = NavBarContentHeight + systemNavBarInset
+    val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
@@ -114,7 +115,11 @@ fun DailyMixScreen(
 
     val showAiSheet by playerViewModel.showAiPlaylistSheet.collectAsStateWithLifecycle()
     val isGeneratingAiPlaylist by playerViewModel.isGeneratingAiPlaylist.collectAsStateWithLifecycle()
+    val aiStatus by playerViewModel.aiStatus.collectAsStateWithLifecycle()
     val aiError by playerViewModel.aiError.collectAsStateWithLifecycle()
+    val aiSuccess by playerViewModel.aiSuccess.collectAsStateWithLifecycle()
+    val isGeneratingAiMetadata by playerViewModel.isGeneratingAiMetadata.collectAsStateWithLifecycle()
+    val aiMetadataSuccess by playerViewModel.aiMetadataSuccess.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
 
     var showSongInfoSheet by remember { mutableStateOf(false) }
@@ -132,13 +137,18 @@ fun DailyMixScreen(
     }
 
     if (showAiSheet) {
+        // AI Integration: Premium Material 3 Expressive sheet for interactive playlist curation
         AiPlaylistSheet(
             onDismiss = { playerViewModel.dismissAiPlaylistSheet() },
             onGenerateClick = { prompt, minLength, maxLength ->
+                // Optimize: Trigger background AI generation and track real-time status
                 playerViewModel.generateAiPlaylist(prompt, minLength, maxLength, saveAsPlaylist = false)
             },
             isGenerating = isGeneratingAiPlaylist,
-            error = aiError
+            isSuccess = aiSuccess,
+            status = aiStatus,
+            error = aiError,
+            onRetry = { playerViewModel.retryLastPlaylistGeneration() }
         )
     }
 
@@ -198,13 +208,29 @@ fun DailyMixScreen(
                 }
                 showSongInfoSheet = false
             },
-            onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
-                playerViewModel.editSongMetadata(song, newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate)
+            onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                playerViewModel.editSongMetadata(
+                    song,
+                    newTitle,
+                    newArtist,
+                    newAlbum,
+                    newGenre,
+                    newLyrics,
+                    newTrackNumber,
+                    newDiscNumber,
+                    replayGainTrackGainDb,
+                    replayGainAlbumGainDb,
+                    coverArtUpdate
+                )
             },
             generateAiMetadata = { fields ->
                 playerViewModel.generateAiMetadata(song, fields)
             },
-            removeFromListTrigger = removeFromListTrigger
+            removeFromListTrigger = removeFromListTrigger,
+            isGeneratingMetadata = isGeneratingAiMetadata,
+            aiMetadataSuccess = aiMetadataSuccess,
+            aiError = aiError,
+            onRetryMetadata = { playerViewModel.retryLastMetadataGeneration() }
         )
 
         if (showPlaylistBottomSheet) {

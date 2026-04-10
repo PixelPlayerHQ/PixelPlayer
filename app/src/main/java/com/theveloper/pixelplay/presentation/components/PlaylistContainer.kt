@@ -237,6 +237,14 @@ fun PlaylistItems(
 ) {
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val playlistFastScrollLabelProvider = remember(filteredPlaylists, currentSortOption) {
+        { index: Int ->
+            playlistFastScrollLabel(
+                playlist = filteredPlaylists.getOrNull(index),
+                sortOption = currentSortOption
+            )
+        }
+    }
     var lastHandledPlaylistSortKey by remember { mutableStateOf(currentSortOption?.storageKey) }
     var pendingPlaylistSortScrollReset by remember { mutableStateOf(false) }
 
@@ -315,7 +323,8 @@ fun PlaylistItems(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-            listState = listState
+            listState = listState,
+            dragLabelProvider = playlistFastScrollLabelProvider
         )
     }
 }

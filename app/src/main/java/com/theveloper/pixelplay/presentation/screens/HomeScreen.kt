@@ -77,6 +77,7 @@ import com.theveloper.pixelplay.presentation.components.BetaInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.Beta05CleanInstallDisclaimerDialog
 import com.theveloper.pixelplay.presentation.components.ChangelogBottomSheet
 import com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardViewModel
+import com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardViewModel
 import com.theveloper.pixelplay.presentation.navidrome.dashboard.NavidromeDashboardViewModel
 import com.theveloper.pixelplay.presentation.qqmusic.dashboard.QqMusicDashboardViewModel
 import com.theveloper.pixelplay.presentation.components.DailyMixSection
@@ -115,6 +116,7 @@ fun HomeScreen(
     neteaseViewModel: NeteaseDashboardViewModel = hiltViewModel(),
     qqMusicViewModel: QqMusicDashboardViewModel = hiltViewModel(),
     navidromeViewModel: NavidromeDashboardViewModel = hiltViewModel(),
+    jellyfinViewModel: JellyfinDashboardViewModel = hiltViewModel(),
     onOpenSidebar: () -> Unit
 ) {
     val context = LocalContext.current
@@ -423,6 +425,7 @@ fun HomeScreen(
         val isNeteaseLoggedIn by neteaseViewModel.isLoggedIn.collectAsStateWithLifecycle()
         val isQqMusicLoggedIn by qqMusicViewModel.isLoggedIn.collectAsStateWithLifecycle()
         val isNavidromeLoggedIn by navidromeViewModel.isLoggedIn.collectAsStateWithLifecycle()
+        val isJellyfinLoggedIn by jellyfinViewModel.isLoggedIn.collectAsStateWithLifecycle()
         StreamingProviderSheet(
             onDismissRequest = { showStreamingProviderSheet = false },
             isNeteaseLoggedIn = isNeteaseLoggedIn,
@@ -436,6 +439,10 @@ fun HomeScreen(
             isNavidromeLoggedIn = isNavidromeLoggedIn,
             onNavigateToNavidromeDashboard = {
                 navController.navigateSafely(Screen.NavidromeDashboard.route)
+            },
+            isJellyfinLoggedIn = isJellyfinLoggedIn,
+            onNavigateToJellyfinDashboard = {
+                navController.navigateSafely(Screen.JellyfinDashboard.route)
             }
         )
     }

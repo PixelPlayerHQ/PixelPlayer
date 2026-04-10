@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,24 +30,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.Genre
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.getNavigationBarHeight
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.utils.GenreIconProvider
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -76,6 +77,7 @@ fun GenreCategoriesGrid(
 
     // Persistence: Collect from ViewModel
     val isGridView by playerViewModel.isGenreGridView.collectAsStateWithLifecycle()
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
 
     LazyVerticalGrid(
         columns = if (isGridView) GridCells.Fixed(2) else GridCells.Fixed(1),
@@ -94,7 +96,7 @@ fun GenreCategoriesGrid(
             )),
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = 28.dp + NavBarContentHeight + MiniPlayerHeight + systemNavBarHeight
+            bottom = 28.dp + resolveNavBarOccupiedHeight(systemNavBarHeight, navBarCompactMode) + MiniPlayerHeight
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -197,12 +199,34 @@ private fun GenreCard(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(24.dp))
                 .background(backgroundColor)
         ) {
+            val textMeasurer = rememberTextMeasurer()
+            val density = LocalDensity.current
+            val titleStartPadding = 14.dp
+            val titleEndPadding = 14.dp
+            val titlePresentation = remember(
+                genre.id,
+                genre.name,
+                isGridView,
+                maxWidth,
+                density.density,
+                density.fontScale
+            ) {
+                GenreTypography.resolveTitlePresentation(
+                    genreId = genre.id,
+                    genreName = genre.name,
+                    isGridView = isGridView,
+                    cardWidthPx = with(density) { maxWidth.roundToPx() },
+                    horizontalPaddingPx = with(density) { titleStartPadding.roundToPx() },
+                    textMeasurer = textMeasurer
+                )
+            }
+
             // Imagen del género en esquina inferior derecha
             Box(
                 modifier = Modifier
@@ -222,26 +246,37 @@ private fun GenreCard(
             }
 
             // Nombre del género en esquina superior izquierda
-            val baseStyle = GenreTypography.getGenreStyle(genre.id, genre.name)
-            val finalStyle = if (isGridView) baseStyle else baseStyle.copy(
-                fontSize = baseStyle.fontSize * 1.3f // 30% larger in List View
-            )
-
-            Text(
-                text = genre.name,
-                style = finalStyle.copy(
-                    lineHeight = 24.sp 
-                ),
-                color = onBackgroundColor,
-                softWrap = true,
-                minLines = 1,
-                maxLines = 3, 
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .fillMaxWidth(if (isGridView) 0.65f else 0.8f) // More width in List View (80%)
-                    .padding(start = 14.dp, top = 14.dp, end = 0.dp)
-            )
+                    .fillMaxWidth()
+                    .padding(start = titleStartPadding, top = 14.dp, end = titleEndPadding),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                Text(
+                    text = titlePresentation.firstLine,
+                    style = titlePresentation.style,
+                    color = onBackgroundColor,
+                    softWrap = false,
+                    minLines = 1,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                titlePresentation.secondLine?.let { secondLine ->
+                    Text(
+                        text = secondLine,
+                        style = titlePresentation.style,
+                        color = onBackgroundColor,
+                        softWrap = false,
+                        minLines = 1,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(titlePresentation.secondLineWidthFraction)
+                    )
+                }
+            }
         }
     }
 }

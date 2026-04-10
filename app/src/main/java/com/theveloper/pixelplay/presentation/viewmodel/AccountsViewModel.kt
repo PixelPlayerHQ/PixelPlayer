@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.gdrive.GDriveRepository
+import com.theveloper.pixelplay.data.jellyfin.JellyfinRepository
 import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
 import com.theveloper.pixelplay.data.netease.NeteaseRepository
 import com.theveloper.pixelplay.data.qqmusic.QqMusicRepository
@@ -26,7 +27,8 @@ enum class ExternalServiceAccount {
     GOOGLE_DRIVE,
     NETEASE,
     QQ_MUSIC,
-    NAVIDROME
+    NAVIDROME,
+    JELLYFIN
 }
 
 data class ExternalAccountUiModel(
@@ -49,7 +51,8 @@ class AccountsViewModel @Inject constructor(
     private val gDriveRepository: GDriveRepository,
     private val neteaseRepository: NeteaseRepository,
     private val qqMusicRepository: QqMusicRepository,
-    private val navidromeRepository: NavidromeRepository
+    private val navidromeRepository: NavidromeRepository,
+    private val jellyfinRepository: JellyfinRepository
 ) : ViewModel() {
 
     private val loggingOutServices = MutableStateFlow<Set<ExternalServiceAccount>>(emptySet())
@@ -91,16 +94,24 @@ class AccountsViewModel @Inject constructor(
         connected to playlistCount
     }
 
+    private val jellyfinStateFlow = combine(
+        jellyfinRepository.isLoggedInFlow,
+        jellyfinRepository.getPlaylists().map { it.size }
+    ) { connected, playlistCount ->
+        connected to playlistCount
+    }
+
     val uiState: StateFlow<AccountsUiState> = combine(
         combine(
-            telegramStateFlow,
-            gDriveStateFlow,
-            neteaseStateFlow,
-            qqMusicStateFlow,
-            navidromeStateFlow
-        ) { telegram, gdrive, netease, qq, navidrome ->
-            listOf(telegram, gdrive, netease, qq, navidrome)
-        },
+            listOf(
+                telegramStateFlow,
+                gDriveStateFlow,
+                neteaseStateFlow,
+                qqMusicStateFlow,
+                navidromeStateFlow,
+                jellyfinStateFlow
+            )
+        ) { it.toList() },
         loggingOutServices
     ) { states, activeLogouts ->
         val (telegramConnected, telegramChannelCount) = states[0] as Pair<Boolean, Int>
@@ -108,6 +119,7 @@ class AccountsViewModel @Inject constructor(
         val (neteaseConnected, neteasePlaylistCount) = states[2] as Pair<Boolean, Int>
         val (qqConnected, qqPlaylistCount) = states[3] as Pair<Boolean, Int>
         val (navidromeConnected, navidromePlaylistCount) = states[4] as Pair<Boolean, Int>
+        val (jellyfinConnected, jellyfinPlaylistCount) = states[5] as Pair<Boolean, Int>
 
         val connectedAccounts = buildList {
             if (telegramConnected) {
@@ -195,6 +207,23 @@ class AccountsViewModel @Inject constructor(
                     )
                 )
             }
+            if (jellyfinConnected) {
+                add(
+                    ExternalAccountUiModel(
+                        service = ExternalServiceAccount.JELLYFIN,
+                        title = "Jellyfin",
+                        accountLabel = jellyfinRepository.username
+                            ?.takeIf { it.isNotBlank() }
+                            ?: "Jellyfin account connected",
+                        syncedContentLabel = formatCount(
+                            count = jellyfinPlaylistCount,
+                            singular = "synced playlist",
+                            plural = "synced playlists"
+                        ),
+                        isLoggingOut = ExternalServiceAccount.JELLYFIN in activeLogouts
+                    )
+                )
+            }
         }
 
         val disconnectedServices = buildList {
@@ -203,6 +232,7 @@ class AccountsViewModel @Inject constructor(
             if (!neteaseConnected) add(ExternalServiceAccount.NETEASE)
             if (!qqConnected) add(ExternalServiceAccount.QQ_MUSIC)
             if (!navidromeConnected) add(ExternalServiceAccount.NAVIDROME)
+            if (!jellyfinConnected) add(ExternalServiceAccount.JELLYFIN)
         }
 
         AccountsUiState(
@@ -228,6 +258,7 @@ class AccountsViewModel @Inject constructor(
                         ExternalServiceAccount.NETEASE -> neteaseRepository.logout()
                         ExternalServiceAccount.QQ_MUSIC -> qqMusicRepository.logout()
                         ExternalServiceAccount.NAVIDROME -> navidromeRepository.logout()
+                        ExternalServiceAccount.JELLYFIN -> jellyfinRepository.logout()
                     }
                 }
             } finally {

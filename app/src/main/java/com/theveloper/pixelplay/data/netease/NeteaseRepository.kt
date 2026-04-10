@@ -2,6 +2,8 @@ package com.theveloper.pixelplay.data.netease
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.theveloper.pixelplay.data.database.AlbumEntity
 import com.theveloper.pixelplay.data.database.ArtistEntity
 import com.theveloper.pixelplay.data.database.MusicDao
@@ -56,8 +58,21 @@ class NeteaseRepository @Inject constructor(
         private const val NETEASE_MAX_PLAYLIST_PAGES = 200
     }
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("netease_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "netease_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "NeteaseRepository: Failed to create EncryptedSharedPreferences, falling back to plain")
+        context.getSharedPreferences("netease_prefs_plain", Context.MODE_PRIVATE)
+    }
 
     private val _isLoggedInFlow = MutableStateFlow(false)
     val isLoggedInFlow: StateFlow<Boolean> = _isLoggedInFlow.asStateFlow()
@@ -74,7 +89,7 @@ class NeteaseRepository @Inject constructor(
         // Auto-load saved cookies on creation so API client is ready
         initFromSavedCookies()
         _isLoggedInFlow.value = api.hasLogin()
-        Timber.d("NeteaseRepository init: isLoggedIn=${api.hasLogin()}, userId=${prefs.getLong("netease_user_id", -1L)}")
+        Timber.d("NeteaseRepository init: isLoggedIn=${api.hasLogin()}")
     }
 
     // ─── Auth State ────────────────────────────────────────────────────
@@ -115,51 +130,40 @@ class NeteaseRepository @Inject constructor(
     suspend fun loginWithCookies(cookieJson: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                Timber.d("loginWithCookies: starting, json length=${cookieJson.length}")
                 val cookies = jsonToMap(cookieJson)
-                Timber.d("loginWithCookies: parsed ${cookies.size} cookies, keys=${cookies.keys}")
-                
+
                 if (!cookies.containsKey("MUSIC_U")) {
-                    Timber.w("loginWithCookies: MUSIC_U not found in cookies!")
+                    Timber.w("loginWithCookies: required session cookie not found")
                     return@withContext Result.failure(Exception("MUSIC_U cookie not found"))
                 }
-                Timber.d("loginWithCookies: MUSIC_U found (${cookies["MUSIC_U"]?.take(20)}...)")
 
                 // Persist cookies
                 prefs.edit().putString("netease_cookies", cookieJson).apply()
-                Timber.d("loginWithCookies: cookies saved to prefs")
 
                 // Initialize API client with cookies
                 api.setPersistedCookies(cookies)
-                Timber.d("loginWithCookies: cookies set on API client, hasLogin=${api.hasLogin()}")
 
                 // Fetch user info
-                Timber.d("loginWithCookies: fetching user account info...")
                 val userAccountRaw = api.getCurrentUserAccount()
-                Timber.d("loginWithCookies: got response, length=${userAccountRaw.length}")
-                Timber.d("loginWithCookies: response preview: ${userAccountRaw.take(300)}")
-                
                 val root = JSONObject(userAccountRaw)
                 val code = root.optInt("code", -1)
-                Timber.d("loginWithCookies: response code=$code")
-                
                 val profile = root.optJSONObject("profile")
 
                 if (profile != null) {
                     val uid = profile.optLong("userId")
                     val nickname = profile.optString("nickname", "User")
                     val avatarUrl = profile.optString("avatarUrl", "")
-                    Timber.d("loginWithCookies: SUCCESS! userId=$uid, nickname=$nickname")
+                    Timber.d("loginWithCookies: login successful")
 
                     saveUserInfo(uid, nickname, avatarUrl)
                     _isLoggedInFlow.value = true
                     Result.success(nickname)
                 } else {
-                    Timber.w("loginWithCookies: No profile in response. Full response: ${userAccountRaw.take(500)}")
+                    Timber.w("loginWithCookies: No profile in response (code=$code)")
                     Result.failure(Exception("Failed to fetch user profile (code=$code)"))
                 }
             } catch (e: Exception) {
-                Timber.e(e, "loginWithCookies: FAILED with exception")
+                Timber.e(e, "loginWithCookies: failed")
                 Result.failure(e)
             }
         }

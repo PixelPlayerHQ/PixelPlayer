@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.theveloper.pixelplay.BottomNavItem
@@ -34,7 +35,29 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal val NavBarContentHeight = 90.dp // Altura del contenido de la barra de navegación
+internal val NavBarCompactContentHeight = 64.dp
 internal val NavBarContentHeightFullWidth = NavBarContentHeight // Altura del contenido de la barra de navegación en modo completo
+
+internal fun resolveNavBarContentHeight(compactMode: Boolean): Dp =
+    if (compactMode) NavBarCompactContentHeight else NavBarContentHeight
+
+internal fun resolveNavBarSurfaceHeight(
+    navBarStyle: String,
+    systemNavBarInset: Dp,
+    compactMode: Boolean
+): Dp {
+    val contentHeight = resolveNavBarContentHeight(compactMode)
+    return if (navBarStyle == NavBarStyle.FULL_WIDTH) {
+        contentHeight + systemNavBarInset
+    } else {
+        contentHeight
+    }
+}
+
+internal fun resolveNavBarOccupiedHeight(
+    systemNavBarInset: Dp,
+    compactMode: Boolean
+): Dp = resolveNavBarContentHeight(compactMode) + systemNavBarInset
 
 @Composable
 private fun PlayerInternalNavigationItemsRow(
@@ -43,6 +66,7 @@ private fun PlayerInternalNavigationItemsRow(
     currentRoute: String?,
     modifier: Modifier = Modifier,
     navBarStyle: String,
+    compactMode: Boolean,
     onSearchIconDoubleTap: () -> Unit
 ) {
     val navBarInsetPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -93,8 +117,12 @@ private fun PlayerInternalNavigationItemsRow(
                     )
                 }
             }
-            val labelLambda: @Composable () -> Unit = remember(item.label) {
-                { Text(item.label) }
+            val labelLambda: (@Composable () -> Unit)? = if (compactMode) {
+                null
+            } else {
+                remember(item.label) {
+                    { Text(item.label) }
+                }
             }
             val onClickLambda: () -> Unit = remember(item.screen.route, navController, scope) {
                 click@{
@@ -143,6 +171,7 @@ private fun PlayerInternalNavigationItemsRow(
                 selected = isSelected,
                 onClick = onClickLambda,
                 enabled = currentRoute != null,
+                compactMode = compactMode,
                 icon = iconLambda,
                 selectedIcon = selectedIconLambda,
                 label = labelLambda,
@@ -165,6 +194,7 @@ fun PlayerInternalNavigationBar(
     currentRoute: String?,
     modifier: Modifier = Modifier,
     navBarStyle: String,
+    compactMode: Boolean,
     onSearchIconDoubleTap: () -> Unit = {}
 ) {
     PlayerInternalNavigationItemsRow(
@@ -172,6 +202,7 @@ fun PlayerInternalNavigationBar(
         navItems = navItems,
         currentRoute = currentRoute,
         navBarStyle = navBarStyle,
+        compactMode = compactMode,
         onSearchIconDoubleTap = onSearchIconDoubleTap,
         modifier = modifier
     )

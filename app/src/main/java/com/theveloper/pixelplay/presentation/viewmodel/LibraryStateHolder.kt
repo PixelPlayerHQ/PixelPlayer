@@ -71,6 +71,19 @@ class LibraryStateHolder @Inject constructor(
     private val _currentStorageFilter = MutableStateFlow(com.theveloper.pixelplay.data.model.StorageFilter.ALL)
     val currentStorageFilter = _currentStorageFilter.asStateFlow()
 
+    /**
+     * Effective storage filter that accounts for the "hide local media" preference.
+     * When hideLocalMedia is true, forces ONLINE filter (excludes source_type = 0).
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val effectiveStorageFilter: kotlinx.coroutines.flow.Flow<com.theveloper.pixelplay.data.model.StorageFilter> =
+        kotlinx.coroutines.flow.combine(
+            _currentStorageFilter,
+            userPreferencesRepository.hideLocalMediaFlow
+        ) { filter, hideLocal ->
+            if (hideLocal) com.theveloper.pixelplay.data.model.StorageFilter.ONLINE else filter
+        }
+
     private fun effectiveFoldersStorageFilter(
         selectedFilter: com.theveloper.pixelplay.data.model.StorageFilter
     ): com.theveloper.pixelplay.data.model.StorageFilter {
@@ -83,7 +96,7 @@ class LibraryStateHolder @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val songsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
-        kotlinx.coroutines.flow.combine(_currentSongSortOption, _currentStorageFilter) { sort, filter ->
+        kotlinx.coroutines.flow.combine(_currentSongSortOption, effectiveStorageFilter) { sort, filter ->
             sort to filter
         }.flatMapLatest { (sortOption, filter) ->
             musicRepository.getPaginatedSongs(sortOption, filter)
@@ -105,7 +118,7 @@ class LibraryStateHolder @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
-        kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, _currentStorageFilter) { sort, filter ->
+        kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, effectiveStorageFilter) { sort, filter ->
             sort to filter
         }.flatMapLatest { (sortOption, storageFilter) ->
             musicRepository.getPaginatedFavoriteSongs(sortOption, storageFilter)
@@ -113,7 +126,7 @@ class LibraryStateHolder @Inject constructor(
         .flowOn(Dispatchers.IO)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = _currentStorageFilter
+    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = effectiveStorageFilter
         .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
         .flowOn(Dispatchers.IO)
 
@@ -232,7 +245,7 @@ class LibraryStateHolder @Inject constructor(
         albumsJob = scope?.launch {
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            _currentStorageFilter.flatMapLatest { filter ->
+            effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getAlbums(filter)
             }.collect { albums ->
                 _albums.value = albums.toImmutableList()
@@ -244,7 +257,7 @@ class LibraryStateHolder @Inject constructor(
         artistsJob = scope?.launch {
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            _currentStorageFilter.flatMapLatest { filter ->
+            effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
             }.collect { artists ->
                 _artists.value = artists.toImmutableList()
@@ -255,7 +268,7 @@ class LibraryStateHolder @Inject constructor(
 
         foldersJob = scope?.launch {
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            _currentStorageFilter.flatMapLatest { filter ->
+            effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
             }.collect { folders ->
                 _musicFolders.value = folders.toImmutableList()

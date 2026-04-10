@@ -1,19 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Exclude all credential/token stores from cloud backup -->
+        <exclude domain="sharedpref" path="jellyfin_prefs.xml"/>
+        <exclude domain="sharedpref" path="navidrome_prefs.xml"/>
+        <exclude domain="sharedpref" path="netease_prefs.xml"/>
+        <exclude domain="sharedpref" path="gdrive_prefs.xml"/>
+        <exclude domain="sharedpref" path="qqmusic_prefs.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Also exclude from device-to-device transfers — user must re-authenticate -->
+        <exclude domain="sharedpref" path="jellyfin_prefs.xml"/>
+        <exclude domain="sharedpref" path="navidrome_prefs.xml"/>
+        <exclude domain="sharedpref" path="netease_prefs.xml"/>
+        <exclude domain="sharedpref" path="gdrive_prefs.xml"/>
+        <exclude domain="sharedpref" path="qqmusic_prefs.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

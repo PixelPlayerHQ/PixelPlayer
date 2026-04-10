@@ -7,6 +7,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import com.theveloper.pixelplay.data.provider.SharedArtworkContentProvider
 import com.theveloper.pixelplay.data.model.Song
 import java.io.File
 
@@ -209,7 +210,19 @@ object MediaItemBuilder {
     fun externalControllerArtworkUri(context: Context, rawArtworkUri: String?): Uri? {
         if (LocalArtworkUri.isLocalArtworkUri(rawArtworkUri)) {
             val songId = rawArtworkUri?.let(LocalArtworkUri::parseSongId) ?: return null
-            return AlbumArtUtils.getCachedAlbumArtUri(context.applicationContext, songId)
+            return SharedArtworkContentProvider.buildSongUri(
+                context = context.applicationContext,
+                songId = songId,
+                cacheBustToken = LocalArtworkUri.extractCacheBustToken(rawArtworkUri)
+            )
+        }
+
+        LocalArtworkUri.parseSongIdFromVolatileArtworkUri(rawArtworkUri)?.let { songId ->
+            return SharedArtworkContentProvider.buildSongUri(
+                context = context.applicationContext,
+                songId = songId,
+                cacheBustToken = LocalArtworkUri.extractCacheBustToken(rawArtworkUri)
+            )
         }
 
         val normalizedUri = normalizeArtworkUri(rawArtworkUri, SUPPORTED_EXTERNAL_ARTWORK_SCHEMES)

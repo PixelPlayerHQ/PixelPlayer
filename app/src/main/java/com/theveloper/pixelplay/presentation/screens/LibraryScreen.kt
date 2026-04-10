@@ -136,8 +136,8 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
@@ -390,7 +390,8 @@ private data class LibraryScreenPlayerProjection(
     val isLoadingLibraryCategories: Boolean = true,
     val isGeneratingAiMetadata: Boolean = false,
     val isSyncingLibrary: Boolean = false,
-    val isLoadingInitialSongs: Boolean = true
+    val isLoadingInitialSongs: Boolean = true,
+    val hideLocalMedia: Boolean = false
 )
 
 private fun PlayerUiState.toLibraryScreenProjection(): LibraryScreenPlayerProjection =
@@ -411,7 +412,8 @@ private fun PlayerUiState.toLibraryScreenProjection(): LibraryScreenPlayerProjec
         isLoadingLibraryCategories = isLoadingLibraryCategories,
         isGeneratingAiMetadata = isGeneratingAiMetadata,
         isSyncingLibrary = isSyncingLibrary,
-        isLoadingInitialSongs = isLoadingInitialSongs
+        isLoadingInitialSongs = isLoadingInitialSongs,
+        hideLocalMedia = hideLocalMedia
     )
 
 @RequiresApi(Build.VERSION_CODES.R)
@@ -727,7 +729,8 @@ fun LibraryScreen(
     ) // UI sin cambios
 
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomBarHeightDp = NavBarContentHeight + systemNavBarInset
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
+    val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
 
     val dm = LocalPixelPlayDarkTheme.current
 
@@ -1340,8 +1343,8 @@ fun LibraryScreen(
                                         }
                                     }
                                 } else null,
-                                extraContent = if (isPlaylistsTab && playlistUiState.showTelegramCloudPlaylists) {
-                                    {
+                                extraContent = {
+                                    if (isPlaylistsTab && playlistUiState.showTelegramCloudPlaylists) {
                                         Text(
                                             text = "Topics Display",
                                             style = MaterialTheme.typography.headlineSmall,
@@ -1374,7 +1377,25 @@ fun LibraryScreen(
                                             }
                                         }
                                     }
-                                } else null
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "Cloud",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
+                                    )
+                                    com.theveloper.pixelplay.presentation.components.LibrarySheetToggleCard(
+                                        label = "Cloud Only",
+                                        checked = playerUiState.hideLocalMedia,
+                                        boxBackgroundColor = if (playerUiState.hideLocalMedia)
+                                            MaterialTheme.colorScheme.tertiary
+                                        else
+                                            MaterialTheme.colorScheme.surfaceContainerLow,
+                                        boxCornerRadius = if (playerUiState.hideLocalMedia) 18.dp else 50.dp,
+                                        onCheckedChange = { playerViewModel.setHideLocalMedia(it) }
+                                    )
+                                }
                             )
                         }
 
@@ -1789,8 +1810,20 @@ fun LibraryScreen(
                     }
                     showSongInfoBottomSheet = false
                 },
-                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
-                    playerViewModel.editSongMetadata(currentSong, newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate)
+                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                    playerViewModel.editSongMetadata(
+                        currentSong,
+                        newTitle,
+                        newArtist,
+                        newAlbum,
+                        newGenre,
+                        newLyrics,
+                        newTrackNumber,
+                        newDiscNumber,
+                        replayGainTrackGainDb,
+                        replayGainAlbumGainDb,
+                        coverArtUpdate
+                    )
                 },
                 generateAiMetadata = { fields ->
                     playerViewModel.generateAiMetadata(currentSong, fields)

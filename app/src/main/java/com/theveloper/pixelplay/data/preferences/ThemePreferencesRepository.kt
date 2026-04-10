@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.preferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +17,7 @@ class ThemePreferencesRepository @Inject constructor(
     private object Keys {
         val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference_v2")
         val ALBUM_ART_PALETTE_STYLE = stringPreferencesKey("album_art_palette_style_v1")
+        val ALBUM_ART_COLOR_ACCURACY = intPreferencesKey("album_art_color_accuracy_v1")
         val APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
     }
 
@@ -29,6 +31,10 @@ class ThemePreferencesRepository @Inject constructor(
 
     val albumArtPaletteStyleFlow: Flow<AlbumArtPaletteStyle> = dataStore.data.map { preferences ->
         AlbumArtPaletteStyle.fromStorageKey(preferences[Keys.ALBUM_ART_PALETTE_STYLE])
+    }
+
+    val albumArtColorAccuracyFlow: Flow<Int> = dataStore.data.map { preferences ->
+        AlbumArtColorAccuracy.clamp(preferences[Keys.ALBUM_ART_COLOR_ACCURACY] ?: AlbumArtColorAccuracy.DEFAULT)
     }
 
     suspend fun setPlayerThemePreference(themeMode: String) =
@@ -52,4 +58,17 @@ class ThemePreferencesRepository @Inject constructor(
         dataStore.edit { preferences ->
             preferences[Keys.ALBUM_ART_PALETTE_STYLE] = style.storageKey
         }
+
+    suspend fun setAlbumArtColorAccuracy(level: Int) =
+        dataStore.edit { preferences ->
+            preferences[Keys.ALBUM_ART_COLOR_ACCURACY] = AlbumArtColorAccuracy.clamp(level)
+        }
+
+    suspend fun setAlbumArtPaletteSettings(
+        style: AlbumArtPaletteStyle,
+        accuracyLevel: Int
+    ) = dataStore.edit { preferences ->
+        preferences[Keys.ALBUM_ART_PALETTE_STYLE] = style.storageKey
+        preferences[Keys.ALBUM_ART_COLOR_ACCURACY] = AlbumArtColorAccuracy.clamp(accuracyLevel)
+    }
 }

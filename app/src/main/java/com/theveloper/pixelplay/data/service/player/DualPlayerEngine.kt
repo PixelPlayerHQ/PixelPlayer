@@ -62,6 +62,7 @@ class DualPlayerEngine @Inject constructor(
     private val neteaseStreamProxy: NeteaseStreamProxy,
     private val qqMusicStreamProxy: QqMusicStreamProxy,
     private val navidromeStreamProxy: NavidromeStreamProxy,
+    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
@@ -156,7 +157,7 @@ class DualPlayerEngine @Inject constructor(
                         val nextUri = nextItem.localConfiguration?.uri
                         if (nextUri?.scheme == "telegram") {
                             telegramRepository.preResolveTelegramUri(nextUri.toString())
-                        } else if (nextUri?.scheme == "netease" || nextUri?.scheme == "qqmusic" || nextUri?.scheme == "navidrome") {
+                        } else if (nextUri?.scheme == "netease" || nextUri?.scheme == "qqmusic" || nextUri?.scheme == "navidrome" || nextUri?.scheme == "jellyfin") {
                             scope.launch { resolveCloudUri(nextUri) }
                         }
                     }
@@ -166,7 +167,7 @@ class DualPlayerEngine @Inject constructor(
                         val prevUri = prevItem.localConfiguration?.uri
                         if (prevUri?.scheme == "telegram") {
                             telegramRepository.preResolveTelegramUri(prevUri.toString())
-                        } else if (prevUri?.scheme == "netease" || prevUri?.scheme == "qqmusic" || prevUri?.scheme == "navidrome") {
+                        } else if (prevUri?.scheme == "netease" || prevUri?.scheme == "qqmusic" || prevUri?.scheme == "navidrome" || prevUri?.scheme == "jellyfin") {
                             scope.launch { resolveCloudUri(prevUri) }
                         }
                     }
@@ -327,7 +328,7 @@ class DualPlayerEngine @Inject constructor(
             override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
                 val uri = dataSpec.uri
                 val scheme = uri.scheme
-                if (scheme == "telegram" || scheme == "netease" || scheme == "qqmusic" || scheme == "navidrome") {
+                if (scheme == "telegram" || scheme == "netease" || scheme == "qqmusic" || scheme == "navidrome" || scheme == "jellyfin") {
                     val originalUri = uri.toString()
                     val resolved = resolvedUriCache[originalUri]
                     if (resolved != null) {
@@ -417,6 +418,7 @@ class DualPlayerEngine @Inject constructor(
             "netease" -> resolveNeteaseUriAsync(uriString)
             "qqmusic" -> resolveQqMusicUriAsync(uriString)
             "navidrome" -> resolveNavidromeUriAsync(uriString)
+            "jellyfin" -> resolveJellyfinUriAsync(uriString)
             else -> null
         }
 
@@ -534,6 +536,26 @@ class DualPlayerEngine @Inject constructor(
         return null
     }
 
+    private suspend fun resolveJellyfinUriAsync(uriString: String): Uri? {
+        Timber.tag("DualPlayerEngine").d("Async resolving Jellyfin URI: $uriString")
+
+        val proxyReady = jellyfinStreamProxy.ensureReady(5_000L)
+        if (!proxyReady) {
+            Timber.tag("DualPlayerEngine").e("JellyfinStreamProxy not ready after timeout")
+            return null
+        }
+
+        jellyfinStreamProxy.warmUpStreamUrl(uriString)
+
+        val proxyUrl = jellyfinStreamProxy.resolveJellyfinUri(uriString)
+        if (!proxyUrl.isNullOrBlank()) {
+            return Uri.parse(proxyUrl)
+        }
+
+        Timber.tag("DualPlayerEngine").w("Failed to resolve Jellyfin URI: $uriString")
+        return null
+    }
+
     /**
      * Resolves a MediaItem's cloud URI (if any) and returns a copy with the resolved URI.
      * For non-cloud URIs, returns the original MediaItem unchanged.
@@ -541,7 +563,7 @@ class DualPlayerEngine @Inject constructor(
     suspend fun resolveMediaItem(mediaItem: MediaItem): MediaItem {
         val uri = mediaItem.localConfiguration?.uri ?: return mediaItem
         val scheme = uri.scheme
-        if (scheme != "telegram" && scheme != "netease" && scheme != "qqmusic" && scheme != "navidrome") return mediaItem
+        if (scheme != "telegram" && scheme != "netease" && scheme != "qqmusic" && scheme != "navidrome" && scheme != "jellyfin") return mediaItem
 
         val resolvedUri = resolveCloudUri(uri)
         if (resolvedUri == uri) return mediaItem // Resolution failed or not needed

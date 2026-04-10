@@ -6,6 +6,17 @@ import org.junit.Test
 class ExpressiveScrollBarMetricsTest {
 
     @Test
+    fun resolveDragTargetIndex_mapsBottomProgressToLastItem() {
+        assertEquals(99, resolveDragTargetIndex(progress = 1f, maxScrollIndex = 90, totalItemsCount = 100))
+    }
+
+    @Test
+    fun extractFastScrollGlyph_skipsPunctuationAndBucketsNumbers() {
+        assertEquals("A", extractFastScrollGlyph("...album"))
+        assertEquals("#", extractFastScrollGlyph("1999"))
+    }
+
+    @Test
     fun distanceBeforeIndex_preservesObservedOutlierStrides() {
         val tracker = AxisObservationTracker()
 

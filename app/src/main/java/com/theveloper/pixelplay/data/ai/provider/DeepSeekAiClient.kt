@@ -54,18 +54,30 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
         isLenient = true
     }
     
-    override suspend fun generateContent(model: String, prompt: String): String {
+    override suspend fun generateContent(
+        model: String, 
+        systemPrompt: String, 
+        prompt: String,
+        temperature: Float
+    ): String {
         return withContext(Dispatchers.IO) {
+            val messagesList = mutableListOf<ChatMessage>()
+            if (systemPrompt.isNotBlank()) {
+                messagesList.add(ChatMessage(role = "system", content = systemPrompt))
+            }
+            messagesList.add(ChatMessage(role = "user", content = prompt))
+
             val requestBody = ChatRequest(
                 model = model.ifBlank { DEFAULT_DEEPSEEK_MODEL },
-                messages = listOf(ChatMessage(role = "user", content = prompt))
+                messages = messagesList,
+                temperature = temperature.toDouble()
             )
             
             val jsonBody = json.encodeToString(ChatRequest.serializer(), requestBody)
             val body = jsonBody.toRequestBody("application/json".toMediaType())
             
             val request = Request.Builder()
-                .url("$BASE_URL/v1/chat/completions")
+                .url("$BASE_URL/chat/completions")
                 .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json")
                 .post(body)
@@ -86,11 +98,16 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
         }
     }
     
+    override suspend fun countTokens(model: String, systemPrompt: String, prompt: String): Int {
+        // DeepSeek estimation
+        return (systemPrompt.length + prompt.length) / 4
+    }
+    
     override suspend fun getAvailableModels(apiKey: String): List<String> {
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder()
-                    .url("$BASE_URL/v1/models")
+                    .url("$BASE_URL/models")
                     .addHeader("Authorization", "Bearer $apiKey")
                     .get()
                     .build()
@@ -114,7 +131,7 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder()
-                    .url("$BASE_URL/v1/models")
+                    .url("$BASE_URL/models")
                     .addHeader("Authorization", "Bearer $apiKey")
                     .get()
                     .build()

@@ -51,6 +51,7 @@ import kotlinx.coroutines.launch
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.LoadState
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
+import com.theveloper.pixelplay.presentation.components.songFastScrollLabel
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -81,6 +82,14 @@ fun LibrarySongsTab(
     val coroutineScope = rememberCoroutineScope()
     val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
     val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
+    val songFastScrollLabelProvider = remember(songs, sortOption) {
+        { index: Int ->
+            songFastScrollLabel(
+                song = songs.peek(index),
+                sortOption = sortOption
+            )
+        }
+    }
     var lastHandledSongSortKey by remember { mutableStateOf(sortOption.storageKey) }
     var pendingSongSortScrollReset by remember { mutableStateOf(false) }
     var songSortSawRefreshLoading by remember { mutableStateOf(false) }
@@ -362,7 +371,8 @@ fun LibrarySongsTab(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                            listState = listState
+                            listState = listState,
+                            dragLabelProvider = songFastScrollLabelProvider
                         )
                     }
                 }

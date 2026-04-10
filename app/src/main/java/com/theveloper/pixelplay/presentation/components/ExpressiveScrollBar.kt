@@ -21,10 +21,13 @@ import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -36,6 +39,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
@@ -216,7 +220,10 @@ fun ExpressiveScrollBar(
     indicatorExpandedWidthBoost: Dp = 4.dp,
     indicatorRightCornerRadius: Dp = 6.dp,
     paddingEnd: Dp = 4.dp,
-    trackGap: Dp = 8.dp
+    trackGap: Dp = 8.dp,
+    dragLabelProvider: ((Int) -> String?)? = null,
+    dragLabelSize: Dp = 40.dp,
+    dragLabelGap: Dp = 10.dp
 ) {
     val listMetricsTracker = remember(listState) { AxisObservationTracker() }
     val gridMetricsTracker = remember(gridState) { AxisObservationTracker() }
@@ -224,6 +231,7 @@ fun ExpressiveScrollBar(
     var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(-1f) }
     var pendingScrollIndex by remember { mutableIntStateOf(-1) }
+    var retainedDragLabel by remember { mutableStateOf<String?>(null) }
     val displayedProgress = remember { Animatable(0f) }
     var hasSyncedDisplayedProgress by remember { mutableStateOf(false) }
 
@@ -418,8 +426,11 @@ fun ExpressiveScrollBar(
             val newProgress = (targetHandleTop / scrollableHeight).coerceIn(0f, 1f)
 
             dragProgress = newProgress
-            pendingScrollIndex = ((newProgress * stats.maxScrollIndex).toInt())
-                .coerceIn(0, (stats.totalItemsCount - 1).coerceAtLeast(0))
+            pendingScrollIndex = resolveDragTargetIndex(
+                progress = newProgress,
+                maxScrollIndex = stats.maxScrollIndex,
+                totalItemsCount = stats.totalItemsCount
+            )
         }
 
         LaunchedEffect(Unit) {
@@ -478,6 +489,42 @@ fun ExpressiveScrollBar(
             }
         }
 
+        val dragLabelTargetIndex = when {
+            pendingScrollIndex >= 0 -> pendingScrollIndex
+            listState != null -> listState.firstVisibleItemIndex
+            gridState != null -> gridState.firstVisibleItemIndex
+            else -> -1
+        }
+        val activeDragLabel =
+            if (isDragging && dragLabelProvider != null && dragLabelTargetIndex >= 0) {
+                dragLabelProvider(dragLabelTargetIndex)
+            } else {
+                null
+            }
+        val showDragLabel = isDragging && !activeDragLabel.isNullOrBlank()
+
+        LaunchedEffect(activeDragLabel) {
+            if (!activeDragLabel.isNullOrBlank()) {
+                retainedDragLabel = activeDragLabel
+            }
+        }
+
+        val dragLabelAlpha by animateFloatAsState(
+            targetValue = if (showDragLabel) 1f else 0f,
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+            label = "DragLabelAlpha"
+        )
+        val dragLabelScale by animateFloatAsState(
+            targetValue = if (showDragLabel) 1f else 0.82f,
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+            label = "DragLabelScale"
+        )
+        val dragLabelSlide by animateDpAsState(
+            targetValue = if (showDragLabel) 0.dp else 8.dp,
+            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+            label = "DragLabelSlide"
+        )
+
         val indicatorPath = remember { Path() }
 
         Box(
@@ -514,6 +561,10 @@ fun ExpressiveScrollBar(
                             if (isTouchOnHandle) {
                                 grabOffset = offset.y - handleY
                                 dragProgress = visualProgress
+                                pendingScrollIndex =
+                                    listState?.firstVisibleItemIndex
+                                        ?: gridState?.firstVisibleItemIndex
+                                        ?: 0
                             } else {
                                 grabOffset = handleHeightPx / 2f
                                 updateProgressFromTouch(offset.y, grabOffset)
@@ -632,6 +683,55 @@ fun ExpressiveScrollBar(
                        modifier = Modifier.fillMaxSize()
                    )
                }
+            }
+
+            val displayedDragLabel = activeDragLabel ?: retainedDragLabel
+            if (dragLabelAlpha > 0f && !displayedDragLabel.isNullOrBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .offset {
+                            val stats = getScrollStats()
+                            val scrollableHeight = stats.scrollableHeight
+                            val visualProgress = displayedProgress.value
+                            val displayProgress = if (isDragging && dragProgress >= 0f) dragProgress else visualProgress
+                            val handleY = displayProgress * scrollableHeight
+                            val handleHeightPx = with(density) { minHeight.toPx() }
+                            val dragLabelSizePx = with(density) { dragLabelSize.toPx() }
+                            val dragLabelGapPx = with(density) { dragLabelGap.toPx() }
+                            val dragLabelSlidePx = with(density) { dragLabelSlide.toPx() }
+                            val paddingEndPx = with(density) { paddingEnd.toPx() }
+                            val animatedWidthPx = with(density) { animatedWidth.toPx() }
+                            val maxWidthPx = with(density) { constraintsMaxWidth.toPx() }
+
+                            val indicatorX = maxWidthPx - paddingEndPx - animatedWidthPx
+                            val x = indicatorX - dragLabelSizePx - dragLabelGapPx - dragLabelSlidePx
+                            val y = handleY + (handleHeightPx / 2f) - (dragLabelSizePx / 2f)
+
+                            androidx.compose.ui.unit.IntOffset(x.toInt(), y.toInt())
+                        }
+                        .size(dragLabelSize)
+                        .graphicsLayer {
+                            alpha = dragLabelAlpha
+                            scaleX = dragLabelScale
+                            scaleY = dragLabelScale
+                        },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 2.dp
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        Text(
+                            text = displayedDragLabel,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }

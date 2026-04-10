@@ -5,6 +5,7 @@ import android.net.Uri
 object LocalArtworkUri {
     const val SCHEME = "pixelplay_local_art"
     private const val HOST_SONG = "song"
+    private const val CACHE_BUST_QUERY = "t"
 
     fun buildSongUri(songId: Long): String = "$SCHEME://$HOST_SONG/$songId"
     fun buildSongUriWithTimestamp(songId: Long): String = buildSongUri(songId) + "?t=${System.currentTimeMillis()}"
@@ -28,13 +29,49 @@ object LocalArtworkUri {
     fun looksLikeVolatileArtworkUri(uriString: String?): Boolean {
         if (uriString.isNullOrBlank()) return false
         val normalized = uriString.lowercase()
-        return normalized.contains("song_art_") &&
+        val isLegacyCachedFileUri = normalized.contains("song_art_") &&
             (
                 normalized.startsWith("content://") ||
                     normalized.startsWith("file://") ||
                     normalized.startsWith("/") ||
                     normalized.contains(".provider/")
                 )
+        val isSharedArtworkUri = normalized.startsWith("content://") &&
+            normalized.contains(".artwork/song/")
+        return isLegacyCachedFileUri || isSharedArtworkUri
+    }
+
+    fun parseSongIdFromVolatileArtworkUri(uriString: String?): Long? {
+        if (uriString.isNullOrBlank()) return null
+        if (!looksLikeVolatileArtworkUri(uriString)) return null
+
+        val fileName = uriString.substringAfterLast('/').substringBefore('?')
+        if (!fileName.startsWith("song_art_")) {
+            return null
+        }
+
+        return fileName
+            .removePrefix("song_art_")
+            .substringBefore('_')
+            .substringBefore('.')
+            .toLongOrNull()
+    }
+
+    fun extractCacheBustToken(uriString: String?): String? {
+        if (uriString.isNullOrBlank()) return null
+        val query = uriString.substringAfter('?', "")
+        if (query.isBlank()) return null
+        return query
+            .split('&')
+            .asSequence()
+            .mapNotNull { entry ->
+                val separatorIndex = entry.indexOf('=')
+                if (separatorIndex <= 0) return@mapNotNull null
+                val key = entry.substring(0, separatorIndex)
+                if (key != CACHE_BUST_QUERY) return@mapNotNull null
+                entry.substring(separatorIndex + 1).takeIf { it.isNotBlank() }
+            }
+            .firstOrNull()
     }
 
     fun isLikelyLocalMedia(contentUriString: String): Boolean {
@@ -43,6 +80,7 @@ object LocalArtworkUri {
             !normalized.startsWith("netease://") &&
             !normalized.startsWith("qqmusic://") &&
             !normalized.startsWith("navidrome://") &&
+            !normalized.startsWith("jellyfin://") &&
             !normalized.startsWith("gdrive://")
     }
 
@@ -56,14 +94,16 @@ object LocalArtworkUri {
             return normalizedStoredUri
         }
 
-        return if (isLocalArtworkUri(normalizedStoredUri) || looksLikeVolatileArtworkUri(normalizedStoredUri)) {
-            if (normalizedStoredUri.contains("?t=")) {
-                normalizedStoredUri
-            } else {
-                buildSongUri(songId)
+        return when {
+            isLocalArtworkUri(normalizedStoredUri) -> {
+                if (normalizedStoredUri.contains("?t=")) {
+                    normalizedStoredUri
+                } else {
+                    buildSongUri(songId)
+                }
             }
-        } else {
-            normalizedStoredUri
+            looksLikeVolatileArtworkUri(normalizedStoredUri) -> buildSongUri(songId)
+            else -> normalizedStoredUri
         }
     }
 }

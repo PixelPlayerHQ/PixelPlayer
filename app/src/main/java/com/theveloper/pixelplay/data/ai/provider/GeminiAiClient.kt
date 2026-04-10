@@ -1,11 +1,12 @@
 package com.theveloper.pixelplay.data.ai.provider
 
-import com.google.genai.Client
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Gemini AI provider implementation
+ * Gemini AI provider implementation using the official Android SDK
  */
 class GeminiAiClient(private val apiKey: String) : AiClient {
     
@@ -13,19 +14,50 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         private const val DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
     }
     
-    private val client: Client by lazy {
-        Client.builder().apiKey(apiKey).build()
+    private fun createModel(modelName: String, systemPrompt: String, temp: Float = 0.7f): GenerativeModel {
+        return GenerativeModel(
+            modelName = modelName.ifBlank { DEFAULT_GEMINI_MODEL },
+            apiKey = apiKey,
+            generationConfig = generationConfig {
+                temperature = temp
+            },
+            systemInstruction = if (systemPrompt.isNotBlank()) {
+                com.google.ai.client.generativeai.type.content { text(systemPrompt) }
+            } else {
+                null
+            }
+        )
     }
     
-    override suspend fun generateContent(model: String, prompt: String): String {
+    override suspend fun generateContent(
+        model: String, 
+        systemPrompt: String, 
+        prompt: String,
+        temperature: Float
+    ): String {
         return withContext(Dispatchers.IO) {
-            val response = client.models.generateContent(model, prompt, null)
-            response.text() ?: throw Exception("Gemini returned an empty response")
+            val generativeModel = createModel(model, systemPrompt, temperature)
+            val response = generativeModel.generateContent(prompt)
+            response.text ?: throw Exception("Gemini returned an empty response")
+        }
+    }
+    
+    override suspend fun countTokens(model: String, systemPrompt: String, prompt: String): Int {
+        return withContext(Dispatchers.IO) {
+            try {
+                val generativeModel = createModel(model, systemPrompt)
+                // Combine system instruction if possible, or just estimate
+                val response = generativeModel.countTokens(prompt)
+                response.totalTokens
+            } catch (e: Exception) {
+                // Return estimation if SDK fails
+                (prompt.length / 4) + (systemPrompt.length / 4)
+            }
         }
     }
     
     override suspend fun getAvailableModels(apiKey: String): List<String> {
-        // Use HTTP API instead of SDK as the SDK doesn't expose model listing
+        // Models are usually fetched via HTTP as the SDK doesn't expose a listing method
         return withContext(Dispatchers.IO) {
             try {
                 val url = "https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey"
@@ -51,10 +83,13 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     override suspend fun validateApiKey(apiKey: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val tempClient = Client.builder().apiKey(apiKey).build()
-                // Try a simple generation to validate the key
-                val response = tempClient.models.generateContent(DEFAULT_GEMINI_MODEL, "test", null)
-                response.text() != null
+                // Try a very small generation to validate key
+                val generativeModel = GenerativeModel(
+                    modelName = "gemini-1.5-flash",
+                    apiKey = apiKey
+                )
+                val response = generativeModel.generateContent("test")
+                response.text != null
             } catch (e: Exception) {
                 false
             }
@@ -73,7 +108,6 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
                 val fullName = match.groupValues[1]
                 val modelName = fullName.removePrefix("models/")
                 
-                // Filter for generative models
                 if (modelName.startsWith("gemini", ignoreCase = true) &&
                     !modelName.contains("embedding", ignoreCase = true)) {
                     models.add(modelName)

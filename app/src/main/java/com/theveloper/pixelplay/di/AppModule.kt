@@ -21,6 +21,7 @@ import com.theveloper.pixelplay.data.database.EngagementDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
+import com.theveloper.pixelplay.data.database.AiCacheDao
 import com.theveloper.pixelplay.data.database.LocalPlaylistDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.PixelPlayDatabase
@@ -141,7 +142,8 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_32_33,
             PixelPlayDatabase.MIGRATION_33_34,
             PixelPlayDatabase.MIGRATION_34_35,
-            PixelPlayDatabase.MIGRATION_35_36
+            PixelPlayDatabase.MIGRATION_35_36,
+            PixelPlayDatabase.MIGRATION_36_37
         )
             .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -220,6 +222,18 @@ object AppModule {
     @Provides
     fun provideNavidromeDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.NavidromeDao {
         return database.navidromeDao()
+    }
+    
+    @Singleton
+    @Provides
+    fun provideAiCacheDao(database: PixelPlayDatabase): AiCacheDao {
+        return database.aiCacheDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideJellyfinDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.JellyfinDao {
+        return database.jellyfinDao()
     }
 
     @Provides

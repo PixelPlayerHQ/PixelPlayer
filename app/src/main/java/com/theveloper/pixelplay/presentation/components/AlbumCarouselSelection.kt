@@ -51,7 +51,7 @@ fun AlbumCarouselSection(
 
     val realItemCount = queue.size
     val enableLoop = realItemCount > 1
-    
+
     fun realIndexToVirtual(realIndex: Int): Int = if (enableLoop) realIndex + 1 else realIndex
     fun virtualIndexToReal(virtualIndex: Int): Int {
         if (!enableLoop) return virtualIndex
@@ -61,7 +61,7 @@ fun AlbumCarouselSection(
             else -> virtualIndex - 1
         }
     }
-    
+
     val virtualItemCount = if (enableLoop) realItemCount + 2 else realItemCount
 
     // Mantiene compatibilidad con tu llamada actual
@@ -109,12 +109,10 @@ fun AlbumCarouselSection(
     }
     val effectiveTargetRealIndex = requestedTargetRealIndex ?: currentSongRealIndex
     val effectiveTargetVirtualIndex = realIndexToVirtual(effectiveTargetRealIndex)
-    
-    val smoothCarouselSpec = remember { tween<Float>(durationMillis = 360, easing = FastOutSlowInEasing) }
     var ignoreNextSettledSelectionForVirtualPage by remember { mutableStateOf<Int?>(null) }
     var programmaticScrollInProgress by remember { mutableStateOf(false) }
     var loopJumpInProgress by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(effectiveTargetVirtualIndex, requestedTargetRealIndex, queue) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
             .first { !it }
@@ -126,7 +124,7 @@ fun AlbumCarouselSection(
             }
             programmaticScrollInProgress = true
             try {
-                carouselState.animateScrollToItem(effectiveTargetVirtualIndex, animationSpec = smoothCarouselSpec)
+                carouselState.animateScrollToItem(effectiveTargetVirtualIndex)
             } finally {
                 programmaticScrollInProgress = false
             }
@@ -134,14 +132,14 @@ fun AlbumCarouselSection(
     }
 
     val hapticFeedback = LocalHapticFeedback.current
-    
+
     fun notifySelectionIfChanged(realIndex: Int) {
         if (realIndex != currentSongRealIndex) {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             queue.getOrNull(realIndex)?.let(onSongSelected)
         }
     }
-    
+
     // Carousel -> Player (cuando se detiene el scroll)
     LaunchedEffect(carouselState, currentSongRealIndex, queue, enableLoop) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
@@ -149,9 +147,9 @@ fun AlbumCarouselSection(
             .filter { !it }
             .collect {
                 if (loopJumpInProgress) return@collect
-                
+
                 val settledVirtual = carouselState.pagerState.currentPage
-                
+
                 if (enableLoop) {
                     when (settledVirtual) {
                         // The last song corresponding to the actual queue
@@ -187,7 +185,7 @@ fun AlbumCarouselSection(
                     ignoreNextSettledSelectionForVirtualPage = null
                     return@collect
                 }
-                
+
                 notifySelectionIfChanged(virtualIndexToReal(settledVirtual))
             }
     }

@@ -108,14 +108,14 @@ import com.theveloper.pixelplay.presentation.components.DismissUndoBar
 import com.theveloper.pixelplay.presentation.components.DrawerDestination
 import com.theveloper.pixelplay.presentation.components.MiniPlayerBottomSpacer
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeightFullWidth
 import com.theveloper.pixelplay.presentation.components.PlayerInternalNavigationBar
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementDefaults
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementDialog
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementUiModel
 import com.theveloper.pixelplay.presentation.components.UnifiedPlayerSheet
 import com.theveloper.pixelplay.presentation.components.UnifiedPlayerSheetV2
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
+import com.theveloper.pixelplay.presentation.components.resolveNavBarSurfaceHeight
 import com.theveloper.pixelplay.presentation.navigation.AppNavigation
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.screens.SetupScreen
@@ -612,6 +612,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val navBarStyle by playerViewModel.navBarStyle.collectAsStateWithLifecycle()
+        val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
         val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
         val hapticsEnabled by playerViewModel.hapticsEnabled.collectAsStateWithLifecycle()
         val rootView = LocalView.current
@@ -641,13 +642,9 @@ class MainActivity : ComponentActivity() {
             label = "BottomBarPadding"
         )
         val bottomBarPadding = animatedBottomBarPadding
-        val navBarHeight = if (navBarStyle == NavBarStyle.DEFAULT) {
-            NavBarContentHeight
-        } else {
-            NavBarContentHeightFullWidth + systemNavBarInset
-        }
-        val navBarOccupiedHeight by remember(navBarHeight, bottomBarPadding) {
-            derivedStateOf { navBarHeight + bottomBarPadding }
+        val navBarHeight = resolveNavBarSurfaceHeight(navBarStyle, systemNavBarInset, navBarCompactMode)
+        val navBarOccupiedHeight by remember(systemNavBarInset, navBarCompactMode) {
+            derivedStateOf { resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode) }
         }
         val navBarVisibilityProgress by animateFloatAsState(
             targetValue = if (shouldHideNavigationBar) 0f else 1f,
@@ -848,6 +845,7 @@ class MainActivity : ComponentActivity() {
                                     navItems = commonNavItems,
                                     currentRoute = currentRoute,
                                     navBarStyle = navBarStyle,
+                                    compactMode = navBarCompactMode,
                                     onSearchIconDoubleTap = onSearchIconDoubleTap,
                                     modifier = Modifier.fillMaxSize()
                                 )

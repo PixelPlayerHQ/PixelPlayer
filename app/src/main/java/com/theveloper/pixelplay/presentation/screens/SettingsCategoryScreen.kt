@@ -185,8 +185,26 @@ fun SettingsCategoryScreen(
     val geminiSystemPrompt by settingsViewModel.geminiSystemPrompt.collectAsStateWithLifecycle()
     val aiProvider by settingsViewModel.aiProvider.collectAsStateWithLifecycle()
     val deepseekApiKey by settingsViewModel.deepseekApiKey.collectAsStateWithLifecycle()
-    val deepseekModel by settingsViewModel.deepseekModel.collectAsStateWithLifecycle()
     val deepseekSystemPrompt by settingsViewModel.deepseekSystemPrompt.collectAsStateWithLifecycle()
+    val groqApiKey by settingsViewModel.groqApiKey.collectAsStateWithLifecycle()
+    val groqModel by settingsViewModel.groqModel.collectAsStateWithLifecycle()
+    val groqSystemPrompt by settingsViewModel.groqSystemPrompt.collectAsStateWithLifecycle()
+    val mistralApiKey by settingsViewModel.mistralApiKey.collectAsStateWithLifecycle()
+    val mistralModel by settingsViewModel.mistralModel.collectAsStateWithLifecycle()
+    val mistralSystemPrompt by settingsViewModel.mistralSystemPrompt.collectAsStateWithLifecycle()
+    val deepseekModel by settingsViewModel.deepseekModel.collectAsStateWithLifecycle()
+    val nvidiaApiKey by settingsViewModel.nvidiaApiKey.collectAsStateWithLifecycle()
+    val nvidiaModel by settingsViewModel.nvidiaModel.collectAsStateWithLifecycle()
+    val nvidiaSystemPrompt by settingsViewModel.nvidiaSystemPrompt.collectAsStateWithLifecycle()
+    val kimiApiKey by settingsViewModel.kimiApiKey.collectAsStateWithLifecycle()
+    val kimiModel by settingsViewModel.kimiModel.collectAsStateWithLifecycle()
+    val kimiSystemPrompt by settingsViewModel.kimiSystemPrompt.collectAsStateWithLifecycle()
+    val glmApiKey by settingsViewModel.glmApiKey.collectAsStateWithLifecycle()
+    val glmModel by settingsViewModel.glmModel.collectAsStateWithLifecycle()
+    val glmSystemPrompt by settingsViewModel.glmSystemPrompt.collectAsStateWithLifecycle()
+    val openaiApiKey by settingsViewModel.openaiApiKey.collectAsStateWithLifecycle()
+    val openaiModel by settingsViewModel.openaiModel.collectAsStateWithLifecycle()
+    val openaiSystemPrompt by settingsViewModel.openaiSystemPrompt.collectAsStateWithLifecycle()
     val currentPath by settingsViewModel.currentPath.collectAsStateWithLifecycle()
     val directoryChildren by settingsViewModel.currentDirectoryChildren.collectAsStateWithLifecycle()
     val availableStorages by settingsViewModel.availableStorages.collectAsStateWithLifecycle()
@@ -209,6 +227,7 @@ fun SettingsCategoryScreen(
     var showRebuildDatabaseWarning by remember { mutableStateOf(false) }
     var showRegenerateDailyMixDialog by remember { mutableStateOf(false) }
     var showRegenerateStatsDialog by remember { mutableStateOf(false) }
+    var showRegenerateAllPalettesDialog by remember { mutableStateOf(false) }
     var showExportDataDialog by remember { mutableStateOf(false) }
     var showImportFlow by remember { mutableStateOf(false) }
     var exportSections by remember { mutableStateOf(BackupSection.defaultSelection) }
@@ -255,18 +274,25 @@ fun SettingsCategoryScreen(
 
     var showPaletteRegenerateSheet by remember { mutableStateOf(false) }
     var isPaletteRegenerateRunning by remember { mutableStateOf(false) }
+    var isPaletteBulkRegenerateRunning by remember { mutableStateOf(false) }
+    var paletteBulkCompletedCount by remember { mutableStateOf(0) }
+    var paletteBulkTotalCount by remember { mutableStateOf(0) }
     var paletteSongSearchQuery by remember { mutableStateOf("") }
     val paletteRegenerateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val songsWithAlbumArt = remember(allSongs) {
         allSongs.filter { !it.albumArtUriString.isNullOrBlank() }
     }
-    val filteredPaletteSongs = remember(songsWithAlbumArt, paletteSongSearchQuery) {
+    val paletteRegenerateTargets = remember(songsWithAlbumArt) {
+        songsWithAlbumArt.distinctBy { it.albumArtUriString }
+    }
+    val isAnyPaletteRegenerateRunning = isPaletteRegenerateRunning || isPaletteBulkRegenerateRunning
+    val filteredPaletteSongs = remember(paletteRegenerateTargets, paletteSongSearchQuery) {
         val query = paletteSongSearchQuery.trim()
         if (query.isBlank()) {
-            songsWithAlbumArt
+            paletteRegenerateTargets
         } else {
-            songsWithAlbumArt.filter { song ->
+            paletteRegenerateTargets.filter { song ->
                 song.title.contains(query, ignoreCase = true) ||
                     song.displayArtist.contains(query, ignoreCase = true) ||
                     song.album.contains(query, ignoreCase = true)
@@ -275,15 +301,22 @@ fun SettingsCategoryScreen(
     }
 
     // Fetch models on page load when API key exists and models are not already loaded
-    LaunchedEffect(category, aiProvider, geminiApiKey, deepseekApiKey) {
+    LaunchedEffect(category, aiProvider, geminiApiKey, deepseekApiKey, groqApiKey, mistralApiKey) {
         if (category == SettingsCategory.AI_INTEGRATION && !uiState.isLoadingModels) {
             val apiKey = when (aiProvider) {
                 "DEEPSEEK" -> deepseekApiKey
+                "GROQ" -> groqApiKey
+                "MISTRAL" -> mistralApiKey
+                "NVIDIA" -> nvidiaApiKey
+                "KIMI" -> kimiApiKey
+                "GLM" -> glmApiKey
+                "OPENAI" -> openaiApiKey
                 else -> geminiApiKey
             }
             
             if (apiKey.isNotBlank() && uiState.availableModels.isEmpty()) {
-                settingsViewModel.fetchAvailableModels(apiKey, aiProvider)
+                // Wait for ViewModel instance initialization delay if needed
+                // It will be triggered by API Key UI changes automatically anyway
             }
         }
     }
@@ -586,6 +619,19 @@ fun SettingsCategoryScreen(
                                     onSelectionChanged = { settingsViewModel.setNavBarStyle(it) },
                                     leadingIcon = { Icon(Icons.Outlined.Style, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+                                SwitchSettingItem(
+                                    title = "Compact mode",
+                                    subtitle = "Show only icons and reduce the navbar height.",
+                                    checked = uiState.navBarCompactMode,
+                                    onCheckedChange = { settingsViewModel.setNavBarCompactMode(it) },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_view_week_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                )
                                 SettingsItem(
                                     title = "NavBar Corner Radius",
                                     subtitle = "Adjust the corner radius of the navigation bar.",
@@ -817,8 +863,14 @@ fun SettingsCategoryScreen(
                                     label = "Provider",
                                     description = "Choose your AI provider",
                                     options = mapOf(
+                                        "GROQ" to "Groq (Recommended)",
+                                        "MISTRAL" to "Mistral",
                                         "GEMINI" to "Google Gemini",
-                                        "DEEPSEEK" to "DeepSeek"
+                                        "DEEPSEEK" to "DeepSeek",
+                                        "NVIDIA" to "NVIDIA NIM",
+                                        "KIMI" to "Kimi (Moonshot)",
+                                        "GLM" to "Zhipu GLM",
+                                        "OPENAI" to "OpenAI (ChatGPT)"
                                     ),
                                     selectedKey = aiProvider,
                                     onSelectionChanged = { settingsViewModel.onAiProviderChange(it) },
@@ -845,12 +897,66 @@ fun SettingsCategoryScreen(
                                             subtitle = "Get from DeepSeek Platform (api.deepseek.com)"
                                         )
                                     }
+                                    "GROQ" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = groqApiKey,
+                                            onApiKeySave = { settingsViewModel.onGroqApiKeyChange(it) },
+                                            title = "Groq API Key",
+                                            subtitle = "Get from Groq Console (console.groq.com)"
+                                        )
+                                    }
+                                    "MISTRAL" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = mistralApiKey,
+                                            onApiKeySave = { settingsViewModel.onMistralApiKeyChange(it) },
+                                            title = "Mistral API Key",
+                                            subtitle = "Get from Mistral AI Platform (console.mistral.ai)"
+                                        )
+                                    }
+                                    "NVIDIA" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = nvidiaApiKey,
+                                            onApiKeySave = { settingsViewModel.onNvidiaApiKeyChange(it) },
+                                            title = "NVIDIA NIM API Key",
+                                            subtitle = "Get from NVIDIA Build (build.nvidia.com)"
+                                        )
+                                    }
+                                    "KIMI" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = kimiApiKey,
+                                            onApiKeySave = { settingsViewModel.onKimiApiKeyChange(it) },
+                                            title = "Kimi API Key",
+                                            subtitle = "Get from Moonshot AI Platform (platform.moonshot.cn)"
+                                        )
+                                    }
+                                    "GLM" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = glmApiKey,
+                                            onApiKeySave = { settingsViewModel.onGlmApiKeyChange(it) },
+                                            title = "Zhipu GLM API Key",
+                                            subtitle = "Get from Zhipu AI Open Platform (bigmodel.cn)"
+                                        )
+                                    }
+                                    "OPENAI" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = openaiApiKey,
+                                            onApiKeySave = { settingsViewModel.onOpenAiApiKeyChange(it) },
+                                            title = "OpenAI API Key",
+                                            subtitle = "Get from OpenAI Platform (platform.openai.com)"
+                                        )
+                                    }
                                 }
                             }
 
                             // Model Selection Section
                             val hasApiKey = when (aiProvider) {
                                 "DEEPSEEK" -> deepseekApiKey.isNotBlank()
+                                "GROQ" -> groqApiKey.isNotBlank()
+                                "MISTRAL" -> mistralApiKey.isNotBlank()
+                                "NVIDIA" -> nvidiaApiKey.isNotBlank()
+                                "KIMI" -> kimiApiKey.isNotBlank()
+                                "GLM" -> glmApiKey.isNotBlank()
+                                "OPENAI" -> openaiApiKey.isNotBlank()
                                 else -> geminiApiKey.isNotBlank()
                             }
                             
@@ -895,22 +1001,29 @@ fun SettingsCategoryScreen(
                                         val currentModel = when (aiProvider) {
                                             "GEMINI" -> geminiModel
                                             "DEEPSEEK" -> deepseekModel
+                                            "GROQ" -> groqModel
+                                            "MISTRAL" -> mistralModel
+                                            "NVIDIA" -> nvidiaModel
+                                            "KIMI" -> kimiModel
+                                            "GLM" -> glmModel
+                                            "OPENAI" -> openaiModel
                                             else -> ""
-                                        }
-                                        val modelLabel = when (aiProvider) {
-                                            "GEMINI" -> "Select the Gemini model to use."
-                                            "DEEPSEEK" -> "Select the DeepSeek model to use."
-                                            else -> "Select a model."
                                         }
                                         ThemeSelectorItem(
                                             label = "AI Model",
-                                            description = modelLabel,
+                                            description = "Select a model.",
                                             options = uiState.availableModels.associate { it.name to it.displayName },
                                             selectedKey = currentModel.ifEmpty { uiState.availableModels.firstOrNull()?.name ?: "" },
                                             onSelectionChanged = { 
                                                 when (aiProvider) {
                                                     "GEMINI" -> settingsViewModel.onGeminiModelChange(it)
                                                     "DEEPSEEK" -> settingsViewModel.onDeepseekModelChange(it)
+                                                    "GROQ" -> settingsViewModel.onGroqModelChange(it)
+                                                    "MISTRAL" -> settingsViewModel.onMistralModelChange(it)
+                                                    "NVIDIA" -> settingsViewModel.onNvidiaModelChange(it)
+                                                    "KIMI" -> settingsViewModel.onKimiModelChange(it)
+                                                    "GLM" -> settingsViewModel.onGlmModelChange(it)
+                                                    "OPENAI" -> settingsViewModel.onOpenAiModelChange(it)
                                                 }
                                             },
                                             leadingIcon = { Icon(Icons.Rounded.Science, null, tint = MaterialTheme.colorScheme.secondary) }
@@ -941,6 +1054,66 @@ fun SettingsCategoryScreen(
                                             defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT,
                                             onSystemPromptSave = { settingsViewModel.onDeepseekSystemPromptChange(it) },
                                             onReset = { settingsViewModel.resetDeepseekSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "GROQ" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = groqSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_GROQ_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onGroqSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetGroqSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "MISTRAL" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = mistralSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_MISTRAL_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onMistralSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetMistralSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "NVIDIA" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = nvidiaSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_NVIDIA_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onNvidiaSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetNvidiaSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "KIMI" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = kimiSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_KIMI_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onKimiSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetKimiSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "GLM" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = glmSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_GLM_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onGlmSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetGlmSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "OPENAI" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = openaiSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_OPENAI_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onOpenAiSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetOpenAiSystemPrompt() },
                                             title = "System Prompt",
                                             subtitle = "Customize how the AI behaves."
                                         )
@@ -1029,15 +1202,17 @@ fun SettingsCategoryScreen(
                                 )
                                 ActionSettingsItem(
                                     title = "Force Album Palette Regeneration",
-                                    subtitle = if (songsWithAlbumArt.isEmpty()) {
+                                    subtitle = if (paletteRegenerateTargets.isEmpty()) {
                                         "No songs with album art were found."
                                     } else {
-                                        "Pick a song to rebuild all album color variants from scratch."
+                                        "Rebuild all cached palette variants for every album art, or pick a single one to refresh."
                                     },
                                     icon = { Icon(Icons.Outlined.Style, null, tint = MaterialTheme.colorScheme.secondary) },
-                                    primaryActionLabel = "Choose Song",
-                                    onPrimaryAction = { showPaletteRegenerateSheet = true },
-                                    enabled = songsWithAlbumArt.isNotEmpty() && !isPaletteRegenerateRunning
+                                    primaryActionLabel = if (isPaletteBulkRegenerateRunning) "Regenerating..." else "Regenerate All",
+                                    onPrimaryAction = { showRegenerateAllPalettesDialog = true },
+                                    secondaryActionLabel = "Choose Song",
+                                    onSecondaryAction = { showPaletteRegenerateSheet = true },
+                                    enabled = paletteRegenerateTargets.isNotEmpty() && !isAnyPaletteRegenerateRunning
                                 )
                             }
 
@@ -1145,7 +1320,7 @@ fun SettingsCategoryScreen(
     if (showPaletteRegenerateSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                if (!isPaletteRegenerateRunning) {
+                if (!isAnyPaletteRegenerateRunning) {
                     showPaletteRegenerateSheet = false
                     paletteSongSearchQuery = ""
                 }
@@ -1159,7 +1334,7 @@ fun SettingsCategoryScreen(
                 onSearchQueryChange = { paletteSongSearchQuery = it },
                 onClearSearch = { paletteSongSearchQuery = "" },
                 onSongClick = { song ->
-                    if (isPaletteRegenerateRunning) return@PaletteRegenerateSongSheetContent
+                    if (isAnyPaletteRegenerateRunning) return@PaletteRegenerateSongSheetContent
                     isPaletteRegenerateRunning = true
                     coroutineScope.launch {
                         val success = playerViewModel.forceRegenerateAlbumPaletteForSong(song)
@@ -1183,6 +1358,126 @@ fun SettingsCategoryScreen(
                 }
             )
         }
+    }
+
+    if (showRegenerateAllPalettesDialog) {
+        AlertDialog(
+            icon = {
+                Icon(
+                    Icons.Outlined.Style,
+                    null,
+                    tint = if (isPaletteBulkRegenerateRunning) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.secondary
+                    }
+                )
+            },
+            title = {
+                Text(
+                    if (isPaletteBulkRegenerateRunning) {
+                        "Regenerating album palettes..."
+                    } else {
+                        "Regenerate all album palettes?"
+                    }
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = if (isPaletteBulkRegenerateRunning) {
+                            "Rebuilding cached palette variants for $paletteBulkTotalCount unique album arts. This can take a while on large libraries."
+                        } else {
+                            "This will clear cached theme data and rebuild all palette styles for ${paletteRegenerateTargets.size} unique album arts."
+                        }
+                    )
+
+                    if (isPaletteBulkRegenerateRunning) {
+                        val progress = if (paletteBulkTotalCount > 0) {
+                            paletteBulkCompletedCount.toFloat() / paletteBulkTotalCount.toFloat()
+                        } else {
+                            0f
+                        }
+
+                        LinearWavyProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(50)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
+
+                        Text(
+                            text = "$paletteBulkCompletedCount of $paletteBulkTotalCount completed",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            onDismissRequest = {
+                if (!isPaletteBulkRegenerateRunning) {
+                    showRegenerateAllPalettesDialog = false
+                }
+            },
+            confirmButton = {
+                if (isPaletteBulkRegenerateRunning) {
+                    TextButton(
+                        onClick = {},
+                        enabled = false
+                    ) {
+                        Text("Working...")
+                    }
+                } else {
+                    TextButton(
+                        onClick = {
+                            isPaletteBulkRegenerateRunning = true
+                            paletteBulkCompletedCount = 0
+                            paletteBulkTotalCount = paletteRegenerateTargets.size
+
+                            coroutineScope.launch {
+                                var successCount = 0
+                                paletteRegenerateTargets.forEachIndexed { index, song ->
+                                    if (playerViewModel.forceRegenerateAlbumPaletteForSong(song)) {
+                                        successCount++
+                                    }
+                                    paletteBulkCompletedCount = index + 1
+                                }
+
+                                isPaletteBulkRegenerateRunning = false
+                                showRegenerateAllPalettesDialog = false
+
+                                val totalCount = paletteRegenerateTargets.size
+                                Toast.makeText(
+                                    context,
+                                    if (successCount == totalCount) {
+                                        "Regenerated $successCount album art palettes"
+                                    } else {
+                                        "Regenerated $successCount of $totalCount album art palettes"
+                                    },
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    ) {
+                        Text("Regenerate")
+                    }
+                }
+            },
+            dismissButton = {
+                if (!isPaletteBulkRegenerateRunning) {
+                    TextButton(
+                        onClick = { showRegenerateAllPalettesDialog = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
     
      // Dialogs logic (copied)

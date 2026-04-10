@@ -105,13 +105,13 @@ import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.QueuePlaylistSongItem
 import com.theveloper.pixelplay.presentation.components.SongPickerBottomSheet
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
@@ -182,7 +182,8 @@ fun PlaylistDetailScreen(
         }
     }
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomBarHeightDp = NavBarContentHeight + systemNavBarInset
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
+    val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     var localReorderableSongs by remember(songsInPlaylist) { mutableStateOf(songsInPlaylist) }
 
@@ -861,7 +862,7 @@ fun PlaylistDetailScreen(
                     }
                     showSongInfoBottomSheet = false
                 },
-                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
+                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         currentSong,
                         newTitle,
@@ -871,6 +872,8 @@ fun PlaylistDetailScreen(
                         newLyrics,
                         newTrackNumber,
                         newDiscNumber,
+                        replayGainTrackGainDb,
+                        replayGainAlbumGainDb,
                         coverArtUpdate
                     )
                 },

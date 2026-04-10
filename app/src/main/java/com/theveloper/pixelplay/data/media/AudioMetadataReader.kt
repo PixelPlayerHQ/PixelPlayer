@@ -23,7 +23,9 @@ data class AudioMetadata(
     val year: Int?,
     val bitrate: Int?,
     val sampleRate: Int?,
-    val artwork: AudioMetadataArtwork?
+    val artwork: AudioMetadataArtwork?,
+    val replayGainTrackGainDb: Float? = null,
+    val replayGainAlbumGainDb: Float? = null
 )
 
 data class AudioMetadataArtwork(
@@ -85,6 +87,14 @@ object AudioMetadataReader {
                 val discNumber = discString?.substringBefore('/')?.toIntOrNull()
                 val year = propertyMap["DATE"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.take(4)?.toIntOrNull()
                     ?: propertyMap["YEAR"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.toIntOrNull()
+                val replayGainTrackGainDb = extractReplayGainDb(
+                    propertyMap = propertyMap,
+                    keys = listOf("REPLAYGAIN_TRACK_GAIN", "REPLAYGAIN_TRACK_GAIN_DB", "R128_TRACK_GAIN")
+                )
+                val replayGainAlbumGainDb = extractReplayGainDb(
+                    propertyMap = propertyMap,
+                    keys = listOf("REPLAYGAIN_ALBUM_GAIN", "REPLAYGAIN_ALBUM_GAIN_DB", "R128_ALBUM_GAIN")
+                )
 
                 Log.w(TAG, "TagLib result for ${file.name}: title=$title, artist=$artist, album=$album, genre=$genre")
 
@@ -124,7 +134,9 @@ object AudioMetadataReader {
                     year = year ?: fallback?.year,
                     bitrate = bitrate ?: fallback?.bitrate,
                     sampleRate = sampleRate ?: fallback?.sampleRate,
-                    artwork = artwork ?: fallback?.artwork
+                    artwork = artwork ?: fallback?.artwork,
+                    replayGainTrackGainDb = replayGainTrackGainDb ?: fallback?.replayGainTrackGainDb,
+                    replayGainAlbumGainDb = replayGainAlbumGainDb ?: fallback?.replayGainAlbumGainDb
                 )
             }
         } catch (error: Exception) {
@@ -198,5 +210,29 @@ object AudioMetadataReader {
             Log.e(TAG, "JAudioTagger fallback FAILED for: ${file.name}", e)
             null
         }
+    }
+
+    private fun extractReplayGainDb(
+        propertyMap: Map<String, Array<String>>,
+        keys: List<String>
+    ): Float? {
+        for (key in keys) {
+            val rawValue = propertyMap[key]?.firstOrNull() ?: continue
+            val parsedValue = parseReplayGainDb(rawValue)
+            if (parsedValue != null) {
+                return parsedValue
+            }
+        }
+        return null
+    }
+
+    private fun parseReplayGainDb(rawValue: String?): Float? {
+        val cleanedValue = rawValue
+            ?.trim()
+            ?.replace(',', '.')
+            ?.replace(Regex("(?i)[dD][bB]"), "")
+            ?.trim()
+            ?: return null
+        return cleanedValue.toFloatOrNull()
     }
 }

@@ -2,6 +2,8 @@ package com.theveloper.pixelplay.data.qqmusic
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import android.util.Base64
 import com.theveloper.pixelplay.data.database.AlbumEntity
 import com.theveloper.pixelplay.data.database.ArtistEntity
@@ -63,8 +65,21 @@ class QqMusicRepository @Inject constructor(
         val failedPlaylistCount: Int
     )
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("qqmusic_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "qqmusic_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "QqMusicRepository: Failed to create EncryptedSharedPreferences, falling back to plain")
+        context.getSharedPreferences("qqmusic_prefs_plain", Context.MODE_PRIVATE)
+    }
 
     private val _isLoggedInFlow = MutableStateFlow(false)
     val isLoggedInFlow: StateFlow<Boolean> = _isLoggedInFlow.asStateFlow()

@@ -99,9 +99,24 @@ fun SongInfoBottomSheet(
     onNavigateToAlbum: () -> Unit,
     onNavigateToArtist: () -> Unit,
     onNavigateToGenre: () -> Unit,
-    onEditSong: (title: String, artist: String, album: String, genre: String, lyrics: String, trackNumber: Int, discNumber: Int?, coverArtUpdate: CoverArtUpdate?) -> Unit,
+    onEditSong: (
+        title: String,
+        artist: String,
+        album: String,
+        genre: String,
+        lyrics: String,
+        trackNumber: Int,
+        discNumber: Int?,
+        replayGainTrackGainDb: String,
+        replayGainAlbumGainDb: String,
+        coverArtUpdate: CoverArtUpdate?
+    ) -> Unit,
     generateAiMetadata: suspend (List<String>) -> Result<SongMetadata>,
     removeFromListTrigger: () -> Unit,
+    isGeneratingMetadata: Boolean = false,
+    aiMetadataSuccess: Boolean = false,
+    aiError: String? = null,
+    onRetryMetadata: () -> Unit = {},
     songInfoViewModel: SongInfoBottomSheetViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -777,11 +792,26 @@ fun SongInfoBottomSheet(
         visible = showEditSheet,
         song = song,
         onDismiss = { showEditSheet = false },
-        onSave = { title, artist, album, genre, lyrics, trackNumber, discNumber, coverArt ->
-            onEditSong(title, artist, album, genre, lyrics, trackNumber, discNumber, coverArt)
+        onSave = { title, artist, album, genre, lyrics, trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArt ->
+            onEditSong(
+                title,
+                artist,
+                album,
+                genre,
+                lyrics,
+                trackNumber,
+                discNumber,
+                replayGainTrackGainDb,
+                replayGainAlbumGainDb,
+                coverArt
+            )
             showEditSheet = false
         },
-        generateAiMetadata = generateAiMetadata
+        generateAiMetadata = generateAiMetadata,
+        isGeneratingAiMetadata = isGeneratingMetadata,
+        aiMetadataSuccess = aiMetadataSuccess,
+        aiError = aiError,
+        onRetryMetadata = onRetryMetadata
     )
 }
 

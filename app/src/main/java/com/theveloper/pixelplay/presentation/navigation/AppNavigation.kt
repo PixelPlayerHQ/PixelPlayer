@@ -233,6 +233,9 @@ fun AppNavigation(
                         },
                         onOpenNavidromeDashboard = {
                             navController.navigateSafely(Screen.NavidromeDashboard.route)
+                        },
+                        onOpenJellyfinDashboard = {
+                            navController.navigateSafely(Screen.JellyfinDashboard.route)
                         }
                     )
                 }
@@ -572,6 +575,19 @@ fun AppNavigation(
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     com.theveloper.pixelplay.presentation.navidrome.dashboard.NavidromeDashboardScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(
+                Screen.JellyfinDashboard.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardScreen(
                         onBack = { navController.popBackStack() }
                     )
                 }

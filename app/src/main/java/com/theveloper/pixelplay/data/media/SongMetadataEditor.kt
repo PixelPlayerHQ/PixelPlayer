@@ -31,7 +31,22 @@ import org.gagravarr.opus.OpusFile
 import org.gagravarr.opus.OpusTags
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
+import org.jaudiotagger.tag.Tag
+import org.jaudiotagger.tag.flac.FlacTag
+import org.jaudiotagger.tag.id3.AbstractID3v2Frame
+import org.jaudiotagger.tag.id3.AbstractID3v2Tag
+import org.jaudiotagger.tag.id3.ID3v23Frame
+import org.jaudiotagger.tag.id3.ID3v23Frames
+import org.jaudiotagger.tag.id3.ID3v23Tag
+import org.jaudiotagger.tag.id3.ID3v24Frame
+import org.jaudiotagger.tag.id3.ID3v24Frames
+import org.jaudiotagger.tag.id3.ID3v24Tag
+import org.jaudiotagger.tag.id3.framebody.FrameBodyTXXX
 import org.jaudiotagger.tag.images.AndroidArtwork
+import org.jaudiotagger.tag.mp4.Mp4Tag
+import org.jaudiotagger.tag.mp4.field.Mp4TagReverseDnsField
+import org.jaudiotagger.tag.vorbiscomment.VorbisCommentTag
+import org.jaudiotagger.tag.wav.WavTag
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -53,6 +68,16 @@ enum class MetadataEditError {
     FILE_CORRUPTED,
     IO_ERROR,
     UNKNOWN
+}
+
+private const val REPLAYGAIN_TRACK_GAIN_KEY = "REPLAYGAIN_TRACK_GAIN"
+private const val REPLAYGAIN_ALBUM_GAIN_KEY = "REPLAYGAIN_ALBUM_GAIN"
+private const val MP4_REVERSE_DNS_ISSUER = "com.apple.iTunes"
+
+private sealed interface ReplayGainUpdate {
+    data object Keep : ReplayGainUpdate
+    data object Clear : ReplayGainUpdate
+    data class Set(val formattedValue: String) : ReplayGainUpdate
 }
 
 
@@ -94,6 +119,27 @@ class SongMetadataEditor(
         if (genre.length > MetadataLimits.MAX_GENRE_LENGTH) return "Genre too long"
         if (lyrics.length > MetadataLimits.MAX_LYRICS_LENGTH) return "Lyrics too long"
         return null
+    }
+
+    private fun parseReplayGainUpdate(rawValue: String?, fieldName: String): Result<ReplayGainUpdate> {
+        if (rawValue == null) return Result.success(ReplayGainUpdate.Keep)
+
+        val trimmedValue = rawValue.trim()
+        if (trimmedValue.isEmpty()) return Result.success(ReplayGainUpdate.Clear)
+
+        val normalizedValue = trimmedValue
+            .replace(',', '.')
+            .replace(Regex("(?i)\\s*d\\s*b\\s*$"), "")
+            .trim()
+
+        val gainDb = normalizedValue.toFloatOrNull()
+            ?: return Result.failure(IllegalArgumentException("$fieldName must be a valid dB value"))
+
+        return Result.success(
+            ReplayGainUpdate.Set(
+                formattedValue = String.format(Locale.US, "%.2f dB", gainDb)
+            )
+        )
     }
 
     /**
@@ -201,6 +247,8 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newReplayGainTrackGainDb: String? = null,
+        newReplayGainAlbumGainDb: String? = null,
         coverArtUpdate: CoverArtUpdate? = null,
     ): SongMetadataEditResult = withContext(Dispatchers.IO) {
         val validationError = validateMetadataInput(newTitle, newArtist, newAlbum, newGenre, newLyrics)
@@ -218,6 +266,28 @@ class SongMetadataEditor(
             val trimmedLyrics = newLyrics.trim()
             val trimmedGenre = newGenre.trim()
             val normalizedGenre = trimmedGenre.takeIf { it.isNotBlank() }
+            val replayGainTrackUpdate = parseReplayGainUpdate(
+                rawValue = newReplayGainTrackGainDb,
+                fieldName = "Track ReplayGain"
+            ).getOrElse { error ->
+                return@withContext SongMetadataEditResult(
+                    success = false,
+                    updatedAlbumArtUri = null,
+                    error = MetadataEditError.INVALID_INPUT,
+                    errorMessage = error.message ?: "Invalid Track ReplayGain value"
+                )
+            }
+            val replayGainAlbumUpdate = parseReplayGainUpdate(
+                rawValue = newReplayGainAlbumGainDb,
+                fieldName = "Album ReplayGain"
+            ).getOrElse { error ->
+                return@withContext SongMetadataEditResult(
+                    success = false,
+                    updatedAlbumArtUri = null,
+                    error = MetadataEditError.INVALID_INPUT,
+                    errorMessage = error.message ?: "Invalid Album ReplayGain value"
+                )
+            }
 
             val isTelegramSong = songId < 0
             val filePath = if (isTelegramSong) {
@@ -274,6 +344,8 @@ class SongMetadataEditor(
                     newLyrics = trimmedLyrics,
                     newTrackNumber = newTrackNumber,
                     newDiscNumber = newDiscNumber,
+                    replayGainTrackUpdate = replayGainTrackUpdate,
+                    replayGainAlbumUpdate = replayGainAlbumUpdate,
                     coverArtUpdate = coverArtUpdate
                 )
             } else {
@@ -287,6 +359,8 @@ class SongMetadataEditor(
                     newLyrics = trimmedLyrics,
                     newTrackNumber = newTrackNumber,
                     newDiscNumber = newDiscNumber,
+                    replayGainTrackUpdate = replayGainTrackUpdate,
+                    replayGainAlbumUpdate = replayGainAlbumUpdate,
                     coverArtUpdate = coverArtUpdate
                 )
 
@@ -302,6 +376,8 @@ class SongMetadataEditor(
                         newLyrics = trimmedLyrics,
                         newTrackNumber = newTrackNumber,
                         newDiscNumber = newDiscNumber,
+                        replayGainTrackUpdate = replayGainTrackUpdate,
+                        replayGainAlbumUpdate = replayGainAlbumUpdate,
                         coverArtUpdate = coverArtUpdate
                     )
                 } else {
@@ -488,6 +564,8 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        replayGainTrackUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
+        replayGainAlbumUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         coverArtUpdate: CoverArtUpdate? = null
     ): Boolean {
         // Check for problematic FLAC files first
@@ -535,6 +613,8 @@ class SongMetadataEditor(
                     propertyMap.remove("DISCNUMBER")
                 }
                 propertyMap["ALBUMARTIST"] = arrayOf(newArtist)
+                propertyMap.applyReplayGainUpdate(REPLAYGAIN_TRACK_GAIN_KEY, replayGainTrackUpdate)
+                propertyMap.applyReplayGainUpdate(REPLAYGAIN_ALBUM_GAIN_KEY, replayGainAlbumUpdate)
                 Timber.tag(TAG).e("TAGLIB: Updated property map, saving...")
 
                 // Save metadata
@@ -605,6 +685,8 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        replayGainTrackUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
+        replayGainAlbumUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         coverArtUpdate: CoverArtUpdate? = null
     ): Boolean {
         val targetFile = File(filePath)
@@ -640,6 +722,8 @@ class SongMetadataEditor(
             } else {
                 tag.deleteField(FieldKey.DISC_NO)
             }
+            tag.applyReplayGainUpdate(REPLAYGAIN_TRACK_GAIN_KEY, replayGainTrackUpdate)
+            tag.applyReplayGainUpdate(REPLAYGAIN_ALBUM_GAIN_KEY, replayGainAlbumUpdate)
 
             // Update cover art if provided
             coverArtUpdate?.let { update ->
@@ -921,6 +1005,90 @@ private fun MutableMap<String, Array<String>>.upsertOrRemove(key: String, value:
         this[key] = arrayOf(value)
     }
 }
+
+private fun MutableMap<String, Array<String>>.applyReplayGainUpdate(
+    key: String,
+    update: ReplayGainUpdate
+) {
+    when (update) {
+        ReplayGainUpdate.Keep -> Unit
+        ReplayGainUpdate.Clear -> remove(key)
+        is ReplayGainUpdate.Set -> this[key] = arrayOf(update.formattedValue)
+    }
+}
+
+private fun Tag.applyReplayGainUpdate(key: String, update: ReplayGainUpdate) {
+    when (update) {
+        ReplayGainUpdate.Keep -> Unit
+        ReplayGainUpdate.Clear -> removeReplayGainField(key)
+        is ReplayGainUpdate.Set -> upsertReplayGainField(key, update.formattedValue)
+    }
+}
+
+private fun Tag.upsertReplayGainField(key: String, value: String) {
+    when (this) {
+        is AbstractID3v2Tag -> upsertReplayGainId3Field(key, value)
+        is WavTag -> {
+            val id3Tag = getID3Tag() ?: ID3v24Tag().also(::setID3Tag)
+            id3Tag.upsertReplayGainId3Field(key, value)
+        }
+        is FlacTag -> setField(key, value)
+        is VorbisCommentTag -> setField(key, value)
+        is Mp4Tag -> {
+            val fieldId = replayGainMp4FieldId(key)
+            deleteField(fieldId)
+            setField(Mp4TagReverseDnsField(fieldId, MP4_REVERSE_DNS_ISSUER, key, value))
+        }
+        else -> Timber.tag(TAG).w("ReplayGain update is not supported for tag type: ${this::class.java.simpleName}")
+    }
+}
+
+private fun Tag.removeReplayGainField(key: String) {
+    when (this) {
+        is AbstractID3v2Tag -> removeReplayGainId3Field(key)
+        is WavTag -> getID3Tag()?.removeReplayGainId3Field(key)
+        is FlacTag -> deleteField(key)
+        is VorbisCommentTag -> deleteField(key)
+        is Mp4Tag -> deleteField(replayGainMp4FieldId(key))
+        else -> Timber.tag(TAG).w("ReplayGain removal is not supported for tag type: ${this::class.java.simpleName}")
+    }
+}
+
+private fun AbstractID3v2Tag.upsertReplayGainId3Field(key: String, value: String) {
+    val frame = if (this is ID3v23Tag) {
+        ID3v23Frame(ID3v23Frames.FRAME_ID_V3_USER_DEFINED_INFO)
+    } else {
+        ID3v24Frame(ID3v24Frames.FRAME_ID_USER_DEFINED_INFO)
+    }
+    frame.body = FrameBodyTXXX().apply {
+        setDescription(key)
+        setText(value)
+    }
+    setField(frame)
+}
+
+private fun AbstractID3v2Tag.removeReplayGainId3Field(key: String) {
+    val frameId = if (this is ID3v23Tag) {
+        ID3v23Frames.FRAME_ID_V3_USER_DEFINED_INFO
+    } else {
+        ID3v24Frames.FRAME_ID_USER_DEFINED_INFO
+    }
+    val frames = getFields(frameId)
+    val iterator = frames.listIterator()
+    while (iterator.hasNext()) {
+        val frame = iterator.next() as? AbstractID3v2Frame ?: continue
+        val body = frame.body as? FrameBodyTXXX ?: continue
+        if (body.description == key) {
+            if (frames.size == 1) {
+                removeFrame(frameId)
+            } else {
+                iterator.remove()
+            }
+        }
+    }
+}
+
+private fun replayGainMp4FieldId(key: String): String = "----:$MP4_REVERSE_DNS_ISSUER:$key"
 
 // Data classes
 data class SongMetadataEditResult(

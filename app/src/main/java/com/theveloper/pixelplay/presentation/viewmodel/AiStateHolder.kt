@@ -1,9 +1,11 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+
 import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
+import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
@@ -28,20 +30,39 @@ class AiStateHolder @Inject constructor(
     private val aiMetadataGenerator: AiMetadataGenerator,
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
-    private val dailyMixStateHolder: DailyMixStateHolder
+    private val dailyMixStateHolder: DailyMixStateHolder,
+    private val notificationManager: AiNotificationManager
 ) {
     // State
+    // AI State Management: Observables for tracking background generation progress
     private val _showAiPlaylistSheet = MutableStateFlow(false)
     val showAiPlaylistSheet = _showAiPlaylistSheet.asStateFlow()
 
     private val _isGeneratingAiPlaylist = MutableStateFlow(false)
     val isGeneratingAiPlaylist = _isGeneratingAiPlaylist.asStateFlow()
 
+    private val _isGeneratingMetadata = MutableStateFlow(false)
+    val isGeneratingMetadata = _isGeneratingMetadata.asStateFlow()
+
+    private val _aiMetadataSuccess = MutableStateFlow(false)
+    val aiMetadataSuccess = _aiMetadataSuccess.asStateFlow()
+
+    private val _aiSuccess = MutableStateFlow(false)
+    val aiSuccess = _aiSuccess.asStateFlow()
+
+    private val _aiStatus = MutableStateFlow<String?>(null)
+    val aiStatus = _aiStatus.asStateFlow()
+
     private val _aiError = MutableStateFlow<String?>(null)
     val aiError = _aiError.asStateFlow()
 
-    private val _isGeneratingMetadata = MutableStateFlow(false)
-    val isGeneratingMetadata = _isGeneratingMetadata.asStateFlow()
+    private var _lastPlaylistPrompt: String? = null
+    private var _lastMinLength: Int = 5
+    private var _lastMaxLength: Int = 15
+
+    // Metadata Retry Cache: Stores parameters for the last metadata generation
+    private var _lastMetadataSong: Song? = null
+    private var _lastMetadataFields: List<String>? = null
 
     private var scope: CoroutineScope? = null
     private var allSongsProvider: (() -> List<Song>)? = null
@@ -85,13 +106,36 @@ class AiStateHolder @Inject constructor(
     fun dismissAiPlaylistSheet() {
         _showAiPlaylistSheet.value = false
         _aiError.value = null
+        _aiSuccess.value = false
+        _aiMetadataSuccess.value = false
         _isGeneratingAiPlaylist.value = false
+        _aiStatus.value = null
+    }
+
+    fun retryLastPlaylistGeneration() {
+        // Safe retry using cached prompt and length constraints
+        val prompt = _lastPlaylistPrompt ?: return
+        generateAiPlaylist(prompt, _lastMinLength, _lastMaxLength)
+    }
+
+    fun retryLastMetadataGeneration() {
+        // Safe retry for metadata using cached song and requested fields
+        val song = _lastMetadataSong ?: return
+        val fields = _lastMetadataFields ?: return
+        
+        scope?.launch {
+            generateAiMetadata(song, fields)
+        }
     }
 
     fun clearAiPlaylistError() {
         _aiError.value = null
     }
 
+    /**
+     * Entry point for generating an AI-curated playlist based on a user prompt.
+     * Orchestrates library scanning, candidate selection, and the AI curation process.
+     */
     fun generateAiPlaylist(
         prompt: String,
         minLength: Int,
@@ -99,6 +143,10 @@ class AiStateHolder @Inject constructor(
         saveAsPlaylist: Boolean = false,
         playlistName: String? = null
     ) {
+        _lastPlaylistPrompt = prompt
+        _lastMinLength = minLength
+        _lastMaxLength = maxLength
+
         val scope = this.scope ?: return
         val allSongs = allSongsProvider?.invoke() ?: emptyList()
         val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
@@ -106,20 +154,28 @@ class AiStateHolder @Inject constructor(
         scope.launch {
             _isGeneratingAiPlaylist.value = true
             _aiError.value = null
+            _aiSuccess.value = false
 
+            // Step 1: Pre-generation analysis
             try {
+                _aiStatus.value = "Analyzing your library stats..."
                 val existingPlaylistNames = playlistPreferencesRepository.userPlaylistsFlow.first()
                     .map { it.name.trim() }
                     .filter { it.isNotEmpty() }
                     .toSet()
 
                 // Generate candidate pool using DailyMixManager logic
+                _aiStatus.value = "Selecting best candidates..."
                 val candidatePool = dailyMixManager.generateDailyMix(
                     allSongs = allSongs,
                     favoriteSongIds = favoriteIds,
                     limit = 120
                 )
 
+                // Step 2: Invoke AI Generation Engine
+                _aiStatus.value = "Consulting the sonic oracle..."
+                notificationManager.showProgress("AI Curation", "Synthesizing your sonic journey...", 50)
+                
                 val result = aiPlaylistGenerator.generate(
                     userPrompt = prompt,
                     allSongs = allSongs,
@@ -142,27 +198,44 @@ class AiStateHolder @Inject constructor(
                                 songIds = songIds,
                                 isAiGenerated = true
                             )
-                            toastEmitter?.invoke("AI Playlist '$resolvedPlaylistName' created!")
+                            _aiStatus.value = "Success! Your mix is ready."
+                            _aiSuccess.value = true
+                            notificationManager.showCompletion("Generation Complete", "Your AI Mix is ready to play.")
+                            toastEmitter?.invoke("AI Playlist created!")
+                            kotlinx.coroutines.delay(1200) // AI UI Optimization: Let the success animation breathe
                             dismissAiPlaylistSheet()
                         } else {
                             // Play immediately logic
+                            _aiStatus.value = "Starting playback..."
+                            _aiSuccess.value = true
+                            notificationManager.showCompletion("Generation Complete", "Starting your personalized session.")
                             dailyMixStateHolder.setDailyMixSongs(generatedSongs)
                             playSongsCallback?.invoke(generatedSongs, generatedSongs.first(), "AI: $prompt")
                             openPlayerSheetCallback?.invoke()
+                            kotlinx.coroutines.delay(800)
                             dismissAiPlaylistSheet()
                         }
                     } else {
+                        _aiStatus.value = null
                         _aiError.value = context.getString(R.string.ai_no_songs_found)
+                        notificationManager.hideProgress()
                     }
                 }.onFailure { error ->
+                    _aiStatus.value = null
                     _aiError.value = resolveAiErrorMessage(error)
+                    notificationManager.showCompletion("Generation Failed", "Could not curate your request.")
                 }
             } finally {
                 _isGeneratingAiPlaylist.value = false
+                _aiStatus.value = null
             }
         }
     }
 
+    /**
+     * Refines the existing Daily Mix playlist using an AI prompt.
+     * Uses the current mix as a vibe seed and applies AI filters to find similar tracks.
+     */
     fun regenerateDailyMixWithPrompt(prompt: String) {
         val scope = this.scope ?: return
         val allSongs = allSongsProvider?.invoke() ?: emptyList()
@@ -179,16 +252,19 @@ class AiStateHolder @Inject constructor(
             _aiError.value = null
 
             try {
+                _aiStatus.value = "Refining your Daily Mix..."
                 val desiredSize = currentDailyMixSongs.size.takeIf { it > 0 } ?: 25
                 val minLength = (desiredSize * 0.6).toInt().coerceAtLeast(10)
                 val maxLength = desiredSize.coerceAtLeast(20)
                 
+                _aiStatus.value = "Scanning for vibes..."
                 val candidatePool = dailyMixManager.generateDailyMix(
                     allSongs = allSongs,
                     favoriteSongIds = favoriteIds,
                     limit = 100
                 )
 
+                _aiStatus.value = "Applying AI filters..."
                 val result = aiPlaylistGenerator.generate(
                     userPrompt = prompt,
                     allSongs = allSongs,
@@ -211,14 +287,38 @@ class AiStateHolder @Inject constructor(
                 }
             } finally {
                 _isGeneratingAiPlaylist.value = false
+                _aiStatus.value = null
             }
         }
     }
 
+    /**
+     * Fetches AI-generated metadata (tags, genre, lyrics) for a specific song.
+     * Updates internal success and error states for UI feedback.
+     */
     suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
+        _lastMetadataSong = song
+        _lastMetadataFields = fields
+        
         _isGeneratingMetadata.value = true
+        _aiMetadataSuccess.value = false
+        _aiError.value = null
+        
         return try {
-            aiMetadataGenerator.generate(song, fields)
+            val result = aiMetadataGenerator.generate(song, fields)
+            if (result.isSuccess) {
+                _aiMetadataSuccess.value = true
+                notificationManager.showCompletion("Metadata Enhanced", "Applied tags and genre refinements.")
+            } else {
+                result.exceptionOrNull()?.let {
+                    _aiError.value = resolveAiErrorMessage(it)
+                    notificationManager.showCompletion("Metadata Error", "Check your AI configuration.")
+                }
+            }
+            result
+        } catch (e: Exception) {
+            _aiError.value = resolveAiErrorMessage(e)
+            Result.failure(e)
         } finally {
             _isGeneratingMetadata.value = false
         }

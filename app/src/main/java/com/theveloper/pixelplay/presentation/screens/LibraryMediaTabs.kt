@@ -49,6 +49,8 @@ import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistContainer
+import com.theveloper.pixelplay.presentation.components.albumFastScrollLabel
+import com.theveloper.pixelplay.presentation.components.artistFastScrollLabel
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistUiState
@@ -82,6 +84,14 @@ fun LibraryAlbumsTab(
 
     val playerUiState by playerViewModel.playerUiState.collectAsStateWithLifecycle()
     val isListView = playerUiState.isAlbumsListView
+    val albumFastScrollLabelProvider = remember(albums, playerUiState.currentAlbumSortOption) {
+        { index: Int ->
+            albumFastScrollLabel(
+                album = albums.getOrNull(index),
+                sortOption = playerUiState.currentAlbumSortOption
+            )
+        }
+    }
 
     var lastHandledAlbumSortKey by remember {
         mutableStateOf(playerUiState.currentAlbumSortOption.storageKey)
@@ -307,7 +317,8 @@ fun LibraryAlbumsTab(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                            listState = listState
+                            listState = listState,
+                            dragLabelProvider = albumFastScrollLabelProvider
                         )
                     } else {
                         LazyVerticalGrid(
@@ -363,7 +374,8 @@ fun LibraryAlbumsTab(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                            gridState = gridState
+                            gridState = gridState,
+                            dragLabelProvider = albumFastScrollLabelProvider
                         )
                     }
                 }
@@ -386,6 +398,14 @@ fun LibraryArtistsTab(
 ) {
     val listState = rememberLazyListState()
     val playerUiState by playerViewModel.playerUiState.collectAsStateWithLifecycle()
+    val artistFastScrollLabelProvider = remember(artists, playerUiState.currentArtistSortOption) {
+        { index: Int ->
+            artistFastScrollLabel(
+                artist = artists.getOrNull(index),
+                sortOption = playerUiState.currentArtistSortOption
+            )
+        }
+    }
     var lastHandledArtistSortKey by remember {
         mutableStateOf(playerUiState.currentArtistSortOption.storageKey)
     }
@@ -487,7 +507,8 @@ fun LibraryArtistsTab(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                        listState = listState
+                        listState = listState,
+                        dragLabelProvider = artistFastScrollLabelProvider
                     )
                 }
             }

@@ -13,6 +13,7 @@ import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.size.Size
+import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.database.AlbumArtThemeDao
 import com.theveloper.pixelplay.data.database.AlbumArtThemeEntity
@@ -73,28 +74,19 @@ class ColorSchemeProcessor @Inject constructor(
     suspend fun getOrGenerateColorScheme(
         albumArtUri: String,
         paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int = AlbumArtColorAccuracy.DEFAULT,
         forceRefresh: Boolean = false
     ): ColorSchemePair? {
         Trace.beginSection("ColorSchemeProcessor.getOrGenerate")
         try {
-            val cacheKey = buildCacheKey(albumArtUri, paletteStyle)
+            val resolvedAccuracyLevel = AlbumArtColorAccuracy.clamp(colorAccuracyLevel)
+            val cacheKey = buildCacheKey(albumArtUri, paletteStyle, resolvedAccuracyLevel)
             if (!forceRefresh) {
-                // 1. Check memory cache first (fastest)
-                memoryCache.get(cacheKey)?.let {
-                    Trace.endSection()
-                    return it
-                }
-
-                // 2. Check database cache
-                val cachedEntity = withContext(Dispatchers.IO) {
-                    albumArtThemeDao.getThemeByUriAndStyle(
-                        albumArtUri,
-                        paletteStyleCacheKey(paletteStyle)
-                    )
-                }
-                if (cachedEntity != null) {
-                    val schemePair = mapEntityToColorSchemePair(cachedEntity)
-                    memoryCache.put(cacheKey, schemePair)
+                loadCachedColorScheme(
+                    albumArtUri = albumArtUri,
+                    paletteStyle = paletteStyle,
+                    colorAccuracyLevel = resolvedAccuracyLevel
+                )?.let { schemePair ->
                     Trace.endSection()
                     return schemePair
                 }
@@ -104,11 +96,30 @@ class ColorSchemeProcessor @Inject constructor(
             return generateAndCacheColorScheme(
                 albumArtUri = albumArtUri,
                 paletteStyle = paletteStyle,
+                colorAccuracyLevel = resolvedAccuracyLevel,
                 forceRefresh = forceRefresh
             )
         } finally {
             Trace.endSection()
         }
+    }
+
+    suspend fun getPreviewColorScheme(
+        albumArtUri: String,
+        paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int = AlbumArtColorAccuracy.DEFAULT
+    ): ColorSchemePair? {
+        val resolvedAccuracyLevel = AlbumArtColorAccuracy.clamp(colorAccuracyLevel)
+        return loadCachedColorScheme(
+            albumArtUri = albumArtUri,
+            paletteStyle = paletteStyle,
+            colorAccuracyLevel = resolvedAccuracyLevel
+        ) ?: generateAndCacheColorScheme(
+            albumArtUri = albumArtUri,
+            paletteStyle = paletteStyle,
+            colorAccuracyLevel = resolvedAccuracyLevel,
+            persistToDatabase = false
+        )
     }
 
     /**
@@ -118,11 +129,13 @@ class ColorSchemeProcessor @Inject constructor(
     private suspend fun generateAndCacheColorScheme(
         albumArtUri: String,
         paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int,
+        persistToDatabase: Boolean = true,
         forceRefresh: Boolean = false
     ): ColorSchemePair? {
         Trace.beginSection("ColorSchemeProcessor.generate")
         try {
-            val cacheKey = buildCacheKey(albumArtUri, paletteStyle)
+            val cacheKey = buildCacheKey(albumArtUri, paletteStyle, colorAccuracyLevel)
             // Load bitmap on IO dispatcher
             val bitmap = withContext(Dispatchers.IO) {
                 loadBitmapForColorExtraction(albumArtUri, forceRefresh)
@@ -130,7 +143,12 @@ class ColorSchemeProcessor @Inject constructor(
 
             // Extract colors on Default dispatcher (CPU-bound)
             val schemePair = withContext(Dispatchers.Default) {
-                val seed = extractSeedColor(bitmap)
+                val seed = extractSeedColor(
+                    bitmap = bitmap,
+                    config = com.theveloper.pixelplay.ui.theme.ColorExtractionConfig(
+                        accuracyLevel = colorAccuracyLevel
+                    )
+                )
                 // Recycle immediately after pixel access — we only need the seed color.
                 bitmap.recycle()
                 generateColorSchemeFromSeed(
@@ -142,15 +160,17 @@ class ColorSchemeProcessor @Inject constructor(
             // Cache to memory
             memoryCache.put(cacheKey, schemePair)
 
-            // Persist to database (fire and forget on IO)
-            withContext(Dispatchers.IO) {
-                albumArtThemeDao.insertTheme(
-                    mapColorSchemePairToEntity(
-                        uri = albumArtUri,
-                        paletteStyle = paletteStyle,
-                        pair = schemePair
+            if (persistToDatabase) {
+                withContext(Dispatchers.IO) {
+                    albumArtThemeDao.insertTheme(
+                        mapColorSchemePairToEntity(
+                            uri = albumArtUri,
+                            paletteStyle = paletteStyle,
+                            colorAccuracyLevel = colorAccuracyLevel,
+                            pair = schemePair
+                        )
                     )
-                )
+                }
             }
 
             return schemePair
@@ -257,6 +277,7 @@ class ColorSchemeProcessor @Inject constructor(
     private fun mapColorSchemePairToEntity(
         uri: String,
         paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int,
         pair: ColorSchemePair
     ): AlbumArtThemeEntity {
         fun mapScheme(cs: ColorScheme) = StoredColorSchemeValues(
@@ -311,7 +332,7 @@ class ColorSchemeProcessor @Inject constructor(
         )
         return AlbumArtThemeEntity(
             albumArtUriString = uri,
-            paletteStyle = paletteStyleCacheKey(paletteStyle),
+            paletteStyle = paletteStyleCacheKey(paletteStyle, colorAccuracyLevel),
             lightThemeValues = mapScheme(pair.light),
             darkThemeValues = mapScheme(pair.dark)
         )
@@ -378,17 +399,53 @@ class ColorSchemeProcessor @Inject constructor(
         return String.format("#%08X", toArgb())
     }
 
-    private fun buildCacheKey(uri: String, paletteStyle: AlbumArtPaletteStyle): String {
-        return "$uri$CACHE_KEY_SEPARATOR${paletteStyleCacheKey(paletteStyle)}"
+    private fun buildCacheKey(
+        uri: String,
+        paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int
+    ): String {
+        return "$uri$CACHE_KEY_SEPARATOR${paletteStyleCacheKey(paletteStyle, colorAccuracyLevel)}"
     }
 
-    private fun paletteStyleCacheKey(paletteStyle: AlbumArtPaletteStyle): String {
-        return "${paletteStyle.storageKey}$CACHE_KEY_SEPARATOR$CACHE_ALGORITHM_VERSION"
+    private fun paletteStyleCacheKey(
+        paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int
+    ): String {
+        return buildString {
+            append(paletteStyle.storageKey)
+            append(CACHE_KEY_SEPARATOR)
+            append("accuracy_")
+            append(AlbumArtColorAccuracy.clamp(colorAccuracyLevel))
+            append(CACHE_KEY_SEPARATOR)
+            append(CACHE_ALGORITHM_VERSION)
+        }
+    }
+
+    private suspend fun loadCachedColorScheme(
+        albumArtUri: String,
+        paletteStyle: AlbumArtPaletteStyle,
+        colorAccuracyLevel: Int
+    ): ColorSchemePair? {
+        val cacheKey = buildCacheKey(albumArtUri, paletteStyle, colorAccuracyLevel)
+
+        memoryCache.get(cacheKey)?.let { return it }
+
+        val cachedEntity = withContext(Dispatchers.IO) {
+            albumArtThemeDao.getThemeByUriAndStyle(
+                albumArtUri,
+                paletteStyleCacheKey(paletteStyle, colorAccuracyLevel)
+            )
+        }
+        if (cachedEntity == null) return null
+
+        return mapEntityToColorSchemePair(cachedEntity).also { schemePair ->
+            memoryCache.put(cacheKey, schemePair)
+        }
     }
 
     companion object {
         private const val TAG = "ColorSchemeProcessor"
         private const val CACHE_KEY_SEPARATOR = "|"
-        private const val CACHE_ALGORITHM_VERSION = "algo_v6"
+        private const val CACHE_ALGORITHM_VERSION = "algo_v7"
     }
 }

@@ -9,14 +9,11 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
-import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.lazy.layout.LazyLayoutScrollScope
 import androidx.compose.foundation.pager.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,10 +42,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMapIndexed
 import kotlin.math.*
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -82,20 +77,12 @@ class CarouselState(
 
     suspend fun scrollToItem(item: Int) = pagerState.scrollToPage(item, 0f)
 
-    suspend fun animateScrollToItem(item: Int, animationSpec: AnimationSpec<Float> = spring()) =
-        with(pagerState) {
-            if ((item == currentPage && currentPageOffsetFraction == 0f) || pageCount == 0) return
-            val targetPage = if (pageCount > 0) item.coerceIn(0, pageCount - 1) else 0
-            scroll {
-                LazyLayoutScrollScope(this@with, this).animateScrollToPage(
-                    pagerState = this@with,
-                    targetPage = targetPage,
-                    targetPageOffsetToSnappedPosition = 0f,
-                    animationSpec = animationSpec,
-                    updateTargetPage = { updateTargetPage(it) },
-                )
-            }
-        }
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun animateScrollToItem(item: Int, animationSpec: AnimationSpec<Float> = spring()) {
+        if ((item == pagerState.currentPage && pagerState.currentPageOffsetFraction == 0f) || pagerState.pageCount == 0) return
+        val targetPage = if (pagerState.pageCount > 0) item.coerceIn(0, pagerState.pageCount - 1) else 0
+        pagerState.animateScrollToPage(targetPage)
+    }
 
     companion object {
         val Saver: Saver<CarouselState, *> =
@@ -1087,71 +1074,7 @@ class CarouselPagerState(
     }
 }
 
-private suspend fun LazyLayoutScrollScope.animateScrollToPage(
-    pagerState: PagerState,
-    targetPage: Int,
-    targetPageOffsetToSnappedPosition: Float,
-    animationSpec: AnimationSpec<Float>,
-    updateTargetPage: ScrollScope.(Int) -> Unit,
-) {
-    updateTargetPage(targetPage)
-    val forward = targetPage > firstVisibleItemIndex
-    val visible = lastVisibleItemIndex - firstVisibleItemIndex + 1
-    if (((forward && targetPage > lastVisibleItemIndex) || (!forward && targetPage < firstVisibleItemIndex)) &&
-        abs(targetPage - firstVisibleItemIndex) >= 3
-    ) {
-        val pre = if (forward) (targetPage - visible).coerceAtLeast(firstVisibleItemIndex)
-        else (targetPage + visible).coerceAtMost(firstVisibleItemIndex)
-        snapToItem(pre, 0)
-    }
 
-    val layoutSize =
-        if (pagerState.layoutInfo.orientation == Orientation.Horizontal)
-            pagerState.layoutInfo.viewportSize.width
-        else pagerState.layoutInfo.viewportSize.height
-
-    val currSnap =
-        pagerState.layoutInfo.snapPosition.position(
-            layoutSize,
-            pagerState.layoutInfo.pageSize,
-            pagerState.layoutInfo.beforeContentPadding,
-            pagerState.layoutInfo.afterContentPadding,
-            pagerState.currentPage,
-            pagerState.pageCount
-        )
-    val targetSnap =
-        pagerState.layoutInfo.snapPosition.position(
-            layoutSize,
-            pagerState.layoutInfo.pageSize,
-            pagerState.layoutInfo.beforeContentPadding,
-            pagerState.layoutInfo.afterContentPadding,
-            targetPage,
-            pagerState.pageCount
-        )
-
-    val snapDiff = currSnap - targetSnap
-    val pageSizeWithSpacing = pagerState.layoutInfo.pageSize.toFloat() + pagerState.layoutInfo.pageSpacing.toFloat()
-    val displacement = ((targetPage - pagerState.currentPage) * pageSizeWithSpacing) + snapDiff + targetPageOffsetToSnappedPosition
-
-    var prev = 0f
-    animate(
-        initialValue = 0f,
-        targetValue = displacement,
-        animationSpec = animationSpec
-    ) { value, _ ->
-
-    val delta = value - prev
-        val consumed = scrollBy(delta)
-        prev += consumed
-    }
-
-    // Programmatic page changes do not go through the pager's fling snap path,
-    // so leave the state exactly on the target page to avoid a visible end-of-motion
-    // wobble when the final consumed delta undershoots by a fraction.
-    if (pagerState.currentPage != targetPage || abs(pagerState.currentPageOffsetFraction) > 0.0001f) {
-        snapToItem(targetPage, 0)
-    }
-}
 
 /* ================================================================================================
    HELPERS de Padding

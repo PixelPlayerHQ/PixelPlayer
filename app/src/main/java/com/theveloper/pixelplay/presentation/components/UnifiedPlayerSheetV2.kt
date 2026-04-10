@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
@@ -278,12 +277,10 @@ fun UnifiedPlayerSheetV2(
         )
     }
 
-    val sheetCollapsedTargetYState = rememberUpdatedState(sheetCollapsedTargetY)
-    LaunchedEffect(sheetMotionController) {
-        snapshotFlow { sheetCollapsedTargetYState.value }
-            .collect { collapsedTargetY ->
-                sheetMotionController.syncToExpansion(collapsedTargetY)
-            }
+    LaunchedEffect(sheetCollapsedTargetY, sheetMotionController) {
+        // Keep the mini player anchored to the latest collapsed target whenever
+        // the navbar height/visibility changes under it.
+        sheetMotionController.syncToExpansion(sheetCollapsedTargetY)
     }
 
     var previousSheetState by remember { mutableStateOf(currentSheetContentState) }

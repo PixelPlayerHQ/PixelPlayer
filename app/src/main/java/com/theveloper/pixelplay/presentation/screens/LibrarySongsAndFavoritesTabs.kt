@@ -58,6 +58,7 @@ import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
+import com.theveloper.pixelplay.presentation.components.songFastScrollLabel
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
@@ -89,6 +90,14 @@ fun LibraryFavoritesTab(
     val coroutineScope = rememberCoroutineScope()
     val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
     val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
+    val favoriteFastScrollLabelProvider = remember(favoriteSongs, sortOption) {
+        { index: Int ->
+            songFastScrollLabel(
+                song = favoriteSongs.peek(index),
+                sortOption = sortOption
+            )
+        }
+    }
     var lastHandledFavoriteSortKey by remember { mutableStateOf(sortOption.storageKey) }
     var pendingFavoriteSortScrollReset by remember { mutableStateOf(false) }
     var favoriteSortSawRefreshLoading by remember { mutableStateOf(false) }
@@ -255,7 +264,8 @@ fun LibraryFavoritesTab(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                        listState = listState
+                        listState = listState,
+                        dragLabelProvider = favoriteFastScrollLabelProvider
                     )
                 }
             }

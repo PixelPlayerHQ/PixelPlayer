@@ -60,6 +60,7 @@ import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImageCompactListTargetSize
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
+import com.theveloper.pixelplay.presentation.components.extractFastScrollGlyph
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import com.theveloper.pixelplay.presentation.screens.QuickFillDialog
 import com.theveloper.pixelplay.presentation.viewmodel.GenreDetailListItem
@@ -211,6 +212,15 @@ fun GenreDetailScreen(
     }
     val genreDisplayName = themeGenre?.name ?: uiState.genre?.name ?: initialDisplayName
     val genreShuffleLabel = "$genreDisplayName Shuffle"
+    val genreFastScrollLabelProvider = remember(uiState.flattenedItems, uiState.sortOption) {
+        { index: Int ->
+            genreFastScrollLabel(
+                items = uiState.flattenedItems,
+                index = index,
+                sortOption = uiState.sortOption
+            )
+        }
+    }
     
     // FAB Logic
     var showSortSheet by remember { mutableStateOf(false) }
@@ -341,7 +351,8 @@ fun GenreDetailScreen(
                         .padding(
                             top = minTopBarHeight + 12.dp, // Stable padding for performance
                             bottom = fabBottomPadding + 112.dp // Stable padding
-                        )
+                        ),
+                    dragLabelProvider = genreFastScrollLabelProvider
                 )
             }
 
@@ -493,8 +504,20 @@ fun GenreDetailScreen(
                             }
                             showSongOptionsSheet = null
                         },
-                        onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
-                            playerViewModel.editSongMetadata(song, newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate)
+                        onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                            playerViewModel.editSongMetadata(
+                                song,
+                                newTitle,
+                                newArtist,
+                                newAlbum,
+                                newGenre,
+                                newLyrics,
+                                newTrackNumber,
+                                newDiscNumber,
+                                replayGainTrackGainDb,
+                                replayGainAlbumGainDb,
+                                coverArtUpdate
+                            )
                         },
                         generateAiMetadata = { fields ->
                             playerViewModel.generateAiMetadata(song, fields)
@@ -521,6 +544,51 @@ fun GenreDetailScreen(
         }
     }
 }
+
+private fun genreFastScrollLabel(
+    items: List<GenreDetailListItem>,
+    index: Int,
+    sortOption: SortOption
+): String? {
+    if (items.isEmpty()) return null
+
+    val clampedIndex = index.coerceIn(0, items.lastIndex)
+    for (candidateIndex in clampedIndex downTo 0) {
+        val label = items[candidateIndex].fastScrollLabel(sortOption)
+        if (!label.isNullOrBlank()) {
+            return label
+        }
+    }
+
+    return null
+}
+
+private fun GenreDetailListItem.fastScrollLabel(sortOption: SortOption): String? =
+    when (sortOption) {
+        SortOption.ARTIST -> when (this) {
+            is GenreDetailListItem.ArtistHeader -> extractFastScrollGlyph(artistName)
+            is GenreDetailListItem.AlbumHeader -> extractFastScrollGlyph(album.songs.firstOrNull()?.artist)
+            is GenreDetailListItem.SongItem -> extractFastScrollGlyph(song.artist)
+            is GenreDetailListItem.Spacer,
+            is GenreDetailListItem.Divider -> null
+        }
+
+        SortOption.ALBUM -> when (this) {
+            is GenreDetailListItem.ArtistHeader -> null
+            is GenreDetailListItem.AlbumHeader -> extractFastScrollGlyph(album.name)
+            is GenreDetailListItem.SongItem -> extractFastScrollGlyph(song.album)
+            is GenreDetailListItem.Spacer,
+            is GenreDetailListItem.Divider -> null
+        }
+
+        SortOption.TITLE -> when (this) {
+            is GenreDetailListItem.ArtistHeader -> null
+            is GenreDetailListItem.AlbumHeader -> null
+            is GenreDetailListItem.SongItem -> extractFastScrollGlyph(song.title)
+            is GenreDetailListItem.Spacer,
+            is GenreDetailListItem.Divider -> null
+        }
+    }
 
 // --- Top Bar Component ---
 @Composable

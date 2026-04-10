@@ -11,6 +11,7 @@ import com.google.android.material.color.utilities.SchemeFruitSalad
 import com.google.android.material.color.utilities.SchemeTonalSpot
 import com.google.android.material.color.utilities.SchemeVibrant
 import com.google.common.truth.Truth.assertThat
+import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import org.junit.Test
 
@@ -93,6 +94,63 @@ class ColorRolesTest {
         )
 
         assertThat(Hct.fromInt(result).chroma).isLessThan(12.0)
+    }
+
+    @Test
+    fun selectSeedColorArgbFromPixels_accuracyZeroMatchesDefaultConfig() {
+        val pixels = pixelsOf(
+            520 to 0xFFD8893A.toInt(),
+            260 to 0xFFE9B764.toInt(),
+            220 to 0xFF69B84A.toInt()
+        )
+
+        val defaultSeed = selectSeedColorArgbFromPixels(pixels)
+        val accuracyZeroSeed = selectSeedColorArgbFromPixels(
+            pixels = pixels,
+            config = ColorExtractionConfig(accuracyLevel = AlbumArtColorAccuracy.DEFAULT)
+        )
+
+        assertThat(accuracyZeroSeed).isEqualTo(defaultSeed)
+    }
+
+    @Test
+    fun selectSeedColorArgbFromPixels_higherAccuracyPullsWarmYellowAwayFromGreenAccent() {
+        val dominantYellow = 0xFFD89A35.toInt()
+        val supportingYellow = 0xFFE7BE58.toInt()
+        val greenAccent = 0xFF67B845.toInt()
+        val pixels = pixelsOf(
+            520 to dominantYellow,
+            260 to supportingYellow,
+            220 to greenAccent
+        )
+
+        val accurateSeed = selectSeedColorArgbFromPixels(
+            pixels = pixels,
+            config = ColorExtractionConfig(accuracyLevel = AlbumArtColorAccuracy.MAX)
+        )
+
+        assertThat(hueDistance(accurateSeed, dominantYellow))
+            .isLessThan(hueDistance(accurateSeed, greenAccent))
+    }
+
+    @Test
+    fun selectSeedColorArgbFromPixels_higherAccuracyPullsRoyalBlueAwayFromTealAccent() {
+        val dominantBlue = 0xFF2D5FDB.toInt()
+        val supportingBlue = 0xFF4A7AF2.toInt()
+        val tealAccent = 0xFF16B7B1.toInt()
+        val pixels = pixelsOf(
+            520 to dominantBlue,
+            260 to supportingBlue,
+            220 to tealAccent
+        )
+
+        val accurateSeed = selectSeedColorArgbFromPixels(
+            pixels = pixels,
+            config = ColorExtractionConfig(accuracyLevel = AlbumArtColorAccuracy.MAX)
+        )
+
+        assertThat(hueDistance(accurateSeed, dominantBlue))
+            .isLessThan(hueDistance(accurateSeed, tealAccent))
     }
 
     private fun expectedScheme(

@@ -148,6 +148,7 @@ private data class SortOptionsSnapshot(
 private data class AiUiSnapshot(
     val showAiPlaylistSheet: Boolean,
     val isGeneratingAiPlaylist: Boolean,
+    val aiStatus: String?,
     val aiError: String?,
     val isGeneratingAiMetadata: Boolean,
 )
@@ -358,15 +359,16 @@ class PlayerViewModel @Inject constructor(
 
     val playerContentExpansionFraction = Animatable(0f)
 
-    // AI Playlist Generation State
-    private val _showAiPlaylistSheet = MutableStateFlow(false)
-    val showAiPlaylistSheet: StateFlow<Boolean> = _showAiPlaylistSheet.asStateFlow()
+    // AI Ecosystem: States delegated to AiStateHolder for centralized management
+    val showAiPlaylistSheet: StateFlow<Boolean> = aiStateHolder.showAiPlaylistSheet
+    val isGeneratingAiPlaylist: StateFlow<Boolean> = aiStateHolder.isGeneratingAiPlaylist
+    val aiSuccess: StateFlow<Boolean> = aiStateHolder.aiSuccess
+    val aiStatus: StateFlow<String?> = aiStateHolder.aiStatus
+    val aiError: StateFlow<String?> = aiStateHolder.aiError
 
-    private val _isGeneratingAiPlaylist = MutableStateFlow(false)
-    val isGeneratingAiPlaylist: StateFlow<Boolean> = _isGeneratingAiPlaylist.asStateFlow()
-
-    private val _aiError = MutableStateFlow<String?>(null)
-    val aiError: StateFlow<String?> = _aiError.asStateFlow()
+    // AI Metadata Generation States
+    val isGeneratingAiMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
+    val aiMetadataSuccess: StateFlow<Boolean> = aiStateHolder.aiMetadataSuccess
 
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()
@@ -392,6 +394,13 @@ class PlayerViewModel @Inject constructor(
             initialValue = NavBarStyle.DEFAULT
         )
 
+    val navBarCompactMode: StateFlow<Boolean> = userPreferencesRepository.navBarCompactModeFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     val libraryNavigationMode: StateFlow<String> = userPreferencesRepository.libraryNavigationModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -409,11 +418,32 @@ class PlayerViewModel @Inject constructor(
     val hasActiveAiProviderApiKey: StateFlow<Boolean> = combine(
         aiPreferencesRepository.aiProvider,
         aiPreferencesRepository.geminiApiKey,
-        aiPreferencesRepository.deepseekApiKey
-    ) { provider, geminiKey, deepseekKey ->
+        aiPreferencesRepository.deepseekApiKey,
+        aiPreferencesRepository.groqApiKey,
+        aiPreferencesRepository.mistralApiKey,
+        aiPreferencesRepository.nvidiaApiKey,
+        aiPreferencesRepository.kimiApiKey,
+        aiPreferencesRepository.glmApiKey,
+        aiPreferencesRepository.openaiApiKey
+    ) { values ->
+        val provider = values[0]
+        val gemini = values[1]
+        val deepseek = values[2]
+        val groq = values[3]
+        val mistral = values[4]
+        val nvidia = values[5]
+        val kimi = values[6]
+        val glm = values[7]
+        val openai = values[8]
         when (provider) {
-            "DEEPSEEK" -> deepseekKey.isNotBlank()
-            else -> geminiKey.isNotBlank()
+            "DEEPSEEK" -> deepseek.isNotBlank()
+            "GROQ" -> groq.isNotBlank()
+            "MISTRAL" -> mistral.isNotBlank()
+            "NVIDIA" -> nvidia.isNotBlank()
+            "KIMI" -> kimi.isNotBlank()
+            "GLM" -> glm.isNotBlank()
+            "OPENAI" -> openai.isNotBlank()
+            else -> gemini.isNotBlank()
         }
     }.distinctUntilChanged()
         .stateIn(
@@ -1680,19 +1710,18 @@ class PlayerViewModel @Inject constructor(
             combine(
                 aiStateHolder.showAiPlaylistSheet,
                 aiStateHolder.isGeneratingAiPlaylist,
+                aiStateHolder.aiStatus,
                 aiStateHolder.aiError,
                 aiStateHolder.isGeneratingMetadata,
-            ) { show, generating, error, generatingMetadata ->
+            ) { show, generating, status, error, generatingMetadata ->
                 AiUiSnapshot(
                     showAiPlaylistSheet = show,
                     isGeneratingAiPlaylist = generating,
+                    aiStatus = status,
                     aiError = error,
                     isGeneratingAiMetadata = generatingMetadata
                 )
             }.collect { snapshot ->
-                _showAiPlaylistSheet.value = snapshot.showAiPlaylistSheet
-                _isGeneratingAiPlaylist.value = snapshot.isGeneratingAiPlaylist
-                _aiError.value = snapshot.aiError
                 _playerUiState.update {
                     it.copy(isGeneratingAiMetadata = snapshot.isGeneratingAiMetadata)
                 }
@@ -1746,6 +1775,11 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             libraryStateHolder.currentStorageFilter.collect { filter ->
                 _playerUiState.update { it.copy(currentStorageFilter = filter) }
+            }
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.hideLocalMediaFlow.collect { hide ->
+                _playerUiState.update { it.copy(hideLocalMedia = hide) }
             }
         }
 
@@ -1866,6 +1900,12 @@ class PlayerViewModel @Inject constructor(
 
     fun setStorageFilter(filter: com.theveloper.pixelplay.data.model.StorageFilter) {
         libraryStateHolder.setStorageFilter(filter)
+    }
+
+    fun setHideLocalMedia(hide: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setHideLocalMedia(hide)
+        }
     }
 
     fun toggleStorageFilter() {
@@ -2953,7 +2993,8 @@ class PlayerViewModel @Inject constructor(
                 startingUri.scheme == "telegram" ||
                 startingUri.scheme == "netease" ||
                 startingUri.scheme == "qqmusic" ||
-                startingUri.scheme == "navidrome"
+                startingUri.scheme == "navidrome" ||
+                startingUri.scheme == "jellyfin"
             ) {
                 if (startingUri.scheme == "telegram") {
                     ensureTelegramPlaybackObserversStarted()
@@ -3005,7 +3046,8 @@ class PlayerViewModel @Inject constructor(
             scheme != "telegram" &&
             scheme != "netease" &&
             scheme != "qqmusic" &&
-            scheme != "navidrome"
+            scheme != "navidrome" &&
+            scheme != "jellyfin"
         ) {
             return mediaItem
         }
@@ -3766,6 +3808,14 @@ class PlayerViewModel @Inject constructor(
         aiStateHolder.regenerateDailyMixWithPrompt(prompt)
     }
 
+    fun retryLastPlaylistGeneration() {
+        aiStateHolder.retryLastPlaylistGeneration()
+    }
+
+    fun retryLastMetadataGeneration() {
+        aiStateHolder.retryLastMetadataGeneration()
+    }
+
     fun clearQueueExceptCurrent() {
         mediaController?.let { controller ->
             val currentSongIndex = controller.currentMediaItemIndex
@@ -3983,6 +4033,8 @@ class PlayerViewModel @Inject constructor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newReplayGainTrackGainDb: String? = null,
+        newReplayGainAlbumGainDb: String? = null,
         coverArtUpdate: CoverArtUpdate?,
     ) {
         viewModelScope.launch {
@@ -3999,6 +4051,8 @@ class PlayerViewModel @Inject constructor(
                 newLyrics = newLyrics,
                 newTrackNumber = newTrackNumber,
                 newDiscNumber = newDiscNumber,
+                newReplayGainTrackGainDb = newReplayGainTrackGainDb,
+                newReplayGainAlbumGainDb = newReplayGainAlbumGainDb,
                 coverArtUpdate = coverArtUpdate
             )
 

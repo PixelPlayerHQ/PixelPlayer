@@ -105,9 +105,9 @@ import androidx.navigation.NavHostController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.PlaylistCover
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.screens.search.components.GenreCategoriesGrid
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
@@ -132,7 +132,8 @@ fun SearchScreen(
 ) {
     var searchQuery by rememberSaveable { mutableStateOf(playerViewModel.searchQuery) }
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomBarHeightDp = NavBarContentHeight + systemNavBarInset
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
+    val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val uiState by playerViewModel.playerUiState.collectAsStateWithLifecycle()
     val currentFilter by remember { derivedStateOf { uiState.selectedSearchFilter } }
@@ -445,7 +446,7 @@ fun SearchScreen(
                     }
                     showSongInfoBottomSheet = false
                 },
-                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, coverArtUpdate ->
+                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         currentSong,
                         newTitle,
@@ -455,6 +456,8 @@ fun SearchScreen(
                         newLyrics,
                         newTrackNumber,
                         newDiscNumber,
+                        replayGainTrackGainDb,
+                        replayGainAlbumGainDb,
                         coverArtUpdate
                     )
                 },

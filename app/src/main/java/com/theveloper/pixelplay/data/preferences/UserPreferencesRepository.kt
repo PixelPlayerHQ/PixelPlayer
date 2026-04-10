@@ -206,6 +206,10 @@ constructor(
         val ANIMATED_LYRICS_BLUR_ENABLED = booleanPreferencesKey("animated_lyrics_blur_enabled")
         val ANIMATED_LYRICS_BLUR_STRENGTH = androidx.datastore.preferences.core.floatPreferencesKey("animated_lyrics_blur_strength")
         val DESKTOP_LYRICS_ENABLED = booleanPreferencesKey("desktop_lyrics_enabled")
+        val DESKTOP_LYRICS_FONT_SIZE = androidx.datastore.preferences.core.floatPreferencesKey("desktop_lyrics_font_size")
+        val DESKTOP_LYRICS_OPACITY = androidx.datastore.preferences.core.floatPreferencesKey("desktop_lyrics_opacity")
+        val DESKTOP_LYRICS_POS_X = intPreferencesKey("desktop_lyrics_pos_x")
+        val DESKTOP_LYRICS_POS_Y = intPreferencesKey("desktop_lyrics_pos_y")
 
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
@@ -617,6 +621,45 @@ constructor(
     suspend fun setDesktopLyricsEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DESKTOP_LYRICS_ENABLED] = enabled
+        }
+    }
+
+    val desktopLyricsFontSizeFlow: Flow<Float> =
+        dataStore.data.map { preferences ->
+            (preferences[PreferencesKeys.DESKTOP_LYRICS_FONT_SIZE] ?: 22f).coerceIn(14f, 48f)
+        }
+
+    suspend fun setDesktopLyricsFontSize(sizeSp: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_FONT_SIZE] = sizeSp.coerceIn(14f, 48f)
+        }
+    }
+
+    val desktopLyricsOpacityFlow: Flow<Float> =
+        dataStore.data.map { preferences ->
+            (preferences[PreferencesKeys.DESKTOP_LYRICS_OPACITY] ?: 0.95f).coerceIn(0.2f, 1f)
+        }
+
+    suspend fun setDesktopLyricsOpacity(opacity: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_OPACITY] = opacity.coerceIn(0.2f, 1f)
+        }
+    }
+
+    val desktopLyricsPosXFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_POS_X] ?: 120
+        }
+
+    val desktopLyricsPosYFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_POS_Y] ?: 220
+        }
+
+    suspend fun setDesktopLyricsPosition(x: Int, y: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_POS_X] = x.coerceAtLeast(0)
+            preferences[PreferencesKeys.DESKTOP_LYRICS_POS_Y] = y.coerceAtLeast(0)
         }
     }
 

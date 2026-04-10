@@ -685,6 +685,25 @@ fun SettingsCategoryScreen(
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
 
+                                if (uiState.desktopLyricsEnabled) {
+                                    SliderSettingsItem(
+                                        label = "Desktop Lyrics Font Size",
+                                        value = uiState.desktopLyricsFontSize,
+                                        valueRange = 14f..48f,
+                                        steps = 33,
+                                        onValueChange = { settingsViewModel.setDesktopLyricsFontSize(it) },
+                                        valueText = { value -> "${value.toInt()}sp" }
+                                    )
+                                    SliderSettingsItem(
+                                        label = "Desktop Lyrics Opacity",
+                                        value = uiState.desktopLyricsOpacity,
+                                        valueRange = 0.2f..1f,
+                                        steps = 15,
+                                        onValueChange = { settingsViewModel.setDesktopLyricsOpacity(it) },
+                                        valueText = { value -> "${(value * 100).toInt()}%" }
+                                    )
+                                }
+
                                 if (uiState.immersiveLyricsEnabled) {
                                     ThemeSelectorItem(
                                         label = "Auto-hide Delay",

@@ -84,6 +84,8 @@ data class SettingsUiState(
     val immersiveLyricsEnabled: Boolean = false,
     val immersiveLyricsTimeout: Long = 4000L,
     val desktopLyricsEnabled: Boolean = false,
+    val desktopLyricsFontSize: Float = 22f,
+    val desktopLyricsOpacity: Float = 0.95f,
     val useAnimatedLyrics: Boolean = false,
     val animatedLyricsBlurEnabled: Boolean = true,
     val animatedLyricsBlurStrength: Float = 2.5f,
@@ -154,6 +156,8 @@ private sealed interface SettingsUiUpdate {
         val immersiveLyricsEnabled: Boolean,
         val immersiveLyricsTimeout: Long,
         val desktopLyricsEnabled: Boolean,
+        val desktopLyricsFontSize: Float,
+        val desktopLyricsOpacity: Float,
         val animatedLyricsBlurEnabled: Boolean,
         val animatedLyricsBlurStrength: Float
     ) : SettingsUiUpdate
@@ -380,6 +384,8 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.immersiveLyricsEnabledFlow,
                 userPreferencesRepository.immersiveLyricsTimeoutFlow,
                 userPreferencesRepository.desktopLyricsEnabledFlow,
+                userPreferencesRepository.desktopLyricsFontSizeFlow,
+                userPreferencesRepository.desktopLyricsOpacityFlow,
                 userPreferencesRepository.animatedLyricsBlurEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurStrengthFlow
             ) { values ->
@@ -399,8 +405,10 @@ class SettingsViewModel @Inject constructor(
                     immersiveLyricsEnabled = values[12] as Boolean,
                     immersiveLyricsTimeout = values[13] as Long,
                     desktopLyricsEnabled = values[14] as Boolean,
-                    animatedLyricsBlurEnabled = values[15] as Boolean,
-                    animatedLyricsBlurStrength = values[16] as Float
+                    desktopLyricsFontSize = values[15] as Float,
+                    desktopLyricsOpacity = values[16] as Float,
+                    animatedLyricsBlurEnabled = values[17] as Boolean,
+                    animatedLyricsBlurStrength = values[18] as Float
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -420,6 +428,8 @@ class SettingsViewModel @Inject constructor(
                         immersiveLyricsEnabled = update.immersiveLyricsEnabled,
                         immersiveLyricsTimeout = update.immersiveLyricsTimeout,
                         desktopLyricsEnabled = update.desktopLyricsEnabled,
+                        desktopLyricsFontSize = update.desktopLyricsFontSize,
+                        desktopLyricsOpacity = update.desktopLyricsOpacity,
                         animatedLyricsBlurEnabled = update.animatedLyricsBlurEnabled,
                         animatedLyricsBlurStrength = update.animatedLyricsBlurStrength
                     )
@@ -849,6 +859,18 @@ class SettingsViewModel @Inject constructor(
     fun setDesktopLyricsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDesktopLyricsEnabled(enabled)
+        }
+    }
+
+    fun setDesktopLyricsFontSize(sizeSp: Float) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDesktopLyricsFontSize(sizeSp)
+        }
+    }
+
+    fun setDesktopLyricsOpacity(opacity: Float) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDesktopLyricsOpacity(opacity)
         }
     }
 

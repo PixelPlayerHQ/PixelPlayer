@@ -687,20 +687,6 @@ fun SettingsCategoryScreen(
 
                                 if (uiState.desktopLyricsEnabled) {
                                     SettingsItem(
-                                        title = "Apply Overlay Now",
-                                        subtitle = "Restart desktop lyrics overlay with latest settings.",
-                                        leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) },
-                                        onClick = {
-                                            val serviceIntent = Intent(context, DesktopLyricsOverlayService::class.java)
-                                            context.stopService(serviceIntent)
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                ContextCompat.startForegroundService(context, serviceIntent)
-                                            } else {
-                                                context.startService(serviceIntent)
-                                            }
-                                        }
-                                    )
-                                    SettingsItem(
                                         title = "Unlock Desktop Lyrics",
                                         subtitle = if (uiState.desktopLyricsLocked) "Release current overlay lock state." else "Desktop lyrics is not locked now.",
                                         leadingIcon = { Icon(painterResource(R.drawable.rounded_key_vertical_24), null, tint = MaterialTheme.colorScheme.secondary) },

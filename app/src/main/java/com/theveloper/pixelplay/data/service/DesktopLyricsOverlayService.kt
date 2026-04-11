@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
@@ -13,12 +14,14 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.OptIn
@@ -40,6 +43,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
@@ -64,18 +69,24 @@ class DesktopLyricsOverlayService : Service() {
     private var lyricCard: LinearLayout? = null
     private var currentLineView: TextView? = null
     private var nextLineView: TextView? = null
+    private var topRow: LinearLayout? = null
     private var controlsRow: LinearLayout? = null
+    private var homeButton: ImageButton? = null
     private var lockButton: ImageButton? = null
+    private var settingsButton: ImageButton? = null
     private var closeButton: ImageButton? = null
 
     private var overlayParams: WindowManager.LayoutParams? = null
 
     private var lyricsJob: Job? = null
     private var progressTickerJob: Job? = null
+    private var prefsObserverJob: Job? = null
+    private var autoHideControlsJob: Job? = null
 
     private var syncedLines: List<com.theveloper.pixelplay.data.model.SyncedLine> = emptyList()
 
     private var overlayLocked: Boolean = false
+    private var expandedControlsVisible: Boolean = false
     private var overlayOpacity: Float = 0.95f
     private var overlayPosY: Int = 220
 
@@ -107,7 +118,7 @@ class DesktopLyricsOverlayService : Service() {
         }
 
         ensureForeground()
-        loadPrefsAndBuildOverlayIfNeeded()
+        observePrefsAndBuildOverlayIfNeeded()
         connectMediaControllerIfNeeded()
         return START_STICKY
     }
@@ -119,6 +130,8 @@ class DesktopLyricsOverlayService : Service() {
         removeOverlay()
         lyricsJob?.cancel()
         progressTickerJob?.cancel()
+        prefsObserverJob?.cancel()
+        autoHideControlsJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -147,17 +160,47 @@ class DesktopLyricsOverlayService : Service() {
         )
     }
 
-    private fun loadPrefsAndBuildOverlayIfNeeded() {
-        serviceScope.launch {
-            overlayOpacity = userPreferencesRepository.desktopLyricsOpacityFlow.first()
-            overlayPosY = userPreferencesRepository.desktopLyricsPosYFlow.first()
-            overlayLocked = userPreferencesRepository.desktopLyricsLockedFlow.first()
-            ensureOverlay()
-            applyVisualState()
-            updateLyricLine()
+    private fun observePrefsAndBuildOverlayIfNeeded() {
+        prefsObserverJob?.cancel()
+        prefsObserverJob = serviceScope.launch {
+            combine(
+                userPreferencesRepository.desktopLyricsEnabledFlow,
+                userPreferencesRepository.desktopLyricsOpacityFlow,
+                userPreferencesRepository.desktopLyricsPosYFlow,
+                userPreferencesRepository.desktopLyricsLockedFlow
+            ) { enabled, opacity, posY, locked ->
+                OverlayPrefState(
+                    enabled = enabled,
+                    opacity = opacity,
+                    posY = posY,
+                    locked = locked
+                )
+            }.collectLatest { prefState ->
+                if (!prefState.enabled) {
+                    stopSelf()
+                    return@collectLatest
+                }
+
+                overlayOpacity = prefState.opacity
+                overlayPosY = prefState.posY
+                overlayLocked = prefState.locked
+
+                ensureOverlay()
+
+                val root = overlayRoot
+                val params = overlayParams
+                if (root != null && params != null && params.y != overlayPosY) {
+                    params.y = overlayPosY
+                    windowManager?.updateViewLayout(root, params)
+                }
+
+                applyVisualState()
+                updateLyricLine()
+            }
         }
     }
 
+    @OptIn(UnstableApi::class)
     private fun ensureOverlay() {
         if (overlayRoot != null) return
 
@@ -166,54 +209,87 @@ class DesktopLyricsOverlayService : Service() {
 
         val currentText = TextView(this).apply {
             text = "♪"
-            setTextColor(Color.WHITE)
+            setTextColor(0xFF4DB6AC.toInt())
             textSize = fixedFontSizeSp
-            typeface = Typeface.DEFAULT_BOLD
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setShadowLayer(10f, 0f, 0f, 0xCC000000.toInt())
             gravity = Gravity.CENTER
-            setPadding(20, 8, 20, 2)
+            setPadding(dp(20), dp(4), dp(20), dp(2))
             maxLines = 1
         }
         val nextText = TextView(this).apply {
             text = ""
-            setTextColor(0xCCFFFFFF.toInt())
-            textSize = 16f
+            setTextColor(0xFF81C784.toInt())
+            textSize = fixedFontSizeSp
             setShadowLayer(6f, 0f, 0f, 0x99000000.toInt())
             gravity = Gravity.CENTER
-            setPadding(20, 2, 20, 10)
+            setPadding(dp(20), dp(2), dp(20), dp(4))
             maxLines = 1
+        }
+
+        val openAppClickListener = View.OnClickListener {
+            startActivity(Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            })
+        }
+
+        val homeBtn = ImageButton(this).apply {
+            setImageResource(R.drawable.monochrome_player)
+            setBackgroundColor(Color.TRANSPARENT)
+//            setColorFilter(Color.WHITE)
+            // 强制保持比例并居中，不填充整个 View
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setOnClickListener(openAppClickListener)
         }
 
         val lockBtn = ImageButton(this).apply {
             setImageResource(android.R.drawable.ic_lock_lock)
             setBackgroundColor(Color.TRANSPARENT)
-            setColorFilter(Color.WHITE)
+            setColorFilter(0xFFD6D6D6.toInt())
             setOnClickListener {
                 overlayLocked = true
                 serviceScope.launch { userPreferencesRepository.setDesktopLyricsLocked(true) }
                 applyVisualState()
             }
         }
+        val settingsBtn = ImageButton(this).apply {
+            setImageResource(R.drawable.rounded_settings_24)
+            setBackgroundColor(Color.TRANSPARENT)
+            setColorFilter(0xFFD6D6D6.toInt())
+            setOnClickListener(openAppClickListener)
+        }
         val closeBtn = ImageButton(this).apply {
             setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
             setBackgroundColor(Color.TRANSPARENT)
             setColorFilter(Color.WHITE)
             setOnClickListener {
-                serviceScope.launch {
+                CoroutineScope(Dispatchers.IO).launch {
                     userPreferencesRepository.setDesktopLyricsEnabled(false)
                     userPreferencesRepository.setDesktopLyricsLocked(false)
+                    withContext(Dispatchers.Main) {
+                        stopSelf()
+                    }
                 }
-                stopSelf()
             }
+        }
+
+        val topActionsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            addView(homeBtn, LinearLayout.LayoutParams(dp(28), dp(28)))
+            addView(View(this@DesktopLyricsOverlayService), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(closeBtn, LinearLayout.LayoutParams(dp(28), dp(28)))
         }
 
         val actionRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_VERTICAL
             visibility = View.GONE
-            val buttonSize = (resources.displayMetrics.density * 34f).toInt()
-            addView(lockBtn, LinearLayout.LayoutParams(buttonSize, buttonSize).apply { marginEnd = 18 })
-            addView(closeBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
+            val buttonSize = dp(36)
+            addView(lockBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
+            addView(View(this@DesktopLyricsOverlayService), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(settingsBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
         }
 
         val card = LinearLayout(this).apply {
@@ -221,16 +297,30 @@ class DesktopLyricsOverlayService : Service() {
             gravity = Gravity.CENTER_HORIZONTAL
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = resources.displayMetrics.density * 18f
+                cornerRadius = resources.displayMetrics.density * 16f
                 setColor(Color.TRANSPARENT)
-                setStroke((resources.displayMetrics.density * 1f).toInt(), 0x33FFFFFF)
+                setStroke(0, Color.TRANSPARENT)
             }
-            setPadding(8, 6, 8, 6)
+            setPadding(dp(12), dp(12), dp(12), dp(10))
+            addView(
+                topActionsRow,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
             addView(
                 currentText,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                View(this@DesktopLyricsOverlayService),
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(8)
                 )
             )
             addView(
@@ -298,6 +388,7 @@ class DesktopLyricsOverlayService : Service() {
                         touchDownY = event.rawY
                         moved = false
                         showControls(true)
+                        scheduleControlsAutoHide()
                         return true
                     }
 
@@ -306,6 +397,7 @@ class DesktopLyricsOverlayService : Service() {
                         if (kotlin.math.abs(dy) > 4) moved = true
                         lp.y = (startY + dy).coerceAtLeast(0)
                         wm.updateViewLayout(root, lp)
+                        scheduleControlsAutoHide()
                         return true
                     }
 
@@ -313,6 +405,7 @@ class DesktopLyricsOverlayService : Service() {
                         overlayPosY = lp.y
                         serviceScope.launch { userPreferencesRepository.setDesktopLyricsPosition(0, overlayPosY) }
                         if (!moved) showControls(true)
+                        scheduleControlsAutoHide()
                         return true
                     }
                 }
@@ -326,8 +419,11 @@ class DesktopLyricsOverlayService : Service() {
         lyricCard = card
         currentLineView = currentText
         nextLineView = nextText
+        topRow = topActionsRow
         controlsRow = actionRow
+        homeButton = homeBtn
         lockButton = lockBtn
+        settingsButton = settingsBtn
         closeButton = closeBtn
         overlayParams = params
     }
@@ -337,29 +433,55 @@ class DesktopLyricsOverlayService : Service() {
         root.alpha = overlayOpacity
         val params = overlayParams ?: return
         if (overlayLocked) {
-            controlsRow?.visibility = View.GONE
-            root.setBackgroundColor(Color.TRANSPARENT)
+            expandedControlsVisible = false
+            showControls(false)
+            autoHideControlsJob?.cancel()
             params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
             windowManager?.updateViewLayout(root, params)
         } else {
             params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
             windowManager?.updateViewLayout(root, params)
+            showControls(expandedControlsVisible)
+            if (expandedControlsVisible) {
+                scheduleControlsAutoHide()
+            }
         }
     }
 
     private fun showControls(show: Boolean) {
         val root = overlayRoot ?: return
+        val header = topRow ?: return
         val row = controlsRow ?: return
         val card = lyricCard ?: return
         if (overlayLocked) {
+            header.visibility = View.GONE
             row.visibility = View.GONE
             root.setBackgroundColor(Color.TRANSPARENT)
             (card.background as? GradientDrawable)?.setColor(Color.TRANSPARENT)
+            (card.background as? GradientDrawable)?.setStroke(0, Color.TRANSPARENT)
+            autoHideControlsJob?.cancel()
             return
         }
+        expandedControlsVisible = show
+        header.visibility = if (show) View.VISIBLE else View.GONE
         row.visibility = if (show) View.VISIBLE else View.GONE
         root.setBackgroundColor(Color.TRANSPARENT)
-        (card.background as? GradientDrawable)?.setColor(if (show) 0x3A000000 else Color.TRANSPARENT)
+        (card.background as? GradientDrawable)?.setColor(if (show) 0xCC222222.toInt() else Color.TRANSPARENT)
+        (card.background as? GradientDrawable)?.setStroke(if (show) dp(1) else 0, if (show) 0x33FFFFFF else Color.TRANSPARENT)
+        if (!show) {
+            autoHideControlsJob?.cancel()
+        }
+    }
+
+    private fun scheduleControlsAutoHide() {
+        if (overlayLocked || !expandedControlsVisible) return
+        autoHideControlsJob?.cancel()
+        autoHideControlsJob = serviceScope.launch {
+            delay(CONTROLS_AUTO_HIDE_DELAY_MS)
+            if (!overlayLocked) {
+                showControls(false)
+            }
+        }
     }
 
     private fun removeOverlay() {
@@ -371,12 +493,22 @@ class DesktopLyricsOverlayService : Service() {
         lyricCard = null
         currentLineView = null
         nextLineView = null
+        topRow = null
         controlsRow = null
+        homeButton = null
         lockButton = null
+        settingsButton = null
         closeButton = null
         overlayParams = null
         windowManager = null
     }
+
+    private fun dp(value: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            value.toFloat(),
+            resources.displayMetrics
+        ).toInt()
 
     @OptIn(UnstableApi::class)
     private fun connectMediaControllerIfNeeded() {
@@ -454,5 +586,13 @@ class DesktopLyricsOverlayService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1207
+        private const val CONTROLS_AUTO_HIDE_DELAY_MS = 3_000L
     }
+
+    private data class OverlayPrefState(
+        val enabled: Boolean,
+        val opacity: Float,
+        val posY: Int,
+        val locked: Boolean
+    )
 }

@@ -6,13 +6,19 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.OptIn
@@ -53,20 +59,27 @@ class DesktopLyricsOverlayService : Service() {
 
     private var mediaController: MediaController? = null
     private var windowManager: WindowManager? = null
-    private var overlayRootView: LinearLayout? = null
+
+    private var overlayRoot: FrameLayout? = null
+    private var lyricCard: LinearLayout? = null
     private var currentLineView: TextView? = null
     private var nextLineView: TextView? = null
-    private var overlayLayoutParams: WindowManager.LayoutParams? = null
+    private var controlsRow: LinearLayout? = null
+    private var lockButton: ImageButton? = null
+    private var closeButton: ImageButton? = null
+
+    private var overlayParams: WindowManager.LayoutParams? = null
 
     private var lyricsJob: Job? = null
     private var progressTickerJob: Job? = null
 
     private var syncedLines: List<com.theveloper.pixelplay.data.model.SyncedLine> = emptyList()
 
-    private var overlayFontSizeSp: Float = 22f
+    private var overlayLocked: Boolean = false
     private var overlayOpacity: Float = 0.95f
-    private var overlayPosX: Int = 120
     private var overlayPosY: Int = 220
+
+    private val fixedFontSizeSp = 22f
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
@@ -94,9 +107,8 @@ class DesktopLyricsOverlayService : Service() {
         }
 
         ensureForeground()
-        loadOverlayPreferencesAndEnsureView()
+        loadPrefsAndBuildOverlayIfNeeded()
         connectMediaControllerIfNeeded()
-
         return START_STICKY
     }
 
@@ -135,64 +147,125 @@ class DesktopLyricsOverlayService : Service() {
         )
     }
 
-    private fun loadOverlayPreferencesAndEnsureView() {
+    private fun loadPrefsAndBuildOverlayIfNeeded() {
         serviceScope.launch {
-            overlayFontSizeSp = userPreferencesRepository.desktopLyricsFontSizeFlow.first()
             overlayOpacity = userPreferencesRepository.desktopLyricsOpacityFlow.first()
-            overlayPosX = userPreferencesRepository.desktopLyricsPosXFlow.first()
             overlayPosY = userPreferencesRepository.desktopLyricsPosYFlow.first()
-
+            overlayLocked = userPreferencesRepository.desktopLyricsLockedFlow.first()
             ensureOverlay()
-            applyTypographyAndOpacity()
+            applyVisualState()
             updateLyricLine()
         }
     }
 
     private fun ensureOverlay() {
-        if (overlayRootView != null) return
+        if (overlayRoot != null) return
 
         val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager = wm
 
         val currentText = TextView(this).apply {
             text = "♪"
-            setTextColor(0xFFFFFFFF.toInt())
-            setShadowLayer(8f, 0f, 0f, 0xAA000000.toInt())
+            setTextColor(Color.WHITE)
+            textSize = fixedFontSizeSp
+            typeface = Typeface.DEFAULT_BOLD
+            setShadowLayer(10f, 0f, 0f, 0xCC000000.toInt())
             gravity = Gravity.CENTER
-            setPadding(24, 10, 24, 2)
+            setPadding(20, 8, 20, 2)
+            maxLines = 1
         }
         val nextText = TextView(this).apply {
             text = ""
             setTextColor(0xCCFFFFFF.toInt())
-            setShadowLayer(6f, 0f, 0f, 0x77000000)
+            textSize = 16f
+            setShadowLayer(6f, 0f, 0f, 0x99000000.toInt())
             gravity = Gravity.CENTER
-            setPadding(24, 2, 24, 10)
+            setPadding(20, 2, 20, 10)
+            maxLines = 1
         }
 
-        currentLineView = currentText
-        nextLineView = nextText
+        val lockBtn = ImageButton(this).apply {
+            setImageResource(android.R.drawable.ic_lock_lock)
+            setBackgroundColor(Color.TRANSPARENT)
+            setColorFilter(Color.WHITE)
+            setOnClickListener {
+                overlayLocked = true
+                serviceScope.launch { userPreferencesRepository.setDesktopLyricsLocked(true) }
+                applyVisualState()
+            }
+        }
+        val closeBtn = ImageButton(this).apply {
+            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            setBackgroundColor(Color.TRANSPARENT)
+            setColorFilter(Color.WHITE)
+            setOnClickListener {
+                serviceScope.launch {
+                    userPreferencesRepository.setDesktopLyricsEnabled(false)
+                    userPreferencesRepository.setDesktopLyricsLocked(false)
+                }
+                stopSelf()
+            }
+        }
 
-        val container = LinearLayout(this).apply {
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            val buttonSize = (resources.displayMetrics.density * 34f).toInt()
+            addView(lockBtn, LinearLayout.LayoutParams(buttonSize, buttonSize).apply { marginEnd = 18 })
+            addView(closeBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
+        }
+
+        val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0x22000000)
+            gravity = Gravity.CENTER_HORIZONTAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = resources.displayMetrics.density * 18f
+                setColor(Color.TRANSPARENT)
+                setStroke((resources.displayMetrics.density * 1f).toInt(), 0x33FFFFFF)
+            }
+            setPadding(8, 6, 8, 6)
             addView(
                 currentText,
                 LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             )
             addView(
                 nextText,
                 LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                actionRow,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             )
         }
 
-        val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            addView(
+                card,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER
+                )
+            )
+        }
+
+        val screenWidth = resources.displayMetrics.widthPixels
+        val overlayWidth = (screenWidth * 0.88f).toInt()
+
+        val params = WindowManager.LayoutParams(
+            overlayWidth,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -203,42 +276,43 @@ class DesktopLyricsOverlayService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = overlayPosX
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            x = 0
             y = overlayPosY
         }
-        overlayLayoutParams = layoutParams
 
-        container.setOnTouchListener(object : android.view.View.OnTouchListener {
-            private var startX = 0
+        root.setOnTouchListener(object : View.OnTouchListener {
             private var startY = 0
-            private var touchDownX = 0f
             private var touchDownY = 0f
+            private var moved = false
 
-            override fun onTouch(v: android.view.View?, event: MotionEvent): Boolean {
-                val params = overlayLayoutParams ?: return false
+            override fun onTouch(v: View?, event: MotionEvent): Boolean {
+                val lp = overlayParams ?: return false
+                if (overlayLocked) {
+                    return false
+                }
+
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        startX = params.x
-                        startY = params.y
-                        touchDownX = event.rawX
+                        startY = lp.y
                         touchDownY = event.rawY
+                        moved = false
+                        showControls(true)
                         return true
                     }
 
                     MotionEvent.ACTION_MOVE -> {
-                        params.x = (startX + (event.rawX - touchDownX)).toInt().coerceAtLeast(0)
-                        params.y = (startY + (event.rawY - touchDownY)).toInt().coerceAtLeast(0)
-                        wm.updateViewLayout(container, params)
+                        val dy = (event.rawY - touchDownY).toInt()
+                        if (kotlin.math.abs(dy) > 4) moved = true
+                        lp.y = (startY + dy).coerceAtLeast(0)
+                        wm.updateViewLayout(root, lp)
                         return true
                     }
 
                     MotionEvent.ACTION_UP -> {
-                        overlayPosX = params.x
-                        overlayPosY = params.y
-                        serviceScope.launch {
-                            userPreferencesRepository.setDesktopLyricsPosition(overlayPosX, overlayPosY)
-                        }
+                        overlayPosY = lp.y
+                        serviceScope.launch { userPreferencesRepository.setDesktopLyricsPosition(0, overlayPosY) }
+                        if (!moved) showControls(true)
                         return true
                     }
                 }
@@ -246,34 +320,68 @@ class DesktopLyricsOverlayService : Service() {
             }
         })
 
-        wm.addView(container, layoutParams)
-        overlayRootView = container
+        wm.addView(root, params)
+
+        overlayRoot = root
+        lyricCard = card
+        currentLineView = currentText
+        nextLineView = nextText
+        controlsRow = actionRow
+        lockButton = lockBtn
+        closeButton = closeBtn
+        overlayParams = params
     }
 
-    private fun applyTypographyAndOpacity() {
-        val current = currentLineView ?: return
-        val next = nextLineView ?: return
-        val root = overlayRootView ?: return
-
-        current.textSize = overlayFontSizeSp
-        next.textSize = (overlayFontSizeSp - 4f).coerceAtLeast(12f)
+    private fun applyVisualState() {
+        val root = overlayRoot ?: return
         root.alpha = overlayOpacity
+        val params = overlayParams ?: return
+        if (overlayLocked) {
+            controlsRow?.visibility = View.GONE
+            root.setBackgroundColor(Color.TRANSPARENT)
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            windowManager?.updateViewLayout(root, params)
+        } else {
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+            windowManager?.updateViewLayout(root, params)
+        }
+    }
+
+    private fun showControls(show: Boolean) {
+        val root = overlayRoot ?: return
+        val row = controlsRow ?: return
+        val card = lyricCard ?: return
+        if (overlayLocked) {
+            row.visibility = View.GONE
+            root.setBackgroundColor(Color.TRANSPARENT)
+            (card.background as? GradientDrawable)?.setColor(Color.TRANSPARENT)
+            return
+        }
+        row.visibility = if (show) View.VISIBLE else View.GONE
+        root.setBackgroundColor(Color.TRANSPARENT)
+        (card.background as? GradientDrawable)?.setColor(if (show) 0x3A000000 else Color.TRANSPARENT)
     }
 
     private fun removeOverlay() {
         val wm = windowManager ?: return
-        val view = overlayRootView ?: return
+        val view = overlayRoot ?: return
         runCatching { wm.removeView(view) }
-        overlayRootView = null
+
+        overlayRoot = null
+        lyricCard = null
         currentLineView = null
         nextLineView = null
-        overlayLayoutParams = null
+        controlsRow = null
+        lockButton = null
+        closeButton = null
+        overlayParams = null
         windowManager = null
     }
 
     @OptIn(UnstableApi::class)
     private fun connectMediaControllerIfNeeded() {
         if (mediaController != null) return
+
         val token = SessionToken(this, ComponentName(this, MusicService::class.java))
         val future = MediaController.Builder(this, token).buildAsync()
         future.addListener(
@@ -304,6 +412,7 @@ class DesktopLyricsOverlayService : Service() {
     private fun loadLyricsForCurrentMedia() {
         val controller = mediaController ?: return
         val mediaId = controller.currentMediaItem?.mediaId ?: return
+
         lyricsJob?.cancel()
         lyricsJob = serviceScope.launch {
             val song = withContext(Dispatchers.IO) {

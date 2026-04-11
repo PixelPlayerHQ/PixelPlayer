@@ -686,13 +686,35 @@ fun SettingsCategoryScreen(
                                 )
 
                                 if (uiState.desktopLyricsEnabled) {
-                                    SliderSettingsItem(
-                                        label = "Desktop Lyrics Font Size",
-                                        value = uiState.desktopLyricsFontSize,
-                                        valueRange = 14f..48f,
-                                        steps = 33,
-                                        onValueChange = { settingsViewModel.setDesktopLyricsFontSize(it) },
-                                        valueText = { value -> "${value.toInt()}sp" }
+                                    SettingsItem(
+                                        title = "Apply Overlay Now",
+                                        subtitle = "Restart desktop lyrics overlay with latest settings.",
+                                        leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) },
+                                        onClick = {
+                                            val serviceIntent = Intent(context, DesktopLyricsOverlayService::class.java)
+                                            context.stopService(serviceIntent)
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                ContextCompat.startForegroundService(context, serviceIntent)
+                                            } else {
+                                                context.startService(serviceIntent)
+                                            }
+                                        }
+                                    )
+                                    SettingsItem(
+                                        title = "Unlock Desktop Lyrics",
+                                        subtitle = if (uiState.desktopLyricsLocked) "Release current overlay lock state." else "Desktop lyrics is not locked now.",
+                                        leadingIcon = { Icon(painterResource(R.drawable.rounded_key_vertical_24), null, tint = MaterialTheme.colorScheme.secondary) },
+                                        onClick = {
+                                            settingsViewModel.setDesktopLyricsLocked(false)
+                                            val serviceIntent = Intent(context, DesktopLyricsOverlayService::class.java)
+                                            context.stopService(serviceIntent)
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                ContextCompat.startForegroundService(context, serviceIntent)
+                                            } else {
+                                                context.startService(serviceIntent)
+                                            }
+                                            Toast.makeText(context, "Desktop lyrics unlocked", Toast.LENGTH_SHORT).show()
+                                        }
                                     )
                                     SliderSettingsItem(
                                         label = "Desktop Lyrics Opacity",

@@ -59,6 +59,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,6 +100,7 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.MusicService
+import com.theveloper.pixelplay.data.service.DesktopLyricsOverlayService
 import com.theveloper.pixelplay.data.worker.SyncManager
 import com.theveloper.pixelplay.data.worker.SyncProgress
 import com.theveloper.pixelplay.presentation.components.AllFilesAccessDialog
@@ -127,6 +129,7 @@ import com.theveloper.pixelplay.utils.LogUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -1042,6 +1045,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (Settings.canDrawOverlays(this)) {
+            lifecycleScope.launch {
+                val enabled = userPreferencesRepository.desktopLyricsEnabledFlow.first()
+                if (enabled) {
+                    val serviceIntent = Intent(this@MainActivity, DesktopLyricsOverlayService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                }
+            }
+        }
     }
 
 

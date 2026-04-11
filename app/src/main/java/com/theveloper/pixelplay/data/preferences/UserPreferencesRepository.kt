@@ -210,6 +210,7 @@ constructor(
         val DESKTOP_LYRICS_OPACITY = androidx.datastore.preferences.core.floatPreferencesKey("desktop_lyrics_opacity")
         val DESKTOP_LYRICS_POS_X = intPreferencesKey("desktop_lyrics_pos_x")
         val DESKTOP_LYRICS_POS_Y = intPreferencesKey("desktop_lyrics_pos_y")
+        val DESKTOP_LYRICS_LOCKED = booleanPreferencesKey("desktop_lyrics_locked")
 
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
@@ -660,6 +661,17 @@ constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DESKTOP_LYRICS_POS_X] = x.coerceAtLeast(0)
             preferences[PreferencesKeys.DESKTOP_LYRICS_POS_Y] = y.coerceAtLeast(0)
+        }
+    }
+
+    val desktopLyricsLockedFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_LOCKED] ?: false
+        }
+
+    suspend fun setDesktopLyricsLocked(locked: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_LOCKED] = locked
         }
     }
 

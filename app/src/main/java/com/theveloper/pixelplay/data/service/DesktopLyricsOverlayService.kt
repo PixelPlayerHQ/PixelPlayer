@@ -3,9 +3,11 @@ package com.theveloper.pixelplay.data.service
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.animation.ObjectAnimator
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -18,14 +20,17 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.ColorUtils
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -71,10 +76,14 @@ class DesktopLyricsOverlayService : Service() {
     private var nextLineView: TextView? = null
     private var topRow: LinearLayout? = null
     private var controlsRow: LinearLayout? = null
+    private var settingsPanel: LinearLayout? = null
     private var homeButton: ImageButton? = null
     private var lockButton: ImageButton? = null
     private var settingsButton: ImageButton? = null
     private var closeButton: ImageButton? = null
+    private var settingsOpacitySeekBar: SeekBar? = null
+    private var settingsColorSeekBar: SeekBar? = null
+    private var settingsOpacityValue: TextView? = null
 
     private var overlayParams: WindowManager.LayoutParams? = null
 
@@ -88,6 +97,8 @@ class DesktopLyricsOverlayService : Service() {
     private var overlayLocked: Boolean = false
     private var expandedControlsVisible: Boolean = false
     private var overlayOpacity: Float = 0.95f
+    private var lyricColor: Int = 0xFF4DB6AC.toInt()
+    private var lyricAlpha: Float = 0.95f
     private var overlayPosY: Int = 220
 
     private val fixedFontSizeSp = 22f
@@ -166,12 +177,14 @@ class DesktopLyricsOverlayService : Service() {
             combine(
                 userPreferencesRepository.desktopLyricsEnabledFlow,
                 userPreferencesRepository.desktopLyricsOpacityFlow,
+                userPreferencesRepository.desktopLyricsTextColorFlow,
                 userPreferencesRepository.desktopLyricsPosYFlow,
                 userPreferencesRepository.desktopLyricsLockedFlow
-            ) { enabled, opacity, posY, locked ->
+            ) { enabled, opacity, textColor, posY, locked ->
                 OverlayPrefState(
                     enabled = enabled,
                     opacity = opacity,
+                    textColor = textColor,
                     posY = posY,
                     locked = locked
                 )
@@ -182,6 +195,8 @@ class DesktopLyricsOverlayService : Service() {
                 }
 
                 overlayOpacity = prefState.opacity
+                lyricAlpha = prefState.opacity
+                lyricColor = prefState.textColor
                 overlayPosY = prefState.posY
                 overlayLocked = prefState.locked
 
@@ -195,6 +210,8 @@ class DesktopLyricsOverlayService : Service() {
                 }
 
                 applyVisualState()
+                applyLyricsColor()
+                syncSettingsPanelControls()
                 updateLyricLine()
             }
         }
@@ -209,23 +226,27 @@ class DesktopLyricsOverlayService : Service() {
 
         val currentText = TextView(this).apply {
             text = "♪"
-            setTextColor(0xFF4DB6AC.toInt())
+            setTextColor(lyricColor)
             textSize = fixedFontSizeSp
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setShadowLayer(10f, 0f, 0f, 0xCC000000.toInt())
             gravity = Gravity.CENTER
             setPadding(dp(20), dp(4), dp(20), dp(2))
             maxLines = 1
+            alpha = lyricAlpha
         }
         val nextText = TextView(this).apply {
             text = ""
-            setTextColor(0xFF81C784.toInt())
+            setTextColor(adjustSecondaryColor(lyricColor))
             textSize = fixedFontSizeSp
             setShadowLayer(6f, 0f, 0f, 0x99000000.toInt())
             gravity = Gravity.CENTER
             setPadding(dp(20), dp(2), dp(20), dp(4))
             maxLines = 1
+            alpha = lyricAlpha
         }
+
+        val panel = buildSettingsPanel()
 
         val openAppClickListener = View.OnClickListener {
             startActivity(Intent(this, MainActivity::class.java).apply {
@@ -236,7 +257,6 @@ class DesktopLyricsOverlayService : Service() {
         val homeBtn = ImageButton(this).apply {
             setImageResource(R.drawable.monochrome_player)
             setBackgroundColor(Color.TRANSPARENT)
-//            setColorFilter(Color.WHITE)
             // 强制保持比例并居中，不填充整个 View
             scaleType = ImageView.ScaleType.FIT_CENTER
             setOnClickListener(openAppClickListener)
@@ -256,7 +276,9 @@ class DesktopLyricsOverlayService : Service() {
             setImageResource(R.drawable.rounded_settings_24)
             setBackgroundColor(Color.TRANSPARENT)
             setColorFilter(0xFFD6D6D6.toInt())
-            setOnClickListener(openAppClickListener)
+            setOnClickListener {
+                toggleSettingsPanel()
+            }
         }
         val closeBtn = ImageButton(this).apply {
             setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
@@ -337,6 +359,13 @@ class DesktopLyricsOverlayService : Service() {
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             )
+            addView(
+                panel,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
         }
 
         val root = FrameLayout(this).apply {
@@ -395,7 +424,7 @@ class DesktopLyricsOverlayService : Service() {
                     MotionEvent.ACTION_MOVE -> {
                         val dy = (event.rawY - touchDownY).toInt()
                         if (kotlin.math.abs(dy) > 4) moved = true
-                        lp.y = (startY + dy).coerceAtLeast(0)
+                        lp.y = clampOverlayY(startY + dy)
                         wm.updateViewLayout(root, lp)
                         scheduleControlsAutoHide()
                         return true
@@ -415,22 +444,40 @@ class DesktopLyricsOverlayService : Service() {
 
         wm.addView(root, params)
 
+        root.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val lp = overlayParams ?: return
+                val clampedY = clampOverlayY(lp.y)
+                if (clampedY != lp.y) {
+                    lp.y = clampedY
+                    windowManager?.updateViewLayout(root, lp)
+                    overlayPosY = clampedY
+                    serviceScope.launch { userPreferencesRepository.setDesktopLyricsPosition(0, overlayPosY) }
+                }
+                root.viewTreeObserver.removeOnGlobalLayoutListener(this)
+            }
+        })
+
+        listOf(homeBtn, closeBtn, lockBtn, settingsBtn).forEach(::attachPressAnimation)
+
         overlayRoot = root
         lyricCard = card
         currentLineView = currentText
         nextLineView = nextText
         topRow = topActionsRow
         controlsRow = actionRow
+        settingsPanel = panel
         homeButton = homeBtn
         lockButton = lockBtn
         settingsButton = settingsBtn
         closeButton = closeBtn
         overlayParams = params
+        syncSettingsPanelControls()
     }
 
     private fun applyVisualState() {
         val root = overlayRoot ?: return
-        root.alpha = overlayOpacity
+        root.alpha = 1f
         val params = overlayParams ?: return
         if (overlayLocked) {
             expandedControlsVisible = false
@@ -452,10 +499,12 @@ class DesktopLyricsOverlayService : Service() {
         val root = overlayRoot ?: return
         val header = topRow ?: return
         val row = controlsRow ?: return
+        val panel = settingsPanel ?: return
         val card = lyricCard ?: return
         if (overlayLocked) {
             header.visibility = View.GONE
             row.visibility = View.GONE
+            panel.visibility = View.GONE
             root.setBackgroundColor(Color.TRANSPARENT)
             (card.background as? GradientDrawable)?.setColor(Color.TRANSPARENT)
             (card.background as? GradientDrawable)?.setStroke(0, Color.TRANSPARENT)
@@ -465,6 +514,8 @@ class DesktopLyricsOverlayService : Service() {
         expandedControlsVisible = show
         header.visibility = if (show) View.VISIBLE else View.GONE
         row.visibility = if (show) View.VISIBLE else View.GONE
+        if (!show) panel.visibility = View.GONE
+        settingsButton?.setColorFilter(0xFFD6D6D6.toInt())
         root.setBackgroundColor(Color.TRANSPARENT)
         (card.background as? GradientDrawable)?.setColor(if (show) 0xCC222222.toInt() else Color.TRANSPARENT)
         (card.background as? GradientDrawable)?.setStroke(if (show) dp(1) else 0, if (show) 0x33FFFFFF else Color.TRANSPARENT)
@@ -495,12 +546,270 @@ class DesktopLyricsOverlayService : Service() {
         nextLineView = null
         topRow = null
         controlsRow = null
+        settingsPanel = null
         homeButton = null
         lockButton = null
         settingsButton = null
         closeButton = null
+        settingsOpacitySeekBar = null
+        settingsColorSeekBar = null
+        settingsOpacityValue = null
         overlayParams = null
         windowManager = null
+    }
+
+    private fun buildSettingsPanel(): LinearLayout {
+        val titleText = TextView(this).apply {
+            text = "Lyrics Settings"
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+
+        val subtitleText = TextView(this).apply {
+            text = "Customize color and opacity"
+            setTextColor(0xFFB0BEC5.toInt())
+            textSize = 11f
+        }
+
+        val panelHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(titleText)
+            addView(subtitleText)
+        }
+
+        val customTab = buildSettingsTab(text = "Custom", selected = true)
+        val tabRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, dp(10))
+            addView(customTab)
+        }
+
+        val colorLabel = TextView(this).apply {
+            text = "Color"
+            setTextColor(0xFFB0BEC5.toInt())
+            textSize = 12f
+        }
+
+        val colorSeek = SeekBar(this).apply {
+            max = 360
+            progress = colorHue(lyricColor)
+            progressTintList = ColorStateList.valueOf(0xFF4FC3F7.toInt())
+            thumbTintList = ColorStateList.valueOf(Color.WHITE)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    lyricColor = Color.HSVToColor(floatArrayOf(progress.toFloat(), 0.62f, 0.95f))
+                    applyLyricsColor()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    autoHideControlsJob?.cancel()
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    val color = lyricColor
+                    serviceScope.launch { userPreferencesRepository.setDesktopLyricsTextColor(color) }
+                    scheduleControlsAutoHide()
+                }
+            })
+        }
+        settingsColorSeekBar = colorSeek
+
+        val colorRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, 0)
+        }
+
+        val colorOptions = listOf(0xFF4DB6AC.toInt(), 0xFF4FC3F7.toInt(), 0xFFFFC107.toInt(), 0xFFE91E63.toInt(), 0xFFFFFFFF.toInt())
+        colorOptions.forEach { color ->
+            colorRow.addView(View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color)
+                    setStroke(dp(1), 0x66FFFFFF)
+                }
+                setOnClickListener {
+                    lyricColor = color
+                    applyLyricsColor()
+                    settingsColorSeekBar?.progress = colorHue(color)
+                    serviceScope.launch { userPreferencesRepository.setDesktopLyricsTextColor(color) }
+                    scheduleControlsAutoHide()
+                }
+                attachPressAnimation(this)
+            }, LinearLayout.LayoutParams(dp(20), dp(20)).apply {
+                marginEnd = dp(10)
+            })
+        }
+
+        val opacityLabel = TextView(this).apply {
+            text = "Opacity"
+            setTextColor(0xFFB0BEC5.toInt())
+            textSize = 12f
+        }
+
+        val opacityValue = TextView(this).apply {
+            text = "95%"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        settingsOpacityValue = opacityValue
+
+        val opacityHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(10), 0, dp(4))
+            addView(opacityLabel)
+            addView(View(this@DesktopLyricsOverlayService), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(opacityValue)
+        }
+
+        val opacitySeek = SeekBar(this).apply {
+            max = 100
+            progress = (overlayOpacity * 100f).toInt()
+            progressTintList = ColorStateList.valueOf(Color.WHITE)
+            thumbTintList = ColorStateList.valueOf(Color.WHITE)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    val newOpacity = (progress.coerceIn(20, 100)) / 100f
+                    lyricAlpha = newOpacity
+                    applyLyricsColor()
+                    settingsOpacityValue?.text = "${(newOpacity * 100f).toInt()}%"
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    autoHideControlsJob?.cancel()
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    val target = ((seekBar?.progress ?: 95).coerceIn(20, 100)) / 100f
+                    serviceScope.launch { userPreferencesRepository.setDesktopLyricsOpacity(target) }
+                    scheduleControlsAutoHide()
+                }
+            })
+        }
+        settingsOpacitySeekBar = opacitySeek
+
+        val sectionBackground = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(12).toFloat()
+            setColor(ColorUtils.setAlphaComponent(Color.WHITE, 22))
+            setStroke(dp(1), 0x22FFFFFF)
+        }
+
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            alpha = 0f
+            translationY = dp(6).toFloat()
+            setPadding(dp(4), dp(12), dp(4), dp(2))
+            addView(panelHeader)
+            addView(tabRow)
+            addView(LinearLayout(this@DesktopLyricsOverlayService).apply {
+                orientation = LinearLayout.VERTICAL
+                background = sectionBackground
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+                addView(colorLabel)
+                addView(colorSeek)
+                addView(colorRow)
+                addView(opacityHeader)
+                addView(opacitySeek)
+            })
+        }
+    }
+
+    private fun toggleSettingsPanel() {
+        val panel = settingsPanel ?: return
+        val shouldShow = panel.visibility != View.VISIBLE
+        if (shouldShow) {
+            panel.visibility = View.VISIBLE
+            panel.animate().alpha(1f).translationY(0f).setDuration(180L).start()
+            showControls(true)
+        } else {
+            panel.animate().alpha(0f).translationY(dp(6).toFloat()).setDuration(140L).withEndAction {
+                panel.visibility = View.GONE
+                settingsButton?.setColorFilter(0xFFD6D6D6.toInt())
+            }.start()
+        }
+        settingsButton?.setColorFilter(0xFFD6D6D6.toInt())
+        scheduleControlsAutoHide()
+    }
+
+    private fun buildSettingsTab(text: String, selected: Boolean): TextView {
+        return TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setPadding(dp(12), dp(5), dp(12), dp(5))
+            setTextColor(if (selected) Color.WHITE else 0xFFB0BEC5.toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(50).toFloat()
+                if (selected) {
+                    setColor(ColorUtils.setAlphaComponent(Color.WHITE, 46))
+                    setStroke(0, Color.TRANSPARENT)
+                } else {
+                    setColor(Color.TRANSPARENT)
+                    setStroke(dp(1), 0x33FFFFFF)
+                }
+            }
+        }
+    }
+
+    private fun attachPressAnimation(view: View) {
+        view.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    ObjectAnimator.ofFloat(v, View.SCALE_X, v.scaleX, 0.9f).setDuration(100L).start()
+                    ObjectAnimator.ofFloat(v, View.SCALE_Y, v.scaleY, 0.9f).setDuration(100L).start()
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    ObjectAnimator.ofFloat(v, View.SCALE_X, v.scaleX, 1f).setDuration(120L).start()
+                    ObjectAnimator.ofFloat(v, View.SCALE_Y, v.scaleY, 1f).setDuration(120L).start()
+                }
+            }
+            false
+        }
+    }
+
+    private fun syncSettingsPanelControls() {
+        settingsOpacitySeekBar?.progress = (lyricAlpha * 100f).toInt().coerceIn(20, 100)
+        settingsOpacityValue?.text = "${(lyricAlpha * 100f).toInt()}%"
+        settingsColorSeekBar?.progress = colorHue(lyricColor)
+    }
+
+    private fun colorHue(color: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        return hsv[0].toInt().coerceIn(0, 360)
+    }
+
+    private fun applyLyricsColor() {
+        currentLineView?.setTextColor(lyricColor)
+        nextLineView?.setTextColor(adjustSecondaryColor(lyricColor))
+        currentLineView?.alpha = lyricAlpha
+        nextLineView?.alpha = lyricAlpha
+    }
+
+    private fun clampOverlayY(targetY: Int): Int {
+        val root = overlayRoot
+        val screenHeight = resources.displayMetrics.heightPixels
+        if (root == null || root.height <= 0) {
+            return targetY.coerceIn(0, screenHeight)
+        }
+        val maxY = (screenHeight - root.height).coerceAtLeast(0)
+        return targetY.coerceIn(0, maxY)
+    }
+
+    private fun adjustSecondaryColor(primary: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(primary, hsv)
+        hsv[1] = (hsv[1] * 0.75f).coerceIn(0f, 1f)
+        hsv[2] = (hsv[2] * 1.05f).coerceIn(0f, 1f)
+        return Color.HSVToColor(hsv)
     }
 
     private fun dp(value: Int): Int =
@@ -592,6 +901,7 @@ class DesktopLyricsOverlayService : Service() {
     private data class OverlayPrefState(
         val enabled: Boolean,
         val opacity: Float,
+        val textColor: Int,
         val posY: Int,
         val locked: Boolean
     )

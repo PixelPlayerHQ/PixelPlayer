@@ -208,6 +208,7 @@ constructor(
         val DESKTOP_LYRICS_ENABLED = booleanPreferencesKey("desktop_lyrics_enabled")
         val DESKTOP_LYRICS_FONT_SIZE = androidx.datastore.preferences.core.floatPreferencesKey("desktop_lyrics_font_size")
         val DESKTOP_LYRICS_OPACITY = androidx.datastore.preferences.core.floatPreferencesKey("desktop_lyrics_opacity")
+        val DESKTOP_LYRICS_TEXT_COLOR = intPreferencesKey("desktop_lyrics_text_color")
         val DESKTOP_LYRICS_POS_X = intPreferencesKey("desktop_lyrics_pos_x")
         val DESKTOP_LYRICS_POS_Y = intPreferencesKey("desktop_lyrics_pos_y")
         val DESKTOP_LYRICS_LOCKED = booleanPreferencesKey("desktop_lyrics_locked")
@@ -644,6 +645,17 @@ constructor(
     suspend fun setDesktopLyricsOpacity(opacity: Float) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DESKTOP_LYRICS_OPACITY] = opacity.coerceIn(0.2f, 1f)
+        }
+    }
+
+    val desktopLyricsTextColorFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_TEXT_COLOR] ?: 0xFF4DB6AC.toInt()
+        }
+
+    suspend fun setDesktopLyricsTextColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DESKTOP_LYRICS_TEXT_COLOR] = color
         }
     }
 

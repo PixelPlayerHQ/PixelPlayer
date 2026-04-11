@@ -86,6 +86,7 @@ data class SettingsUiState(
     val desktopLyricsEnabled: Boolean = false,
     val desktopLyricsLocked: Boolean = false,
     val desktopLyricsOpacity: Float = 0.95f,
+    val desktopLyricsTextColor: Int = 0xFF4DB6AC.toInt(),
     val useAnimatedLyrics: Boolean = false,
     val animatedLyricsBlurEnabled: Boolean = true,
     val animatedLyricsBlurStrength: Float = 2.5f,
@@ -158,6 +159,7 @@ private sealed interface SettingsUiUpdate {
         val desktopLyricsEnabled: Boolean,
         val desktopLyricsLocked: Boolean,
         val desktopLyricsOpacity: Float,
+        val desktopLyricsTextColor: Int,
         val animatedLyricsBlurEnabled: Boolean,
         val animatedLyricsBlurStrength: Float
     ) : SettingsUiUpdate
@@ -386,6 +388,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.desktopLyricsEnabledFlow,
                 userPreferencesRepository.desktopLyricsLockedFlow,
                 userPreferencesRepository.desktopLyricsOpacityFlow,
+                userPreferencesRepository.desktopLyricsTextColorFlow,
                 userPreferencesRepository.animatedLyricsBlurEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurStrengthFlow
             ) { values ->
@@ -407,8 +410,9 @@ class SettingsViewModel @Inject constructor(
                     desktopLyricsEnabled = values[14] as Boolean,
                     desktopLyricsLocked = values[15] as Boolean,
                     desktopLyricsOpacity = values[16] as Float,
-                    animatedLyricsBlurEnabled = values[17] as Boolean,
-                    animatedLyricsBlurStrength = values[18] as Float
+                    desktopLyricsTextColor = values[17] as Int,
+                    animatedLyricsBlurEnabled = values[18] as Boolean,
+                    animatedLyricsBlurStrength = values[19] as Float
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -430,6 +434,7 @@ class SettingsViewModel @Inject constructor(
                         desktopLyricsEnabled = update.desktopLyricsEnabled,
                         desktopLyricsLocked = update.desktopLyricsLocked,
                         desktopLyricsOpacity = update.desktopLyricsOpacity,
+                        desktopLyricsTextColor = update.desktopLyricsTextColor,
                         animatedLyricsBlurEnabled = update.animatedLyricsBlurEnabled,
                         animatedLyricsBlurStrength = update.animatedLyricsBlurStrength
                     )

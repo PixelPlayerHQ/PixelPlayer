@@ -702,14 +702,6 @@ fun SettingsCategoryScreen(
                                             Toast.makeText(context, "Desktop lyrics unlocked", Toast.LENGTH_SHORT).show()
                                         }
                                     )
-                                    SliderSettingsItem(
-                                        label = "Desktop Lyrics Opacity",
-                                        value = uiState.desktopLyricsOpacity,
-                                        valueRange = 0.2f..1f,
-                                        steps = 15,
-                                        onValueChange = { settingsViewModel.setDesktopLyricsOpacity(it) },
-                                        valueText = { value -> "${(value * 100).toInt()}%" }
-                                    )
                                 }
 
                                 if (uiState.immersiveLyricsEnabled) {

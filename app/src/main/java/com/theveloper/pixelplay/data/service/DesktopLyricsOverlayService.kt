@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.util.TypedValue
+import android.view.animation.LinearInterpolator
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -28,6 +29,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import android.animation.ValueAnimator
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.ColorUtils
@@ -41,6 +43,7 @@ import com.theveloper.pixelplay.PixelPlayApplication
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.utils.DesktopLyricsScrollEstimator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -91,6 +94,8 @@ class DesktopLyricsOverlayService : Service() {
     private var progressTickerJob: Job? = null
     private var prefsObserverJob: Job? = null
     private var autoHideControlsJob: Job? = null
+    private var currentLineScrollAnimator: ValueAnimator? = null
+    private var lastRenderedCurrentLine: String = ""
 
     private var syncedLines: List<com.theveloper.pixelplay.data.model.SyncedLine> = emptyList()
 
@@ -143,6 +148,7 @@ class DesktopLyricsOverlayService : Service() {
         progressTickerJob?.cancel()
         prefsObserverJob?.cancel()
         autoHideControlsJob?.cancel()
+        currentLineScrollAnimator?.cancel()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -229,7 +235,6 @@ class DesktopLyricsOverlayService : Service() {
             setTextColor(lyricColor)
             textSize = fixedFontSizeSp
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(10f, 0f, 0f, 0xCC000000.toInt())
             gravity = Gravity.CENTER
             setPadding(dp(20), dp(4), dp(20), dp(2))
             maxLines = 1
@@ -239,7 +244,6 @@ class DesktopLyricsOverlayService : Service() {
             text = ""
             setTextColor(adjustSecondaryColor(lyricColor))
             textSize = fixedFontSizeSp
-            setShadowLayer(6f, 0f, 0f, 0x99000000.toInt())
             gravity = Gravity.CENTER
             setPadding(dp(20), dp(2), dp(20), dp(4))
             maxLines = 1
@@ -257,8 +261,9 @@ class DesktopLyricsOverlayService : Service() {
         val homeBtn = ImageButton(this).apply {
             setImageResource(R.drawable.monochrome_player)
             setBackgroundColor(Color.TRANSPARENT)
+            setColorFilter(0xFFD6D6D6.toInt())
             // 强制保持比例并居中，不填充整个 View
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
             setOnClickListener(openAppClickListener)
         }
 
@@ -281,9 +286,9 @@ class DesktopLyricsOverlayService : Service() {
             }
         }
         val closeBtn = ImageButton(this).apply {
-            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            setImageResource(R.drawable.rounded_close_24)
             setBackgroundColor(Color.TRANSPARENT)
-            setColorFilter(Color.WHITE)
+            setColorFilter(0xFFD6D6D6.toInt())
             setOnClickListener {
                 CoroutineScope(Dispatchers.IO).launch {
                     userPreferencesRepository.setDesktopLyricsEnabled(false)
@@ -559,32 +564,6 @@ class DesktopLyricsOverlayService : Service() {
     }
 
     private fun buildSettingsPanel(): LinearLayout {
-        val titleText = TextView(this).apply {
-            text = "Lyrics Settings"
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-
-        val subtitleText = TextView(this).apply {
-            text = "Customize color and opacity"
-            setTextColor(0xFFB0BEC5.toInt())
-            textSize = 11f
-        }
-
-        val panelHeader = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(titleText)
-            addView(subtitleText)
-        }
-
-        val customTab = buildSettingsTab(text = "Custom", selected = true)
-        val tabRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(0, dp(10), 0, dp(10))
-            addView(customTab)
-        }
 
         val colorLabel = TextView(this).apply {
             text = "Color"
@@ -707,8 +686,8 @@ class DesktopLyricsOverlayService : Service() {
             alpha = 0f
             translationY = dp(6).toFloat()
             setPadding(dp(4), dp(12), dp(4), dp(2))
-            addView(panelHeader)
-            addView(tabRow)
+//            addView(panelHeader)
+//            addView(tabRow)
             addView(LinearLayout(this@DesktopLyricsOverlayService).apply {
                 orientation = LinearLayout.VERTICAL
                 background = sectionBackground
@@ -792,6 +771,7 @@ class DesktopLyricsOverlayService : Service() {
         nextLineView?.setTextColor(adjustSecondaryColor(lyricColor))
         currentLineView?.alpha = lyricAlpha
         nextLineView?.alpha = lyricAlpha
+        restartCurrentLineScrollIfNeeded()
     }
 
     private fun clampOverlayY(targetY: Int): Int {
@@ -889,13 +869,65 @@ class DesktopLyricsOverlayService : Service() {
 
         val currentLine = syncedLines[currentIndex]
         val nextLine = syncedLines.getOrNull(currentIndex + 1)
-        current.text = currentLine.line.ifBlank { "♪" }
+        val displayLine = currentLine.line.ifBlank { "♪" }
+        current.text = displayLine
         next.text = nextLine?.line.orEmpty()
+
+        if (displayLine != lastRenderedCurrentLine) {
+            lastRenderedCurrentLine = displayLine
+            val nextTime = nextLine?.time?.toLong() ?: (position.toLong() + DEFAULT_LAST_LINE_DURATION_MS)
+            val lineDuration = (nextTime - currentLine.time.toLong()).coerceAtLeast(800L)
+            startCurrentLineScroll(lineDuration)
+        }
+    }
+
+    private fun startCurrentLineScroll(lineDurationMs: Long) {
+        val currentTextView = currentLineView ?: return
+        currentLineScrollAnimator?.cancel()
+        currentTextView.translationX = 0f
+
+        currentTextView.post {
+            val textWidth = currentTextView.paint.measureText(currentTextView.text.toString())
+            val containerWidth = (lyricCard?.width ?: currentTextView.width).toFloat()
+            val plan = DesktopLyricsScrollEstimator.buildPlan(
+                textWidthPx = textWidth,
+                containerWidthPx = containerWidth,
+                lineDurationMs = lineDurationMs,
+            )
+            if (!plan.shouldScroll) return@post
+
+            serviceScope.launch {
+                delay(plan.holdStartMs)
+                val animator = ValueAnimator.ofFloat(0f, -plan.travelPx).apply {
+                    duration = plan.scrollDurationMs
+                    interpolator = LinearInterpolator()
+                    addUpdateListener { valueAnimator ->
+                        currentTextView.translationX = valueAnimator.animatedValue as Float
+                    }
+                }
+                currentLineScrollAnimator = animator
+                animator.start()
+            }
+        }
+    }
+
+    private fun restartCurrentLineScrollIfNeeded() {
+        val text = currentLineView?.text?.toString().orEmpty()
+        if (text.isBlank() || text == "♪") return
+        val controller = mediaController ?: return
+        val position = controller.currentPosition.toInt().coerceAtLeast(0)
+        val currentIndex = syncedLines.indexOfLast { it.time <= position }
+        if (currentIndex < 0) return
+        val nextLine = syncedLines.getOrNull(currentIndex + 1)
+        val nextTime = nextLine?.time?.toLong() ?: (position.toLong() + DEFAULT_LAST_LINE_DURATION_MS)
+        val lineDuration = (nextTime - syncedLines[currentIndex].time.toLong()).coerceAtLeast(800L)
+        startCurrentLineScroll(lineDuration)
     }
 
     companion object {
         private const val NOTIFICATION_ID = 1207
         private const val CONTROLS_AUTO_HIDE_DELAY_MS = 3_000L
+        private const val DEFAULT_LAST_LINE_DURATION_MS = 5_000L
     }
 
     private data class OverlayPrefState(

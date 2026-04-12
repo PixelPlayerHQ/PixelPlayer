@@ -106,10 +106,11 @@ class DesktopLyricsOverlayService : Service() {
     private var lyricAlpha: Float = 0.95f
     private var overlayPosY: Int = 220
 
-    private val fixedFontSizeSp = 22f
+    private val fixedFontSizeSp = 18f
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+            clearLyricsDisplay()
             loadLyricsForCurrentMedia()
             updateLyricLine()
         }
@@ -122,6 +123,26 @@ class DesktopLyricsOverlayService : Service() {
             ) {
                 updateLyricLine()
             }
+        }
+    }
+
+    private fun clearLyricsDisplay() {
+        // 1、Stop the scrolling animation to prevent
+        // the text from jumping around when resetting.
+        currentLineScrollAnimator?.cancel()
+
+        // 2、Reset indexes and data sources
+        lastRenderedLyricIndex = -1
+        syncedLines = emptyList()
+
+        // 3、Immediately reset the UI text to its initial state.
+        currentLineView?.post {
+            currentLineView?.text = "♪"
+            currentLineView?.scrollX = 0
+        }
+        nextLineView?.post {
+            nextLineView?.text = ""
+            nextLineView?.scrollX = 0
         }
     }
 
@@ -236,7 +257,7 @@ class DesktopLyricsOverlayService : Service() {
             textSize = fixedFontSizeSp
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            setPadding(dp(20), dp(4), dp(20), dp(2))
+            setPadding(dp(16), dp(1), dp(16), dp(0))
             isSingleLine = true
             alpha = lyricAlpha
         }
@@ -245,7 +266,7 @@ class DesktopLyricsOverlayService : Service() {
             setTextColor(adjustSecondaryColor(lyricColor))
             textSize = fixedFontSizeSp
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            setPadding(dp(20), dp(2), dp(20), dp(4))
+            setPadding(dp(16), dp(0), dp(16), dp(1))
             isSingleLine = true
             alpha = lyricAlpha
         }
@@ -304,16 +325,17 @@ class DesktopLyricsOverlayService : Service() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             visibility = View.GONE
-            addView(homeBtn, LinearLayout.LayoutParams(dp(28), dp(28)))
+            val buttonSize = dp(24)
+            addView(homeBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
             addView(View(this@DesktopLyricsOverlayService), LinearLayout.LayoutParams(0, 0, 1f))
-            addView(closeBtn, LinearLayout.LayoutParams(dp(28), dp(28)))
+            addView(closeBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
         }
 
         val actionRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             visibility = View.GONE
-            val buttonSize = dp(36)
+            val buttonSize = dp(24)
             addView(lockBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
             addView(View(this@DesktopLyricsOverlayService), LinearLayout.LayoutParams(0, 0, 1f))
             addView(settingsBtn, LinearLayout.LayoutParams(buttonSize, buttonSize))
@@ -347,7 +369,7 @@ class DesktopLyricsOverlayService : Service() {
                 View(this@DesktopLyricsOverlayService),
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(8)
+                    dp(0)
                 )
             )
             addView(
@@ -386,7 +408,7 @@ class DesktopLyricsOverlayService : Service() {
         }
 
         val screenWidth = resources.displayMetrics.widthPixels
-        val overlayWidth = (screenWidth * 0.88f).toInt()
+        val overlayWidth = (screenWidth * 0.94f).toInt()
 
         val params = WindowManager.LayoutParams(
             overlayWidth,
@@ -513,6 +535,7 @@ class DesktopLyricsOverlayService : Service() {
             root.setBackgroundColor(Color.TRANSPARENT)
             (card.background as? GradientDrawable)?.setColor(Color.TRANSPARENT)
             (card.background as? GradientDrawable)?.setStroke(0, Color.TRANSPARENT)
+            card.setPadding(dp(12), dp(0), dp(12), dp(0))
             autoHideControlsJob?.cancel()
             return
         }
@@ -524,6 +547,7 @@ class DesktopLyricsOverlayService : Service() {
         root.setBackgroundColor(Color.TRANSPARENT)
         (card.background as? GradientDrawable)?.setColor(if (show) 0xCC222222.toInt() else Color.TRANSPARENT)
         (card.background as? GradientDrawable)?.setStroke(if (show) dp(1) else 0, if (show) 0x33FFFFFF else Color.TRANSPARENT)
+        card.setPadding(dp(12), if (show) dp(12) else dp(0), dp(12), if (show) dp(10) else dp(0))
         if (!show) {
             autoHideControlsJob?.cancel()
         }

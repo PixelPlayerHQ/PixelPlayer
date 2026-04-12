@@ -43,9 +43,9 @@ object DesktopLyricsScrollEstimator {
             )
         }
 
-        val holdStart = max((lineDurationMs * 0.10f).toLong(), 150L)
-        val holdEnd = max((lineDurationMs * 0.18f).toLong(), 220L)
-        val scrollDuration = (lineDurationMs - holdStart - holdEnd).coerceAtLeast(250L)
+        val holdStart = max((lineDurationMs * 0.05f).toLong(), 100L)
+        val holdEnd = max((lineDurationMs * 0.30f).toLong(), 220L)
+        val scrollDuration = (lineDurationMs - holdStart - holdEnd).coerceAtLeast(200L)
 
         return ScrollPlan(
             shouldScroll = true,

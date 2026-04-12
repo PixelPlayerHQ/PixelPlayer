@@ -95,7 +95,7 @@ class DesktopLyricsOverlayService : Service() {
     private var prefsObserverJob: Job? = null
     private var autoHideControlsJob: Job? = null
     private var currentLineScrollAnimator: ValueAnimator? = null
-    private var lastRenderedCurrentLine: String = ""
+    private var lastRenderedLyricIndex: Int = -1
 
     private var syncedLines: List<com.theveloper.pixelplay.data.model.SyncedLine> = emptyList()
 
@@ -235,18 +235,18 @@ class DesktopLyricsOverlayService : Service() {
             setTextColor(lyricColor)
             textSize = fixedFontSizeSp
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            gravity = Gravity.CENTER
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
             setPadding(dp(20), dp(4), dp(20), dp(2))
-            maxLines = 1
+            isSingleLine = true
             alpha = lyricAlpha
         }
         val nextText = TextView(this).apply {
             text = ""
             setTextColor(adjustSecondaryColor(lyricColor))
             textSize = fixedFontSizeSp
-            gravity = Gravity.CENTER
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
             setPadding(dp(20), dp(2), dp(20), dp(4))
-            maxLines = 1
+            isSingleLine = true
             alpha = lyricAlpha
         }
 
@@ -339,7 +339,7 @@ class DesktopLyricsOverlayService : Service() {
             addView(
                 currentText,
                 LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             )
@@ -353,7 +353,7 @@ class DesktopLyricsOverlayService : Service() {
             addView(
                 nextText,
                 LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             )
@@ -686,8 +686,6 @@ class DesktopLyricsOverlayService : Service() {
             alpha = 0f
             translationY = dp(6).toFloat()
             setPadding(dp(4), dp(12), dp(4), dp(2))
-//            addView(panelHeader)
-//            addView(tabRow)
             addView(LinearLayout(this@DesktopLyricsOverlayService).apply {
                 orientation = LinearLayout.VERTICAL
                 background = sectionBackground
@@ -716,26 +714,6 @@ class DesktopLyricsOverlayService : Service() {
         }
         settingsButton?.setColorFilter(0xFFD6D6D6.toInt())
         scheduleControlsAutoHide()
-    }
-
-    private fun buildSettingsTab(text: String, selected: Boolean): TextView {
-        return TextView(this).apply {
-            this.text = text
-            textSize = 12f
-            setPadding(dp(12), dp(5), dp(12), dp(5))
-            setTextColor(if (selected) Color.WHITE else 0xFFB0BEC5.toInt())
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(50).toFloat()
-                if (selected) {
-                    setColor(ColorUtils.setAlphaComponent(Color.WHITE, 46))
-                    setStroke(0, Color.TRANSPARENT)
-                } else {
-                    setColor(Color.TRANSPARENT)
-                    setStroke(dp(1), 0x33FFFFFF)
-                }
-            }
-        }
     }
 
     private fun attachPressAnimation(view: View) {
@@ -853,28 +831,38 @@ class DesktopLyricsOverlayService : Service() {
         val current = currentLineView ?: return
         val next = nextLineView ?: return
 
+        //If there is no lyrics data, reset the state.
         if (syncedLines.isEmpty()) {
-            current.text = "♪"
-            next.text = ""
+            if (current.text.toString() != "♪") current.text = "♪"
+            if (next.text.toString() != "") next.text = ""
+            lastRenderedLyricIndex = -1
             return
         }
 
         val position = controller.currentPosition.toInt().coerceAtLeast(0)
         val currentIndex = syncedLines.indexOfLast { it.time <= position }
+
+        // If the current progress has not reached the first line of lyrics, reset the status.
         if (currentIndex < 0) {
-            current.text = "♪"
-            next.text = ""
+            if (current.text.toString() != "♪") current.text = "♪"
+            if (next.text.toString() != "") next.text = ""
+            lastRenderedLyricIndex = -1
             return
         }
 
-        val currentLine = syncedLines[currentIndex]
-        val nextLine = syncedLines.getOrNull(currentIndex + 1)
-        val displayLine = currentLine.line.ifBlank { "♪" }
-        current.text = displayLine
-        next.text = nextLine?.line.orEmpty()
+        // The UI only updates when "switching lyrics" occurs.
+        if (currentIndex != lastRenderedLyricIndex) {
+            lastRenderedLyricIndex = currentIndex
 
-        if (displayLine != lastRenderedCurrentLine) {
-            lastRenderedCurrentLine = displayLine
+            val currentLine = syncedLines[currentIndex]
+            val nextLine = syncedLines.getOrNull(currentIndex + 1)
+            val displayLine = currentLine.line.ifBlank { "♪" }
+
+            // Only at this point is a new text given.
+            current.text = displayLine
+            next.text = nextLine?.line.orEmpty()
+
+            // Calculate the duration of the lyric and start scrolling.
             val nextTime = nextLine?.time?.toLong() ?: (position.toLong() + DEFAULT_LAST_LINE_DURATION_MS)
             val lineDuration = (nextTime - currentLine.time.toLong()).coerceAtLeast(800L)
             startCurrentLineScroll(lineDuration)
@@ -884,25 +872,37 @@ class DesktopLyricsOverlayService : Service() {
     private fun startCurrentLineScroll(lineDurationMs: Long) {
         val currentTextView = currentLineView ?: return
         currentLineScrollAnimator?.cancel()
+
         currentTextView.translationX = 0f
 
         currentTextView.post {
+            // After each layout is completed, ensure the scrollbars are reset to zero.
+            currentTextView.scrollX = 0
+
             val textWidth = currentTextView.paint.measureText(currentTextView.text.toString())
-            val containerWidth = (lyricCard?.width ?: currentTextView.width).toFloat()
+            val containerWidth = DesktopLyricsScrollEstimator.effectiveViewportWidthPx(
+                containerWidthPx = currentTextView.width.toFloat(),
+                paddingStartPx = currentTextView.paddingStart.toFloat(),
+                paddingEndPx = currentTextView.paddingEnd.toFloat(),
+            )
+
             val plan = DesktopLyricsScrollEstimator.buildPlan(
                 textWidthPx = textWidth,
                 containerWidthPx = containerWidth,
                 lineDurationMs = lineDurationMs,
             )
-            if (!plan.shouldScroll) return@post
+
+            if (!plan.shouldScroll) {
+                return@post
+            }
 
             serviceScope.launch {
                 delay(plan.holdStartMs)
-                val animator = ValueAnimator.ofFloat(0f, -plan.travelPx).apply {
+                val animator = ValueAnimator.ofFloat(0f, plan.travelPx).apply {
                     duration = plan.scrollDurationMs
                     interpolator = LinearInterpolator()
                     addUpdateListener { valueAnimator ->
-                        currentTextView.translationX = valueAnimator.animatedValue as Float
+                        currentTextView.scrollX = (valueAnimator.animatedValue as Float).toInt()
                     }
                 }
                 currentLineScrollAnimator = animator

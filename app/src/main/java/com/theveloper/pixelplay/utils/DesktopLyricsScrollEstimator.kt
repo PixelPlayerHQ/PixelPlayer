@@ -43,8 +43,8 @@ object DesktopLyricsScrollEstimator {
             )
         }
 
-        val holdStart = max((lineDurationMs * 0.18f).toLong(), 220L)
-        val holdEnd = max((lineDurationMs * 0.10f).toLong(), 150L)
+        val holdStart = max((lineDurationMs * 0.10f).toLong(), 150L)
+        val holdEnd = max((lineDurationMs * 0.18f).toLong(), 220L)
         val scrollDuration = (lineDurationMs - holdStart - holdEnd).coerceAtLeast(250L)
 
         return ScrollPlan(
@@ -54,5 +54,14 @@ object DesktopLyricsScrollEstimator {
             holdEndMs = holdEnd,
             travelPx = travel,
         )
+    }
+
+    fun effectiveViewportWidthPx(
+        containerWidthPx: Float,
+        paddingStartPx: Float,
+        paddingEndPx: Float,
+    ): Float {
+        val contentWidth = containerWidthPx - paddingStartPx.coerceAtLeast(0f) - paddingEndPx.coerceAtLeast(0f)
+        return contentWidth.coerceAtLeast(0f)
     }
 }

@@ -4,9 +4,11 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.animation.ObjectAnimator
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.Color
@@ -15,6 +17,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.animation.LinearInterpolator
@@ -96,6 +99,7 @@ class DesktopLyricsOverlayService : Service() {
     private var prefsObserverJob: Job? = null
     private var autoHideControlsJob: Job? = null
     private var currentLineScrollAnimator: ValueAnimator? = null
+    private var pendingScrollStartJob: Job? = null
     private var lastRenderedLyricIndex: Int = -1
 
     private var syncedLines: List<com.theveloper.pixelplay.data.model.SyncedLine> = emptyList()
@@ -109,11 +113,38 @@ class DesktopLyricsOverlayService : Service() {
 
     private val fixedFontSizeSp = 18f
 
+    private var powerManager: PowerManager? = null
+    private var isScreenInteractive: Boolean = true
+    private var isScreenReceiverRegistered: Boolean = false
+
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    isScreenInteractive = true
+                    syncProgressTickerState()
+                    updateLyricLine()
+                }
+
+                Intent.ACTION_SCREEN_OFF -> {
+                    isScreenInteractive = false
+                    syncProgressTickerState()
+                }
+            }
+        }
+    }
+
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
             clearLyricsDisplay()
             loadLyricsForCurrentMedia()
             updateLyricLine()
+            syncProgressTickerState()
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            updateLyricLine()
+            syncProgressTickerState()
         }
 
         override fun onEvents(player: Player, events: Player.Events) {
@@ -123,14 +154,14 @@ class DesktopLyricsOverlayService : Service() {
                 events.contains(Player.EVENT_IS_PLAYING_CHANGED)
             ) {
                 updateLyricLine()
+                syncProgressTickerState()
             }
         }
     }
 
     private fun clearLyricsDisplay() {
-        // 1、Stop the scrolling animation to prevent
-        // the text from jumping around when resetting.
-        currentLineScrollAnimator?.cancel()
+        // Stop both animator and delayed start job to avoid stale scroll tasks.
+        stopCurrentLineScroll()
 
         // 2、Reset indexes and data sources
         lastRenderedLyricIndex = -1
@@ -148,6 +179,13 @@ class DesktopLyricsOverlayService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        isScreenInteractive = readScreenInteractiveState()
+        registerScreenReceiverIfNeeded()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!Settings.canDrawOverlays(this)) {
@@ -171,10 +209,11 @@ class DesktopLyricsOverlayService : Service() {
         mediaController = null
         removeOverlay()
         lyricsJob?.cancel()
-        progressTickerJob?.cancel()
+        stopProgressTicker()
         prefsObserverJob?.cancel()
         autoHideControlsJob?.cancel()
-        currentLineScrollAnimator?.cancel()
+        stopCurrentLineScroll()
+        unregisterScreenReceiverIfNeeded()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -821,7 +860,7 @@ class DesktopLyricsOverlayService : Service() {
                     controller.addListener(playerListener)
                     loadLyricsForCurrentMedia()
                     updateLyricLine()
-                    startProgressTicker()
+                    syncProgressTickerState()
                 }
             },
             MoreExecutors.directExecutor()
@@ -829,13 +868,58 @@ class DesktopLyricsOverlayService : Service() {
     }
 
     private fun startProgressTicker() {
-        progressTickerJob?.cancel()
+        if (progressTickerJob?.isActive == true) return
         progressTickerJob = serviceScope.launch {
             while (isActive) {
+                if (!shouldRunProgressTicker()) break
                 updateLyricLine()
                 delay(250)
             }
         }
+    }
+
+    private fun stopProgressTicker() {
+        progressTickerJob?.cancel()
+        progressTickerJob = null
+    }
+
+    private fun shouldRunProgressTicker(): Boolean {
+        val controller = mediaController ?: return false
+        return controller.isPlaying && isScreenInteractive
+    }
+
+    private fun syncProgressTickerState() {
+        if (shouldRunProgressTicker()) {
+            startProgressTicker()
+        } else {
+            stopProgressTicker()
+        }
+    }
+
+    private fun readScreenInteractiveState(): Boolean {
+        val pm = powerManager ?: return true
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            pm.isInteractive
+        } else {
+            @Suppress("DEPRECATION")
+            pm.isScreenOn
+        }
+    }
+
+    private fun registerScreenReceiverIfNeeded() {
+        if (isScreenReceiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(screenStateReceiver, filter)
+        isScreenReceiverRegistered = true
+    }
+
+    private fun unregisterScreenReceiverIfNeeded() {
+        if (!isScreenReceiverRegistered) return
+        runCatching { unregisterReceiver(screenStateReceiver) }
+        isScreenReceiverRegistered = false
     }
 
     private fun loadLyricsForCurrentMedia() {
@@ -861,8 +945,8 @@ class DesktopLyricsOverlayService : Service() {
         val current = currentLineView ?: return
         val next = nextLineView ?: return
 
-        //If there is no lyrics data, reset the state.
         if (syncedLines.isEmpty()) {
+            stopCurrentLineScroll()
             if (current.text.toString() != "♪") current.text = "♪"
             if (next.text.toString() != "") next.text = ""
             lastRenderedLyricIndex = -1
@@ -874,6 +958,7 @@ class DesktopLyricsOverlayService : Service() {
 
         // If the current progress has not reached the first line of lyrics, reset the status.
         if (currentIndex < 0) {
+            stopCurrentLineScroll()
             if (current.text.toString() != "♪") current.text = "♪"
             if (next.text.toString() != "") next.text = ""
             lastRenderedLyricIndex = -1
@@ -901,12 +986,12 @@ class DesktopLyricsOverlayService : Service() {
 
     private fun startCurrentLineScroll(lineDurationMs: Long) {
         val currentTextView = currentLineView ?: return
-        currentLineScrollAnimator?.cancel()
+        stopCurrentLineScroll()
 
         currentTextView.translationX = 0f
+        val expectedText = currentTextView.text.toString()
 
         currentTextView.post {
-            // After each layout is completed, ensure the scrollbars are reset to zero.
             currentTextView.scrollX = 0
 
             val textWidth = currentTextView.paint.measureText(currentTextView.text.toString())
@@ -926,8 +1011,12 @@ class DesktopLyricsOverlayService : Service() {
                 return@post
             }
 
-            serviceScope.launch {
+            val scrollStartJob = serviceScope.launch {
                 delay(plan.holdStartMs)
+                if (!isActive) return@launch
+                if (currentLineView !== currentTextView) return@launch
+                if (currentTextView.text.toString() != expectedText) return@launch
+
                 val animator = ValueAnimator.ofFloat(0f, plan.travelPx).apply {
                     duration = plan.scrollDurationMs
                     interpolator = LinearInterpolator()
@@ -938,7 +1027,20 @@ class DesktopLyricsOverlayService : Service() {
                 currentLineScrollAnimator = animator
                 animator.start()
             }
+            pendingScrollStartJob = scrollStartJob
+            scrollStartJob.invokeOnCompletion {
+                if (pendingScrollStartJob === scrollStartJob) {
+                    pendingScrollStartJob = null
+                }
+            }
         }
+    }
+
+    private fun stopCurrentLineScroll() {
+        pendingScrollStartJob?.cancel()
+        pendingScrollStartJob = null
+        currentLineScrollAnimator?.cancel()
+        currentLineScrollAnimator = null
     }
 
     private fun restartCurrentLineScrollIfNeeded() {

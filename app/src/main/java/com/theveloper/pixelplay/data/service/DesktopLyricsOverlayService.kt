@@ -71,6 +71,7 @@ class DesktopLyricsOverlayService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var mediaController: MediaController? = null
+    private var controllerFuture: com.google.common.util.concurrent.ListenableFuture<MediaController>? = null
     private var windowManager: WindowManager? = null
 
     private var overlayRoot: FrameLayout? = null
@@ -161,6 +162,10 @@ class DesktopLyricsOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        controllerFuture?.let {
+            MediaController.releaseFuture(it)
+            controllerFuture = null
+        }
         mediaController?.removeListener(playerListener)
         mediaController?.release()
         mediaController = null
@@ -803,10 +808,11 @@ class DesktopLyricsOverlayService : Service() {
 
     @OptIn(UnstableApi::class)
     private fun connectMediaControllerIfNeeded() {
-        if (mediaController != null) return
+        if (mediaController != null || controllerFuture != null) return
 
         val token = SessionToken(this, ComponentName(this, MusicService::class.java))
         val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
         future.addListener(
             {
                 runCatching {

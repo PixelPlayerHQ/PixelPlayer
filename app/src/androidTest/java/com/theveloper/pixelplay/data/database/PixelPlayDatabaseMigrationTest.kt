@@ -19,24 +19,26 @@ class PixelPlayDatabaseMigrationTest {
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        requireNotNull(PixelPlayDatabase::class.java.canonicalName),
+        PixelPlayDatabase::class.java,
+        emptyList(),
         FrameworkSQLiteOpenHelperFactory()
     )
 
     @After
     fun tearDown() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        for (version in 25..35) {
+        for (version in 25..39) {
             context.deleteDatabase(databaseNameFor(version))
         }
         context.deleteDatabase(DB_NAME_33_TO_34)
         context.deleteDatabase(DB_NAME_23_TO_24_DRIFTED)
         context.deleteDatabase(DB_NAME_35_TO_36)
+        context.deleteDatabase(DB_NAME_39_TO_40)
     }
 
     @Test
     fun migrateEveryExportedSchemaToLatest() {
-        for (startVersion in 25..35) {
+        for (startVersion in 25..39) {
             helper.createDatabase(databaseNameFor(startVersion), startVersion).close()
 
             helper.runMigrationsAndValidate(
@@ -126,6 +128,26 @@ class PixelPlayDatabaseMigrationTest {
                 assertEquals("songs_fts", cursor.getString(0))
             } finally {
                 cursor.close()
+                db.close()
+            }
+        }
+    }
+
+    @Test
+    fun migration39To40AddsCompositeSongIndexes() {
+        helper.createDatabase(DB_NAME_39_TO_40, 39).close()
+
+        helper.runMigrationsAndValidate(
+            DB_NAME_39_TO_40,
+            40,
+            true,
+            PixelPlayDatabase.MIGRATION_39_40
+        ).let { db ->
+            try {
+                val indexes = db.tableIndexes("songs")
+                assertTrue("index_songs_parent_directory_path_source_type_album_id" in indexes)
+                assertTrue("index_songs_parent_directory_path_source_type_id" in indexes)
+            } finally {
                 db.close()
             }
         }
@@ -270,14 +292,26 @@ class PixelPlayDatabaseMigrationTest {
         return columns
     }
 
+    private fun SupportSQLiteDatabase.tableIndexes(tableName: String): Set<String> {
+        val indexes = mutableSetOf<String>()
+        query("PRAGMA index_list(`$tableName`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                indexes += cursor.getString(nameIndex)
+            }
+        }
+        return indexes
+    }
+
     private object PixelPlayDatabaseVersion {
-        const val LATEST = 36
+        const val LATEST = 40
     }
 
     companion object {
         private const val DB_NAME_23_TO_24_DRIFTED = "migration-test-23-to-24-drifted"
         private const val DB_NAME_33_TO_34 = "migration-test-33-to-34"
         private const val DB_NAME_35_TO_36 = "migration-test-35-to-36"
+        private const val DB_NAME_39_TO_40 = "migration-test-39-to-40"
 
         private val ALL_MIGRATIONS = arrayOf(
             PixelPlayDatabase.MIGRATION_25_26,
@@ -290,7 +324,11 @@ class PixelPlayDatabaseMigrationTest {
             PixelPlayDatabase.MIGRATION_32_33,
             PixelPlayDatabase.MIGRATION_33_34,
             PixelPlayDatabase.MIGRATION_34_35,
-            PixelPlayDatabase.MIGRATION_35_36
+            PixelPlayDatabase.MIGRATION_35_36,
+            PixelPlayDatabase.MIGRATION_36_37,
+            PixelPlayDatabase.MIGRATION_37_38,
+            PixelPlayDatabase.MIGRATION_38_39,
+            PixelPlayDatabase.MIGRATION_39_40
         )
     }
 }

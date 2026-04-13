@@ -1,11 +1,10 @@
 package com.theveloper.pixelplay.presentation.components.subcomps
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -32,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,19 +41,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp as lerpDp
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.ShimmerBox
 import com.theveloper.pixelplay.presentation.components.SmartImage
-import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+
+@Immutable
+private data class EnhancedSongAnimationTarget(
+    val isHighlighted: Boolean = false,
+    val isSelected: Boolean = false
+)
+
+private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
+    return start + (stop - start) * fraction
+}
 
 /**
  * Enhanced song list item with multi-selection support.
@@ -92,39 +102,48 @@ fun EnhancedSongListItem(
     onClick: () -> Unit
 ) {
     val albumArtTargetSizePx = with(LocalDensity.current) { albumArtSize.roundToPx() * 3 }
-
-    // Animate corner radius based on current song state
-    val animatedCornerRadius by animateDpAsState(
-        targetValue = if (isCurrentSong && !isLoading) 50.dp else 22.dp,
-        animationSpec = tween(durationMillis = 400),
-        label = "cornerRadiusAnimation"
-    )
-
-    val animatedAlbumCornerRadius by animateDpAsState(
-        targetValue = if (isCurrentSong && !isLoading) 50.dp else 10.dp,
-        animationSpec = tween(durationMillis = 400),
-        label = "albumCornerRadiusAnimation"
-    )
-
-    // Selection animation - subtle scale effect
-    val selectionScale by animateFloatAsState(
-        targetValue = if (isSelected) 0.98f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+    val isHighlighted = isCurrentSong && !isLoading
+    val transition = updateTransition(
+        targetState = EnhancedSongAnimationTarget(
+            isHighlighted = isHighlighted,
+            isSelected = isSelected
         ),
-        label = "selectionScaleAnimation"
+        label = "EnhancedSongListItemTransition"
     )
 
-    // Selection border width animation
-    val selectionBorderWidth by animateDpAsState(
-        targetValue = if (isSelected) 2.5.dp else 0.dp,
-        animationSpec = tween(durationMillis = 250),
-        label = "selectionBorderAnimation"
-    )
+    // Share one transition across the item and derive the visual properties from a
+    // couple of progress values instead of animating each color/radius independently.
+    val highlightProgress by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 400) },
+        label = "highlightProgress"
+    ) { state ->
+        if (state.isHighlighted) 1f else 0f
+    }
+    val selectionVisualProgress by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 250) },
+        label = "selectionVisualProgress"
+    ) { state ->
+        if (state.isSelected) 1f else 0f
+    }
+    val selectionScaleProgress by transition.animateFloat(
+        transitionSpec = {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        },
+        label = "selectionScaleProgress"
+    ) { state ->
+        if (state.isSelected) 1f else 0f
+    }
 
-    val surfaceShape = remember(animatedCornerRadius, customShape, isCurrentSong, isLoading) {
-        if (customShape != null && (!isCurrentSong || isLoading)) {
+    val animatedCornerRadius = lerpDp(22.dp, 50.dp, highlightProgress)
+    val animatedAlbumCornerRadius = lerpDp(10.dp, 50.dp, highlightProgress)
+    val selectionScale = lerpFloat(1f, 0.98f, selectionScaleProgress)
+    val selectionBorderWidth = lerpDp(0.dp, 2.5.dp, selectionVisualProgress)
+
+    val surfaceShape = remember(animatedCornerRadius, customShape, isHighlighted) {
+        if (customShape != null && !isHighlighted) {
             customShape
         } else {
             RoundedCornerShape(animatedCornerRadius)
@@ -136,37 +155,28 @@ fun EnhancedSongListItem(
     }
 
     val colors = MaterialTheme.colorScheme
-    
-    // Container colors - selection takes precedence over current song
-    val containerColor by animateColorAsState(
-        targetValue = when {
-            isSelected -> colors.secondaryContainer
-            isCurrentSong && !isLoading -> colors.primaryContainer
-            else -> containerColorOverride ?: colors.surfaceContainerLow
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "containerColorAnimation"
-    )
-    
-    val contentColor by animateColorAsState(
-        targetValue = when {
-            isSelected -> colors.onSecondaryContainer
-            isCurrentSong && !isLoading -> colors.onPrimaryContainer
-            else -> colors.onSurface
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "contentColorAnimation"
-    )
+    val baseContainerColor = containerColorOverride ?: colors.surfaceContainerLow
+    val playbackContainerColor = lerpColor(baseContainerColor, colors.primaryContainer, highlightProgress)
+    val containerColor = lerpColor(playbackContainerColor, colors.secondaryContainer, selectionVisualProgress)
 
-    // Selection border color
-    val selectionBorderColor by animateColorAsState(
-        targetValue = if (isSelected) colors.primary else colors.primary.copy(alpha = 0f),
-        animationSpec = tween(durationMillis = 250),
-        label = "borderColorAnimation"
-    )
+    val baseContentColor = colors.onSurface
+    val playbackContentColor = lerpColor(baseContentColor, colors.onPrimaryContainer, highlightProgress)
+    val contentColor = lerpColor(playbackContentColor, colors.onSecondaryContainer, selectionVisualProgress)
 
-    val mvContainerColor = if ((isCurrentSong) && !isLoading) colors.primaryContainer else colors.onSurface
-    val mvContentColor = if ((isCurrentSong) && !isLoading) colors.onPrimaryContainer else colors.surfaceContainerHigh
+    val selectionBorderColor = lerpColor(colors.primary.copy(alpha = 0f), colors.primary, selectionVisualProgress)
+    val mvContainerColor = lerpColor(colors.onSurface, colors.primaryContainer, highlightProgress)
+    val mvContentColor = lerpColor(colors.surfaceContainerHigh, colors.onPrimaryContainer, highlightProgress)
+    val selectionOverlayColor = lerpColor(
+        Color.Transparent,
+        colors.primary.copy(alpha = 0.7f),
+        selectionVisualProgress
+    )
+    val selectionOverlayContentColor = lerpColor(
+        Color.Transparent,
+        colors.onPrimary,
+        selectionVisualProgress
+    )
+    val showSelectionDecoration = selectionVisualProgress > 0.001f
 
     if (isLoading) {
         // Shimmer Placeholder Layout
@@ -236,7 +246,7 @@ fun EnhancedSongListItem(
                 .scale(selectionScale)
                 .clip(surfaceShape)
                 .then(
-                    if (isSelected) {
+                    if (showSelectionDecoration) {
                         Modifier.border(
                             width = selectionBorderWidth,
                             color = selectionBorderColor,
@@ -295,12 +305,12 @@ fun EnhancedSongListItem(
                         )
                         
                         // Selection check overlay on album art
-                        if (isSelected) {
+                        if (showSelectionDecoration) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
-                                        color = colors.primary.copy(alpha = 0.7f),
+                                        color = selectionOverlayColor,
                                         shape = albumShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -310,13 +320,13 @@ fun EnhancedSongListItem(
                                         text = "$selectionIndex",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.onPrimary
+                                        color = selectionOverlayContentColor
                                     )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Rounded.CheckCircle,
                                         contentDescription = "Selected",
-                                        tint = colors.onPrimary,
+                                        tint = selectionOverlayContentColor,
                                         modifier = Modifier.size(28.dp)
                                     )
                                 }

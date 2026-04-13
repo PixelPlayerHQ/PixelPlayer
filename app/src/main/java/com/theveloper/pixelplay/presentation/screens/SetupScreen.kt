@@ -173,6 +173,9 @@ fun SetupScreen(
     val directoryChildren by setupViewModel.currentDirectoryChildren.collectAsStateWithLifecycle()
     val availableStorages by setupViewModel.availableStorages.collectAsStateWithLifecycle()
     val selectedStorageIndex by setupViewModel.selectedStorageIndex.collectAsStateWithLifecycle()
+    val isExplorerPriming by setupViewModel.isExplorerPriming.collectAsStateWithLifecycle()
+    val isExplorerReady by setupViewModel.isExplorerReady.collectAsStateWithLifecycle()
+    val isCurrentDirectoryResolved by setupViewModel.isCurrentDirectoryResolved.collectAsStateWithLifecycle()
     var selectedBackupUri by remember { mutableStateOf<Uri?>(null) }
     
     var showCornerRadiusOverlay by remember { mutableStateOf(false) }
@@ -207,6 +210,14 @@ fun SetupScreen(
     val currentPage = pages[pagerState.currentPage]
     val isNextButtonEnabled = isPermissionGateSatisfied(context, currentPage, uiState)
     var previousPageIndex by remember { mutableStateOf(0) }
+    val navigateToPage: (Int) -> Unit = { targetPage ->
+        scope.launch {
+            val boundedPage = targetPage.coerceIn(0, pages.lastIndex)
+            if (boundedPage != pagerState.currentPage) {
+                pagerState.animateScrollToPage(boundedPage)
+            }
+        }
+    }
 
     val directorySelectionPageIndex = remember(pages) { pages.indexOf(SetupPage.DirectorySelection) }
     val batteryOptimizationPageIndex = remember(pages) { pages.indexOf(SetupPage.BatteryOptimization) }
@@ -262,9 +273,7 @@ fun SetupScreen(
     }
     BackHandler {
         if (pagerState.currentPage > 0) {
-            scope.launch {
-                pagerState.animateScrollToPage(pagerState.currentPage - 1)
-            }
+            navigateToPage(pagerState.currentPage - 1)
         }
     }
     Scaffold(
@@ -277,9 +286,7 @@ fun SetupScreen(
                 onNextClicked = {
                     val page = pages[pagerState.currentPage]
                     if (isPermissionGateSatisfied(context, page, uiState)) {
-                        scope.launch {
-                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                        }
+                        navigateToPage(pagerState.currentPage + 1)
                     } else {
                         setupViewModel.checkPermissions(context)
                         Toast.makeText(context, "Please grant the required permission first.", Toast.LENGTH_SHORT).show()
@@ -299,6 +306,9 @@ fun SetupScreen(
     ) { paddingValues ->
         HorizontalPager(
             state = pagerState,
+            // Keep setup progression deterministic; free swiping was allowing users
+            // to jump across optional pages after the first permission dialog.
+            userScrollEnabled = false,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -327,9 +337,7 @@ fun SetupScreen(
                         onSkip = {
                             setupViewModel.clearRestorePlan()
                             selectedBackupUri = null
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         }
                     )
                     SetupPage.DirectorySelection -> DirectorySelectionPage(
@@ -338,15 +346,18 @@ fun SetupScreen(
                         directoryChildren = directoryChildren,
                         availableStorages = availableStorages,
                         selectedStorageIndex = selectedStorageIndex,
+                        isExplorerPriming = isExplorerPriming,
+                        isExplorerReady = isExplorerReady,
+                        isCurrentDirectoryResolved = isCurrentDirectoryResolved,
                         isAtRoot = setupViewModel.isAtRoot(),
                         explorerRoot = setupViewModel.explorerRoot(),
+                        onOpenExplorer = setupViewModel::openExplorer,
                         onNavigateTo = setupViewModel::loadDirectory,
                         onNavigateUp = setupViewModel::navigateUp,
                         onRefresh = setupViewModel::refreshCurrentDirectory,
+                        onPrimeExplorer = setupViewModel::primeExplorer,
                         onSkip = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         },
                         onToggleAllowed = setupViewModel::toggleDirectoryAllowed,
                         onSelectionFinished = setupViewModel::applyPendingDirectoryRuleChanges,
@@ -359,17 +370,12 @@ fun SetupScreen(
                     SetupPage.AlarmsPermission -> AlarmsPermissionPage(
                         uiState = uiState,
                         onSkip = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         }
                     )
-                    SetupPage.AllFilesPermission -> AllFilesPermissionPage(uiState)
                     SetupPage.BatteryOptimization -> BatteryOptimizationPage(
                         onSkip = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         }
                     )
                     SetupPage.ThemeSelection -> ThemeSelectionPage(
@@ -381,9 +387,7 @@ fun SetupScreen(
                         uiState = uiState,
                         onModeSelected = setupViewModel::setLibraryNavigationMode,
                         onSkip = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         }
                     )
                     SetupPage.NavBarLayout -> NavBarLayoutPage(
@@ -391,9 +395,7 @@ fun SetupScreen(
                         onModeSelected = setupViewModel::setNavBarStyle,
                         onCustomizeRadius = { showCornerRadiusOverlay = true },
                         onSkip = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
+                            navigateToPage(pagerState.currentPage + 1)
                         }
                     )
                 }
@@ -450,11 +452,16 @@ fun DirectorySelectionPage(
     directoryChildren: List<DirectoryEntry>,
     availableStorages: List<StorageInfo>,
     selectedStorageIndex: Int,
+    isExplorerPriming: Boolean,
+    isExplorerReady: Boolean,
+    isCurrentDirectoryResolved: Boolean,
     isAtRoot: Boolean,
     explorerRoot: File,
+    onOpenExplorer: () -> Unit,
     onNavigateTo: (File) -> Unit,
     onNavigateUp: () -> Unit,
     onRefresh: () -> Unit,
+    onPrimeExplorer: () -> Unit,
     onSkip: () -> Unit,
     onToggleAllowed: (File) -> Unit,
     onSelectionFinished: () -> Unit,
@@ -464,8 +471,13 @@ fun DirectorySelectionPage(
     val context = LocalContext.current
 
     val hasMediaPermission = uiState.mediaPermissionGranted
-    val hasAllFilesAccess = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || uiState.allFilesAccessGranted
-    val canOpenDirectoryPicker = hasMediaPermission && hasAllFilesAccess
+    val canOpenDirectoryPicker = hasMediaPermission
+
+    LaunchedEffect(canOpenDirectoryPicker) {
+        if (canOpenDirectoryPicker) {
+            onPrimeExplorer()
+        }
+    }
 
     PermissionPageLayout(
         title = "Excluded folders",
@@ -475,6 +487,7 @@ fun DirectorySelectionPage(
         onGrantClicked = {
             if (canOpenDirectoryPicker) {
                 showDirectoryPicker = true
+                onOpenExplorer()
             } else {
                 Toast.makeText(context, "Grant storage permissions first", Toast.LENGTH_SHORT).show()
             }
@@ -492,12 +505,6 @@ fun DirectorySelectionPage(
         }
     }
 
-    LaunchedEffect(showDirectoryPicker) {
-        if (showDirectoryPicker) {
-            onNavigateTo(explorerRoot)
-        }
-    }
-
     FileExplorerDialog(
         visible = showDirectoryPicker,
         currentPath = currentPath,
@@ -505,6 +512,9 @@ fun DirectorySelectionPage(
         availableStorages = availableStorages,
         selectedStorageIndex = selectedStorageIndex,
         isLoading = uiState.isLoadingDirectories,
+        isPriming = isExplorerPriming,
+        isReady = isExplorerReady,
+        isCurrentDirectoryResolved = isCurrentDirectoryResolved,
         isAtRoot = isAtRoot,
         rootDirectory = explorerRoot,
         onNavigateTo = onNavigateTo,
@@ -532,7 +542,6 @@ sealed class SetupPage {
     object ThemeSelection : SetupPage()
     object NotificationsPermission : SetupPage()
     object AlarmsPermission : SetupPage()
-    object AllFilesPermission : SetupPage()
     object LibraryLayout : SetupPage()
     object NavBarLayout : SetupPage()
     object BatteryOptimization : SetupPage()
@@ -545,9 +554,6 @@ private fun buildSetupPages(sdkInt: Int): List<SetupPage> {
         SetupPage.MediaPermission
     )
 
-    if (sdkInt >= Build.VERSION_CODES.R) {
-        pages += SetupPage.AllFilesPermission
-    }
     if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
         pages += SetupPage.NotificationsPermission
     }
@@ -589,11 +595,6 @@ private fun isPermissionGateSatisfied(
         SetupPage.MediaPermission -> {
             uiState.mediaPermissionGranted || hasMediaPermissionNow(context)
         }
-        SetupPage.AllFilesPermission -> {
-            uiState.allFilesAccessGranted ||
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
-                Environment.isExternalStorageManager()
-        }
         SetupPage.NotificationsPermission -> {
             uiState.notificationsPermissionGranted ||
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -614,9 +615,7 @@ private fun allRequiredPermissionsGrantedNow(context: Context): Boolean {
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-    val allFilesGranted =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
-    return mediaGranted && notificationsGranted && allFilesGranted
+    return mediaGranted && notificationsGranted
 }
 
 private fun hasMediaPermissionNow(context: Context): Boolean {
@@ -877,36 +876,6 @@ fun AlarmsPermissionPage(
             }
         }
     }
-}
-
-@Composable
-fun AllFilesPermissionPage(uiState: SetupUiState) {
-    val context = LocalContext.current
-    val fileIcons = persistentListOf(
-        R.drawable.rounded_question_mark_24,
-        R.drawable.rounded_attach_file_24,
-        R.drawable.rounded_imagesmode_24,
-        R.drawable.rounded_broken_image_24,
-        R.drawable.rounded_folder_24
-    )
-
-    val isGranted = uiState.allFilesAccessGranted
-
-    PermissionPageLayout(
-        title = "All Files Access",
-        granted = isGranted,
-        description = "For some Android versions, PixelPlayer needs broader file access to find all your music.",
-        buttonText = if(isGranted) "Permission Granted" else "Go to Settings",
-        buttonEnabled = !isGranted,
-        icons = fileIcons,
-        onGrantClicked = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !isGranted) {
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = "package:${context.packageName}".toUri()
-                context.startActivity(intent)
-            }
-        }
-    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

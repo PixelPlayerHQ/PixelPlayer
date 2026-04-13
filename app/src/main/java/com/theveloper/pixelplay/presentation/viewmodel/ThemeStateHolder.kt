@@ -1,12 +1,14 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
 import android.net.Uri
+import android.content.ComponentCallbacks2
 import android.os.Trace
 import androidx.compose.ui.graphics.Color
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.ui.theme.DarkColorScheme
+import com.theveloper.pixelplay.ui.theme.clearExtractedColorCache
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -255,6 +257,27 @@ class ThemeStateHolder @Inject constructor(
          } else {
              android.util.Log.d("ThemeStateHolder", "Global URI did not match. Skipping global update.")
          }
+    }
+
+    @Suppress("DEPRECATION")
+    fun trimMemory(level: Int) {
+        colorSchemeProcessor.clearMemoryCache()
+        clearExtractedColorCache()
+
+        if (
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ||
+            level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
+        ) {
+            individualAlbumColorSchemes.clear()
+        }
+
+        if (
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE
+        ) {
+            pendingAlbumColorSchemeRequests.clear()
+        }
     }
 
 }

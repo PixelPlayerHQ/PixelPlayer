@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.PixelPlayStatusBarStyle
 import kotlinx.collections.immutable.toImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +52,8 @@ fun GenreGradientTopBar(
     val gradientBrush = remember(startColor, endColor) {
         Brush.verticalGradient(colors = listOf(startColor, endColor))
     }
+
+    PixelPlayStatusBarStyle(color = startColor)
 
     LargeTopAppBar(
         scrollBehavior = scrollBehavior,
@@ -100,6 +103,8 @@ fun HomeGradientTopBar(
 ) {
     // 1) Pinta la status bar con el color surface
     val surfaceColor = MaterialTheme.colorScheme.surface
+
+    PixelPlayStatusBarStyle(color = surfaceColor)
 
     val gradientColors = listOf(
         surfaceColor,

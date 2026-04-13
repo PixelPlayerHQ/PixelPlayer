@@ -76,6 +76,10 @@ class ModuleSchemaValidator @Inject constructor(
                 // These are PreferenceBackupEntry arrays; validate basic structure
                 validatePreferenceEntries(jsonElement, section.key, errors)
             }
+            BackupSection.AI_USAGE_LOGS -> {
+                // Basic array validation is already done at line 50. 
+                // Any extra specific field validation for AI logs can be added here.
+            }
         }
 
         return if (errors.any { it.severity == Severity.ERROR }) {

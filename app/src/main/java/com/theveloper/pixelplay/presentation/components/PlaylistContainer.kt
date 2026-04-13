@@ -87,6 +87,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistUiState
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistSelectionStateHolder
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.foundation.combinedClickable
+import kotlinx.coroutines.flow.map
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -343,10 +344,16 @@ fun PlaylistItem(
     onLongPress: () -> Unit = {},
     onPlaylistSelectionToggle: () -> Unit = {}
 ) {
-    val allSongs by playerViewModel.allSongsFlow.collectAsStateWithLifecycle()
-    val playlistSongs = remember(playlist.songIds, allSongs) {
-        allSongs.filter { it.id in playlist.songIds }
+    val playlistPreviewSongIds = remember(playlist.songIds) {
+        playlist.songIds.take(4)
     }
+    val playlistSongsInitialValue = remember(playlistPreviewSongIds) {
+        if (playlistPreviewSongIds.isEmpty()) emptyList<Song>() else null
+    }
+    val playlistSongs by remember(playlistPreviewSongIds, playerViewModel) {
+        playerViewModel.observeSongs(playlistPreviewSongIds)
+            .map<List<Song>, List<Song>?> { it }
+    }.collectAsStateWithLifecycle(initialValue = playlistSongsInitialValue)
 
     val selectionScale by animateFloatAsState(
         targetValue = if (isSelected) 0.98f else 1f,
@@ -414,7 +421,7 @@ fun PlaylistItem(
         ) {
             PlaylistCover(
                 playlist = playlist,
-                playlistSongs = playlistSongs,
+                playlistSongs = playlistSongs ?: emptyList(),
                 size = 48.dp
             )
 

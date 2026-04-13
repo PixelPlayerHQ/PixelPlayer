@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,8 +33,8 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
 /**
  * Bottom sheet that lets the user choose between streaming providers.
- * Uses Material 3 standard surface colors and compact ListItem-style rows
- * inside a single outlined card.
+ * Uses a segmented Material 3 Expressive list that matches the other
+ * bottom sheets in the app while keeping provider order and icon colors intact.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +53,8 @@ fun StreamingProviderSheet(
     )
 ) {
     val context = LocalContext.current
+    val providerSegmentContainerShape = RoundedCornerShape(20.dp)
+    val providerSegmentItemShape = RoundedCornerShape(8.dp)
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -69,63 +72,65 @@ fun StreamingProviderSheet(
         ) {
             Text(
                 text = "Cloud Streaming",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
 
             Text(
                 text = "Stream music from your cloud accounts",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 fontFamily = GoogleSansRounded,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
 
-            // Single grouped card for all providers
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth(),
+                shape = providerSegmentContainerShape,
+                color = Color.Transparent,
                 tonalElevation = 0.dp
             ) {
-                Column {
-                    // Telegram
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp)
+                        .clip(providerSegmentContainerShape),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.telegram),
                         iconTint = Color(0xFF2AABEE),
                         title = "Telegram",
                         subtitle = "Stream from channels & chats",
+                        shape = providerSegmentItemShape,
                         onClick = {
                             context.startActivity(Intent(context, TelegramLoginActivity::class.java))
                             onDismissRequest()
                         }
                     )
 
-                    ProviderDivider()
-
-                    // Google Drive (coming soon)
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.rounded_drive_export_24),
                         iconTint = Color(0xFF4285F4),
                         title = "Google Drive",
                         subtitle = "Coming soon",
+                        shape = providerSegmentItemShape,
                         enabled = false,
                         onClick = { }
                     )
 
-                    ProviderDivider()
-
-                    // Subsonic / Navidrome
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.ic_navidrome_md3),
                         iconTint = Color(0xFFE8A54B),
                         title = "Subsonic",
                         subtitle = if (isNavidromeLoggedIn) "Connected · Navidrome/Airsonic" else "Connect Navidrome & others",
+                        shape = providerSegmentItemShape,
                         isConnected = isNavidromeLoggedIn,
                         onClick = {
                             if (isNavidromeLoggedIn) {
@@ -137,14 +142,12 @@ fun StreamingProviderSheet(
                         }
                     )
 
-                    ProviderDivider()
-
-                    // Jellyfin
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.ic_jellyfin),
                         iconTint = Color(0xFF00A4DC),
                         title = "Jellyfin",
                         subtitle = if (isJellyfinLoggedIn) "Connected" else "Connect your Jellyfin server",
+                        shape = providerSegmentItemShape,
                         isConnected = isJellyfinLoggedIn,
                         onClick = {
                             if (isJellyfinLoggedIn) {
@@ -156,14 +159,12 @@ fun StreamingProviderSheet(
                         }
                     )
 
-                    ProviderDivider()
-
-                    // Netease
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.netease_cloud_music_logo_icon_206716__1_),
                         iconTint = Color(0xFFE85959),
                         title = "Netease Cloud Music",
                         subtitle = if (isNeteaseLoggedIn) "Connected" else "Sign in to stream",
+                        shape = providerSegmentItemShape,
                         isConnected = isNeteaseLoggedIn,
                         onClick = {
                             if (isNeteaseLoggedIn) {
@@ -175,14 +176,12 @@ fun StreamingProviderSheet(
                         }
                     )
 
-                    ProviderDivider()
-
-                    // QQ Music
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.qq_music),
                         iconTint = Color(0xFF31C27C),
                         title = "QQ Music",
                         subtitle = if (isQqMusicLoggedIn) "Connected" else "Sign in to stream",
+                        shape = providerSegmentItemShape,
                         isConnected = isQqMusicLoggedIn,
                         onClick = {
                             if (isQqMusicLoggedIn) {
@@ -200,80 +199,106 @@ fun StreamingProviderSheet(
 }
 
 @Composable
-private fun ProviderDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-    )
-}
-
-@Composable
 private fun ProviderRow(
     iconPainter: Painter,
     iconTint: Color,
     title: String,
     subtitle: String,
+    shape: RoundedCornerShape,
     isConnected: Boolean = false,
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    Row(
+    val containerColor = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceContainerLowest
+        isConnected -> MaterialTheme.colorScheme.surfaceContainerHighest
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val titleColor = if (enabled) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+    }
+    val subtitleColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+        isConnected -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val arrowContainerColor = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceContainerHighest
+        isConnected -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceBright
+    }
+    val arrowTint = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+        isConnected -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+    }
+    val iconTileShape = RoundedCornerShape(14.dp)
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (enabled) 1f else 0.5f)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .alpha(if (enabled) 1f else 0.62f)
+            .clip(shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = shape,
+        color = containerColor
     ) {
-        // Icon in a tinted circle
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = iconPainter,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = iconTint
-            )
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontFamily = GoogleSansRounded,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = GoogleSansRounded,
-                color = if (isConnected)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Spacer(Modifier.width(8.dp))
-
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Medium,
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = GoogleSansRounded,
+                    color = subtitleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            leadingContent = {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(iconTileShape)
+                        .background(iconTint.copy(alpha = if (enabled) 0.14f else 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = iconPainter,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = iconTint
+                    )
+                }
+            },
+            trailingContent = {
+                Surface(
+                    shape = CircleShape,
+                    color = arrowContainerColor
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                            .size(26.dp),
+                        tint = arrowTint
+                    )
+                }
+            }
         )
     }
 }

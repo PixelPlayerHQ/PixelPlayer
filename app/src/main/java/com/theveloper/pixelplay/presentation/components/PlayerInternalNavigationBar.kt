@@ -67,9 +67,14 @@ private fun PlayerInternalNavigationItemsRow(
     modifier: Modifier = Modifier,
     navBarStyle: String,
     compactMode: Boolean,
+    bottomBarPadding: Dp,
     onSearchIconDoubleTap: () -> Unit
 ) {
     val navBarInsetPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Maintain invariant: bottomBarPadding + innerRowPadding = systemNavBarInset.
+    // This prevents nav items from appearing behind the gesture bar during style transitions,
+    // e.g. FULL_WIDTH→DEFAULT where bottomBarPadding starts at 0 and animates to systemNavBarInset.
+    val innerRowPadding = (navBarInsetPadding - bottomBarPadding).coerceAtLeast(0.dp)
     val latestCurrentRoute by rememberUpdatedState(currentRoute)
     val latestOnSearchIconDoubleTap by rememberUpdatedState(onSearchIconDoubleTap)
     val latestNavigationEnabled by rememberUpdatedState(currentRoute != null)
@@ -77,10 +82,10 @@ private fun PlayerInternalNavigationItemsRow(
     val rowModifier = if (navBarStyle == NavBarStyle.FULL_WIDTH) {
         modifier
             .fillMaxWidth()
-            .padding(top = 0.dp, bottom = navBarInsetPadding, start = 12.dp, end = 12.dp)
+            .padding(top = 0.dp, bottom = innerRowPadding, start = 12.dp, end = 12.dp)
     } else {
         modifier
-            .padding(horizontal = 10.dp)
+            .padding(start = 10.dp, end = 10.dp, bottom = innerRowPadding)
             .fillMaxWidth()
     }
     Row(
@@ -195,6 +200,7 @@ fun PlayerInternalNavigationBar(
     modifier: Modifier = Modifier,
     navBarStyle: String,
     compactMode: Boolean,
+    bottomBarPadding: Dp = 0.dp,
     onSearchIconDoubleTap: () -> Unit = {}
 ) {
     PlayerInternalNavigationItemsRow(
@@ -203,6 +209,7 @@ fun PlayerInternalNavigationBar(
         currentRoute = currentRoute,
         navBarStyle = navBarStyle,
         compactMode = compactMode,
+        bottomBarPadding = bottomBarPadding,
         onSearchIconDoubleTap = onSearchIconDoubleTap,
         modifier = modifier
     )

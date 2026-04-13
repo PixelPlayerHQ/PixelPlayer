@@ -8,6 +8,7 @@ import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
+import com.theveloper.pixelplay.data.ai.provider.AiProviderException
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -173,8 +174,8 @@ class AiStateHolder @Inject constructor(
                 )
 
                 // Step 2: Invoke AI Generation Engine
-                _aiStatus.value = "Consulting the sonic oracle..."
-                notificationManager.showProgress("AI Curation", "Synthesizing your sonic journey...", 50)
+                _aiStatus.value = "Consulting the Daily Mix guide..."
+                notificationManager.showProgress("AI Curation", "Synthesizing your Daily Mix...", 50)
                 
                 val result = aiPlaylistGenerator.generate(
                     userPrompt = prompt,
@@ -334,21 +335,99 @@ class AiStateHolder @Inject constructor(
     }
 
     private fun resolveAiErrorMessage(error: Throwable): String {
+        val providerFailure = error.findProviderFailure()
         val detail = extractAiErrorDetail(error)
-        return if (detail.contains("api key", ignoreCase = true)) {
-            context.getString(R.string.ai_error_api_key)
-        } else {
-            context.getString(R.string.ai_error_generic, detail)
+
+        return when {
+            providerFailure?.isApiKeyIssue() == true || detail.contains("api key", ignoreCase = true) ->
+                context.getString(R.string.ai_error_api_key)
+
+            providerFailure?.isBillingIssue() == true ->
+                context.getString(R.string.ai_error_quota)
+
+            providerFailure?.isModelUnavailable() == true ->
+                context.getString(R.string.ai_error_model_unavailable)
+
+            // Timeout errors
+            detail.contains("timed out", ignoreCase = true) || 
+            detail.contains("timeout", ignoreCase = true) ->
+                "Request timed out. The AI provider is slow or overloaded. Try again in a moment."
+
+            // Network/WiFi errors
+            detail.contains("network", ignoreCase = true) ||
+            detail.contains("connect", ignoreCase = true) ||
+            detail.contains("resolve host", ignoreCase = true) ||
+            detail.contains("SocketException", ignoreCase = true) ||
+            detail.contains("no internet", ignoreCase = true) ||
+            detail.contains("offline", ignoreCase = true) ||
+            detail.contains("wifi", ignoreCase = true) ->
+                "No Internet Connection. Please check your WiFi or mobile data and try again."
+
+            // Airplane mode specific
+            detail.contains("airplane", ignoreCase = true) ->
+                "Airplane mode is on. Turn it off to use AI features."
+
+            // Permission/Auth errors
+            detail.contains("permission", ignoreCase = true) ||
+            detail.contains("denied", ignoreCase = true) ||
+            detail.contains("forbidden", ignoreCase = true) ||
+            detail.contains("unauthorized", ignoreCase = true) ||
+            detail.contains("401", ignoreCase = true) ||
+            detail.contains("403", ignoreCase = true) ->
+                "Permission Denied. Your API key might be invalid, or it lacks the necessary permissions for this model."
+
+            // Rate limiting
+            detail.contains("rate limit", ignoreCase = true) ||
+            detail.contains("429", ignoreCase = true) ||
+            detail.contains("too many requests", ignoreCase = true) ->
+                "Rate limited. The AI provider needs a short break. Wait 30 seconds and try again."
+
+            // Safety filter
+            detail.contains("safety", ignoreCase = true) ||
+            detail.contains("blocked", ignoreCase = true) ||
+            detail.contains("filtered", ignoreCase = true) ->
+                "Content was blocked by the AI's safety filters. Try rephrasing your request."
+
+            // Invalid response format
+            detail.contains("valid playlist", ignoreCase = true) ||
+            detail.contains("JSON array", ignoreCase = true) ||
+            detail.contains("invalid response", ignoreCase = true) ->
+                "The AI returned an unexpected format. Try again or switch to a more capable model."
+
+            // No API key configured
+            detail.contains("No API key", ignoreCase = true) ||
+            detail.contains("not configured", ignoreCase = true) ->
+                context.getString(R.string.ai_error_api_key)
+
+            // Cooldown
+            detail.contains("cooldown", ignoreCase = true) ->
+                "AI providers are cooling down after recent errors. Wait a few minutes and try again."
+
+            // Empty response
+            detail.contains("empty response", ignoreCase = true) ->
+                "The AI returned an empty response. This typically means the model filtered the content. Try a different prompt."
+
+            else ->
+                context.getString(R.string.ai_error_generic, detail)
         }
     }
 
     private fun extractAiErrorDetail(error: Throwable): String {
-        return listOf(error.message.orEmpty(), error.cause?.message.orEmpty())
+        return generateSequence(error) { it.cause }
+            .flatMap { throwable ->
+                sequenceOf(throwable.message.orEmpty())
+            }
             .map { raw ->
                 raw.replace(Regex("^AI\\s*Error:\\s*", RegexOption.IGNORE_CASE), "").trim()
             }
             .firstOrNull { it.isNotBlank() }
             ?: "Unknown error"
+    }
+
+    private fun Throwable.findProviderFailure(): AiProviderException? {
+        return generateSequence(this) { it.cause }
+            .filterIsInstance<AiProviderException>()
+            .firstOrNull()
     }
 
     private fun resolveAiPlaylistName(

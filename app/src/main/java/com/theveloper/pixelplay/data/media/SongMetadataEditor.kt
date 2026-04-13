@@ -142,18 +142,6 @@ class SongMetadataEditor(
         )
     }
 
-    /**
-     * Checks if the file can be written to
-     */
-    private fun checkFileWritePermission(filePath: String): Boolean {
-        val file = File(filePath)
-        if (!file.exists()) return false
-        if (!file.canWrite()) return false
-        // Also check parent directory for potential rename operations
-        val parent = file.parentFile ?: return false
-        return parent.canWrite()
-    }
-
     private suspend fun updateSongArtistMetadata(
         songId: Long,
         title: String,
@@ -306,15 +294,8 @@ class SongMetadataEditor(
                 )
             }
 
-            if (!filePath.isNullOrBlank() && !checkFileWritePermission(filePath)) {
-                Timber.tag(TAG).e("No write permission for file: $filePath")
-                return@withContext SongMetadataEditResult(
-                    success = false,
-                    updatedAlbumArtUri = null,
-                    error = MetadataEditError.NO_WRITE_PERMISSION,
-                    errorMessage = "Cannot write to this file. It may be on read-only storage or protected."
-                )
-            }
+            // Write permission is now handled upstream via MediaStore.createWriteRequest()
+            // before this method is called. No File.canWrite() check needed.
 
             val finalFilePath = filePath ?: ""
             val extension = finalFilePath.substringAfterLast('.', "").lowercase(Locale.ROOT)

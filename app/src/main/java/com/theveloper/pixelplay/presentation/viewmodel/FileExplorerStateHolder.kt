@@ -2,24 +2,25 @@ package com.theveloper.pixelplay.presentation.viewmodel
 
 import android.content.Context
 import android.os.Environment
+import android.provider.MediaStore
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.utils.DirectoryRuleResolver
 import com.theveloper.pixelplay.utils.StorageInfo
 import com.theveloper.pixelplay.utils.StorageUtils
+import com.theveloper.pixelplay.utils.buildLocalAudioSelection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,6 +46,12 @@ private data class RawDirectoryEntry(
     val displayName: String? = null
 )
 
+private data class MediaStoreDirectoryIndex(
+    val childrenByParent: Map<String, Set<String>>,
+    val directAudioCountByPath: Map<String, Int>,
+    val totalAudioCountByPath: Map<String, Int>
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class FileExplorerStateHolder(
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -55,7 +62,6 @@ class FileExplorerStateHolder(
 
     private var visibleRoot: File = initialRoot
     private var rootCanonicalPath: String = normalizePath(visibleRoot)
-    private val audioCountCache = ConcurrentHashMap<String, AudioCount>()
 
     // Available storages (Internal, SD Card, USB)
     private val _availableStorages = MutableStateFlow<List<StorageInfo>>(emptyList())
@@ -65,7 +71,9 @@ class FileExplorerStateHolder(
     val selectedStorageIndex: StateFlow<Int> = _selectedStorageIndex.asStateFlow()
 
     // Cache for "Raw" entries (without selection state)
-    private val directoryChildrenCache = mutableMapOf<String, List<RawDirectoryEntry>>()
+    private val directoryChildrenCache = ConcurrentHashMap<String, List<RawDirectoryEntry>>()
+    private val prefetchedDirectoryKeys = ConcurrentHashMap.newKeySet<String>()
+    private val resolvedDirectoryKeys = ConcurrentHashMap.newKeySet<String>()
 
     private val _currentPath = MutableStateFlow(visibleRoot)
     val currentPath: StateFlow<File> = _currentPath.asStateFlow()
@@ -87,17 +95,26 @@ class FileExplorerStateHolder(
     private val _isExplorerReady = MutableStateFlow(false)
     val isExplorerReady: StateFlow<Boolean> = _isExplorerReady.asStateFlow()
 
+    private val _isCurrentDirectoryResolved = MutableStateFlow(false)
+    val isCurrentDirectoryResolved: StateFlow<Boolean> = _isCurrentDirectoryResolved.asStateFlow()
+
     // Combined flow for UI consumption
     private val _currentDirectoryChildren = MutableStateFlow<List<DirectoryEntry>>(emptyList())
     val currentDirectoryChildren: StateFlow<List<DirectoryEntry>> = _currentDirectoryChildren.asStateFlow()
 
-    private val audioExtensions = setOf(
-        "mp3", "flac", "m4a", "aac", "wav", "ogg", "opus", "wma", "alac", "aiff", "ape"
-    )
-
     private val mapperDispatcher = Dispatchers.Default
+    private val prefetchDispatcher = Dispatchers.IO.limitedParallelism(2)
     private val loadMutex = Mutex()
+    private val mediaStoreIndexMutex = Mutex()
     private var loadJob: Job? = null
+    private val countEnrichmentJobs = ConcurrentHashMap<String, Job>()
+    @Volatile
+    private var mediaStoreDirectoryIndex: MediaStoreDirectoryIndex? = null
+
+    companion object {
+        private const val PREFETCH_CHILDREN_LIMIT = 8
+        private const val UNKNOWN_AUDIO_COUNT = -1
+    }
 
     init {
         // Load available storages
@@ -142,8 +159,6 @@ class FileExplorerStateHolder(
                 _currentDirectoryChildren.value = it
             }.launchIn(scope)
 
-        // Initial load
-        refreshCurrentDirectory()
     }
 
     fun refreshAvailableStorages() {
@@ -170,15 +185,25 @@ class FileExplorerStateHolder(
         loadDirectory(visibleRoot, updatePath = true, forceRefresh = false)
     }
 
-    fun refreshCurrentDirectory() {
-        loadDirectory(_currentPath.value, updatePath = false, forceRefresh = true)
+    fun refreshCurrentDirectory(): Job {
+        return loadDirectory(_currentPath.value, updatePath = false, forceRefresh = true)
     }
 
     fun loadDirectory(file: File, updatePath: Boolean = true, forceRefresh: Boolean = false): Job {
         loadJob?.cancel()
+        val target = if (file.isDirectory) file else visibleRoot
+        val targetKey = normalizePath(target)
+        if (updatePath) {
+            _currentPath.value = target
+        }
+        if (forceRefresh || !directoryChildrenCache.containsKey(targetKey)) {
+            _isLoading.value = true
+            _isCurrentDirectoryResolved.value = false
+            _rawCurrentDirectoryChildren.value = emptyList()
+        }
         val job = scope.launch {
             loadMutex.withLock {
-                loadDirectoryInternal(file, updatePath, forceRefresh)
+                loadDirectoryInternal(target, updatePath = false, forceRefresh = forceRefresh)
             }
         }
         loadJob = job
@@ -186,16 +211,29 @@ class FileExplorerStateHolder(
     }
 
     fun primeExplorerRoot(): Job? {
-        if (_isExplorerReady.value && directoryChildrenCache.containsKey(rootCanonicalPath)) return null
+        val cachedRootEntries = directoryChildrenCache[rootCanonicalPath]
+        if (_isExplorerReady.value && !cachedRootEntries.isNullOrEmpty()) return null
         if (_isPrimingExplorer.value) return null
 
         _isPrimingExplorer.value = true
+        _isLoading.value = true
+        _isCurrentDirectoryResolved.value = false
+        _rawCurrentDirectoryChildren.value = emptyList()
         return scope.launch {
-            loadMutex.withLock {
-                loadDirectoryInternal(visibleRoot, updatePath = true, forceRefresh = false)
+            try {
+                loadMutex.withLock {
+                    loadDirectoryInternal(visibleRoot, updatePath = true, forceRefresh = false)
+                }
+            } finally {
+                _isPrimingExplorer.value = false
             }
-            _isPrimingExplorer.value = false
         }
+    }
+
+    fun openExplorerRoot(): Job {
+        val cachedRootEntries = directoryChildrenCache[rootCanonicalPath]
+        val shouldForceRefresh = cachedRootEntries.isNullOrEmpty()
+        return loadDirectory(visibleRoot, updatePath = true, forceRefresh = shouldForceRefresh)
     }
 
     fun navigateUp() {
@@ -266,7 +304,10 @@ class FileExplorerStateHolder(
         val targetKey = normalizePath(target)
 
         if (forceRefresh) {
-            directoryChildrenCache.remove(targetKey)
+            directoryChildrenCache.clear()
+            prefetchedDirectoryKeys.clear()
+            resolvedDirectoryKeys.clear()
+            mediaStoreDirectoryIndex = null
         }
 
         if (updatePath) {
@@ -277,88 +318,226 @@ class FileExplorerStateHolder(
             directoryChildrenCache[targetKey]
         } else null
 
-        if (cachedEntries != null) {
+        if (cachedEntries != null && (cachedEntries.isNotEmpty() || resolvedDirectoryKeys.contains(targetKey))) {
             _rawCurrentDirectoryChildren.value = cachedEntries
             _isLoading.value = false
             _isExplorerReady.value = true
+            _isCurrentDirectoryResolved.value = resolvedDirectoryKeys.contains(targetKey)
+            enrichDirectoryEntries(target, cachedEntries, forceRefresh)
+            prefetchChildDirectories(cachedEntries)
             return
         }
 
         _isLoading.value = true
+        _isCurrentDirectoryResolved.value = false
         _rawCurrentDirectoryChildren.value = emptyList()
 
-        val resultEntries = withContext(Dispatchers.IO) {
-            val children = runCatching {
-                target.listFiles()?.filter { it.isDirectory && !it.isHidden } ?: emptyList()
-            }.getOrElse { emptyList() }
-
-            coroutineScope {
-                val dispatcher = Dispatchers.IO.limitedParallelism(4)
-                children.map { child ->
-                    async(dispatcher) {
-                        val counts = countAudioFiles(child, forceRefresh)
-                        if (counts.total > 0) {
-                            RawDirectoryEntry(child, counts.direct, counts.total, normalizePath(child))
-                        } else null
-                    }
-                }.mapNotNull { it.await() }
-                    .sortedWith(compareBy({ it.file.name.lowercase() }))
-            }.also { directoryChildrenCache[targetKey] = it }
+        val immediateEntries = listImmediateDirectoryEntries(target)
+        val resultEntries = if (immediateEntries.isNotEmpty()) {
+            immediateEntries
+        } else {
+            computeDirectoryEntriesFromMediaStore(target, forceRefresh).also {
+                resolvedDirectoryKeys.add(targetKey)
+            }
         }
+        directoryChildrenCache[targetKey] = resultEntries
 
         _rawCurrentDirectoryChildren.value = resultEntries
         _isLoading.value = false
         _isExplorerReady.value = true
+        _isCurrentDirectoryResolved.value = resolvedDirectoryKeys.contains(targetKey)
+        enrichDirectoryEntries(target, resultEntries, forceRefresh)
+        prefetchChildDirectories(resultEntries)
     }
 
-    private fun countAudioFiles(directory: File, forceRefresh: Boolean): AudioCount {
-        val key = normalizePath(directory)
-        if (!forceRefresh) {
-            audioCountCache[key]?.let { return it }
+    private suspend fun listImmediateDirectoryEntries(target: File): List<RawDirectoryEntry> =
+        withContext(Dispatchers.IO) {
+            val cachedIndex = mediaStoreDirectoryIndex
+            runCatching {
+                target.listFiles()
+                    ?.asSequence()
+                    ?.filter { it.isDirectory && !it.isHidden }
+                    ?.map { child ->
+                        val childKey = normalizePath(child)
+                        RawDirectoryEntry(
+                            file = child,
+                            directAudioCount = cachedIndex?.directAudioCountByPath?.get(childKey)
+                                ?: UNKNOWN_AUDIO_COUNT,
+                            totalAudioCount = cachedIndex?.totalAudioCountByPath?.get(childKey)
+                                ?: UNKNOWN_AUDIO_COUNT,
+                            canonicalPath = childKey
+                        )
+                    }
+                    ?.sortedBy { it.file.name.lowercase() }
+                    ?.toList()
+                    ?: emptyList()
+            }.getOrElse { emptyList() }
         }
 
-        val filesQueue: ArrayDeque<File> = ArrayDeque()
-        filesQueue.add(directory)
+    private suspend fun computeDirectoryEntriesFromMediaStore(
+        target: File,
+        forceRefresh: Boolean
+    ): List<RawDirectoryEntry> {
+        val index = getOrBuildMediaStoreDirectoryIndex(forceRefresh)
+        val targetKey = normalizePath(target)
+        val childPaths = index.childrenByParent[targetKey].orEmpty()
 
-        var totalCount = 0
-        var directCount = 0
+        return childPaths
+            .map { childPath ->
+                RawDirectoryEntry(
+                    file = File(childPath),
+                    directAudioCount = index.directAudioCountByPath[childPath] ?: 0,
+                    totalAudioCount = index.totalAudioCountByPath[childPath] ?: 0,
+                    canonicalPath = childPath
+                )
+            }
+            .sortedWith(compareBy({ it.file.name.lowercase() }))
+    }
 
-        while (filesQueue.isNotEmpty()) {
-            val current = filesQueue.removeFirst()
-            val listed = current.listFiles() ?: continue
-            for (child in listed) {
-                if (child.isHidden) continue
-                if (child.isDirectory) {
-                    filesQueue.add(child)
-                } else {
-                    val extension = child.extension.lowercase()
-                    if (audioExtensions.contains(extension)) {
-                        totalCount++
-                        if (current.path == directory.path) {
-                            directCount++
-                        }
+    private fun enrichDirectoryEntries(
+        target: File,
+        currentEntries: List<RawDirectoryEntry>,
+        forceRefresh: Boolean
+    ) {
+        if (currentEntries.isEmpty() && mediaStoreDirectoryIndex == null) return
+
+        val targetKey = normalizePath(target)
+
+        countEnrichmentJobs[targetKey]?.cancel()
+        countEnrichmentJobs[targetKey] = scope.launch(prefetchDispatcher) {
+            try {
+                val index = getOrBuildMediaStoreDirectoryIndex(forceRefresh)
+                val mediaStoreEntries = index.childrenByParent[targetKey].orEmpty()
+                    .map { childPath ->
+                        RawDirectoryEntry(
+                            file = File(childPath),
+                            directAudioCount = index.directAudioCountByPath[childPath] ?: 0,
+                            totalAudioCount = index.totalAudioCountByPath[childPath] ?: 0,
+                            canonicalPath = childPath
+                        )
                     }
-                    // Optimization: If we have found enough files to know it's populated, we can stop counting strictly?
-                    // But we need the counts for the UI ("12 songs").
-                    // If the user has 10,000 songs, this loop is slow.
-                    // Let's cap at 500 for display purposes to keep it fast, or rely on MediaStore later?
-                    // For now, let's keep the 100 limit from original code or bump slightly,
-                    // but the original code had `if (totalCount > 100) return`.
-                    // This implies the UI shows "100+" or similar?
-                    // The UI shows `"$displayCount songs"`. If we return 100, it says "100 songs".
-                    // If we stop at 100, the user won't know the real count.
-                    // But for performance, avoiding deep traversal of massive folders is key.
-                    if (totalCount > 99) {
-                         // We can stop here for performance. The UI handles "99+" logic if we want,
-                         // but currently the UI code says: `if (audioCount > 99) "99+" else audioCount.toString()`.
-                         // So we MUST return at least 100 to trigger "99+".
-                         return AudioCount(directCount, totalCount).also { audioCountCache[key] = it }
-                    }
+                    .sortedWith(compareBy({ it.file.name.lowercase() }))
+                val enrichedEntries = mediaStoreEntries
+
+                directoryChildrenCache[targetKey] = enrichedEntries
+                resolvedDirectoryKeys.add(targetKey)
+
+                if (normalizePath(_currentPath.value) == targetKey) {
+                    _rawCurrentDirectoryChildren.value = enrichedEntries
+                    _isCurrentDirectoryResolved.value = true
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } finally {
+                countEnrichmentJobs.remove(targetKey)
+            }
+        }
+    }
+
+    private fun hasUnknownCounts(entry: RawDirectoryEntry): Boolean {
+        return entry.directAudioCount == UNKNOWN_AUDIO_COUNT || entry.totalAudioCount == UNKNOWN_AUDIO_COUNT
+    }
+
+    private suspend fun getOrBuildMediaStoreDirectoryIndex(forceRefresh: Boolean): MediaStoreDirectoryIndex {
+        if (!forceRefresh) {
+            mediaStoreDirectoryIndex?.let { return it }
+        }
+
+        return mediaStoreIndexMutex.withLock {
+            if (!forceRefresh) {
+                mediaStoreDirectoryIndex?.let { return@withLock it }
+            }
+
+            val index = buildMediaStoreDirectoryIndex()
+            mediaStoreDirectoryIndex = index
+            index
+        }
+    }
+
+    private suspend fun buildMediaStoreDirectoryIndex(): MediaStoreDirectoryIndex = withContext(Dispatchers.IO) {
+        val childrenByParent = mutableMapOf<String, MutableSet<String>>()
+        val directAudioCountByPath = mutableMapOf<String, Int>()
+        val totalAudioCountByPath = mutableMapOf<String, Int>()
+        val storageRoots = (_availableStorages.value.ifEmpty { StorageUtils.getAvailableStorages(context) })
+            .map { normalizePath(it.path) }
+            .sortedByDescending { it.length }
+
+        if (storageRoots.isEmpty()) {
+            return@withContext MediaStoreDirectoryIndex(
+                childrenByParent = emptyMap(),
+                directAudioCountByPath = emptyMap(),
+                totalAudioCountByPath = emptyMap()
+            )
+        }
+
+        val minDurationMs = userPreferencesRepository.minSongDurationFlow.first()
+        val (selection, selectionArgs) = buildLocalAudioSelection(minDurationMs)
+        val projection = arrayOf(MediaStore.Audio.Media.DATA)
+
+        context.contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )?.use { cursor ->
+            val dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            while (cursor.moveToNext()) {
+                val songPath = cursor.getString(dataIndex) ?: continue
+                val parentFile = File(songPath).parentFile ?: continue
+                val parentPath = normalizePath(parentFile)
+                val storageRoot = storageRoots.firstOrNull { parentPath == it || parentPath.startsWith("$it/") } ?: continue
+
+                if (parentPath.contains("/.")) continue
+
+                directAudioCountByPath[parentPath] = (directAudioCountByPath[parentPath] ?: 0) + 1
+
+                var currentPath = parentPath
+                while (true) {
+                    totalAudioCountByPath[currentPath] = (totalAudioCountByPath[currentPath] ?: 0) + 1
+                    if (currentPath == storageRoot) break
+
+                    val parentOfCurrent = File(currentPath).parentFile?.let(::normalizePath) ?: break
+                    if (parentOfCurrent != storageRoot && !currentPath.startsWith("$storageRoot/")) break
+
+                    childrenByParent.getOrPut(parentOfCurrent) { linkedSetOf() }.add(currentPath)
+                    currentPath = parentOfCurrent
                 }
             }
         }
 
-        return AudioCount(directCount, totalCount).also { audioCountCache[key] = it }
+        MediaStoreDirectoryIndex(
+            childrenByParent = childrenByParent.mapValues { it.value.toSet() },
+            directAudioCountByPath = directAudioCountByPath.toMap(),
+            totalAudioCountByPath = totalAudioCountByPath.toMap()
+        )
+    }
+
+    private fun prefetchChildDirectories(entries: List<RawDirectoryEntry>) {
+        entries.asSequence()
+            .take(PREFETCH_CHILDREN_LIMIT)
+            .forEach { entry ->
+                val targetKey = entry.canonicalPath
+                if (directoryChildrenCache.containsKey(targetKey)) return@forEach
+                if (!prefetchedDirectoryKeys.add(targetKey)) return@forEach
+
+                scope.launch(prefetchDispatcher) {
+                    try {
+                        val prefetchedEntries = listImmediateDirectoryEntries(entry.file)
+                        directoryChildrenCache[targetKey] = prefetchedEntries
+                        enrichDirectoryEntries(
+                            target = entry.file,
+                            currentEntries = prefetchedEntries,
+                            forceRefresh = false
+                        )
+                    } catch (error: CancellationException) {
+                        prefetchedDirectoryKeys.remove(targetKey)
+                        throw error
+                    } catch (_: Throwable) {
+                        prefetchedDirectoryKeys.remove(targetKey)
+                    }
+                }
+            }
     }
 
     fun isAtRoot(): Boolean = _currentPath.value.path == visibleRoot.path
@@ -367,74 +546,4 @@ class FileExplorerStateHolder(
 
     private fun normalizePath(file: File): String = file.absolutePath
     private fun normalizePath(path: String): String = File(path).absolutePath
-
-    // Used for logic when breaking down parents (Nav Mode logic)
-    private fun getChildrenWithAudio(directory: File): List<RawDirectoryEntry> {
-        val targetKey = normalizePath(directory)
-        // We might not have cached raw entries for this specific sub-folder if we haven't visited it.
-        // So we might need to compute it.
-
-        return runCatching {
-            directory.listFiles()
-                ?.mapNotNull { child ->
-                    if (child.isDirectory && !child.isHidden) {
-                        val counts = countAudioFiles(child, forceRefresh = false)
-                        if (counts.total > 0) RawDirectoryEntry(child, counts.direct, counts.total, normalizePath(child)) else null
-                    } else {
-                        null
-                    }
-                }
-                ?: emptyList()
-        }.getOrElse { emptyList() }
-    }
-
-    private data class AudioCount(val direct: Int, val total: Int)
-
-    private fun collectCoverageExcluding(root: File, excludePath: String): Set<String> {
-        val normalizedExclude = normalizePath(excludePath)
-        val results = mutableSetOf<String>()
-
-        fun visit(node: File) {
-            val nodePath = normalizePath(node)
-            // Optimization: If nodePath is the exclude path, stop.
-            // If we found the node we want to exclude, we stop and DO NOT add it.
-            // This ensures the subtree starting at this node is not selected.
-            if (nodePath == normalizedExclude) return
-
-            val children = getChildrenWithAudio(node)
-            if (children.isEmpty()) {
-                // Leaf node (has audio but no children folders with audio)
-                // If this is NOT the excluded path, keep it.
-                if (nodePath != normalizedExclude) {
-                    results.add(nodePath)
-                }
-                return
-            }
-
-            var coveredByChildren = false
-            for (child in children) {
-                val childPath = child.canonicalPath
-                if (normalizedExclude == childPath || normalizedExclude.startsWith("$childPath/")) {
-                    // This child contains the target to exclude (or IS the target).
-                    // If it IS the target, we should stop and not add it.
-                    // The recursive call will hit `if (nodePath == normalizedExclude) return` at start of visit.
-                    visit(File(childPath))
-                    coveredByChildren = true
-                } else {
-                    // This child is disjoint from the excluded path. Keep it whole.
-                    results.add(childPath)
-                }
-            }
-
-            // Note: If 'node' itself has direct files, they are implicitly deselected because
-            // we are breaking the parent into children.
-            // If the user wants those direct files, they'd need to select 'node'
-            // but that would re-select the excluded child in the recursive model.
-            // This is an inherent limitation of "Set of Roots" model when you want "Root minus Child".
-            // The standard behavior is you get the siblings.
-        }
-
-        visit(root)
-        return results
-    }
 }

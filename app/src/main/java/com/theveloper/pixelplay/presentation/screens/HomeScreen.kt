@@ -89,6 +89,7 @@ import com.theveloper.pixelplay.presentation.components.RecentlyPlayedSection
 import com.theveloper.pixelplay.presentation.components.RecentlyPlayedSectionMinSongsToShow
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.StatsOverviewCard
+import com.theveloper.pixelplay.presentation.model.collectRecentlyPlayedSongIds
 import com.theveloper.pixelplay.presentation.model.mapRecentlyPlayedSongs
 import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -98,6 +99,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StatsViewModel
 import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -126,24 +128,40 @@ fun HomeScreen(
     }
     val statsViewModel: StatsViewModel = hiltViewModel()
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    // 1) Observar sólo la lista de canciones, que cambia con poca frecuencia
-    val allSongs by playerViewModel.allSongsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val dailyMixSongs by playerViewModel.dailyMixSongs.collectAsStateWithLifecycle()
     val curatedYourMixSongs by playerViewModel.yourMixSongs.collectAsStateWithLifecycle()
+    val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val yourMixSongs = remember(curatedYourMixSongs, dailyMixSongs, allSongs) {
+    val usesFallbackHomeMix = remember(curatedYourMixSongs, dailyMixSongs) {
+        curatedYourMixSongs.isEmpty() && dailyMixSongs.isEmpty()
+    }
+    val yourMixSongs = remember(curatedYourMixSongs, dailyMixSongs, homeMixPreviewSongs) {
         when {
             curatedYourMixSongs.isNotEmpty() -> curatedYourMixSongs
             dailyMixSongs.isNotEmpty() -> dailyMixSongs
-            else -> allSongs.toImmutableList()
+            else -> homeMixPreviewSongs
         }
     }
-    val latestRecentlyPlayedSongs = remember(playbackHistory, allSongs) {
+    val recentSongIds = remember(playbackHistory) {
+        collectRecentlyPlayedSongIds(
+            playbackHistory = playbackHistory,
+            maxItems = 64
+        )
+    }
+    val recentlyPlayedSourceSongsInitialValue = remember(recentSongIds) {
+        if (recentSongIds.isEmpty()) persistentListOf<Song>() else null
+    }
+    val recentlyPlayedSourceSongs by remember(recentSongIds, playerViewModel) {
+        playerViewModel.observeSongs(recentSongIds)
+            .map<List<Song>, List<Song>?> { it }
+    }.collectAsStateWithLifecycle(initialValue = recentlyPlayedSourceSongsInitialValue)
+    val latestRecentlyPlayedSongs = remember(playbackHistory, recentlyPlayedSourceSongs) {
+        val sourceSongs = recentlyPlayedSourceSongs ?: return@remember emptyList()
         mapRecentlyPlayedSongs(
             playbackHistory = playbackHistory,
-            songs = allSongs,
+            songs = sourceSongs,
             maxItems = 64
         )
     }
@@ -260,11 +278,15 @@ fun HomeScreen(
                         isShuffleEnabled = isShuffleEnabled,
                         onPlayShuffled = {
                             if (yourMixSongs.isNotEmpty()) {
-                                playerViewModel.playSongsShuffled(
-                                    songsToPlay = yourMixSongs,
-                                    queueName = "Your Mix",
-                                    startAtZero = true,
-                                )
+                                if (usesFallbackHomeMix) {
+                                    playerViewModel.shuffleAllSongs(queueName = "Your Mix")
+                                } else {
+                                    playerViewModel.playSongsShuffled(
+                                        songsToPlay = yourMixSongs,
+                                        queueName = "Your Mix",
+                                        startAtZero = true,
+                                    )
+                                }
                             }
                         }
                     )
@@ -297,7 +319,11 @@ fun HomeScreen(
                             height = 400.dp,
                             pattern = activePattern,
                             onSongClick = { song ->
-                                playerViewModel.showAndPlaySong(song, yourMixSongs, "Your Mix")
+                                if (usesFallbackHomeMix) {
+                                    playerViewModel.showAndPlaySongFromLibrary(song, queueName = "Your Mix")
+                                } else {
+                                    playerViewModel.showAndPlaySong(song, yourMixSongs, "Your Mix")
+                                }
                             }
                         )
                     }

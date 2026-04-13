@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +26,29 @@ import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.unit.dp
 
 val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+@Composable
+fun PixelPlayStatusBarStyle(
+    color: Color,
+    useDarkIcons: Boolean = ColorUtils.calculateLuminance(color.toArgb()) > 0.55
+) {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+
+    val colorArgb = color.toArgb()
+    SideEffect {
+        val window = view.context.findActivity()?.window ?: return@SideEffect
+        @Suppress("DEPRECATION")
+        window.statusBarColor = colorArgb
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = useDarkIcons
+    }
+}
 
 val DarkColorScheme = darkColorScheme(
     primary = PixelPlayPurplePrimary,
@@ -90,18 +115,17 @@ fun PixelPlayTheme(
         else -> LightColorScheme
     }
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            val statusBarElevation = if (darkTheme) 4.dp else 12.dp
-            val elevatedSurface = finalColorScheme.surfaceColorAtElevation(statusBarElevation)
-            val statusBarColor = Color(ColorUtils.blendARGB(finalColorScheme.background.toArgb(), elevatedSurface.toArgb(), 0.35f))
-            window.statusBarColor = statusBarColor.toArgb()
-            val isLightStatusBar = ColorUtils.calculateLuminance(statusBarColor.toArgb()) > 0.55
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLightStatusBar
-        }
-    }
+    val statusBarElevation = if (darkTheme) 4.dp else 12.dp
+    val elevatedSurface = finalColorScheme.surfaceColorAtElevation(statusBarElevation)
+    val defaultStatusBarColor = Color(
+        ColorUtils.blendARGB(
+            finalColorScheme.background.toArgb(),
+            elevatedSurface.toArgb(),
+            0.35f
+        )
+    )
+
+    PixelPlayStatusBarStyle(color = defaultStatusBarColor)
 
     CompositionLocalProvider(LocalPixelPlayDarkTheme provides darkTheme) {
         MaterialTheme(

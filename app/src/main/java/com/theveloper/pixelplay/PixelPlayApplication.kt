@@ -5,10 +5,17 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentCallbacks2
 import android.os.Build
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.theveloper.pixelplay.data.repository.ArtistImageRepository
+import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.presentation.viewmodel.LibraryStateHolder
+import com.theveloper.pixelplay.presentation.viewmodel.ThemeStateHolder
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.MediaMetadataRetrieverPool
 import dagger.hilt.android.HiltAndroidApp
@@ -36,9 +43,27 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
     @Inject
     lateinit var localArtworkCoilFetcherFactory: dagger.Lazy<com.theveloper.pixelplay.data.image.LocalArtworkCoilFetcher.Factory>
 
+    @Inject
+    lateinit var themeStateHolder: dagger.Lazy<ThemeStateHolder>
+
+    @Inject
+    lateinit var artistImageRepository: dagger.Lazy<ArtistImageRepository>
+
+    @Inject
+    lateinit var telegramRepository: dagger.Lazy<TelegramRepository>
+
+    @Inject
+    lateinit var libraryStateHolder: dagger.Lazy<LibraryStateHolder>
+
     // AÑADE EL COMPANION OBJECT
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "pixelplay_music_channel"
+    }
+
+    private val appLifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            libraryStateHolder.get().restoreAfterTrimIfNeeded()
+        }
     }
 
     override fun onCreate() {
@@ -66,6 +91,8 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
     }
 
     override fun newImageLoader(): ImageLoader {
@@ -79,10 +106,37 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
             .build()
     }
 
+    @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
+
+        imageLoader.get().memoryCache?.trimMemory(level)
+
+        if (
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE ||
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ||
+            level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
+        ) {
+            themeStateHolder.get().trimMemory(level)
+        }
+
+        if (
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ||
+            level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
+        ) {
+            artistImageRepository.get().clearCache()
+            telegramRepository.get().clearMemoryCache()
             MediaMetadataRetrieverPool.clear()
+        }
+
+        libraryStateHolder.get().trimMemory(level)
+
+        if (
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE
+        ) {
+            imageLoader.get().memoryCache?.clear()
         }
     }
 

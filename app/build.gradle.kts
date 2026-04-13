@@ -10,6 +10,16 @@ plugins {
     id("kotlin-parcelize")
 }
 
+val enableAbiSplits = providers.gradleProperty("pixelplay.enableAbiSplits")
+    .orElse("false")
+    .map(String::toBoolean)
+    .get()
+
+val enableComposeCompilerReports = providers.gradleProperty("pixelplay.enableComposeCompilerReports")
+    .orElse("false")
+    .map(String::toBoolean)
+    .get()
+
 android {
     namespace = "com.theveloper.pixelplay"
     compileSdk = 35
@@ -85,15 +95,16 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-        // Aquí es donde debes agregar freeCompilerArgs para los informes del compilador de Compose.
-        freeCompilerArgs += listOf(
-            "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_reports"
-        )
-        freeCompilerArgs += listOf(
-            "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_metrics"
-        )
+        if (enableComposeCompilerReports) {
+            freeCompilerArgs += listOf(
+                "-P",
+                "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_reports"
+            )
+            freeCompilerArgs += listOf(
+                "-P",
+                "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${project.layout.buildDirectory.get().asFile.absolutePath}/compose_compiler_metrics"
+            )
+        }
 
         //Stability
         freeCompilerArgs += listOf(
@@ -109,16 +120,15 @@ android {
         }
     }
 
-    // ABI Splits: 为每个 CPU 架构生成独立 APK，避免单 APK 同时打包所有架构 native 库
-    // TDLib 单架构约 15~25MB，四架构合计 87MB，开启后每个 APK 只含对应架构
+    // Keep everyday debug builds lean. Split APKs can still be enabled explicitly for release packaging.
     splits {
         abi {
-            isEnable = true
+            isEnable = enableAbiSplits
             reset()
-            // 覆盖市面上 >99% 设备：arm64-v8a（现代手机）+ armeabi-v7a（旧设备）
-            // x86 / x86_64 仅模拟器使用，发布阶段可不包含
-            include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-            isUniversalApk = true // 同时生成通用包（保留调试用途）
+            if (enableAbiSplits) {
+                include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+                isUniversalApk = true
+            }
         }
     }
 

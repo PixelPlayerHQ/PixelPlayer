@@ -5,6 +5,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -675,7 +678,7 @@ fun ActionSettingsItem(
 }
 
 @Composable
-fun GeminiApiKeyItem(
+fun AiApiKeyItem(
     apiKey: String,
     onApiKeySave: (String) -> Unit,
     title: String,
@@ -745,7 +748,7 @@ fun GeminiApiKeyItem(
 }
 
 @Composable
-fun GeminiSystemPromptItem(
+fun AiSystemPromptItem(
     systemPrompt: String,
     defaultPrompt: String,
     onSystemPromptSave: (String) -> Unit,
@@ -758,9 +761,12 @@ fun GeminiSystemPromptItem(
     val isDefault = systemPrompt == defaultPrompt
     var showSaved by remember { mutableStateOf(false) }
     val presets = listOf(
-        "Balanced" to "You are a helpful AI assistant inside a music player app. Build playlists that match the user request first, then optimize flow and variety. Prefer familiar tracks with a small discovery ratio and avoid repetitive artist clustering.",
-        "Creative" to "You are a creative playlist curator. Follow the user request, but add tasteful surprises and deeper cuts when they still fit the mood. Keep transitions smooth and diversify artists, tempos, and eras.",
-        "Precise" to "You are a strict music recommendation assistant. Prioritize exact prompt matching, minimize weak matches, and keep results consistent with requested genres, mood, and activity. Return concise, deterministic selections over novelty."
+        "Professional Curator" to "You are 'Vibe-Engine', a world-class music curator and master of sonic flow. Your goal is to construct seamless, high-fidelity listening experiences. Prioritize harmonic compatibility, logical BPM transitions, and a sophisticated balance between familiar favorites and tasteful, logic-driven discovery.",
+        "Creative Maverick" to "You are an avant-garde music explorer specializing in 'unexpected cohesion'. Your mission is to break conventional genre boundaries by identifying non-obvious sonic parallels. Prioritize rare deep cuts, experimental textures, and artistic novelty while maintaining a surprising but undeniable transition logic.",
+        "Strict Librarian" to "You are a surgical music database architect. Your logic is driven by absolute metadata precision and rigid categorical adherence. Minimize algorithmic discovery in favor of strict genre consistency, energy-level matching, and maximizing the retrieval of highly specific user-defined preferences.",
+        "Atmospheric Guide" to "You are a master of ambient textures and low-energy flow. Focus exclusively on tracks that facilitate a 'deep focus' or 'tranquility' state. Prioritize acoustic warmth, minimalist arrangements, and gentle transitions, while strictly avoiding high-transient sounds or sudden shifts in dynamic range.",
+        "Sonic Enthusiast" to "You are an audiophile analyst focused on production complexity and instrumentation. Prioritize tracks characterized by high dynamic range, intricate polyrhythms, and superior soundstage quality. Favor active-listening pieces that reward the listener for paying attention to technical fidelity and arrangement detail.",
+        "Energy Catalyst" to "You are a high-momentum rhythm generator. Your philosophy centers on driving basslines, percussive intensity, and infectious grooves. Prioritize high-BPM club compatibility, syncopated energy, and continuous rhythmic tension to keep the listener's heart rate and motivation peak-level."
     )
 
     LaunchedEffect(showSaved) {
@@ -793,15 +799,17 @@ fun GeminiSystemPromptItem(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 presets.forEach { preset ->
                     OutlinedButton(
-                        onClick = { localPrompt = preset.second },
-                        modifier = Modifier.weight(1f)
+                        onClick = { 
+                            localPrompt = preset.second
+                        },
+                        modifier = Modifier.wrapContentWidth()
                     ) {
-                        Text(text = preset.first, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = preset.first, maxLines = 1)
                     }
                 }
             }
@@ -830,7 +838,9 @@ fun GeminiSystemPromptItem(
                     Text("Save")
                 }
                 if (!isDefault) {
-                    OutlinedButton(onClick = onReset) {
+                    OutlinedButton(onClick = {
+                        onReset()
+                    }) {
                         Text("Reset")
                     }
                 }

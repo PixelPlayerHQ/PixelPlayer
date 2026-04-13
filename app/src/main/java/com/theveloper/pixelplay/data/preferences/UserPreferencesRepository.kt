@@ -148,6 +148,7 @@ constructor(
         val FULL_PLAYER_SWITCH_ON_DRAG_RELEASE = booleanPreferencesKey("full_player_switch_on_drag_release")
         val FULL_PLAYER_DELAY_THRESHOLD = intPreferencesKey("full_player_delay_threshold_percent")
         val FULL_PLAYER_CLOSE_THRESHOLD = intPreferencesKey("full_player_close_threshold_percent")
+        // Deprecated experiment key kept only for one-time cleanup after removing the legacy player sheet.
         val USE_PLAYER_SHEET_V2 = booleanPreferencesKey("use_player_sheet_v2")
 
         // Multi-Artist Settings
@@ -840,11 +841,6 @@ constructor(
             )
         }
 
-    val usePlayerSheetV2Flow: Flow<Boolean> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.USE_PLAYER_SHEET_V2] ?: true
-        }
-
     val favoriteSongIdsFlow: Flow<Set<String>> =
             dataStore.data // Nuevo flujo para favoritos
                     .map { preferences ->
@@ -1357,9 +1353,9 @@ constructor(
         }
     }
 
-    suspend fun setUsePlayerSheetV2(enabled: Boolean) {
+    suspend fun clearDeprecatedPlayerSheetPreference() {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.USE_PLAYER_SHEET_V2] = enabled
+            preferences.remove(PreferencesKeys.USE_PLAYER_SHEET_V2)
         }
     }
 
@@ -1473,7 +1469,7 @@ constructor(
 
     val folderBackGestureNavigationFlow: Flow<Boolean> = dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.FOLDER_BACK_GESTURE_NAVIGATION] ?: false
+            preferences[PreferencesKeys.FOLDER_BACK_GESTURE_NAVIGATION] ?: true
         }
 
     val useSmoothCornersFlow: Flow<Boolean> = dataStore.data
@@ -1548,11 +1544,11 @@ constructor(
 
     /**
      * Whether tapping the background area of the player sheet closes it.
-     * Default is true for intuitive dismissal, but power users may prefer to disable this.
+     * Default is false to avoid accidental dismissals while interacting with the full player.
      */
     val tapBackgroundClosesPlayerFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.TAP_BACKGROUND_CLOSES_PLAYER] ?: true
+            preferences[PreferencesKeys.TAP_BACKGROUND_CLOSES_PLAYER] ?: false
         }
 
     suspend fun setTapBackgroundClosesPlayer(enabled: Boolean) {

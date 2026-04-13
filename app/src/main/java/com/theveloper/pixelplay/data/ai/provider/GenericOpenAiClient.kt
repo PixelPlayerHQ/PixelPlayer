@@ -60,6 +60,7 @@ class GenericOpenAiClient(
         temperature: Float
     ): String {
         return withContext(Dispatchers.IO) {
+            val resolvedModel = model.ifBlank { defaultModelId }
             val messagesList = mutableListOf<ChatMessage>()
             if (systemPrompt.isNotBlank()) {
                 messagesList.add(ChatMessage(role = "system", content = systemPrompt))
@@ -67,7 +68,7 @@ class GenericOpenAiClient(
             messagesList.add(ChatMessage(role = "user", content = prompt))
 
             val requestBody = ChatRequest(
-                model = model.ifBlank { defaultModelId },
+                model = resolvedModel,
                 messages = messagesList,
                 temperature = temperature.toDouble()
             )
@@ -81,19 +82,43 @@ class GenericOpenAiClient(
                 .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build()
-            
-            val response = client.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                throw Exception("$providerName API error: ${response.code} ${response.message}")
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+
+                    if (!response.isSuccessful) {
+                        throw AiProviderSupport.createException(
+                            providerName = providerName,
+                            statusCode = response.code,
+                            transportMessage = response.message,
+                            responseBody = responseBody,
+                            requestedModel = resolvedModel
+                        )
+                    }
+
+                    val nonEmptyBody = responseBody
+                        ?: throw AiProviderSupport.createException(
+                            providerName = providerName,
+                            statusCode = response.code,
+                            transportMessage = "Empty response body",
+                            responseBody = null,
+                            requestedModel = resolvedModel
+                        )
+
+                    val chatResponse = json.decodeFromString<ChatResponse>(nonEmptyBody)
+                    chatResponse.choices.firstOrNull()?.message?.content
+                        ?: throw AiProviderSupport.createException(
+                            providerName = providerName,
+                            statusCode = response.code,
+                            transportMessage = "Response had no content",
+                            responseBody = nonEmptyBody,
+                            requestedModel = resolvedModel
+                        )
+                }
+            } catch (e: Exception) {
+                throw AiProviderSupport.wrapThrowable(providerName, e, resolvedModel)
             }
-            
-            val responseBody = response.body?.string() 
-                ?: throw Exception("$providerName returned empty response")
-            
-            val chatResponse = json.decodeFromString<ChatResponse>(responseBody)
-            chatResponse.choices.firstOrNull()?.message?.content 
-                ?: throw Exception("$providerName response has no content")
         }
     }
     

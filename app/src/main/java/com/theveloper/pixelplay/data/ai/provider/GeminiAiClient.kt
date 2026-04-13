@@ -11,7 +11,8 @@ import kotlinx.coroutines.withContext
 class GeminiAiClient(private val apiKey: String) : AiClient {
     
     companion object {
-        private const val DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+        // Updated: Using the free tier model exactly as named in the spec
+        private const val DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
     }
     
     private fun createModel(modelName: String, systemPrompt: String, temp: Float = 0.7f): GenerativeModel {
@@ -20,6 +21,8 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
             apiKey = apiKey,
             generationConfig = generationConfig {
                 temperature = temp
+                topK = 64
+                topP = 0.95f
             },
             systemInstruction = if (systemPrompt.isNotBlank()) {
                 com.google.ai.client.generativeai.type.content { text(systemPrompt) }
@@ -36,9 +39,21 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         temperature: Float
     ): String {
         return withContext(Dispatchers.IO) {
-            val generativeModel = createModel(model, systemPrompt, temperature)
-            val response = generativeModel.generateContent(prompt)
-            response.text ?: throw Exception("Gemini returned an empty response")
+            val resolvedModel = model.ifBlank { DEFAULT_GEMINI_MODEL }
+    
+            try {
+                val generativeModel = createModel(resolvedModel, systemPrompt, temperature)
+                val response = generativeModel.generateContent(prompt)
+                response.text ?: throw AiProviderSupport.createException(
+                    providerName = "Gemini",
+                    statusCode = null,
+                    transportMessage = "Gemini returned an empty response. The model may have filtered the content.",
+                    responseBody = null,
+                    requestedModel = resolvedModel
+                )
+            } catch (e: Exception) {
+                throw AiProviderSupport.wrapThrowable("Gemini", e, resolvedModel)
+            }
         }
     }
     
@@ -83,9 +98,9 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     override suspend fun validateApiKey(apiKey: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                // Try a very small generation to validate key
+                // Use the stable model for validation
                 val generativeModel = GenerativeModel(
-                    modelName = "gemini-1.5-flash",
+                    modelName = DEFAULT_GEMINI_MODEL,
                     apiKey = apiKey
                 )
                 val response = generativeModel.generateContent("test")
@@ -121,11 +136,15 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     }
     
     private fun getDefaultModels(): List<String> {
+        // Updated fallback list: prioritize free tiers & latest 3.x models
         return listOf(
+            "gemini-3-flash-preview",
+            "gemini-3.1-pro-preview",
+            "gemini-3.1-flash-lite-preview",
+            "gemini-flash-latest",
             "gemini-2.5-flash",
             "gemini-2.5-pro",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro"
+            "gemini-2.0-flash"
         )
     }
 }

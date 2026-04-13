@@ -114,6 +114,21 @@ fun UnifiedPlayerSheetV2(
     val lifecycleOwner = LocalLifecycleOwner.current
     val latestContext by rememberUpdatedState(context)
     var showNoInternetDialog by remember { mutableStateOf(false) }
+
+    // MediaStore write-permission launcher (for metadata editing without MANAGE_EXTERNAL_STORAGE)
+    val writePermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        playerViewModel.onWritePermissionResult(result.resultCode == android.app.Activity.RESULT_OK)
+    }
+
+    // MediaStore delete-permission launcher (system delete confirmation dialog)
+    val deletePermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        playerViewModel.onDeletePermissionResult(result.resultCode == android.app.Activity.RESULT_OK)
+    }
+
     LaunchedEffect(playerViewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             launch {
@@ -124,6 +139,20 @@ fun UnifiedPlayerSheetV2(
             launch {
                 playerViewModel.showNoInternetDialog.collect {
                     showNoInternetDialog = true
+                }
+            }
+            launch {
+                playerViewModel.writePermissionRequest.collect { intentSender ->
+                    writePermissionLauncher.launch(
+                        androidx.activity.result.IntentSenderRequest.Builder(intentSender).build()
+                    )
+                }
+            }
+            launch {
+                playerViewModel.deletePermissionRequest.collect { intentSender ->
+                    deletePermissionLauncher.launch(
+                        androidx.activity.result.IntentSenderRequest.Builder(intentSender).build()
+                    )
                 }
             }
         }

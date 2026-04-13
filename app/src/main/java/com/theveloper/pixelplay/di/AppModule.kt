@@ -22,6 +22,7 @@ import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
 import com.theveloper.pixelplay.data.database.AiCacheDao
+import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.LocalPlaylistDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.PixelPlayDatabase
@@ -143,7 +144,10 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_33_34,
             PixelPlayDatabase.MIGRATION_34_35,
             PixelPlayDatabase.MIGRATION_35_36,
-            PixelPlayDatabase.MIGRATION_36_37
+            PixelPlayDatabase.MIGRATION_36_37,
+            PixelPlayDatabase.MIGRATION_37_38,
+            PixelPlayDatabase.MIGRATION_38_39,
+            PixelPlayDatabase.MIGRATION_39_40
         )
             .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -228,6 +232,11 @@ object AppModule {
     @Provides
     fun provideAiCacheDao(database: PixelPlayDatabase): AiCacheDao {
         return database.aiCacheDao()
+    }
+
+    @Provides
+    fun provideAiUsageDao(database: PixelPlayDatabase): AiUsageDao {
+        return database.aiUsageDao()
     }
 
     @Singleton

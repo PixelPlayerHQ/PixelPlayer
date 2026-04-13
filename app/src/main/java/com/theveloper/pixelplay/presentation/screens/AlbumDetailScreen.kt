@@ -56,7 +56,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -72,6 +74,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.PixelPlayStatusBarStyle
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -490,8 +493,16 @@ private fun SharedAlbumTopBarProbe(
     val statusBarBrush = remember(statusBarColor) {
         Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent))
     }
+    val expandedStatusBarFallback = remember(statusBarColor, surfaceColor) {
+        statusBarColor.compositeOver(surfaceColor)
+    }
+    val fallbackStatusBarColor = remember(expandedStatusBarFallback, surfaceColor, solidAlpha) {
+        lerpColor(expandedStatusBarFallback, surfaceColor, solidAlpha)
+    }
     val titleVerticalBias = lerp(1f, -1f, collapseFraction)
     val shuffleAlignment = BiasAlignment(horizontalBias = 1f, verticalBias = titleVerticalBias)
+
+    PixelPlayStatusBarStyle(color = fallbackStatusBarColor)
 
     Box(
         modifier = Modifier
@@ -550,7 +561,8 @@ private fun SharedAlbumTopBarProbe(
             expandedSubtitleMaxLines = 2,
             contentColor = MaterialTheme.colorScheme.onSurface,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            fadeSubtitleOnCollapse = false
+            fadeSubtitleOnCollapse = false,
+            syncStatusBarWithContainer = false
         )
 
         LargeExtendedFloatingActionButton(
@@ -612,6 +624,13 @@ private fun CollapsingAlbumTopBar(
             )
         )
     }
+    val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
+    val expandedStatusBarFallback = remember(statusBarColor, surfaceColor) {
+        statusBarColor.compositeOver(surfaceColor)
+    }
+    val fallbackStatusBarColor = remember(expandedStatusBarFallback, surfaceColor, solidAlpha) {
+        lerpColor(expandedStatusBarFallback, surfaceColor, solidAlpha)
+    }
 
     // Title animation
     val titleScale = lerp(1f, 0.75f, collapseFraction)
@@ -629,6 +648,8 @@ private fun CollapsingAlbumTopBar(
             .height(headerHeight)
             .clipToBounds()
     ) {
+        PixelPlayStatusBarStyle(color = fallbackStatusBarColor)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()

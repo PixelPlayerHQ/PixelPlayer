@@ -78,8 +78,10 @@
     <string name="lyrics_later">Más tarde</string>
 
     <!-- AI Playlist -->
-    <string name="ai_error_api_key">Por favor, configura tu clave de API de Gemini en Ajustes.</string>
+    <string name="ai_error_api_key">Por favor, configura una clave de API válida para el proveedor de IA seleccionado en Ajustes.</string>
     <string name="ai_error_generic">Error de IA: %s</string>
+    <string name="ai_error_quota">El proveedor de IA rechazó la solicitud porque la cuenta no tiene créditos o cuota disponible.</string>
+    <string name="ai_error_model_unavailable">El modelo de IA seleccionado ya no está disponible. PixelPlayer intentó cambiar automáticamente a un modelo compatible.</string>
     <string name="ai_no_songs_found">IA no pudo encontrar canciones para tu indicación.</string>
     <string name="ai_prompt_empty">Escribe una idea para tu Mix Diario</string>
     <string name="ai_daily_mix_updated">Mix Diario actualizado con IA</string>

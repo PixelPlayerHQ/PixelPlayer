@@ -210,19 +210,13 @@ class PlaybackStatsRepository @Inject constructor(
             val clippedStart = max(start, lowerBound)
             val clippedEnd = min(end, endBound)
             val clippedDuration = (clippedEnd - clippedStart).coerceAtLeast(0L)
-            val baseDuration = event.durationMs.coerceAtLeast(0L)
-            val effectiveDuration = when {
-                clippedDuration > 0L -> clippedDuration
-                baseDuration > 0L -> baseDuration
-                else -> 0L
-            }
-            if (effectiveDuration <= 0L) {
+            if (clippedDuration <= 0L) {
                 return@mapNotNull null
             }
 
             event.copy(
                 timestamp = clippedEnd,
-                durationMs = effectiveDuration,
+                durationMs = clippedDuration,
                 startTimestamp = clippedStart,
                 endTimestamp = clippedEnd
             )
@@ -1075,8 +1069,8 @@ class PlaybackStatsRepository @Inject constructor(
 
 enum class StatsTimeRange(val displayName: String) {
     DAY("Today"),
-    WEEK("This Week"),
-    MONTH("This Month"),
-    YEAR("This Year"),
+    WEEK("Week to Date"),
+    MONTH("Month to Date"),
+    YEAR("Year to Date"),
     ALL("All Time")
 }

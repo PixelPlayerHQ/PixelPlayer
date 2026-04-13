@@ -79,6 +79,7 @@ import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.model.RecentlyPlayedSongUiModel
+import com.theveloper.pixelplay.presentation.model.collectRecentlyPlayedSongIds
 import com.theveloper.pixelplay.presentation.model.mapRecentlyPlayedSongs
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -101,7 +102,6 @@ fun RecentlyPlayedScreen(
 ) {
     Trace.beginSection("RecentlyPlayedScreen.Composition")
 
-    val allSongs by playerViewModel.allSongsFlow.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val currentSongId by remember(playerViewModel.stablePlayerState) {
         playerViewModel.stablePlayerState.map { it.currentSong?.id }.distinctUntilChanged()
@@ -119,10 +119,26 @@ fun RecentlyPlayedScreen(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val bottomBarHeightDp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    val recentlyPlayedSongs = remember(playbackHistory, allSongs, selectedRange) {
+    val recentSongIds = remember(playbackHistory, selectedRange) {
+        collectRecentlyPlayedSongIds(
+            playbackHistory = playbackHistory,
+            range = selectedRange,
+            maxItems = Int.MAX_VALUE
+        )
+    }
+    val recentSongsInitialValue: List<Song>? = remember(recentSongIds) {
+        if (recentSongIds.isEmpty()) emptyList<Song>() else null
+    }
+    val recentlyPlayedSourceSongs by remember(recentSongIds, playerViewModel) {
+        playerViewModel.observeSongs(recentSongIds)
+            .map<List<Song>, List<Song>?> { it }
+    }.collectAsStateWithLifecycle(initialValue = recentSongsInitialValue)
+
+    val recentlyPlayedSongs = remember(playbackHistory, recentlyPlayedSourceSongs, selectedRange) {
+        val sourceSongs = recentlyPlayedSourceSongs ?: return@remember emptyList()
         mapRecentlyPlayedSongs(
             playbackHistory = playbackHistory,
-            songs = allSongs,
+            songs = sourceSongs,
             range = selectedRange,
             maxItems = Int.MAX_VALUE
         )
@@ -155,7 +171,7 @@ fun RecentlyPlayedScreen(
             .fillMaxSize()
             .background(backgroundBrush)
     ) {
-        if (allSongs.isEmpty() && playbackHistory.isEmpty()) {
+        if (recentlyPlayedSourceSongs == null) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

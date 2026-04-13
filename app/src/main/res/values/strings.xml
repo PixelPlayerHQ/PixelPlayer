@@ -78,8 +78,10 @@
     <string name="lyrics_later">Later</string>
 
     <!-- AI Playlist -->
-    <string name="ai_error_api_key">Please configure your Gemini API Key in Settings.</string>
+    <string name="ai_error_api_key">Please configure a valid API key for the selected AI provider in Settings.</string>
     <string name="ai_error_generic">AI Error: %s</string>
+    <string name="ai_error_quota">The selected AI provider rejected the request because the account has no credits or available quota.</string>
+    <string name="ai_error_model_unavailable">The selected AI model is no longer available. PixelPlayer tried to switch to a supported model automatically.</string>
     <string name="ai_no_songs_found">AI couldn\'t find any songs for your prompt.</string>
     <string name="ai_prompt_empty">Write an idea for your Daily Mix</string>
     <string name="ai_daily_mix_updated">Daily Mix updated with AI</string>

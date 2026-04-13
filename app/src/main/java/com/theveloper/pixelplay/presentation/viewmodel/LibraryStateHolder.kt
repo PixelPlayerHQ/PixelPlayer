@@ -1,7 +1,9 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+import android.content.ComponentCallbacks2
 import android.os.Trace
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.ui.graphics.toArgb
 import android.util.Log
@@ -30,6 +32,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val ENABLE_FOLDERS_STORAGE_FILTER = false
+private const val UNKNOWN_GENRE_NAME = "Unknown Genre"
+
+private data class GenreSeed(
+    val id: String,
+    val name: String
+)
 
 /**
  * Manages the data state of the music library: Songs, Albums, Artists, Folders.
@@ -103,7 +111,6 @@ class LibraryStateHolder @Inject constructor(
         }
         .flowOn(Dispatchers.IO)
 
-
     private val _currentAlbumSortOption = MutableStateFlow<SortOption>(SortOption.AlbumTitleAZ)
     val currentAlbumSortOption = _currentAlbumSortOption.asStateFlow()
 
@@ -115,6 +122,24 @@ class LibraryStateHolder @Inject constructor(
 
     private val _currentFavoriteSortOption = MutableStateFlow<SortOption>(SortOption.LikedSongDateLiked)
     val currentFavoriteSortOption = _currentFavoriteSortOption.asStateFlow()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val albumsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Album>> =
+        kotlinx.coroutines.flow.combine(_currentAlbumSortOption, effectiveStorageFilter) { sort, filter ->
+            sort to filter
+        }.flatMapLatest { (sortOption, filter) ->
+            musicRepository.getPaginatedAlbums(sortOption, filter)
+        }
+        .flowOn(Dispatchers.IO)
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val artistsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Artist>> =
+        kotlinx.coroutines.flow.combine(_currentArtistSortOption, effectiveStorageFilter) { sort, filter ->
+            sort to filter
+        }.flatMapLatest { (sortOption, filter) ->
+            musicRepository.getPaginatedArtists(sortOption, filter)
+        }
+        .flowOn(Dispatchers.IO)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
@@ -130,45 +155,25 @@ class LibraryStateHolder @Inject constructor(
         .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
         .flowOn(Dispatchers.IO)
 
-    @OptIn(ExperimentalStdlibApi::class)
     val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> = _allSongs
         .map { songs ->
-            val genreMap = mutableMapOf<String, MutableList<Song>>()
-            val unknownGenreName = "Unknown Genre"
+            songs.toGenreSeeds()
+        }
+        .distinctUntilChanged()
+        .map { seeds ->
+            seeds.map { seed ->
+                val lightThemeColor = com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(seed.id, isDark = false)
+                val darkThemeColor = com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(seed.id, isDark = true)
 
-            songs.forEach { song ->
-                val genreName = song.genre?.trim()
-                if (genreName.isNullOrBlank()) {
-                    genreMap.getOrPut(unknownGenreName) { mutableListOf() }.add(song)
-                } else {
-                    genreMap.getOrPut(genreName) { mutableListOf() }.add(song)
-                }
+                com.theveloper.pixelplay.data.model.Genre(
+                    id = seed.id,
+                    name = seed.name,
+                    lightColorHex = lightThemeColor.container.toHexString(),
+                    onLightColorHex = lightThemeColor.onContainer.toHexString(),
+                    darkColorHex = darkThemeColor.container.toHexString(),
+                    onDarkColorHex = darkThemeColor.onContainer.toHexString()
+                )
             }
-
-            genreMap.toList().mapIndexedNotNull { index, (genreName, songs) ->
-                if (songs.isNotEmpty()) {
-                    val id = if (genreName.equals(unknownGenreName, ignoreCase = true)) {
-                        "unknown"
-                    } else {
-                        genreName.lowercase().replace(" ", "_").replace("/", "_")
-                    }
-                    val lightThemeColor = com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(id, isDark = false)
-                    val darkThemeColor = com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(id, isDark = true)
-
-                    com.theveloper.pixelplay.data.model.Genre(
-                        id = id,
-                        name = genreName,
-                        lightColorHex = lightThemeColor.container.toHexString(),
-                        onLightColorHex = lightThemeColor.onContainer.toHexString(),
-                        darkColorHex = darkThemeColor.container.toHexString(),
-                        onDarkColorHex = darkThemeColor.onContainer.toHexString()
-                    )
-                } else {
-                    null
-                }
-            }
-                .distinctBy { it.id }
-                .sortedBy { it.name.lowercase() }
                 .toImmutableList()
         }
         .flowOn(Dispatchers.Default)
@@ -218,11 +223,21 @@ class LibraryStateHolder @Inject constructor(
     private var albumsJob: Job? = null
     private var artistsJob: Job? = null
     private var foldersJob: Job? = null
+    @Volatile
+    private var needsReloadAfterTrim: Boolean = false
 
     fun startObservingLibraryData() {
-        if (songsJob?.isActive == true) return
+        if (
+            songsJob?.isActive == true &&
+            albumsJob?.isActive == true &&
+            artistsJob?.isActive == true &&
+            foldersJob?.isActive == true
+        ) {
+            return
+        }
 
         Log.d("LibraryStateHolder", "startObservingLibraryData called.")
+        needsReloadAfterTrim = false
 
         songsJob = scope?.launch {
             _isLoadingLibrary.value = true
@@ -248,8 +263,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getAlbums(filter)
             }.collect { albums ->
-                _albums.value = albums.toImmutableList()
-                sortAlbums(_currentAlbumSortOption.value, persist = false)
+                val sortedAlbums = withContext(Dispatchers.Default) {
+                    sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()
+                }
+                _albums.value = sortedAlbums
                 _isLoadingCategories.value = false
             }
         }
@@ -260,8 +277,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
             }.collect { artists ->
-                _artists.value = artists.toImmutableList()
-                sortArtists(_currentArtistSortOption.value, persist = false)
+                val sortedArtists = withContext(Dispatchers.Default) {
+                    sortArtistsList(artists, _currentArtistSortOption.value).toImmutableList()
+                }
+                _artists.value = sortedArtists
                 _isLoadingCategories.value = false
             }
         }
@@ -271,8 +290,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
             }.collect { folders ->
-                _musicFolders.value = folders.toImmutableList()
-                sortFolders(_currentFolderSortOption.value, persist = false)
+                val sortedFolders = withContext(Dispatchers.Default) {
+                    sortFoldersList(folders, _currentFolderSortOption.value).toImmutableList()
+                }
+                _musicFolders.value = sortedFolders
             }
         }
     }
@@ -338,55 +359,10 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentAlbumSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.AlbumTitleAZ -> _albums.value.sortedWith(
-                    compareBy<Album> { it.title.lowercase() }
-                        .thenBy { it.artist.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumTitleZA -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.title.lowercase() }
-                        .thenBy { it.artist.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumArtist -> _albums.value.sortedWith(
-                    compareBy<Album> { it.artist.lowercase() }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumArtistDesc -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.artist.lowercase() }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumReleaseYear -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.year }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumReleaseYearAsc -> _albums.value.sortedWith(
-                    compareBy<Album> { it.year }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumDateAdded -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.dateAdded }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumSizeAsc -> _albums.value.sortedWith(
-                    compareBy<Album> { it.songCount }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumSizeDesc -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.songCount }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                else -> _albums.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortAlbumsList(_albums.value, sortOption).toImmutableList()
             }
-            _albums.value = sorted.toImmutableList()
+            _albums.value = sorted
         }
     }
 
@@ -400,23 +376,10 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentArtistSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.ArtistNameAZ -> _artists.value.sortedWith(
-                    compareBy<Artist> { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.ArtistNameZA -> _artists.value.sortedWith(
-                    compareByDescending<Artist> { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.ArtistNumSongs -> _artists.value.sortedWith(
-                    compareByDescending<Artist> { it.songCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                else -> _artists.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortArtistsList(_artists.value, sortOption).toImmutableList()
             }
-            _artists.value = sorted.toImmutableList()
+            _artists.value = sorted
         }
     }
 
@@ -430,38 +393,114 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentFolderSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.FolderNameAZ -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderNameZA -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSongCountAsc -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.totalSongCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSongCountDesc -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.totalSongCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSubdirCountAsc -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.totalSubFolderCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSubdirCountDesc -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.totalSubFolderCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                else -> _musicFolders.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortFoldersList(_musicFolders.value, sortOption).toImmutableList()
             }
-            _musicFolders.value = sorted.toImmutableList()
+            _musicFolders.value = sorted
+        }
+    }
+
+    private fun sortAlbumsList(albums: Iterable<Album>, sortOption: SortOption): List<Album> {
+        return when (sortOption) {
+            SortOption.AlbumTitleAZ -> albums.sortedWith(
+                compareBy<Album> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumTitleZA -> albums.sortedWith(
+                compareByDescending<Album> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumArtist -> albums.sortedWith(
+                compareBy<Album> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumArtistDesc -> albums.sortedWith(
+                compareByDescending<Album> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumReleaseYear -> albums.sortedWith(
+                compareByDescending<Album> { it.year }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumReleaseYearAsc -> albums.sortedWith(
+                compareBy<Album> { it.year }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumDateAdded -> albums.sortedWith(
+                compareByDescending<Album> { it.dateAdded }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumSizeAsc -> albums.sortedWith(
+                compareBy<Album> { it.songCount }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumSizeDesc -> albums.sortedWith(
+                compareByDescending<Album> { it.songCount }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            else -> albums.toList()
+        }
+    }
+
+    private fun sortArtistsList(artists: Iterable<Artist>, sortOption: SortOption): List<Artist> {
+        return when (sortOption) {
+            SortOption.ArtistNameAZ -> artists.sortedWith(
+                compareBy<Artist> { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.ArtistNameZA -> artists.sortedWith(
+                compareByDescending<Artist> { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.ArtistNumSongs -> artists.sortedWith(
+                compareByDescending<Artist> { it.songCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            else -> artists.toList()
+        }
+    }
+
+    private fun sortFoldersList(folders: Iterable<MusicFolder>, sortOption: SortOption): List<MusicFolder> {
+        return when (sortOption) {
+            SortOption.FolderNameAZ -> folders.sortedWith(
+                compareBy<MusicFolder> { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderNameZA -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSongCountAsc -> folders.sortedWith(
+                compareBy<MusicFolder> { it.totalSongCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSongCountDesc -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.totalSongCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSubdirCountAsc -> folders.sortedWith(
+                compareBy<MusicFolder> { it.totalSubFolderCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSubdirCountDesc -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.totalSubFolderCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            else -> folders.toList()
         }
     }
 
@@ -500,8 +539,84 @@ class LibraryStateHolder @Inject constructor(
             userPreferencesRepository.saveLastStorageFilter(filter)
         }
     }
+
+    @Suppress("DEPRECATION")
+    fun trimMemory(level: Int) {
+        val shouldReleaseLibraryState =
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ||
+                level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE
+        if (!shouldReleaseLibraryState) return
+
+        val hasLoadedData =
+            _allSongs.value.isNotEmpty() ||
+                _albums.value.isNotEmpty() ||
+                _artists.value.isNotEmpty() ||
+                _musicFolders.value.isNotEmpty()
+        val hasActiveCollectors =
+            songsJob?.isActive == true ||
+                albumsJob?.isActive == true ||
+                artistsJob?.isActive == true ||
+                foldersJob?.isActive == true
+        if (!hasLoadedData && !hasActiveCollectors) return
+
+        songsJob?.cancel()
+        albumsJob?.cancel()
+        artistsJob?.cancel()
+        foldersJob?.cancel()
+        songsJob = null
+        albumsJob = null
+        artistsJob = null
+        foldersJob = null
+
+        _allSongs.value = persistentListOf()
+        _allSongsById.value = emptyMap()
+        _albums.value = persistentListOf()
+        _artists.value = persistentListOf()
+        _musicFolders.value = persistentListOf()
+        _isLoadingLibrary.value = false
+        _isLoadingCategories.value = false
+        needsReloadAfterTrim = true
+    }
+
+    fun restoreAfterTrimIfNeeded() {
+        if (!needsReloadAfterTrim || scope == null) return
+        startObservingLibraryData()
+    }
 }
 
 private fun androidx.compose.ui.graphics.Color.toHexString(): String {
     return String.format("#%08X", this.toArgb())
+}
+
+private fun Iterable<Song>.toGenreSeeds(): List<GenreSeed> {
+    val canonicalNamesById = linkedMapOf<String, String>()
+
+    for (song in this) {
+        val genreName = song.genre?.trim().takeUnless { it.isNullOrBlank() } ?: UNKNOWN_GENRE_NAME
+        val genreId = genreName.toGenreId()
+        val currentCanonicalName = canonicalNamesById[genreId]
+        canonicalNamesById[genreId] = if (currentCanonicalName == null) {
+            genreName
+        } else {
+            chooseCanonicalGenreName(currentCanonicalName, genreName)
+        }
+    }
+
+    return canonicalNamesById.entries
+        .map { (id, name) -> GenreSeed(id = id, name = name) }
+        .sortedBy { it.name.lowercase() }
+}
+
+private fun String.toGenreId(): String {
+    return if (equals(UNKNOWN_GENRE_NAME, ignoreCase = true)) {
+        "unknown"
+    } else {
+        lowercase().replace(" ", "_").replace("/", "_")
+    }
+}
+
+private fun chooseCanonicalGenreName(current: String, candidate: String): String {
+    val currentKey = current.lowercase()
+    val candidateKey = candidate.lowercase()
+    return if (candidateKey < currentKey) candidate else current
 }

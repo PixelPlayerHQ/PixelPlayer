@@ -19,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.theveloper.pixelplay.ui.theme.PixelPlayStatusBarStyle
 
 @Composable
 fun CollapsibleCommonTopBar(
@@ -47,6 +49,11 @@ fun CollapsibleCommonTopBar(
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     fadeSubtitleOnCollapse: Boolean = true,
+    enableCollapsedTitleWidthCompression: Boolean = true,
+    enableExpandedTitleWidthCompression: Boolean = true,
+    titleWidthCompressionThreshold: Dp? = null,
+    titleMinWidthAxis: Float = 78f,
+    syncStatusBarWithContainer: Boolean = true,
     supportingContent: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -56,6 +63,11 @@ fun CollapsibleCommonTopBar(
     val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
     
     val backgroundColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = solidAlpha)
+    val statusBarFallbackColor = backgroundColor.compositeOver(MaterialTheme.colorScheme.surface)
+
+    if (syncStatusBarWithContainer) {
+        PixelPlayStatusBarStyle(color = statusBarFallbackColor)
+    }
     // We can also fade the content color if we want, but usually onSurface is fine.
     // GenreDetail interpolates content color, but for standard screens onSurface is usually correct for both states 
     // (transparent surface vs surfaceContainer).
@@ -118,6 +130,10 @@ fun CollapsibleCommonTopBar(
                 contentColor = contentColor,
                 subtitleColor = subtitleColor,
                 fadeSubtitleOnCollapse = fadeSubtitleOnCollapse,
+                enableCollapsedTitleWidthCompression = enableCollapsedTitleWidthCompression,
+                enableExpandedTitleWidthCompression = enableExpandedTitleWidthCompression,
+                titleWidthCompressionThreshold = titleWidthCompressionThreshold,
+                titleMinWidthAxis = titleMinWidthAxis,
                 supportingContent = supportingContent
             )
         }

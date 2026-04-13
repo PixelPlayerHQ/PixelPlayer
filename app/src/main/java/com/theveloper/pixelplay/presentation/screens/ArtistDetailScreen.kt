@@ -7,11 +7,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -50,7 +45,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -63,6 +60,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.PixelPlayStatusBarStyle
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -308,7 +306,6 @@ fun ArtistDetailScreen(
 
                             val sectionKey = section.collapseKey()
                             val isExpanded = expandedSections[sectionKey] ?: true
-                            
                             val sectionSongs = if (isTransitionFinished) section.songs else section.songs.take(5)
 
                             item(
@@ -329,35 +326,35 @@ fun ArtistDetailScreen(
                                 )
                             }
 
-                            item(
-                                key = "${sectionKey}_song_group_spacer",
-                                contentType = "artist_section_spacer"
-                            ) {
-                                AnimatedVisibility(
-                                    visible = isExpanded,
-                                    enter = expandVertically(animationSpec = tween(durationMillis = 260)) + fadeIn(animationSpec = tween(durationMillis = 180)),
-                                    exit = shrinkVertically(animationSpec = tween(durationMillis = 220)) + fadeOut(animationSpec = tween(durationMillis = 140))
+                            if (isExpanded) {
+                                item(
+                                    key = "${sectionKey}_song_group_spacer",
+                                    contentType = "artist_section_spacer"
                                 ) {
                                     Box(
                                         modifier = Modifier
+                                            .animateItem(
+                                                fadeInSpec = tween(durationMillis = 160),
+                                                fadeOutSpec = tween(durationMillis = 120),
+                                                placementSpec = tween(durationMillis = 180)
+                                            )
                                             .fillMaxWidth()
                                             .height(10.dp)
                                             .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f))
                                     )
                                 }
-                            }
 
-                            itemsIndexed(
-                                items = sectionSongs,
-                                key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" },
-                                contentType = { _, _ -> "artist_section_song" }
-                            ) { songIndex, song ->
-                                AnimatedVisibility(
-                                    visible = isExpanded,
-                                    enter = expandVertically(animationSpec = tween(durationMillis = 280)) + fadeIn(animationSpec = tween(durationMillis = 200)),
-                                    exit = shrinkVertically(animationSpec = tween(durationMillis = 240)) + fadeOut(animationSpec = tween(durationMillis = 150))
-                                ) {
+                                itemsIndexed(
+                                    items = sectionSongs,
+                                    key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" },
+                                    contentType = { _, _ -> "artist_section_song" }
+                                ) { songIndex, song ->
                                     ArtistAlbumSectionSongItem(
+                                        modifier = Modifier.animateItem(
+                                            fadeInSpec = tween(durationMillis = 180),
+                                            fadeOutSpec = tween(durationMillis = 120),
+                                            placementSpec = tween(durationMillis = 200)
+                                        ),
                                         song = song,
                                         songIndex = songIndex,
                                         songCount = section.songs.size,
@@ -637,6 +634,7 @@ private fun CollapsibleAlbumSectionHeader(
 
 @Composable
 private fun ArtistAlbumSectionSongItem(
+    modifier: Modifier = Modifier,
     song: Song,
     songIndex: Int,
     songCount: Int,
@@ -676,7 +674,7 @@ private fun ArtistAlbumSectionSongItem(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f), containerShape)
             .padding(horizontal = 8.dp)
@@ -739,8 +737,16 @@ private fun SharedArtistTopBarProbe(
     val statusBarBrush = remember(statusBarColor) {
         Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent))
     }
+    val expandedStatusBarFallback = remember(statusBarColor, surfaceColor) {
+        statusBarColor.compositeOver(surfaceColor)
+    }
+    val fallbackStatusBarColor = remember(expandedStatusBarFallback, surfaceColor, solidAlpha) {
+        lerpColor(expandedStatusBarFallback, surfaceColor, solidAlpha)
+    }
     val titleVerticalBias = lerp(1f, -1f, collapseFraction)
     val shuffleAlignment = BiasAlignment(horizontalBias = 1f, verticalBias = titleVerticalBias)
+
+    PixelPlayStatusBarStyle(color = fallbackStatusBarColor)
 
     Box(
         modifier = Modifier
@@ -808,6 +814,7 @@ private fun SharedArtistTopBarProbe(
             contentColor = MaterialTheme.colorScheme.onSurface,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
             fadeSubtitleOnCollapse = false,
+            syncStatusBarWithContainer = false,
             actions = {
                 Box(
                     modifier = Modifier.padding(end = 12.dp, top = 4.dp)
@@ -909,6 +916,13 @@ private fun CustomCollapsingTopBar(
     val statusBarBrush = remember(statusBarColor) {
         Brush.verticalGradient(colors = listOf(statusBarColor, Color.Transparent))
     }
+    val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
+    val expandedStatusBarFallback = remember(statusBarColor, surfaceColor) {
+        statusBarColor.compositeOver(surfaceColor)
+    }
+    val fallbackStatusBarColor = remember(expandedStatusBarFallback, surfaceColor, solidAlpha) {
+        lerpColor(expandedStatusBarFallback, surfaceColor, solidAlpha)
+    }
 
     // Title animation
     val titleScale = lerp(1f, 0.75f, collapseFraction)
@@ -926,6 +940,8 @@ private fun CustomCollapsingTopBar(
             .height(headerHeight)
             .clipToBounds()
     ) {
+        PixelPlayStatusBarStyle(color = fallbackStatusBarColor)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()

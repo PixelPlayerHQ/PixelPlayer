@@ -57,9 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -89,7 +87,6 @@ fun AiPlaylistSheet(
     )
 
     val colors = MaterialTheme.colorScheme
-    val haptic = LocalHapticFeedback.current
 
     val textFieldColors = TextFieldDefaults.colors(
         focusedContainerColor = colors.surfaceContainerHigh,
@@ -238,7 +235,7 @@ fun AiPlaylistSheet(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isSuccess) "Perfectly Curated" else "Sonic Oracle",
+                        text = if (isSuccess) "Perfectly Curated" else "Daily Mix",
                         style = ExpTitleTypography.displayMedium.copy(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
@@ -422,7 +419,6 @@ fun AiPlaylistSheet(
                             onPress = {
                                 if (prompt.isNotBlank() && !isGenerating && !isSuccess) {
                                     isPressed = true
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     tryAwaitRelease()
                                     isPressed = false
                                     val minLengthInt = minLength.toIntOrNull() ?: 5

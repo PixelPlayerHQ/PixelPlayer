@@ -57,6 +57,7 @@ class MistralAiClient(private val apiKey: String) : AiClient {
         temperature: Float
     ): String {
         return withContext(Dispatchers.IO) {
+            val resolvedModel = model.ifBlank { DEFAULT_MODEL }
             val messagesList = mutableListOf<ChatMessage>()
             if (systemPrompt.isNotBlank()) {
                 messagesList.add(ChatMessage(role = "system", content = systemPrompt))
@@ -64,7 +65,7 @@ class MistralAiClient(private val apiKey: String) : AiClient {
             messagesList.add(ChatMessage(role = "user", content = prompt))
 
             val requestBody = ChatRequest(
-                model = model.ifBlank { DEFAULT_MODEL },
+                model = resolvedModel,
                 messages = messagesList,
                 temperature = temperature.toDouble()
             )
@@ -78,19 +79,43 @@ class MistralAiClient(private val apiKey: String) : AiClient {
                 .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build()
-            
-            val response = client.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                throw Exception("Mistral API error: ${response.code} ${response.message}")
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+
+                    if (!response.isSuccessful) {
+                        throw AiProviderSupport.createException(
+                            providerName = "Mistral",
+                            statusCode = response.code,
+                            transportMessage = response.message,
+                            responseBody = responseBody,
+                            requestedModel = resolvedModel
+                        )
+                    }
+
+                    val nonEmptyBody = responseBody
+                        ?: throw AiProviderSupport.createException(
+                            providerName = "Mistral",
+                            statusCode = response.code,
+                            transportMessage = "Empty response body",
+                            responseBody = null,
+                            requestedModel = resolvedModel
+                        )
+
+                    val chatResponse = json.decodeFromString<ChatResponse>(nonEmptyBody)
+                    chatResponse.choices.firstOrNull()?.message?.content
+                        ?: throw AiProviderSupport.createException(
+                            providerName = "Mistral",
+                            statusCode = response.code,
+                            transportMessage = "Response had no content",
+                            responseBody = nonEmptyBody,
+                            requestedModel = resolvedModel
+                        )
+                }
+            } catch (e: Exception) {
+                throw AiProviderSupport.wrapThrowable("Mistral", e, resolvedModel)
             }
-            
-            val responseBody = response.body?.string() 
-                ?: throw Exception("Mistral returned empty response")
-            
-            val chatResponse = json.decodeFromString<ChatResponse>(responseBody)
-            chatResponse.choices.firstOrNull()?.message?.content 
-                ?: throw Exception("Mistral response has no content")
         }
     }
     

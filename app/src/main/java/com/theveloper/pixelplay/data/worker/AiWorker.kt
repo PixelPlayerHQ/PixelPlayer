@@ -54,8 +54,9 @@ class AiWorker @AssistedInject constructor(
             val context = if (type == AiSystemPromptType.PLAYLIST || 
                             type == AiSystemPromptType.TAGGING || 
                             type == AiSystemPromptType.PERSONA) {
-                val allSongs = musicDao.getAllSongsList().toSongs() // Fetch all songs for a full digest
-                digestGenerator.generateDigest(allSongs)
+                val allSongs = musicDao.getAllSongsList().toSongs()
+                val isSafe = preferencesRepo.isSafeTokenLimitEnabled.first()
+                digestGenerator.generateDigest(allSongs, isSafe)
             } else ""
 
             val result = orchestrator.generateContent(

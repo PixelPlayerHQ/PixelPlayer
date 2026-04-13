@@ -28,6 +28,22 @@ interface MusicRepository {
     fun getPaginatedSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption, storageFilter: com.theveloper.pixelplay.data.model.StorageFilter): Flow<PagingData<Song>>
 
     /**
+     * Returns paginated albums for efficient display in library tabs.
+     */
+    fun getPaginatedAlbums(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+    ): Flow<PagingData<Album>>
+
+    /**
+     * Returns paginated artists for efficient display in library tabs.
+     */
+    fun getPaginatedArtists(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+    ): Flow<PagingData<Artist>>
+
+    /**
      * Returns paginated favorite songs for efficient display.
      * @return Flow of PagingData<Song> for use with LazyPagingItems.
      */
@@ -83,6 +99,17 @@ interface MusicRepository {
      * @return Lista de objetos Song.
      */
     suspend fun getAllSongsOnce(): List<Song>
+
+    /**
+     * Returns one representative song per unique album art URI for maintenance tools that
+     * operate on artwork-derived palettes.
+     */
+    fun getDistinctAlbumArtSongs(): Flow<List<Song>>
+
+    /**
+     * Returns a bounded preview sample for Home without materializing the full library in UI.
+     */
+    fun getHomeMixPreviewSongs(limit: Int): Flow<List<Song>>
 
     /**
      * Obtiene la lista completa de álbumes una sola vez.

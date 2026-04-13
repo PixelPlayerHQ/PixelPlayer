@@ -149,7 +149,7 @@ fun AiMetadataSheet(
                         color = colors.onSurface
                     )
                     Text(
-                        text = if (isGenerating) "Consulting the sonic oracle..." else "Review and refine generated details",
+                        text = if (isGenerating) "Consulting the Daily Mix guide..." else "Review and refine generated details",
                         style = MaterialTheme.typography.bodyMedium,
                         fontFamily = GoogleSansRounded,
                         color = colors.onSurfaceVariant

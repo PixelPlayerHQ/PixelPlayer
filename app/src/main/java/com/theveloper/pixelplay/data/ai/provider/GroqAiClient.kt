@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 class GroqAiClient(private val apiKey: String) : AiClient {
     
     companion object {
-        private const val DEFAULT_MODEL = "llama3-8b-8192"
+        private const val DEFAULT_MODEL = "llama-3.1-8b-instant"
         private const val BASE_URL = "https://api.groq.com/openai/v1"
     }
     
@@ -57,6 +57,7 @@ class GroqAiClient(private val apiKey: String) : AiClient {
         temperature: Float
     ): String {
         return withContext(Dispatchers.IO) {
+            val resolvedModel = model.ifBlank { DEFAULT_MODEL }
             val messagesList = mutableListOf<ChatMessage>()
             if (systemPrompt.isNotBlank()) {
                 messagesList.add(ChatMessage(role = "system", content = systemPrompt))
@@ -64,7 +65,7 @@ class GroqAiClient(private val apiKey: String) : AiClient {
             messagesList.add(ChatMessage(role = "user", content = prompt))
 
             val requestBody = ChatRequest(
-                model = model.ifBlank { DEFAULT_MODEL },
+                model = resolvedModel,
                 messages = messagesList,
                 temperature = temperature.toDouble()
             )
@@ -78,19 +79,43 @@ class GroqAiClient(private val apiKey: String) : AiClient {
                 .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build()
-            
-            val response = client.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                throw Exception("Groq API error: ${response.code} ${response.message}")
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+
+                    if (!response.isSuccessful) {
+                        throw AiProviderSupport.createException(
+                            providerName = "Groq",
+                            statusCode = response.code,
+                            transportMessage = response.message,
+                            responseBody = responseBody,
+                            requestedModel = resolvedModel
+                        )
+                    }
+
+                    val nonEmptyBody = responseBody
+                        ?: throw AiProviderSupport.createException(
+                            providerName = "Groq",
+                            statusCode = response.code,
+                            transportMessage = "Empty response body",
+                            responseBody = null,
+                            requestedModel = resolvedModel
+                        )
+
+                    val chatResponse = json.decodeFromString<ChatResponse>(nonEmptyBody)
+                    chatResponse.choices.firstOrNull()?.message?.content
+                        ?: throw AiProviderSupport.createException(
+                            providerName = "Groq",
+                            statusCode = response.code,
+                            transportMessage = "Response had no content",
+                            responseBody = nonEmptyBody,
+                            requestedModel = resolvedModel
+                        )
+                }
+            } catch (e: Exception) {
+                throw AiProviderSupport.wrapThrowable("Groq", e, resolvedModel)
             }
-            
-            val responseBody = response.body?.string() 
-                ?: throw Exception("Groq returned empty response")
-            
-            val chatResponse = json.decodeFromString<ChatResponse>(responseBody)
-            chatResponse.choices.firstOrNull()?.message?.content 
-                ?: throw Exception("Groq response has no content")
         }
     }
     
@@ -145,10 +170,10 @@ class GroqAiClient(private val apiKey: String) : AiClient {
     
     private fun getDefaultModels(): List<String> {
         return listOf(
-            "llama3-8b-8192",
-            "llama3-70b-8192",
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
             "mixtral-8x7b-32768",
-            "gemma-7b-it"
+            "gemma2-9b-it"
         )
     }
 }

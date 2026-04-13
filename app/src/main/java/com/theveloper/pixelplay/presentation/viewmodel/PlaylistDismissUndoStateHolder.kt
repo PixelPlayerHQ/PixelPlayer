@@ -51,7 +51,6 @@ class PlaylistDismissUndoStateHolder @Inject constructor() {
 
             updateUiState {
                 it.copy(
-                    currentPosition = 0L,
                     currentPlaybackQueue = persistentListOf(),
                     currentQueueSourceName = ""
                 )

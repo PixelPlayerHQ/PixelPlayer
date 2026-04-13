@@ -31,13 +31,18 @@ class AiMetadataGenerator @Inject constructor(
         return try {
             val fieldsJson = fieldsToComplete.joinToString(separator = ", ") { "\"$it\"" }
 
-            val albumInfo = if (song.album.isNotBlank()) "Album: \"${song.album}\"" else ""
+            val albumInfo = if (song.album.isNotBlank()) "<album>${song.album}</album>" else ""
 
             val fullPrompt = """
-            Song title: "${song.title}"
-            Song artist: "${song.displayArtist}"
+            <target_song>
+            <title>${song.title}</title>
+            <artist>${song.displayArtist}</artist>
             $albumInfo
-            Fields to complete: [$fieldsJson]
+            </target_song>
+            <task>
+            Complete the following fields using your music knowledge:
+            <fields_to_complete>[$fieldsJson]</fields_to_complete>
+            </task>
             """.trimIndent()
 
             val responseText = aiOrchestrator.generateContent(fullPrompt, AiSystemPromptType.METADATA)
@@ -53,10 +58,10 @@ class AiMetadataGenerator @Inject constructor(
             Result.success(metadata)
         } catch (e: SerializationException) {
             Timber.e(e, "Error deserializing AI response.")
-            Result.failure(Exception("Failed to parse AI response: ${e.message}"))
+            Result.failure(Exception("Failed to parse AI response: ${e.message}", e))
         } catch (e: Exception) {
             Timber.e(e, "Generic error in AiMetadataGenerator.")
-            Result.failure(Exception("AI Error: ${e.message}"))
+            Result.failure(Exception("AI Error: ${e.message}", e))
         }
     }
 }

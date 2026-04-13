@@ -1036,6 +1036,8 @@ fun LibraryScreen(
                             }
                         }
                         val allSongsLazyPagingItems = libraryViewModel.songsPagingFlow.collectAsLazyPagingItems()
+                        val albumsLazyPagingItems = libraryViewModel.albumsPagingFlow.collectAsLazyPagingItems()
+                        val artistsLazyPagingItems = libraryViewModel.artistsPagingFlow.collectAsLazyPagingItems()
                         val favoritePagingItems = libraryViewModel.favoritesPagingFlow.collectAsLazyPagingItems()
                         val isLibraryLoading by libraryViewModel.isLoadingLibrary.collectAsStateWithLifecycle()
                         val hasCurrentSong by remember(playerViewModel) {
@@ -1441,7 +1443,6 @@ fun LibraryScreen(
                                         )
                                     }
                                     LibraryTabId.ALBUMS -> {
-                                        val albums by playerViewModel.albumsFlow.collectAsStateWithLifecycle()
                                         val isLoading = playerUiState.isLoadingLibraryCategories
 
                                         val stableOnAlbumClick: (Long) -> Unit = remember(navController) {
@@ -1450,10 +1451,12 @@ fun LibraryScreen(
                                             }
                                         }
                                         LibraryAlbumsTab(
-                                            albums = albums,
+                                            albums = albumsLazyPagingItems,
                                             isLoading = isLoading,
                                             playerViewModel = playerViewModel,
                                             bottomBarHeight = bottomBarHeightDp,
+                                            isListView = playerUiState.isAlbumsListView,
+                                            currentAlbumSortOption = playerUiState.currentAlbumSortOption,
                                             onAlbumClick = stableOnAlbumClick,
                                             isRefreshing = isRefreshing,
                                             onRefresh = onRefresh,
@@ -1467,14 +1470,14 @@ fun LibraryScreen(
                                     }
 
                                     LibraryTabId.ARTISTS -> {
-                                        val artists by playerViewModel.artistsFlow.collectAsStateWithLifecycle()
                                         val isLoading = playerUiState.isLoadingLibraryCategories
 
                                         LibraryArtistsTab(
-                                            artists = artists,
+                                            artists = artistsLazyPagingItems,
                                             isLoading = isLoading,
                                             playerViewModel = playerViewModel,
                                             bottomBarHeight = bottomBarHeightDp,
+                                            currentArtistSortOption = playerUiState.currentArtistSortOption,
                                             onArtistClick = { artistId ->
                                                 navController.navigateSafely(
                                                     Screen.ArtistDetail.createRoute(
@@ -1531,71 +1534,43 @@ fun LibraryScreen(
                                     }
 
                                     LibraryTabId.FOLDERS -> {
-                                        val context = LocalContext.current
-                                        var hasPermission by remember { mutableStateOf(Environment.isExternalStorageManager()) }
-                                        val launcher = rememberLauncherForActivityResult(
-                                            ActivityResultContracts.StartActivityForResult()
-                                        ) {
-                                            hasPermission = Environment.isExternalStorageManager()
-                                        }
+                                        val folders = playerUiState.musicFolders
+                                        val currentFolder = playerUiState.currentFolder
+                                        val isLoading = playerUiState.isLoadingLibraryCategories
+                                        val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
 
-                                        if (hasPermission) {
-                                            val folders = playerUiState.musicFolders
-                                            val currentFolder = playerUiState.currentFolder
-                                            val isLoading = playerUiState.isLoadingLibraryCategories
-                                            val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
-
-                                            LibraryFoldersTab(
-                                                folders = folders,
-                                                currentFolder = currentFolder,
-                                                isLoading = isLoading,
-                                                bottomBarHeight = bottomBarHeightDp,
-                                                stablePlayerState = stablePlayerState,
-                                                onNavigateBack = { playerViewModel.navigateBackFolder() },
-                                                onFolderClick = { folderPath -> playerViewModel.navigateToFolder(folderPath) },
-                                                onFolderAsPlaylistClick = { folder ->
-                                                    val encodedPath = Uri.encode(folder.path)
-                                                    navController.navigateSafely(
-                                                        Screen.PlaylistDetail.createRoute(
-                                                            "${PlaylistViewModel.FOLDER_PLAYLIST_PREFIX}$encodedPath"
-                                                        )
+                                        LibraryFoldersTab(
+                                            folders = folders,
+                                            currentFolder = currentFolder,
+                                            isLoading = isLoading,
+                                            bottomBarHeight = bottomBarHeightDp,
+                                            stablePlayerState = stablePlayerState,
+                                            onNavigateBack = { playerViewModel.navigateBackFolder() },
+                                            onFolderClick = { folderPath -> playerViewModel.navigateToFolder(folderPath) },
+                                            onFolderAsPlaylistClick = { folder ->
+                                                val encodedPath = Uri.encode(folder.path)
+                                                navController.navigateSafely(
+                                                    Screen.PlaylistDetail.createRoute(
+                                                        "${PlaylistViewModel.FOLDER_PLAYLIST_PREFIX}$encodedPath"
                                                     )
-                                                },
-                                                onPlaySong = { song, queue ->
-                                                    playerViewModel.showAndPlaySong(song, queue, currentFolder?.name ?: "Folder")
-                                                },
-                                                onMoreOptionsClick = stableOnMoreOptionsClick,
-                                                isPlaylistView = playerUiState.isFoldersPlaylistView,
-                                                currentSortOption = playerUiState.currentFolderSortOption,
-                                                isRefreshing = isRefreshing,
-                                                onRefresh = onRefresh,
-                                                isSelectionMode = isSelectionMode,
-                                                selectedSongIds = selectedSongIds,
-                                                onSongLongPress = onSongLongPress,
-                                                onSongSelectionToggle = onSongSelectionToggle,
-                                                getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
-                                                onLocateCurrentSongVisibilityChanged = { foldersShowLocateButton = it },
-                                                onRegisterLocateCurrentSongAction = { foldersLocateAction = it }
-                                            )
-                                        } else {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(16.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.Center
-                                            ) {
-                                                Text("All files access is required to browse folders.")
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(onClick = {
-                                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                                                    intent.data = Uri.fromParts("package", context.packageName, null)
-                                                    launcher.launch(intent)
-                                                }) {
-                                                    Text("Grant Permission")
-                                                }
-                                            }
-                                        }
+                                                )
+                                            },
+                                            onPlaySong = { song, queue ->
+                                                playerViewModel.showAndPlaySong(song, queue, currentFolder?.name ?: "Folder")
+                                            },
+                                            onMoreOptionsClick = stableOnMoreOptionsClick,
+                                            isPlaylistView = playerUiState.isFoldersPlaylistView,
+                                            currentSortOption = playerUiState.currentFolderSortOption,
+                                            isRefreshing = isRefreshing,
+                                            onRefresh = onRefresh,
+                                            isSelectionMode = isSelectionMode,
+                                            selectedSongIds = selectedSongIds,
+                                            onSongLongPress = onSongLongPress,
+                                            onSongSelectionToggle = onSongSelectionToggle,
+                                            getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
+                                            onLocateCurrentSongVisibilityChanged = { foldersShowLocateButton = it },
+                                            onRegisterLocateCurrentSongAction = { foldersLocateAction = it }
+                                        )
                                     }
 
                                     null -> Unit

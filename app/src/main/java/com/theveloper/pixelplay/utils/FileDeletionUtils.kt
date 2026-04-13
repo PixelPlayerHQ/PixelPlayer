@@ -34,7 +34,10 @@ object FileDeletionUtils {
     }
 
     /**
-     * Android 11+ (API 30+) deletion using MediaStore
+     * Android 11+ (API 30+) deletion using MediaStore.
+     * Without MANAGE_EXTERNAL_STORAGE, direct deletion of files not owned by the app
+     * will throw SecurityException. The caller should use [getDeleteRequestIntentSender]
+     * to get user confirmation first, or catch the exception and request permission.
      */
     @RequiresApi(Build.VERSION_CODES.R)
     private suspend fun deleteFileAndroid11Plus(context: Context, filePath: String): Boolean {
@@ -50,13 +53,27 @@ object FileDeletionUtils {
                     val rowsDeleted = context.contentResolver.delete(uri, null, null)
                     rowsDeleted > 0
                 } else {
-                    // Fallback to legacy method if MediaStore URI not found
-                    file.delete()
+                    false
                 }
+            } catch (e: SecurityException) {
+                // Without MANAGE_EXTERNAL_STORAGE, this is expected for files not owned by the app.
+                // The caller should use MediaStore.createDeleteRequest() instead.
+                false
             } catch (e: Exception) {
                 false
             }
         }
+    }
+
+    /**
+     * Creates an IntentSender for Android 11+ that shows a system dialog asking
+     * the user to confirm deletion of the file. Returns null if the file is not
+     * found in MediaStore or on older Android versions.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun getDeleteRequestIntentSender(context: Context, filePath: String): android.content.IntentSender? {
+        val uri = getMediaStoreUri(context, filePath) ?: return null
+        return MediaStore.createDeleteRequest(context.contentResolver, listOf(uri)).intentSender
     }
 
     /**

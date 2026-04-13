@@ -210,20 +210,6 @@ fun ExperimentalSettingsScreen(
                             val canUseTriggerMode = isAnyDelayEnabled && placeholdersEnabled
 
                             SwitchSettingItem(
-                                title = "Use Player Sheet V2",
-                                subtitle = "Routes player UI through the new rewrite host. Keep disabled if you notice regressions.",
-                                checked = uiState.usePlayerSheetV2,
-                                onCheckedChange = settingsViewModel::setUsePlayerSheetV2,
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.ViewCarousel,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-                            )
-
-                            SwitchSettingItem(
                                 title = "Animated Lyrics (High-end devices)",
                                 subtitle = "Uses spring animations and visual effects for lyrics. May cause frame drops on low-end devices.",
                                 checked = uiState.useAnimatedLyrics,

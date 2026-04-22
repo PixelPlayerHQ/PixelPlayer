@@ -979,8 +979,8 @@ fun QueueBottomSheet(
                             QueueToolbarMenuButton(
                                 text = stringResource(R.string.presentation_batch_e_action_save_as_playlist),
                                 icon = Icons.Filled.LibraryAdd,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = MaterialTheme.colorScheme.background,
+                                contentColor = MaterialTheme.colorScheme.onBackground,
                                 onClick = {
                                     isFabExpanded = false
                                     val res = context.resources

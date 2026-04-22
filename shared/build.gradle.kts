@@ -20,6 +20,12 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildTypes {
+        create("benchmarkRelease") {
+        }
+        create("nonMinifiedRelease") {
+        }
+    }
 }
 
 dependencies {

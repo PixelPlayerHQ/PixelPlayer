@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
@@ -26,13 +27,29 @@ import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.unit.dp
 
 val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
+val LocalPixelPlayPureDark = staticCompositionLocalOf { false }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
+fun ColorScheme.toOledRole(): ColorScheme {
+    return this.copy(
+        surface = Color.Black,
+        background = Color.Black,
+        scrim = Color(0xFF161616),
+        surfaceVariant = Color(0xFF121212),
+        onSurfaceVariant = Color.White.copy(alpha = 0.7f),
 
+        //primaryContainer = Color.Black,
+
+
+        surfaceContainerHigh = Color.Black,
+
+        outline = outline.copy(alpha = 0.6f)
+    )
+}
 @Composable
 fun PixelPlayStatusBarStyle(
     color: Color,
@@ -92,11 +109,12 @@ val LightColorScheme = lightColorScheme(
 @Composable
 fun PixelPlayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    pureDark: Boolean = false,
     colorSchemePairOverride: ColorSchemePair? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val finalColorScheme = when {
+    val baseColorScheme = when {
         colorSchemePairOverride == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             // Tema dinámico del sistema como prioridad si no hay override
             try {
@@ -115,6 +133,13 @@ fun PixelPlayTheme(
         else -> LightColorScheme
     }
 
+
+    val finalColorScheme = if (darkTheme && pureDark) {
+        baseColorScheme.toOledRole()
+    } else {
+        baseColorScheme
+    }
+
     val statusBarElevation = if (darkTheme) 4.dp else 12.dp
     val elevatedSurface = finalColorScheme.surfaceColorAtElevation(statusBarElevation)
     val defaultStatusBarColor = Color(
@@ -127,7 +152,7 @@ fun PixelPlayTheme(
 
     PixelPlayStatusBarStyle(color = defaultStatusBarColor)
 
-    CompositionLocalProvider(LocalPixelPlayDarkTheme provides darkTheme) {
+    CompositionLocalProvider(LocalPixelPlayDarkTheme provides darkTheme, LocalPixelPlayPureDark provides pureDark) {
         MaterialTheme(
             colorScheme = finalColorScheme,
             typography = Typography,

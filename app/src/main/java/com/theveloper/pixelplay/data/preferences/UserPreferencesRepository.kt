@@ -45,6 +45,8 @@ object AppThemeMode {
     const val FOLLOW_SYSTEM = "follow_system"
     const val LIGHT = "light"
     const val DARK = "dark"
+
+    const val PURE_DARK = "puredark"
 }
 
 /**
@@ -85,6 +87,8 @@ constructor(
         // Removed
         val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference_v2")
         val ALBUM_ART_PALETTE_STYLE = stringPreferencesKey("album_art_palette_style_v1")
+        val ALBUM_ART_PALETTE_PURE_DARK = booleanPreferencesKey("album_art_palette_pure_dark")
+
         val APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
         val FAVORITE_SONG_IDS = stringSetPreferencesKey("favorite_song_ids")
         val USER_PLAYLISTS = stringPreferencesKey("user_playlists_json_v1")
@@ -235,6 +239,9 @@ constructor(
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
     }
 
+    val albumArtPalettePureDarkFlow: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ALBUM_ART_PALETTE_PURE_DARK] ?: false }
+
+
     val appRebrandDialogShownFlow: Flow<Boolean> =
             dataStore.data.map { preferences ->
                 preferences[PreferencesKeys.APP_REBRAND_DIALOG_SHOWN] ?: false
@@ -322,6 +329,10 @@ constructor(
                 emptyMap()
             }
         }
+
+    suspend fun setAlbumArtPalettePureDark(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.ALBUM_ART_PALETTE_PURE_DARK] = enabled }
+    }
 
     suspend fun addCustomGenre(genre: String, iconResId: Int? = null) {
         dataStore.edit { preferences ->

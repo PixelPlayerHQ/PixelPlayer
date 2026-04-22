@@ -1450,7 +1450,7 @@ private fun TimelineMetricBadge(
     modifier: Modifier = Modifier
 ) {
     val (containerColor, contentColor) = when (metric) {
-        TimelineMetric.ListeningTime -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        TimelineMetric.ListeningTime -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         TimelineMetric.PlayCount -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         TimelineMetric.AverageSession -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
     }

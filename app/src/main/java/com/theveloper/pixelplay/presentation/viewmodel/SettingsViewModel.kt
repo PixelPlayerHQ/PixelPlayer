@@ -108,7 +108,8 @@ data class SettingsUiState(
     val minTracksPerAlbum: Int = 1,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
-    val isSafeTokenLimitEnabled: Boolean = true
+    val isSafeTokenLimitEnabled: Boolean = true,
+    val albumArtPalettePureDark: Boolean = false
 )
 
 data class FailedSongInfo(
@@ -278,6 +279,8 @@ class SettingsViewModel @Inject constructor(
             else clearModelsState(providerStr)
         }
     }
+
+
 
     // Specific on-change methods for UI binding
     fun onGeminiApiKeyChange(apiKey: String) {

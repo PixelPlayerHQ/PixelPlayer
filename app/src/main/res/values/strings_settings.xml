@@ -73,6 +73,7 @@
     <string name="setcat_app_theme_desc">Switch between light, dark, or follow system appearance.</string>
     <string name="setcat_theme_light">Light Theme</string>
     <string name="setcat_theme_dark">Dark Theme</string>
+    <string name="setcat_theme_pure_dark">Pure Dark Theme</string>
     <string name="setcat_theme_follow_system">Follow System</string>
     <string name="setcat_smooth_corners_title">Use Smooth Corners</string>
     <string name="setcat_smooth_corners_subtitle">Use complex shaped corners effectively improving aesthetics but may affect performance on low-end devices</string>

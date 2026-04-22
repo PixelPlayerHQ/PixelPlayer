@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ButtonDefaults
@@ -55,9 +57,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,7 +73,10 @@ import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayPureDark
 import com.theveloper.pixelplay.ui.theme.generateColorSchemeFromSeed
+import com.theveloper.pixelplay.presentation.components.LibrarySheetToggleCard
+import com.theveloper.pixelplay.ui.theme.toOledRole
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -85,9 +92,14 @@ fun PaletteStyleSettingsScreen(
     val isDarkTheme = LocalPixelPlayDarkTheme.current
     val albumSchemePair by playerViewModel.currentAlbumArtColorSchemePair.collectAsStateWithLifecycle()
 
+    // Correctly bind to the palette-specific Pure Dark setting from uiState
+    val isOledEnabled = LocalPixelPlayPureDark.current
+
+
     val baseScheme = MaterialTheme.colorScheme
-    val albumScheme = remember(albumSchemePair, isDarkTheme, baseScheme) {
-        albumSchemePair?.let { pair -> if (isDarkTheme) pair.dark else pair.light } ?: baseScheme
+    val albumScheme = remember(albumSchemePair, isDarkTheme, baseScheme, isOledEnabled) {
+        val base = albumSchemePair?.let { pair -> if (isDarkTheme) pair.dark else pair.light } ?: baseScheme
+        if (isDarkTheme && isOledEnabled) base.toOledRole() else base
     }
 
     val currentSong = stablePlayerState.currentSong
@@ -105,13 +117,14 @@ fun PaletteStyleSettingsScreen(
 
     val resolvedSeed = seedColor ?: if (currentSong != null) albumScheme.primary else baseScheme.primary
 
-    val styleSchemes = remember(resolvedSeed, isDarkTheme) {
+    val styleSchemes = remember(resolvedSeed, isDarkTheme, isOledEnabled) {
         AlbumArtPaletteStyle.entries.associateWith { style ->
             val pair = generateColorSchemeFromSeed(
                 seedColor = resolvedSeed,
                 paletteStyle = style
             )
-            if (isDarkTheme) pair.dark else pair.light
+            val base = if (isDarkTheme) pair.dark else pair.light
+            if (isDarkTheme && isOledEnabled) base.toOledRole() else base
         }
     }
 
@@ -157,10 +170,20 @@ fun PaletteStyleSettingsScreen(
 
     val hasPendingChanges =
         pendingStyle != uiState.albumArtPaletteStyle ||
-            pendingAccuracy != uiState.albumArtColorAccuracy
-    val previewScheme = previewSchemePair?.let { pair ->
-        if (isDarkTheme) pair.dark else pair.light
-    } ?: styleSchemes[pendingStyle] ?: albumScheme
+                pendingAccuracy != uiState.albumArtColorAccuracy
+
+    val previewScheme = remember(previewSchemePair, isDarkTheme, isOledEnabled) {
+        previewSchemePair?.let { pair ->
+            val base = if (isDarkTheme) pair.dark else pair.light
+
+            if (isDarkTheme && isOledEnabled) {
+                base.toOledRole().copy(
+                    primaryContainer = Color.Black
+                )
+            } else base
+        } ?: styleSchemes[pendingStyle] ?: albumScheme
+    }
+    
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentBottomPadding = bottomInset + if (isMiniPlayerVisible) MiniPlayerHeight + 12.dp else 16.dp
 
@@ -175,6 +198,7 @@ fun PaletteStyleSettingsScreen(
                         style = pendingStyle,
                         accuracyLevel = pendingAccuracy
                     )
+
                 },
                 applyEnabled = hasPendingChanges
             )
@@ -259,7 +283,11 @@ fun PaletteStyleSettingsScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+
+
+
                     PaletteAccuracySlider(
                         scheme = previewScheme,
                         value = pendingAccuracy,
@@ -379,14 +407,6 @@ private fun MiniFullPlayerSkeletonPreview(
                             .background(topBarButtonColor)
                     )
                 }
-
-//                Box(
-//                    modifier = Modifier
-//                        .fillMaxWidth(0.5f)
-//                        .height(scaled(12.dp))
-//                        .clip(RoundedCornerShape(scaled(6.dp)))
-//                        .background(placeholderOnColor)
-//                )
 
                 Box(
                     modifier = Modifier

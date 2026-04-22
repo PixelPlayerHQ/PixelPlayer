@@ -80,6 +80,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayPureDark
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -499,10 +500,12 @@ fun UnifiedPlayerSheetV2(
     val activePlayerSchemePair by playerViewModel.activePlayerColorSchemePair.collectAsStateWithLifecycle()
     val themedAlbumArtUri by playerViewModel.currentThemedAlbumArtUri.collectAsStateWithLifecycle()
     val isDarkTheme = LocalPixelPlayDarkTheme.current
+    val isPureDark = LocalPixelPlayPureDark.current
     val currentSong = infrequentPlayerState.currentSong
     val sheetThemeState = rememberSheetThemeState(
         activePlayerSchemePair = activePlayerSchemePair,
         isDarkTheme = isDarkTheme,
+        isPureDark = isPureDark,
         playerThemePreference = playerThemePreference,
         currentSong = currentSong,
         themedAlbumArtUri = themedAlbumArtUri,

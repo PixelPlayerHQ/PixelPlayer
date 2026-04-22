@@ -215,6 +215,10 @@ class MainActivity : ComponentActivity() {
                 AppThemeMode.LIGHT -> false
                 else -> systemDarkTheme
             }
+            val usePureDark = when(appThemeMode){
+                AppThemeMode.PURE_DARK -> true
+                else -> false
+            }
             val isSetupComplete by mainViewModel.isSetupComplete.collectAsStateWithLifecycle()
             
             // Crash report dialog state
@@ -256,7 +260,8 @@ class MainActivity : ComponentActivity() {
             }
 
             PixelPlayTheme(
-                darkTheme = useDarkTheme
+                darkTheme = useDarkTheme,
+                pureDark = usePureDark
             ) {
                 var contentVisible by remember { mutableStateOf(false) }
                 val contentAlpha by animateFloatAsState(

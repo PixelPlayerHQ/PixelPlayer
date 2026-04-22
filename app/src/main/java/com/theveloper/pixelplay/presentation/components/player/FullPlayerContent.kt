@@ -140,6 +140,7 @@ import java.util.Locale
 import kotlin.math.roundToLong
 import com.theveloper.pixelplay.presentation.components.WavySliderExpressive
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayPureDark
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
@@ -306,7 +307,7 @@ fun FullPlayerContent(
     // OPTIMIZATION: Use passed provider instead of collecting flow
     val totalDurationValue = totalDurationProvider()
 
-    val playerOnBaseColor = LocalMaterialTheme.current.onPrimaryContainer
+    val playerOnBaseColor =  if(LocalPixelPlayPureDark.current) {LocalMaterialTheme.current.onBackground} else{ LocalMaterialTheme.current.onPrimaryContainer}
     val playerAccentColor = LocalMaterialTheme.current.primary
     val playerOnAccentColor = LocalMaterialTheme.current.onPrimary
     val transportPlayPauseColors = expressivePlayPauseButtonColors(LocalMaterialTheme.current)
@@ -952,7 +953,7 @@ fun FullPlayerContent(
             lyricsTextStyle = MaterialTheme.typography.titleLarge,
             backgroundColor = LocalMaterialTheme.current.background,
             onBackgroundColor = LocalMaterialTheme.current.onBackground,
-            containerColor = LocalMaterialTheme.current.primaryContainer,
+            containerColor = if(LocalPixelPlayPureDark.current){ LocalMaterialTheme.current.background} else{ LocalMaterialTheme.current.primaryContainer},
             contentColor = LocalMaterialTheme.current.onPrimaryContainer,
             accentColor = LocalMaterialTheme.current.primary,
             onAccentColor = LocalMaterialTheme.current.onPrimary,

@@ -543,7 +543,8 @@ fun SettingsCategoryScreen(
                                     options = mapOf(
                                         AppThemeMode.LIGHT to stringResource(R.string.setcat_theme_light),
                                         AppThemeMode.DARK to stringResource(R.string.setcat_theme_dark),
-                                        AppThemeMode.FOLLOW_SYSTEM to stringResource(R.string.setcat_theme_follow_system)
+                                        AppThemeMode.FOLLOW_SYSTEM to stringResource(R.string.setcat_theme_follow_system),
+                                        AppThemeMode.PURE_DARK to stringResource(R.string.setcat_theme_pure_dark)
                                     ),
                                     selectedKey = uiState.appThemeMode,
                                     onSelectionChanged = { settingsViewModel.setAppThemeMode(it) },

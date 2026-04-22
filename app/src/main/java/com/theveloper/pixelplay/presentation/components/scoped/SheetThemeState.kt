@@ -19,6 +19,7 @@ import androidx.compose.ui.util.lerp
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
+import com.theveloper.pixelplay.ui.theme.toOledRole
 
 /**
  * Theme state for the player sheet.
@@ -56,6 +57,7 @@ internal fun resolvePlayerSheetTargetScheme(
 internal fun rememberSheetThemeState(
     activePlayerSchemePair: ColorSchemePair?,
     isDarkTheme: Boolean,
+    isPureDark: Boolean,
     playerThemePreference: String,
     currentSong: Song?,
     themedAlbumArtUri: String?,
@@ -127,13 +129,21 @@ internal fun rememberSheetThemeState(
         systemColorScheme = systemColorScheme
     )
 
+    val targetAlbumScheme = remember(rawAlbumColorScheme, isDarkTheme, isPureDark) {
+        if (isDarkTheme && isPureDark) rawAlbumColorScheme.toOledRole() else rawAlbumColorScheme
+    }
+
+    val targetMiniPlayerScheme = remember(rawMiniPlayerScheme, isDarkTheme, isPureDark) {
+        if (isDarkTheme && isPureDark) rawMiniPlayerScheme.toOledRole() else rawMiniPlayerScheme
+    }
+
     // --- Batch Color Animation ---
     // Instead of 34×2 = 68 independent animateColorAsState (one Spring coroutine each),
     // we use a single Animatable<Float> progress [0,1] that interpolates between the
     // previous and the new target ColorScheme manually. This reduces per-frame State reads
     // from 68 → 0 (the lerp runs during the Animatable tick, not during recomposition).
-    val albumColorScheme = rememberBatchAnimatedColorScheme(rawAlbumColorScheme)
-    val miniPlayerScheme = rememberBatchAnimatedColorScheme(rawMiniPlayerScheme)
+    val albumColorScheme = rememberBatchAnimatedColorScheme(targetAlbumScheme)
+    val miniPlayerScheme = rememberBatchAnimatedColorScheme(targetMiniPlayerScheme)
 
     val miniAppearProgress = remember { Animatable(0f) }
     LaunchedEffect(currentSong?.id) {
@@ -149,7 +159,11 @@ internal fun rememberSheetThemeState(
 
     val miniReadyAlpha = miniAppearProgress.value
     val miniAppearScale = lerp(0.985f, 1f, miniAppearProgress.value)
-    val playerAreaBackground = miniPlayerScheme.primaryContainer
+    val playerAreaBackground = if(isPureDark) {
+        miniPlayerScheme.background
+    }else{
+        miniPlayerScheme.primaryContainer
+    }
 
     // NOTE: miniAlpha and effectivePlayerAreaElevation are no longer computed here.
     // They were driven by the expansion fraction via the Transition API, which

@@ -18,6 +18,7 @@ import com.theveloper.pixelplay.presentation.components.external.ExternalPlayerO
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import android.content.Intent.EXTRA_STREAM
 import androidx.media3.common.util.UnstableApi
+import com.google.android.gms.wearable.AppTheme
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import javax.inject.Inject
@@ -49,9 +50,15 @@ class ExternalPlayerActivity : ComponentActivity() {
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
                 AppThemeMode.LIGHT -> false
+                AppThemeMode.PURE_DARK -> true
                 else -> systemDarkTheme
             }
-            PixelPlayTheme(darkTheme = useDarkTheme) {
+            val isOled = when(appThemeMode){
+                AppThemeMode.PURE_DARK -> true
+                else -> false
+            }
+            PixelPlayTheme(darkTheme = useDarkTheme, pureDark = isOled) {
+
                 ExternalPlayerOverlay(
                     playerViewModel = playerViewModel,
                     onDismiss = { finish() },

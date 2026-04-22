@@ -42,8 +42,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.draw.clip
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayPureDark
 
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import androidx.compose.foundation.BorderStroke
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -90,29 +92,44 @@ fun LyricsFloatingToolbar(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ToggleSegmentButton(
-                modifier = Modifier.weight(1f).height(50.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
                 active = showSyncedLyrics,
                 enabled = hasSyncedLyrics,
                 activeColor = accentColor,
-                inactiveColor = backgroundColor,
+                inactiveColor = if(LocalPixelPlayPureDark.current) {
+                    Color.Transparent
+                }else{onBackgroundColor},
                 activeContentColor = onAccentColor,
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,
                 onClick = { onShowSyncedLyricsChange(true) },
-                text = stringResource(R.string.presentation_batch_g_lyrics_mode_synced)
+                text = stringResource(R.string.presentation_batch_g_lyrics_mode_synced),
+
+                border = if (!showSyncedLyrics && LocalPixelPlayPureDark.current) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                } else null
             )
 
             ToggleSegmentButton(
-                modifier = Modifier.weight(1f).height(50.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
                 active = !showSyncedLyrics,
                 enabled = true,
                 activeColor = accentColor,
-                inactiveColor = backgroundColor,
+                inactiveColor = if(LocalPixelPlayPureDark.current) {
+                    Color.Transparent
+                }else{onBackgroundColor},
                 activeContentColor = onAccentColor,
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,
                 onClick = { onShowSyncedLyricsChange(false) },
-                text = stringResource(R.string.presentation_batch_g_lyrics_mode_static)
+                text = stringResource(R.string.presentation_batch_g_lyrics_mode_static),
+                border = if (showSyncedLyrics && LocalPixelPlayPureDark.current) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                } else null
             )
         }
         

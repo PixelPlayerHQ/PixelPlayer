@@ -100,7 +100,7 @@ fun LyricsFloatingToolbar(
                 activeColor = accentColor,
                 inactiveColor = if(LocalPixelPlayPureDark.current) {
                     Color.Transparent
-                }else{onBackgroundColor},
+                }else{backgroundColor},
                 activeContentColor = onAccentColor,
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,
@@ -121,7 +121,7 @@ fun LyricsFloatingToolbar(
                 activeColor = accentColor,
                 inactiveColor = if(LocalPixelPlayPureDark.current) {
                     Color.Transparent
-                }else{onBackgroundColor},
+                }else{backgroundColor},
                 activeContentColor = onAccentColor,
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,

@@ -6,6 +6,11 @@ import com.theveloper.pixelplay.data.model.Song
 
 interface LyricsRepository {
     /**
+     * Returns already-persisted lyrics without performing any network request.
+     */
+    suspend fun getStoredLyrics(song: Song): Pair<Lyrics, String>?
+
+    /**
      * Get lyrics for a song with source preference support.
      * 
      * @param song The song to get lyrics for

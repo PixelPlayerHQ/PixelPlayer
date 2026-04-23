@@ -268,7 +268,6 @@ internal fun UnifiedPlayerQueueAndSongInfoHost(
     queueSheetHeightPx: Float,
     onQueueSheetHeightPxChange: (Float) -> Unit,
     configurationResetKey: Any,
-    currentPlaybackQueue: ImmutableList<Song>,
     currentQueueSourceName: String,
     infrequentPlayerState: StablePlayerState,
     playerViewModel: PlayerViewModel,
@@ -285,6 +284,9 @@ internal fun UnifiedPlayerQueueAndSongInfoHost(
 ) {
     if (!shouldRenderHost) return
 
+    // Scoped queue collection: only the queue sheet / song-info host observes
+    // the queue. The outer player sheet no longer recomposes on queue changes.
+    val currentPlaybackQueue by playerViewModel.queueFlow.collectAsStateWithLifecycle()
     val latestPlaybackQueue = rememberUpdatedState(currentPlaybackQueue)
     val latestQueueSourceName = rememberUpdatedState(currentQueueSourceName)
     val inactiveTimerValueDisplayState = rememberUpdatedState<String?>(null)

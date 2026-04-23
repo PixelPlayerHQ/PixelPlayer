@@ -31,6 +31,7 @@
     <string name="found_n_matches_format">Found %d match(es)</string>
     <string name="searched_for_x_format">Searched for \"%s\"</string>
     <string name="searching_lyrics">Searching for lyrics…</string>
+    <string name="lyrics_already_available">Lyrics already available. Online fetch skipped.</string>
     <string name="lyrics_embedded_already_available">Embedded lyrics already found. Online fetch skipped.</string>
     <string name="local_lrc_already_available">Local (.lrc) lyrics already found. Online fetch skipped.</string>
     <string name="fetch_lyrics_show_options_title">Show lyric options</string>

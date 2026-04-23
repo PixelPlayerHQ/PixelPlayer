@@ -1,10 +1,13 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+import android.content.Context
+import android.os.PowerManager
 import com.theveloper.pixelplay.MainCoroutineExtension
 import com.theveloper.pixelplay.data.model.PlaybackQueueItemSnapshot
 import com.theveloper.pixelplay.data.model.PlaybackQueueSnapshot
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
+import io.mockk.every
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,13 +26,16 @@ class PlaybackStateHolderTest {
     private val castStateHolder: CastStateHolder = mockk(relaxed = true)
     private val queueStateHolder: QueueStateHolder = mockk(relaxed = true)
     private val listeningStatsTracker: ListeningStatsTracker = mockk(relaxed = true)
+    private val appContext: Context = mockk(relaxed = true)
+    private val powerManager: PowerManager = mockk(relaxed = true)
 
     private fun createHolder() = PlaybackStateHolder(
         dualPlayerEngine = dualPlayerEngine,
         userPreferencesRepository = userPreferencesRepository,
         castStateHolder = castStateHolder,
         queueStateHolder = queueStateHolder,
-        listeningStatsTracker = listeningStatsTracker
+        listeningStatsTracker = listeningStatsTracker,
+        appContext = appContext
     )
 
     private fun snapshot(
@@ -46,6 +52,11 @@ class PlaybackStateHolderTest {
         currentIndex = 0,
         currentPositionMs = positionMs
     )
+
+    init {
+        every { appContext.getSystemService(Context.POWER_SERVICE) } returns powerManager
+        every { powerManager.isInteractive } returns true
+    }
 
     @Test
     fun `paused override does not bleed into later occurrence with same media id`() {

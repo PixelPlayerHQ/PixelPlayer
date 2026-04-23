@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks
@@ -36,7 +37,6 @@ import com.theveloper.pixelplay.presentation.components.scoped.rememberFullPlaye
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
-import kotlinx.collections.immutable.ImmutableList
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -51,7 +51,6 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     albumColorScheme: ColorScheme,
     bottomSheetOpenFraction: Float,
     fullPlayerVisualState: FullPlayerVisualState,
-    currentPlaybackQueue: ImmutableList<Song>,
     currentQueueSourceName: String,
     currentSheetContentState: PlayerSheetState,
     carouselStyle: String,
@@ -128,6 +127,12 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     expansionFraction = playerContentExpansionFraction,
                     bottomSheetOpenFraction = bottomSheetOpenFraction
                 )
+
+                // Scoped queue collection: only the FullPlayer subtree observes
+                // the queue. Sibling MiniPlayer composable and the whole
+                // UnifiedPlayerSheetV2 caller are insulated from queue churn.
+                val currentPlaybackQueue by playerViewModel.queueFlow
+                    .collectAsStateWithLifecycle()
 
                 Box(
                     modifier = Modifier
@@ -231,7 +236,6 @@ internal fun UnifiedPlayerPrewarmLayer(
     currentSong: Song?,
     containerHeight: Dp,
     albumColorScheme: ColorScheme,
-    currentPlaybackQueue: ImmutableList<Song>,
     currentQueueSourceName: String,
     infrequentPlayerState: StablePlayerState,
     carouselStyle: String,
@@ -246,6 +250,10 @@ internal fun UnifiedPlayerPrewarmLayer(
     onQueueRelease: (Float, Float) -> Unit
 ) {
     if (prewarmFullPlayer && currentSong != null) {
+        // Scoped queue collection: the prewarmed FullPlayer owns its own
+        // subscription, keeping the queue out of the outer sheet's state.
+        val currentPlaybackQueue by playerViewModel.queueFlow
+            .collectAsStateWithLifecycle()
         CompositionLocalProvider(
             LocalMaterialTheme provides albumColorScheme
         ) {

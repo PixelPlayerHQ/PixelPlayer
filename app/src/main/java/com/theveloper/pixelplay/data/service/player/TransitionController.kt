@@ -145,10 +145,6 @@ class TransitionController @Inject constructor(
                 return@launch
             }
 
-            val targetIndex = if (repeatMode == Player.REPEAT_MODE_ONE) player.currentMediaItemIndex else nextIndex
-            Timber.tag("TransitionDebug").d("Preparing next track: %s (Index: %d)", nextMediaItem.mediaId, targetIndex)
-            engine.prepareNext(nextMediaItem)
-
             val playlistId = currentMediaItem.mediaMetadata.extras?.getString("playlistId")
             val fromTrackId = currentMediaItem.mediaId
             val toTrackId = nextMediaItem.mediaId
@@ -187,6 +183,7 @@ class TransitionController @Inject constructor(
                 // If globally disabled and we are using the global defaults, use no transition.
                 if (isGloballyDisabled) {
                     Timber.tag("TransitionDebug").d("Crossfade globally disabled. Using default gap.")
+                    engine.cancelNext()
                     engine.setPauseAtEndOfMediaItems(false)
                     return@collectLatest
                 }
@@ -194,9 +191,13 @@ class TransitionController @Inject constructor(
                 // If transition is disabled or has no duration, do nothing.
                 if (settings.mode == TransitionMode.NONE || settings.durationMs <= 0) {
                     Timber.tag("TransitionDebug").d("Transition disabled or zero duration.")
+                    engine.cancelNext()
                     engine.setPauseAtEndOfMediaItems(false)
                     return@collectLatest
                 }
+
+                Timber.tag("TransitionDebug").d("Preparing next track for overlap: %s", nextMediaItem.mediaId)
+                engine.prepareNext(nextMediaItem)
 
                 // Wait for the player to report a valid duration.
                 var duration = player.duration
@@ -213,6 +214,7 @@ class TransitionController @Inject constructor(
 
                 if (duration < minFade + guardWindow) {
                     Timber.tag("TransitionDebug").w("Track too short for crossfade (duration=%d).", duration)
+                    engine.cancelNext()
                     engine.setPauseAtEndOfMediaItems(false)
                     return@collectLatest
                 }
@@ -242,6 +244,7 @@ class TransitionController @Inject constructor(
                         engine.performTransition(settings.copy(durationMs = adjustedDuration.toInt()))
                     } else {
                         Timber.tag("TransitionDebug").w("Too close to end (%d ms left). Skipping to avoid glitch.", remaining)
+                        engine.cancelNext()
                         engine.setPauseAtEndOfMediaItems(false)
                     }
                     return@collectLatest

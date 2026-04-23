@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+import android.content.Context
+import android.os.PowerManager
 import android.os.SystemClock
 import androidx.media3.session.MediaController
 import androidx.media3.common.Player
@@ -7,6 +9,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +36,14 @@ class PlaybackStateHolder @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val castStateHolder: CastStateHolder,
     private val queueStateHolder: QueueStateHolder,
-    private val listeningStatsTracker: ListeningStatsTracker
+    private val listeningStatsTracker: ListeningStatsTracker,
+    @param:ApplicationContext private val appContext: Context
 ) {
     companion object {
         private const val TAG = "PlaybackStateHolder"
         private const val DURATION_MISMATCH_TOLERANCE_MS = 1500L
-        private const val PROGRESS_TICK_MS = 250L
+        private const val FOREGROUND_PROGRESS_TICK_MS = 250L
+        private const val BACKGROUND_PROGRESS_TICK_MS = 1000L
         /**
          * Threshold above which we skip per-item moveMediaItem calls and use
          * a single setMediaItems call instead. moveMediaItem triggers an IPC
@@ -74,6 +79,9 @@ class PlaybackStateHolder @Inject constructor(
     private var coldStartSnapshotPositionMs: Long? = null
     private var shuffleToggleJob: Job? = null
     private var lastShuffleToggleFinishedAtMs: Long = 0L
+    private val powerManager: PowerManager by lazy(LazyThreadSafetyMode.NONE) {
+        appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+    }
 
     private fun clearColdStartSnapshot() {
         coldStartSnapshotMediaId = null
@@ -479,6 +487,7 @@ class PlaybackStateHolder @Inject constructor(
         stopProgressUpdates()
         progressJob = scope?.launch {
             while (true) {
+                val tickMs = currentProgressTickMs()
                 val castSession = castStateHolder.castSession.value
                 val isRemote = castSession?.remoteMediaClient != null
                 
@@ -531,12 +540,12 @@ class PlaybackStateHolder @Inject constructor(
                              visibleSong.id != currentMediaId
 
                          if (hasMediaMismatch) {
-                             Timber.tag(TAG).v(
+                            Timber.tag(TAG).v(
                                  "Skipping local progress tick due media mismatch (visible=%s, player=%s)",
                                  visibleSong?.id,
                                  currentMediaId
                              )
-                            delay(PROGRESS_TICK_MS)
+                            delay(tickMs)
                             continue
                         }
 
@@ -563,8 +572,16 @@ class PlaybackStateHolder @Inject constructor(
                         }
                      }
                 }
-                delay(PROGRESS_TICK_MS)
+                delay(tickMs)
             }
+        }
+    }
+
+    private fun currentProgressTickMs(): Long {
+        return if (powerManager.isInteractive) {
+            FOREGROUND_PROGRESS_TICK_MS
+        } else {
+            BACKGROUND_PROGRESS_TICK_MS
         }
     }
 

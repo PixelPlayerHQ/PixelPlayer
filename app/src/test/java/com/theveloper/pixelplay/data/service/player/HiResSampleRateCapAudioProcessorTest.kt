@@ -57,6 +57,22 @@ class HiResSampleRateCapAudioProcessorTest {
             .inOrder()
     }
 
+    @Test
+    fun queueInput_carriesPartialFloatFramesAcrossCalls() {
+        val processor = HiResSampleRateCapAudioProcessor()
+        processor.configure(AudioFormat(384_000, 2, C.ENCODING_PCM_FLOAT))
+
+        processor.queueInput(floatBufferOf(0.1f, 0.2f))
+        assertThat(processor.getOutput().remaining()).isEqualTo(0)
+
+        processor.queueInput(floatBufferOf(0.3f, 0.4f))
+
+        val output = readFloats(processor.getOutput())
+        assertThat(output).hasSize(2)
+        assertThat(output[0]).isWithin(1e-6f).of(0.2f)
+        assertThat(output[1]).isWithin(1e-6f).of(0.3f)
+    }
+
     private fun shortBufferOf(vararg samples: Int): ByteBuffer {
         val buffer = ByteBuffer.allocateDirect(samples.size * Short.SIZE_BYTES)
             .order(ByteOrder.nativeOrder())
@@ -72,6 +88,25 @@ class HiResSampleRateCapAudioProcessorTest {
         val samples = mutableListOf<Int>()
         while (duplicate.remaining() >= Short.SIZE_BYTES) {
             samples += duplicate.short.toInt()
+        }
+        return samples
+    }
+
+    private fun floatBufferOf(vararg samples: Float): ByteBuffer {
+        val buffer = ByteBuffer.allocateDirect(samples.size * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder())
+        for (sample in samples) {
+            buffer.putFloat(sample)
+        }
+        buffer.flip()
+        return buffer
+    }
+
+    private fun readFloats(buffer: ByteBuffer): List<Float> {
+        val duplicate = buffer.duplicate().order(ByteOrder.nativeOrder())
+        val samples = mutableListOf<Float>()
+        while (duplicate.remaining() >= Float.SIZE_BYTES) {
+            samples += duplicate.float
         }
         return samples
     }

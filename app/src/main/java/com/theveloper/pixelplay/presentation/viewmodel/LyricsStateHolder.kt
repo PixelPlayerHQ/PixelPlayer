@@ -180,6 +180,19 @@ class LyricsStateHolder @Inject constructor(
         loadingJob = scope?.launch {
             _searchUiState.value = LyricsSearchUiState.Loading
 
+            if (!forcePickResults) {
+                val storedLyrics = withContext(Dispatchers.IO) {
+                    musicRepository.getStoredLyrics(song)
+                }
+                if (storedLyrics != null) {
+                    val (lyrics, rawLyrics) = storedLyrics
+                    _searchUiState.value = LyricsSearchUiState.Success(lyrics)
+                    _songUpdates.emit(song.withPersistedLyrics(rawLyrics, refreshedAlbumArtUri = null) to lyrics)
+                    _messageEvents.emit(contextHelper(R.string.lyrics_already_available))
+                    return@launch
+                }
+            }
+
             // Build ordered list of local source checks based on user preference.
             // API_FIRST: skip local sources, go straight to remote.
             // EMBEDDED_FIRST: check embedded, then local .lrc, then remote.
@@ -337,6 +350,11 @@ class LyricsStateHolder @Inject constructor(
     }
 
     private fun readEmbeddedLyricsFromFile(song: Song): String? {
+        song.lyrics
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
         return runCatching {
             AudioMetadataReader.read(File(song.path))
                 ?.lyrics

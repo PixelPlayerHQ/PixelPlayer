@@ -141,22 +141,12 @@ object GenreThemeUtils {
                 fallbackGenreId = genreIdFallback
             )
         }
-        val cacheKey =
-            (((seed.toArgb() * 31) + if (isDark) 1 else 0) * 31 + paletteStyle.ordinal) * 31 +
-                if (forceMonochrome) 1 else 0
-        genreColorSchemeCache.get(cacheKey)?.let { return it }
-
-        val pair = if (forceMonochrome) {
-            generateMonochromeColorSchemeFromSeed(seed)
-        } else {
-            generateColorSchemeFromSeed(
-                seedColor = seed,
-                paletteStyle = paletteStyle
-            )
-        }
-        val scheme = if (isDark) pair.dark else pair.light
-        genreColorSchemeCache.put(cacheKey, scheme)
-        return scheme
+        return getColorSchemeFromSeed(
+            seedColor = seed,
+            isDark = isDark,
+            paletteStyle = paletteStyle,
+            forceMonochrome = forceMonochrome
+        )
     }
 
     fun getGenreColorScheme(
@@ -172,6 +162,54 @@ object GenreThemeUtils {
         )
     }
 
+    fun getGenreDetailColorScheme(
+        genre: Genre?,
+        isDark: Boolean,
+        fallbackGenreId: String = "unknown",
+        paletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.default
+    ): ColorScheme {
+        val effectiveGenreId = genre?.id?.takeIf { it.isNotBlank() } ?: fallbackGenreId
+        val referenceColor = getGenreThemeColor(
+            genre = genre,
+            isDark = isDark,
+            fallbackGenreId = fallbackGenreId
+        )
+        return getColorSchemeFromSeed(
+            seedColor = referenceColor.container,
+            isDark = isDark,
+            paletteStyle = paletteStyle,
+            forceMonochrome = isUnknownGenreId(effectiveGenreId)
+        )
+    }
+
+    fun getColorSchemeFromSeed(
+        seedColor: Color,
+        isDark: Boolean,
+        paletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.EXPRESSIVE,
+        forceMonochrome: Boolean = false
+    ): ColorScheme {
+        val normalizedSeed = if (forceMonochrome) unknownSeedColor else seedColor
+        val cacheKey = buildColorSchemeCacheKey(
+            seed = normalizedSeed,
+            isDark = isDark,
+            paletteStyle = paletteStyle,
+            forceMonochrome = forceMonochrome
+        )
+        genreColorSchemeCache.get(cacheKey)?.let { return it }
+
+        val pair = if (forceMonochrome) {
+            generateMonochromeColorSchemeFromSeed(normalizedSeed)
+        } else {
+            generateColorSchemeFromSeed(
+                seedColor = normalizedSeed,
+                paletteStyle = paletteStyle
+            )
+        }
+        val scheme = if (isDark) pair.dark else pair.light
+        genreColorSchemeCache.put(cacheKey, scheme)
+        return scheme
+    }
+
     private fun resolveSeedColor(
         genre: Genre?,
         isDark: Boolean,
@@ -184,6 +222,16 @@ object GenreThemeUtils {
 
         val fallbackId = genre?.id?.takeIf { it.isNotBlank() } ?: fallbackGenreId
         return getGenreThemeColor(fallbackId, isDark).container
+    }
+
+    private fun buildColorSchemeCacheKey(
+        seed: Color,
+        isDark: Boolean,
+        paletteStyle: AlbumArtPaletteStyle,
+        forceMonochrome: Boolean
+    ): Int {
+        return (((seed.toArgb() * 31) + if (isDark) 1 else 0) * 31 + paletteStyle.ordinal) * 31 +
+            if (forceMonochrome) 1 else 0
     }
 
     private fun parseHexColor(hex: String?): Color? {

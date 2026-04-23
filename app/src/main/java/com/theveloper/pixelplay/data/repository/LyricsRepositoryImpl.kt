@@ -257,13 +257,21 @@ class LyricsRepositoryImpl @Inject constructor(
             Log.d(TAG, "===== FORCE REFRESH - BYPASSING IN-MEMORY CACHE =====")
         }
 
+        if (!forceRefresh) {
+            loadStoredLyrics(song, cacheKey, includeMemoryCache = false)?.let { stored ->
+                lyricsCache.put(cacheKey, stored.first)
+                Log.d(TAG, "===== RETURNING STORED LYRICS WITHOUT REMOTE FETCH =====")
+                return@withContext stored.first
+            }
+        }
+
         // Define source fetchers (matching Rhythm pattern)
         val fetchFromLocal: suspend () -> Lyrics? = {
             findLocalLyricsFile(song)
         }
 
         val fetchFromEmbedded: suspend () -> Lyrics? = {
-            loadLyricsFromStorage(song)
+            loadEmbeddedLyricsFromMetadata(song)
         }
 
         val fetchFromAPI: suspend () -> Lyrics? = {
@@ -320,6 +328,13 @@ class LyricsRepositoryImpl @Inject constructor(
         // No lyrics found from any source
         Log.d(TAG, "No lyrics found from any source for: ${song.displayArtist} - ${song.title}")
         return@withContext null
+    }
+
+    override suspend fun getStoredLyrics(song: Song): Pair<Lyrics, String>? = withContext(Dispatchers.IO) {
+        val cacheKey = generateCacheKey(song.id)
+        loadStoredLyrics(song, cacheKey, includeMemoryCache = true)?.also { stored ->
+            lyricsCache.put(cacheKey, stored.first)
+        }
     }
 
     /**
@@ -692,37 +707,33 @@ class LyricsRepositoryImpl @Inject constructor(
      */
     private suspend fun loadLocalLyricsJson(song: Song): Lyrics? {
         try {
-            val fileName = "${song.id}.json"
-            val file = File(context.filesDir, "lyrics/$fileName")
-            
-            if (file.exists()) {
-                val json = file.readText()
-                val data = gson.fromJson(json, LyricsData::class.java)
-                if (data.hasLyrics()) {
-                    val rawLyrics = data.wordByWordLyrics ?: data.syncedLyrics ?: data.plainLyrics
-                    val parsed = LyricsUtils.parseLyrics(rawLyrics)
-                    if (parsed.isValid()) {
-                        val hasWordTimestamps = parsed.synced?.any { !it.words.isNullOrEmpty() } == true
-                        if (!hasWordTimestamps && data.wordByWordLyrics.isNullOrBlank()) {
-                            // Legacy cache may have flattened word-by-word lines.
-                            // Recover richer raw lyrics from DB when available.
-                            val persisted = lyricsDao.getLyrics(song.id.toLong())
-                            if (persisted != null && persisted.content.isNotBlank()) {
-                                val recovered = LyricsUtils.parseLyrics(persisted.content)
-                                val recoveredHasWords = recovered.synced?.any { !it.words.isNullOrEmpty() } == true
-                                if (recovered.isValid() && recoveredHasWords) {
-                                    saveLocalLyricsJson(song, recovered)
-                                    return recovered
-                                }
-                            }
-
-                            if (looksLikeFlattenedWordByWordCache(parsed)) {
-                                // Force a remote re-fetch instead of serving degraded cache.
-                                return null
+            val data = readLyricsJsonCache(song) ?: return null
+            if (data.hasLyrics()) {
+                val rawLyrics = data.wordByWordLyrics ?: data.syncedLyrics ?: data.plainLyrics
+                val parsed = LyricsUtils.parseLyrics(rawLyrics)
+                if (parsed.isValid()) {
+                    val hasWordTimestamps = parsed.synced?.any { !it.words.isNullOrEmpty() } == true
+                    if (!hasWordTimestamps && data.wordByWordLyrics.isNullOrBlank()) {
+                        // Legacy cache may have flattened word-by-word lines.
+                        // Recover richer raw lyrics from DB when available.
+                        val persistedContent = song.id.toLongOrNull()
+                            ?.let { lyricsDao.getLyrics(it)?.content }
+                            ?.takeIf { it.isNotBlank() }
+                        if (persistedContent != null) {
+                            val recovered = LyricsUtils.parseLyrics(persistedContent)
+                            val recoveredHasWords = recovered.synced?.any { !it.words.isNullOrEmpty() } == true
+                            if (recovered.isValid() && recoveredHasWords) {
+                                saveLocalLyricsJson(song, recovered)
+                                return recovered
                             }
                         }
-                        return parsed
+
+                        if (looksLikeFlattenedWordByWordCache(parsed)) {
+                            // Force a remote re-fetch instead of serving degraded cache.
+                            return null
+                        }
                     }
+                    return parsed
                 }
             }
         } catch (e: Exception) {
@@ -777,27 +788,7 @@ class LyricsRepositoryImpl @Inject constructor(
     /**
      * Load embedded lyrics from audio file metadata
      */
-    private suspend fun loadLyricsFromStorage(song: Song): Lyrics? = withContext(Dispatchers.IO) {
-        song.lyrics
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?.let { rawLyrics ->
-                val parsedLyrics = LyricsUtils.parseLyrics(rawLyrics)
-                if (parsedLyrics.isValid()) {
-                    return@withContext parsedLyrics.copy(areFromRemote = false)
-                }
-            }
-
-        // First check database for persisted lyrics (was user-imported or cached)
-        val persisted = lyricsDao.getLyrics(song.id.toLong())
-        if (persisted != null && !persisted.content.isBlank()) {
-            val parsedLyrics = LyricsUtils.parseLyrics(persisted.content)
-            if (parsedLyrics.isValid()) {
-                // If we found it in DB, we treat it as "embedded" or "locally cached" for this flow
-                return@withContext parsedLyrics.copy(areFromRemote = false)
-            }
-        }
-        
+    private suspend fun loadEmbeddedLyricsFromMetadata(song: Song): Lyrics? = withContext(Dispatchers.IO) {
         // Skip embedded lyrics for Telegram songs (not supported yet/streamed)
         if (song.contentUriString.startsWith("telegram://") || song.contentUriString.isEmpty()) {
             return@withContext null
@@ -840,11 +831,96 @@ class LyricsRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun loadStoredLyrics(
+        song: Song,
+        cacheKey: String,
+        includeMemoryCache: Boolean
+    ): Pair<Lyrics, String>? = withContext(Dispatchers.IO) {
+        song.lyrics
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { rawLyrics ->
+                parseStoredLyrics(rawLyrics)?.let { return@withContext it to rawLyrics }
+            }
+
+        song.id.toLongOrNull()
+            ?.let { lyricsDao.getLyrics(it)?.content }
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { rawLyrics ->
+                parseStoredLyrics(rawLyrics)?.let { return@withContext it to rawLyrics }
+            }
+
+        readLyricsJsonCache(song)
+            ?.takeIf { it.hasLyrics() }
+            ?.let { data ->
+                val rawLyrics = data.wordByWordLyrics ?: data.syncedLyrics ?: data.plainLyrics
+                if (!rawLyrics.isNullOrBlank()) {
+                    parseStoredLyrics(rawLyrics)?.let { return@withContext it to rawLyrics }
+                }
+            }
+
+        if (includeMemoryCache) {
+            lyricsCache.get(cacheKey)?.let { cached ->
+                lyricsToRawContent(cached)?.let { rawLyrics ->
+                    return@withContext cached to rawLyrics
+                }
+            }
+        }
+
+        null
+    }
+
+    private fun parseStoredLyrics(rawLyrics: String): Lyrics? {
+        val parsedLyrics = LyricsUtils.parseLyrics(rawLyrics)
+        return parsedLyrics
+            .takeIf { it.isValid() }
+            ?.copy(areFromRemote = false)
+    }
+
+    private fun lyricsToRawContent(lyrics: Lyrics): String? {
+        val syncedLyrics = lyrics.synced
+        if (!syncedLyrics.isNullOrEmpty()) {
+            val hasWordTimestamps = syncedLyrics.any { !it.words.isNullOrEmpty() }
+            return if (hasWordTimestamps) {
+                toWordByWordLrc(syncedLyrics)
+            } else {
+                syncedLyrics.joinToString("\n") { line ->
+                    "[${formatTimestamp(line.time)}]${line.line}"
+                }
+            }
+        }
+
+        return lyrics.plain
+            ?.takeIf { it.isNotEmpty() }
+            ?.joinToString("\n")
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun readLyricsJsonCache(song: Song): LyricsData? {
+        val fileName = "${song.id}.json"
+        val file = File(context.filesDir, "lyrics/$fileName")
+        if (!file.exists()) return null
+
+        val json = file.readText()
+        return gson.fromJson(json, LyricsData::class.java)
+    }
+
     // ========== Original methods (kept for backward compatibility) ==========
 
     override suspend fun fetchFromRemote(song: Song): Result<Pair<Lyrics, String>> = withContext(Dispatchers.IO) {
         try {
             LogUtils.d(this@LyricsRepositoryImpl, "Fetching lyrics from remote for: ${song.title}")
+
+            val cacheKey = generateCacheKey(song.id)
+            loadStoredLyrics(song, cacheKey, includeMemoryCache = true)?.let { stored ->
+                lyricsCache.put(cacheKey, stored.first)
+                LogUtils.d(
+                    this@LyricsRepositoryImpl,
+                    "Skipping remote lyrics fetch because stored lyrics already exist for: ${song.title}"
+                )
+                return@withContext Result.success(stored)
+            }
 
             // First, try the search API which is more flexible, then pick the best match
             val searchResult = searchRemote(song)
@@ -868,8 +944,8 @@ class LyricsRepositoryImpl @Inject constructor(
                         Log.w(TAG, "Skipping DB update for non-numeric ID: ${song.id}")
                     }
 
-                    val cacheKey = generateCacheKey(song.id)
                     lyricsCache.put(cacheKey, best.lyrics)
+                    saveLocalLyricsJson(song, best.lyrics)
                     LogUtils.d(this@LyricsRepositoryImpl, "Fetched and cached remote lyrics for: ${song.title}")
 
                     return@withContext Result.success(Pair(best.lyrics, rawLyricsToSave))
@@ -908,8 +984,8 @@ class LyricsRepositoryImpl @Inject constructor(
                     Log.w(TAG, "Skipping DB update for non-numeric ID in fallback: ${song.id}")
                 }
 
-                val cacheKey = generateCacheKey(song.id)
                 lyricsCache.put(cacheKey, parsedLyrics)
+                saveLocalLyricsJson(song, parsedLyrics)
                 LogUtils.d(this@LyricsRepositoryImpl, "Fetched and cached remote lyrics (exact match) for: ${song.title}")
 
                 Result.success(Pair(parsedLyrics, rawLyricsToSave))

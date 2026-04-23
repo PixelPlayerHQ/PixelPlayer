@@ -32,6 +32,7 @@
     <string name="found_n_matches_format">Se encontraron %d coincidencia(s)</string>
     <string name="searched_for_x_format">Se buscó \"%s\"</string>
     <string name="searching_lyrics">Buscando letras…</string>
+    <string name="lyrics_already_available">Las letras ya están disponibles. Se omite la búsqueda en línea.</string>
     <string name="lyrics_embedded_already_available">Letras incrustadas ya encontradas. Se omite la búsqueda en línea.</string>
     <string name="local_lrc_already_available">Letras locales (.lrc) ya encontradas. Se omite la búsqueda en línea.</string>
     <string name="fetch_lyrics_show_options_title">Mostrar opciones de letras</string>

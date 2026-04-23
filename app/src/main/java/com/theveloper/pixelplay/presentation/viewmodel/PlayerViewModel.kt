@@ -60,6 +60,7 @@ import com.theveloper.pixelplay.data.preferences.LibraryNavigationMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
@@ -255,7 +256,20 @@ class PlayerViewModel @Inject constructor(
 
     private val _playerUiState = MutableStateFlow(PlayerUiState())
     val playerUiState: StateFlow<PlayerUiState> = _playerUiState.asStateFlow()
-    
+
+    // Dedicated queue flow so the player sheet's MiniPlayer branch does not
+    // recompose whenever the queue changes. Consumers that actually need the
+    // queue (FullPlayer carousel, queue sheet) collect this narrower flow
+    // directly, keeping the unrelated subtree stable.
+    val queueFlow: StateFlow<ImmutableList<Song>> = _playerUiState
+        .map { it.currentPlaybackQueue }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = persistentListOf()
+        )
+
     private val _showNoInternetDialog = MutableSharedFlow<Unit>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -263,6 +277,13 @@ class PlayerViewModel @Inject constructor(
     val showNoInternetDialog: SharedFlow<Unit> = _showNoInternetDialog.asSharedFlow()
 
     val stablePlayerState: StateFlow<StablePlayerState> = playbackStateHolder.stablePlayerState
+    val albumArtPaletteStyle: StateFlow<AlbumArtPaletteStyle> = themePreferencesRepository
+        .albumArtPaletteStyleFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = AlbumArtPaletteStyle.default
+        )
     /**
      * High-frequency playback position should not force global UI recomposition.
      * Keep a dedicated position flow for real-time UI elements (seek bars, lyrics timing).

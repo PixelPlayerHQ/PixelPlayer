@@ -147,7 +147,7 @@ class DualPlayerEngine @Inject constructor(
                 // Limpieza para canciones que no son de Telegram
                 telegramCacheManager.setActivePlayback(null)
             }
-            // Note: setWakeMode(WAKE_MODE_LOCAL) is set once in buildPlayer() — no need to repeat here.
+            // Wake mode is configured once in buildPlayer().
 
             // --- Pre-Resolve Next/Prev Tracks para Performance ---
             try {
@@ -373,13 +373,13 @@ class DualPlayerEngine @Inject constructor(
             .setLoadControl(loadControl)
             .build().apply {
             setAudioAttributes(audioAttributes, handleAudioFocus)
-            val offloadDisabledPrefs = TrackSelectionParameters.AudioOffloadPreferences.Builder()
-                .setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
+            val offloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                .setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
                 .build()
             setTrackSelectionParameters(
                 trackSelectionParameters
                     .buildUpon()
-                    .setAudioOffloadPreferences(offloadDisabledPrefs)
+                    .setAudioOffloadPreferences(offloadPreferences)
                     .build()
             )
             setHandleAudioBecomingNoisy(true) // Force player to pause automatically when audio is rerouted from a headset to device speakers
@@ -639,8 +639,7 @@ class DualPlayerEngine @Inject constructor(
             playerB.playWhenReady = false
             playerB.setMediaItem(resolvedItem)
             
-            // Note: setWakeMode is already set to WAKE_MODE_LOCAL in buildPlayer().
-            // No need to re-set per track — the value doesn't change.
+            // Wake mode is configured in buildPlayer(), so we don't reapply it per item here.
             playerB.prepare()
             playerB.volume = 0f // Start silent
             if (startPositionMs > 0) {

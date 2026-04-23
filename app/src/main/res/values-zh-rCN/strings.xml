@@ -1,0 +1,224 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="app_name_change_title">应用已更名</string>
+    <string name="app_name_change_message">由于商标相关问题，我们已将应用名称从 PixelPlay 更改为 PixelPlayer。继续畅听！</string>
+    <string name="do_not_show_again">不再显示</string>
+    <string name="dismiss">关闭</string>
+    <string name="all_files_access_title">需要特殊权限</string>
+    <string name="all_files_access_description">要编辑歌曲元数据（.mp3 文件），PixelPlayer 需要访问所有文件的特殊权限。这样我们才能直接修改曲目标签。请在下一页授予此权限以启用元数据编辑。</string>
+    <string name="grant_permission_button">授予权限</string>
+    <string name="all_files_access_setting">所有文件访问权限</string>
+    <string name="error">错误</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="import_file">导入</string>
+    <string name="search">搜索</string>
+
+    <string name="lyrics">歌词</string>
+    <string name="close_lyrics_sheet">关闭歌词面板</string>
+    <string name="loading_lyrics">正在加载歌词…</string>
+    <string name="cant_find_lyrics">找不到这首歌的歌词。</string>
+    <string name="lyrics_provided_by">歌词提供方</string>
+    <string name="lrclib_uri">https://lrclib.net/</string>
+    <string name="lyrics_not_found">未找到歌词</string>
+    <string name="search_lyrics_online_prompt">要在线搜索歌词吗？</string>
+    <string name="lyrics_custom_search_hint">我们无法自动找到歌词。你可以修改标题或艺术家后再手动搜索。</string>
+    <string name="failed_to_search_for_lyrics">搜索歌词失败</string>
+    <string name="failed_to_fetch_lyrics_from_remote">从远程获取歌词失败</string>
+    <string name="lyrics_fetch_timeout">连接超时。请检查你的网络连接。</string>
+    <string name="lyrics_network_error">网络错误。请检查你的网络连接。</string>
+    <string name="lyrics_server_error">服务器错误（代码 %d）。请稍后重试。</string>
+    <string name="found_n_matches_format">找到 %d 个匹配结果</string>
+    <string name="searched_for_x_format">已搜索 \"%s\"</string>
+    <string name="searching_lyrics">正在搜索歌词…</string>
+    <string name="lyrics_embedded_already_available">已找到内嵌歌词，已跳过在线获取。</string>
+    <string name="local_lrc_already_available">已找到本地 (.lrc) 歌词，已跳过在线获取。</string>
+    <string name="fetch_lyrics_show_options_title">显示歌词选项</string>
+    <string name="fetch_lyrics_show_options_subtitle">始终打开选择器，而不是自动应用第一个匹配结果</string>
+    <string name="save_lyrics_as_lrc">将歌词保存为 .lrc</string>
+    <string name="save_lyrics_dialog_title">保存歌词</string>
+    <string name="save_lyrics_dialog_message">选择要保存的版本：</string>
+    <string name="save_synced_lyrics">同步版（带时间戳）</string>
+    <string name="save_plain_lyrics">纯文本版</string>
+    <string name="lyrics_saved_successfully">歌词保存成功</string>
+    <string name="lyrics_save_failed">歌词保存失败</string>
+    <string name="no_lyrics_to_save">没有可保存的歌词</string>
+    <string name="reset_imported_lyrics">重置已导入歌词</string>
+    <string name="lyrics_sync_offset">歌词同步偏移</string>
+    <string name="lyrics_sync_offset_format">%+.1fs</string>
+    <string name="lyrics_sync_offset_reset">重置</string>
+    <string name="lyrics_earlier">提前</string>
+    <string name="lyrics_later">延后</string>
+
+    <string name="sync_scanning">正在扫描音乐文件…</string>
+    <string name="sync_processing">正在处理文件…</string>
+    <string name="sync_files_progress">%1$d / %2$d 个文件</string>
+    <string name="sync_in_progress">正在同步媒体库…</string>
+    <string name="sync_complete">同步完成</string>
+    <string name="sync_pending">等待中…</string>
+    <string name="syncing_library">正在同步媒体库…</string>
+    <string name="unknown_song_title">未知曲目</string>
+    <string name="unknown_artist">未知艺术家</string>
+    <string name="unknown_album">未知专辑</string>
+    <string name="artist_picker_title">选择艺术家</string>
+    <string name="artist_picker_supporting_text">打开此曲目署名的任意艺术家页面。</string>
+    <string name="artist_picker_count_single">1 位艺术家</string>
+    <string name="artist_picker_count_multiple">%1$d 位艺术家</string>
+    <string name="artist_picker_primary_label">主要艺术家</string>
+    <string name="artist_picker_shortcut_label">艺术家页面</string>
+    <string name="external_queue_label">快速播放</string>
+    <string name="external_playback_error">无法打开该音频文件。</string>
+    <string name="open_full_player">打开完整播放器</string>
+    <string name="close_external_player">关闭悬浮播放器</string>
+    <string name="close_notification_player">关闭播放器</string>
+    <string name="previous_track">上一曲</string>
+    <string name="next_track">下一曲</string>
+    <string name="pause_playback">暂停播放</string>
+    <string name="play_playback">播放</string>
+    <string name="playlist_not_found">未找到播放列表。</string>
+
+    <string name="ai_error_api_key">请在“设置”中为所选 AI 提供商配置有效的 API 密钥。</string>
+    <string name="ai_error_generic">AI 错误：%s</string>
+    <string name="ai_error_quota">所选 AI 提供商拒绝了该请求，因为账户没有余额或可用配额。</string>
+    <string name="ai_error_model_unavailable">所选 AI 模型已不可用。PixelPlayer 已尝试自动切换到受支持的模型。</string>
+    <string name="ai_no_songs_found">AI 没有根据你的提示找到任何歌曲。</string>
+    <string name="ai_prompt_empty">为你的每日合辑写一个想法</string>
+    <string name="ai_daily_mix_updated">已使用 AI 更新每日合辑</string>
+    <string name="ai_no_songs_for_mix">AI 没有为这个合辑找到歌曲</string>
+
+    <string name="shortcut_shuffle_short">随机播放</string>
+    <string name="shortcut_shuffle_long">随机播放全部歌曲</string>
+    <string name="shortcut_playlist_short">播放列表</string>
+    <string name="shortcut_playlist_long">上次播放的播放列表</string>
+
+    <string name="tile_shuffle_all">全部随机播放</string>
+    <string name="tile_last_playlist">上次播放的列表</string>
+    <string name="tile_last_playlist_unavailable">没有可打开的播放列表</string>
+
+    <string name="invalid_album_id">无效的专辑 ID</string>
+    <string name="album_id_not_found">未找到专辑 ID</string>
+    <string name="error_loading_album">加载专辑数据时出错：%s</string>
+    <string name="album_not_found">未找到专辑</string>
+    <string name="could_not_update">无法更新：%s</string>
+    <string name="invalid_artist_id">无效的艺术家 ID</string>
+    <string name="artist_id_not_found">未找到艺术家 ID</string>
+    <string name="error_loading_artist">加载艺术家数据时出错：%s</string>
+    <string name="could_not_find_artist">找不到该艺术家</string>
+    <string name="no_valid_songs">未找到可播放的有效歌曲</string>
+
+    <string name="glance_widget_description">会根据尺寸自适应的响应式小组件</string>
+    <string name="widget_bar_4x1_desc">紧凑型播放器栏</string>
+    <string name="widget_control_4x2_desc">包含随机和重复的完整控制</string>
+    <string name="widget_grid_2x2_desc">极简方形播放器</string>
+    <string name="service_processing_action">正在处理播放操作…</string>
+
+    <!-- Playlist bulk actions -->
+    <string name="playlist_none_to_share">没有可分享的播放列表</string>
+    <string name="playlist_share_chooser_title">分享播放列表</string>
+    <string name="playlist_share_failed">分享失败：%1$s</string>
+    <string name="playlist_none_to_export">没有可导出的播放列表</string>
+    <string name="playlist_export_failed">导出失败：%1$s</string>
+    <string name="playlist_export_folder_display">Music/PixelPlayer Exports</string>
+    <string name="ai_playlist_gemini_key_required">请在“设置”中配置你的 Gemini API 密钥。</string>
+    <string name="error_unknown">未知错误</string>
+
+    <!-- Watch transfer foreground service -->
+    <string name="watch_transfer_sending_n_to_watch">正在发送 %1$d 首歌曲到手表</string>
+    <string name="watch_transfer_sending_to_watch">正在发送到手表</string>
+    <string name="watch_transfer_complete">传输完成</string>
+    <string name="watch_transfer_failed">传输失败</string>
+    <string name="watch_transfer_cancelled">传输已取消</string>
+    <string name="watch_transfer_preparing">正在准备手表传输</string>
+    <string name="watch_transfer_summary_n">%1$d 个传输</string>
+    <string name="watch_transfer_starting">正在开始传输…</string>
+    <string name="watch_transfer_multiple_active">有多个活动中的传输</string>
+    <string name="watch_transfer_preparing_transfer">正在准备传输…</string>
+    <string name="watch_transfer_status_transferring">传输中</string>
+    <string name="watch_transfer_status_completed">已完成</string>
+    <string name="watch_transfer_status_failed">失败</string>
+    <string name="watch_transfer_status_cancelled">已取消</string>
+    <string name="watch_transfer_status_preparing">准备中</string>
+    <string name="watch_transfer_starting_short">开始中</string>
+    <string name="watch_transfer_channel_name">手表传输</string>
+    <string name="watch_transfer_channel_description">显示手机到手表音乐传输的实时进度</string>
+
+    <!-- Cast HTTP server -->
+    <string name="cast_server_channel_name">Cast 媒体服务器</string>
+    <string name="cast_server_notification_title">正在投放到设备</string>
+    <string name="cast_server_notification_text">正在向 Cast 设备提供媒体内容</string>
+    <string name="cast_server_foreground_error">%1$s：%2$s</string>
+
+    <!-- Backup / data transfer (ViewModels) -->
+    <string name="backup_invalid_format">无效备份：%1$s</string>
+    <string name="backup_progress_preparing_restore">正在准备恢复</string>
+    <string name="backup_progress_starting_task">正在启动恢复任务。</string>
+    <string name="backup_progress_preparing_backup">正在准备备份</string>
+    <string name="backup_progress_starting_backup_task">正在启动备份任务。</string>
+    <string name="restore_completed_success">备份恢复成功</string>
+    <string name="restore_completed_partial_issues">恢复已完成，但仍有一些未解决的问题。</string>
+    <string name="restore_could_not_complete">无法完成恢复：%1$s</string>
+    <string name="restore_failed_format">恢复失败：%1$s</string>
+    <string name="data_exported_successfully">数据导出成功</string>
+    <string name="export_failed_format">导出失败：%1$s</string>
+    <string name="data_restored_successfully">数据恢复成功</string>
+    <string name="restore_partial_unresolved_format">恢复已完成，但存在未解决的问题。失败项：%1$s</string>
+    <string name="models_fetch_failed">加载模型失败</string>
+    <string name="dev_test_crash_message">已从开发者选项触发测试崩溃——这是为了测试崩溃上报系统而故意设置的</string>
+
+    <!-- PlayerViewModel -->
+    <string name="player_song_not_found_in_list">当前列表中未找到歌曲</string>
+    <string name="player_could_not_locate_song">无法定位歌曲</string>
+    <string name="player_no_songs_in_library_toast">媒体库中未找到歌曲</string>
+    <string name="player_playback_stopped_eot">播放已停止：%1$s 已播放结束（曲目结束）。</string>
+    <string name="player_default_track_title">曲目</string>
+    <string name="player_no_songs_to_shuffle">没有可随机播放的歌曲。</string>
+    <string name="player_queue_name_selected_albums">已选专辑</string>
+    <string name="player_no_playable_songs_in_albums">在所选专辑中未找到可播放的歌曲</string>
+    <string name="player_only_first_n_albums_queued">仅将前 %1$d 张专辑加入了队列</string>
+    <string name="player_albums_queued_format">已将 %1$d 张专辑加入队列（%2$d 首歌曲）</string>
+    <string name="player_could_not_queue_albums">无法将所选专辑加入队列</string>
+    <string name="player_all_songs_already_in_favorites">所有歌曲都已在收藏中</string>
+    <string name="player_no_songs_were_in_favorites">没有歌曲在收藏中</string>
+    <string name="player_creating_zip">正在创建 ZIP 文件…</string>
+    <string name="player_share_zip_failed_format">分享失败：%1$s</string>
+    <string name="player_cannot_delete_currently_playing">无法删除当前正在播放的歌曲</string>
+    <string name="player_batch_delete_files_deleted_skipped_format">已删除 %1$d 个文件（跳过 %2$d 个——正在播放）</string>
+    <string name="player_batch_delete_partial_format">已删除 %1$d / %2$d 个文件</string>
+    <string name="player_delete_files_failed">删除文件失败</string>
+    <string name="player_file_deleted">文件已删除</string>
+    <string name="player_delete_file_not_found">无法删除文件，或文件不存在</string>
+    <string name="player_deletion_cancelled">删除已取消</string>
+    <string name="player_permission_denied_edit_files">权限被拒绝——无法编辑文件</string>
+    <string name="player_permission_denied_save_lyrics">权限被拒绝——无法保存歌词</string>
+    <string name="player_permission_denied_edit_this_file">权限被拒绝——无法编辑此文件</string>
+    <string name="metadata_updated_successfully">元数据更新成功</string>
+    <string name="player_updating_n_songs">正在更新 %1$d 首歌曲…</string>
+    <string name="player_batch_genre_updated_all">成功更新了 %1$d 首歌曲！</string>
+    <string name="player_batch_genre_updated_partial">已更新 %1$d 首歌曲。失败：%2$d</string>
+    <string name="playlist_restored_toast">播放列表已恢复</string>
+    <string name="delete_songs_permanent_message">这些歌曲将从你的设备中被永久删除，且无法恢复。</string>
+    <string name="delete_action">删除</string>
+
+    <!-- Sleep timer (SleepTimerStateHolder + TimerOptionsBottomSheet) -->
+    <string name="sleep_timer_n_minutes_format">%1$d 分钟</string>
+    <string name="sleep_timer_display_eot">曲目结束时</string>
+    <string name="sleep_timer_set_for_minutes_toast">已设置 %1$d 分钟后停止。</string>
+    <string name="sleep_timer_cancelled_toast">定时器已取消。</string>
+    <string name="sleep_timer_eot_no_song_toast">无法启用“曲目结束时”：当前没有活动歌曲。</string>
+    <string name="sleep_timer_eot_song_changed_toast">“曲目结束时”定时器已停用：歌曲已从 %1$s 切换为 %2$s。</string>
+    <string name="sleep_timer_eot_stop_at_end_toast">播放将在曲目结束时停止。</string>
+    <string name="sleep_timer_label_previous_track">上一曲</string>
+    <string name="sleep_timer_label_current_track">当前曲目</string>
+    <string name="sleep_timer_ui_title">睡眠定时器</string>
+    <string name="sleep_timer_ui_slider_label_timer">定时器</string>
+    <string name="sleep_timer_ui_end_of_current_track">当前曲目结束时</string>
+    <string name="sleep_timer_ui_custom_time">自定义时间</string>
+    <string name="sleep_timer_ui_cancel_timer">取消定时器</string>
+    <string name="sleep_timer_ui_set_custom_duration">设置自定义时长</string>
+    <string name="sleep_timer_ui_play_count_label">播放次数：%1$s</string>
+    <string name="sleep_timer_ui_play_count_one_time">1 次</string>
+    <string name="cd_switch_on">打开</string>
+    <string name="ui_format_percent_d">%1$d%%</string>
+    <string name="backup_manifest_schema_v">v%1$d</string>
+    <string name="backup_manifest_device_line">%1$s %2$s</string>
+</resources>

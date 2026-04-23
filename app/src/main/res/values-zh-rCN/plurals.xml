@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sharing_playlists_message">
+        <item quantity="one">正在分享 %d 个播放列表</item>
+        <item quantity="other">正在分享 %d 个播放列表</item>
+    </plurals>
+    <plurals name="exported_playlists_message">
+        <item quantity="one">已将 %1$d 个播放列表导出到 %2$s</item>
+        <item quantity="other">已将 %1$d 个播放列表导出到 %2$s</item>
+    </plurals>
+    <plurals name="n_songs_added_to_queue">
+        <item quantity="one">已将 %d 首歌曲添加到队列</item>
+        <item quantity="other">已将 %d 首歌曲添加到队列</item>
+    </plurals>
+    <plurals name="n_songs_will_play_next">
+        <item quantity="one">接下来将播放 %d 首歌曲</item>
+        <item quantity="other">接下来将播放 %d 首歌曲</item>
+    </plurals>
+    <plurals name="n_songs_added_to_favorites">
+        <item quantity="one">已将 %d 首歌曲添加到收藏</item>
+        <item quantity="other">已将 %d 首歌曲添加到收藏</item>
+    </plurals>
+    <plurals name="n_songs_removed_from_favorites">
+        <item quantity="one">已将 %d 首歌曲从收藏中移除</item>
+        <item quantity="other">已将 %d 首歌曲从收藏中移除</item>
+    </plurals>
+    <plurals name="n_files_deleted">
+        <item quantity="one">已删除 %d 个文件</item>
+        <item quantity="other">已删除 %d 个文件</item>
+    </plurals>
+    <plurals name="delete_songs_confirmation_title">
+        <item quantity="one">删除 %d 首歌曲？</item>
+        <item quantity="other">删除 %d 首歌曲？</item>
+    </plurals>
+    <plurals name="sleep_timer_play_count_times">
+        <item quantity="one">%d 次</item>
+        <item quantity="other">%d 次</item>
+    </plurals>
+</resources>

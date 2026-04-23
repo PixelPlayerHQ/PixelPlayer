@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Library list errors -->
+    <string name="library_error_loading_songs">加载歌曲时出错</string>
+    <string name="library_error_loading_albums">加载专辑时出错</string>
+    <string name="library_error_loading_artists">加载艺术家时出错</string>
+    <string name="library_retry">重试</string>
+
+    <!-- Library empty (paginated) -->
+    <string name="library_no_songs_in_library_message">你的媒体库中没有找到歌曲。</string>
+    <string name="library_no_songs_rescan_hint">如果你的设备上有音乐，请尝试在设置中重新扫描媒体库。</string>
+    <string name="cd_no_songs_in_library">未找到歌曲</string>
+
+    <!-- Library action row -->
+    <string name="library_action_new">新建</string>
+    <string name="cd_create_new_playlist">创建新播放列表</string>
+    <string name="cd_import_m3u_playlist">导入 M3U 播放列表</string>
+    <string name="cd_locate_current_song">定位当前歌曲</string>
+    <string name="library_storage_filter_all_songs">全部歌曲</string>
+    <string name="library_storage_filter_online">在线</string>
+    <string name="library_storage_filter_offline">离线</string>
+    <string name="cd_sort_options">排序选项</string>
+
+    <!-- Fetch lyrics (manual search fields) -->
+    <string name="lyrics_synced_badge">已同步</string>
+    <string name="song_field_artist_optional">艺术家（可选）</string>
+
+    <!-- Song picker -->
+    <string name="song_picker_title">添加歌曲</string>
+    <string name="cd_confirm_add_songs">添加所选歌曲</string>
+    <string name="song_picker_action_add">添加</string>
+    <string name="song_picker_search_label">搜索歌曲…</string>
+    <string name="song_picker_error_load_failed">加载歌曲失败</string>
+    <string name="song_picker_load_more">加载更多</string>
+
+    <!-- AI playlist sheet -->
+    <string name="cd_ai">AI</string>
+    <string name="ai_playlist_headline_perfect">精准策划</string>
+    <string name="ai_playlist_headline_daily_mix">每日合辑</string>
+    <string name="ai_playlist_subtitle_journey_ready">你的声音旅程已准备就绪</string>
+    <string name="ai_playlist_subtitle_generator">AI 播放列表生成器</string>
+    <string name="ai_playlist_description">描述你想要的氛围、情绪或活动，让 AI 从你的媒体库中为你策划理想的播放列表。</string>
+    <string name="ai_playlist_section_size">播放列表大小</string>
+    <string name="ai_playlist_min_songs">最少歌曲数</string>
+    <string name="ai_playlist_max_songs">最多歌曲数</string>
+    <string name="ai_playlist_prompt_placeholder">例如：轻松的夜晚氛围、充满活力的健身节奏…</string>
+    <string name="ai_playlist_tap_to_retry">点击重试</string>
+    <string name="ai_playlist_status_default">声音旅程已生成！</string>
+    <string name="ai_playlist_generating">生成中…</string>
+    <string name="ai_playlist_ready_to_play">可立即播放</string>
+    <string name="ai_playlist_generate">生成播放列表</string>
+</resources>

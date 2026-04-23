@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation / misc -->
+    <string name="nav_error_genre_id_missing">错误：缺少流派 ID</string>
+    <string name="easter_egg_thank_you">感谢你使用 PixelPlayer！</string>
+
+    <!-- Word delimiter config -->
+    <string name="word_delimiter_section_title">当前单词分隔符</string>
+    <string name="word_delimiter_section_subtitle">这些关键词会在前后有空格时拆分艺术家名称。匹配时不区分大小写。点按可移除。</string>
+    <string name="word_delimiter_empty">未配置单词分隔符</string>
+    <string name="word_delimiter_add_title">添加新的单词分隔符</string>
+    <string name="word_delimiter_hint">例如 feat. 或 ft.</string>
+    <string name="word_delimiter_help_title">单词分隔符的工作方式</string>
+    <string name="word_delimiter_help_body">单词分隔符会在前后有空格时进行不区分大小写的匹配。\n\n单字符分隔符（如 \"x\"）要求两侧都必须有空格，以避免误匹配。\n\n示例：\n  \"Drake feat. Rihanna\" -&gt; Drake, Rihanna\n  \"Marshmello x Bastille\" -&gt; Marshmello, Bastille\n  \"A vs. B\" -&gt; A, B</string>
+    <string name="word_delimiters_screen_title">单词分隔符</string>
+    <string name="word_delimiter_reset_title">重置单词分隔符？</string>
+    <string name="word_delimiter_reset_message">这将清除你所有自定义的单词分隔符并恢复默认关键词。此操作无法撤销。</string>
+    <string name="word_delimiter_toast_added">已添加单词分隔符</string>
+    <string name="word_delimiter_toast_invalid">已存在或无效</string>
+    <string name="word_delimiter_toast_reset">单词分隔符已重置为默认值</string>
+    <string name="action_reset">重置</string>
+
+    <!-- Delimiter config (path separators) -->
+    <string name="delimiter_section_title">当前分隔符</string>
+    <string name="delimiter_section_subtitle">点按分隔符可将其移除。至少需要一个分隔符。</string>
+    <string name="delimiter_add_title">添加新的分隔符</string>
+    <string name="delimiter_hint">例如 / 或 ;</string>
+    <string name="delimiter_defaults_title">默认分隔符</string>
+    <string name="delimiter_reset_title">重置分隔符？</string>
+    <string name="delimiter_reset_message">这将清除你所有自定义的分隔符并恢复默认值。此操作无法撤销。</string>
+    <string name="delimiter_toast_reset">分隔符已重置为默认值</string>
+    <string name="delimiter_toast_at_least_one">至少需要一个分隔符</string>
+    <string name="delimiter_toast_added">已添加分隔符</string>
+    <string name="delimiter_toast_invalid">分隔符已存在或无效</string>
+    <string name="path_delimiters_toolbar_title">分隔符</string>
+    <string name="delimiter_label_space">空格</string>
+    <string name="cd_add_path_delimiter">添加分隔符</string>
+
+    <!-- Accounts -->
+    <string name="accounts_google_drive_soon">Google Drive 即将推出。</string>
+    <string name="accounts_unable_open_screen">暂时无法打开此页面。</string>
+
+    <!-- Setup (subset; more keys follow in same file) -->
+    <string name="setup_welcome_prefix">欢迎使用 </string>
+    <string name="setup_beta_symbol">β</string>
+    <string name="setup_beta_label">测试版</string>
+    <string name="setup_intro_body">让我们为你完成所有设置。</string>
+    <string name="setup_checking_backup">正在检查备份包…</string>
+    <string name="setup_theme_title">应用主题</string>
+    <string name="setup_theme_subtitle">在开始浏览媒体库前，先选择你喜欢的外观。</string>
+    <string name="setup_theme_footer">稍后可在“设置 &gt; 外观 &gt; 应用主题”中更改。</string>
+    <string name="setup_recommended">推荐</string>
+    <string name="setup_library_layout_title">媒体库布局</string>
+    <string name="setup_library_layout_subtitle">选择你偏好的媒体库浏览方式。</string>
+    <string name="setup_compact_mode">紧凑模式</string>
+    <string name="setup_library_layout_footer">稍后可在“设置 &gt; 外观 &gt; 媒体库导航”中更改。</string>
+    <string name="tab_library">媒体库</string>
+    <string name="tab_songs">歌曲</string>
+    <string name="tab_albums">专辑</string>
+    <string name="tab_artists">艺术家</string>
+    <string name="setup_all_set_title">全部就绪！</string>
+    <string name="setup_all_set_body">你已准备好享受音乐。</string>
+    <string name="setup_restore_backup_title">恢复备份</string>
+    <string name="setup_restore_backup_subtitle">在完成设置前，先查看你要导入的内容。</string>
+    <string name="setup_modules_selected_format">已选择 %1$d/%2$d 个模块</string>
+    <string name="setup_backup_created_format">创建于 %1$s</string>
+    <string name="setup_backup_from_version">来自 %1$s 的备份</string>
+    <string name="unknown_version">未知版本</string>
+    <string name="setup_lets_go">开始吧！</string>
+    <string name="setup_step_format">第 %1$d 步，共 %2$d 步</string>
+    <string name="setup_app_navigation_title">应用导航</string>
+    <string name="setup_app_navigation_subtitle">选择底部导航栏的样式。</string>
+    <string name="setup_navbar_default_style">默认样式</string>
+    <string name="setup_navbar_footer">稍后可在“设置 &gt; 外观 &gt; 导航栏样式”中更改。</string>
+    <string name="skip_for_now">暂时跳过</string>
+    <string name="skip_not_now">跳过 / 稍后再说</string>
+    <string name="restoring">恢复中</string>
+    <string name="restore_selected">恢复所选内容</string>
+    <string name="customize_corner_radius">自定义圆角半径</string>
+    <string name="toast_grant_permission_first">请先授予所需权限。</string>
+    <string name="toast_grant_all_permissions">请授予所有必需权限。</string>
+    <string name="toast_grant_storage_first">请先授予存储权限</string>
+    <string name="toast_battery_settings_unavailable">无法打开电池设置</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_expand_menu">展开菜单</string>
+    <string name="cd_next_step">下一步</string>
+    <string name="cd_finish">完成</string>
+    <string name="cd_close">关闭</string>
+    <string name="cd_remove">移除</string>
+    <string name="cd_add_word_delimiter">添加单词分隔符</string>
+    <string name="cd_reset_defaults">重置为默认</string>
+
+    <!-- Setup (additional literals) -->
+    <string name="setup_excluded_folders_title">排除文件夹</string>
+    <string name="setup_excluded_folders_description">默认会扫描所有文件夹。选择你希望在构建媒体库时忽略的位置。</string>
+    <string name="setup_choose_folders_ignore">选择要忽略的文件夹</string>
+    <string name="setup_permission_media_title">媒体权限</string>
+    <string name="setup_permission_media_description">PixelPlayer 需要访问你的音频文件才能构建音乐媒体库。</string>
+    <string name="setup_permission_granted">权限已授予</string>
+    <string name="setup_grant_media_permission">授予媒体权限</string>
+    <string name="setup_permission_notifications_title">通知</string>
+    <string name="setup_permission_notifications_description">启用通知后，你可以在锁屏和通知栏中控制音乐播放。</string>
+    <string name="setup_enable_notifications">启用通知</string>
+    <string name="setup_permission_alarms_title">闹钟与提醒</string>
+    <string name="setup_permission_alarms_description">可选但推荐。如果你使用睡眠定时器并希望 PixelPlayer 能准时停止播放，就需要此权限。</string>
+    <string name="setup_grant_permission_generic">授予权限</string>
+    <string name="setup_backup_have_title">你有备份吗？</string>
+    <string name="setup_backup_have_description">如果你已有 PixelPlayer 备份，现在就可恢复，并跳过此设备上后续的大部分设置。</string>
+    <string name="setup_inspecting_backup">正在检查备份</string>
+    <string name="setup_restoring_backup">正在恢复备份</string>
+    <string name="setup_import_backup">导入备份</string>
+    <string name="setup_theme_dark_title">深色</string>
+    <string name="setup_theme_dark_description">PixelPlayer 默认的 Material 3 深色外观。</string>
+    <string name="setup_theme_light_title">浅色</string>
+    <string name="setup_theme_light_description">整个应用更明亮的 Material 3 外观。</string>
+    <string name="setup_theme_follow_title">跟随系统</string>
+    <string name="setup_theme_follow_description">与手机当前的外观设置保持一致。</string>
+    <string name="setup_compact_mode_pill_hint">使用极简胶囊导航</string>
+    <string name="setup_compact_mode_tab_hint">使用标准标签栏</string>
+    <string name="setup_preview_songs_label">歌曲</string>
+    <string name="setup_battery_optimization_title">电池优化</string>
+    <string name="setup_battery_optimization_description">某些 Android 设备会激进地杀掉后台应用。为 PixelPlayer 关闭电池优化，可防止播放被意外中断。</string>
+    <string name="setup_disable_battery_optimization">关闭优化</string>
+    <string name="setup_nav_floating_pill_description">带圆角的悬浮胶囊</string>
+    <string name="setup_nav_full_width_description">标准全宽栏</string>
+
+    <!-- Delete song (Material dialog from ViewModel) -->
+    <string name="dialog_delete_song_title">删除歌曲？</string>
+    <string name="dialog_delete_song_message">\"%1$s\" - %2$s\n\n这首歌曲将从你的设备中被永久删除，且无法恢复。</string>
+
+    <!-- Home / detail shared -->
+    <string name="home_your_mix_title">你的\nMix</string>
+    <string name="cd_shuffle_play">随机播放</string>
+    <string name="cd_album_art_for_title">%1$s 的专辑封面</string>
+    <string name="cd_options">选项</string>
+    <string name="genre_quick_fill">快速填充流派</string>
+    <string name="cd_generic_artist">通用艺术家</string>
+    <string name="cd_play_album">播放专辑</string>
+    <string name="cd_shuffle_play_album">随机播放专辑</string>
+    <string name="album_cover_for">%1$s 的封面</string>
+    <string name="album_detail_meta_line">%1$s · %2$s</string>
+    <string name="mashup_cd_play_pause">播放/暂停</string>
+    <string name="cd_song_cover">歌曲封面</string>
+
+    <!-- Crash report dialog -->
+    <string name="crash_report_title">糟糕！出了点问题</string>
+    <string name="crash_report_subtitle">应用在你上次使用时崩溃了。请分享崩溃报告，帮助我们修复问题。</string>
+    <string name="crash_report_date_line">日期：%1$s</string>
+    <string name="crash_report_error_label">错误：</string>
+    <string name="crash_report_stack_preview_label">堆栈跟踪（预览）：</string>
+    <string name="crash_report_clipboard_label">崩溃日志</string>
+    <string name="toast_crash_log_copied">崩溃日志已复制到剪贴板</string>
+    <string name="crash_report_share_subject">PixelPlayer 崩溃报告</string>
+    <string name="crash_report_share_chooser">分享崩溃报告</string>
+    <string name="action_copy">复制</string>
+    <string name="action_share">分享</string>
+
+    <!-- Search screen -->
+    <string name="search_placeholder">搜索…</string>
+    <string name="cd_search_icon">搜索</string>
+    <string name="cd_clear_search_query">清除搜索</string>
+    <string name="recent_searches">最近搜索</string>
+    <string name="clear_all">全部清除</string>
+    <string name="cd_search_history_icon">历史记录</string>
+    <string name="cd_delete_search_history_item">删除搜索历史条目</string>
+    <string name="cd_no_search_results">无结果</string>
+    <string name="search_no_results_for_query">没有找到“%1$s”的结果</string>
+    <string name="search_nothing_found">未找到任何内容</string>
+    <string name="search_try_different_or_filters">试试其他搜索词，或检查筛选条件。</string>
+    <string name="search_no_results_found">未找到结果。</string>
+
+    <!-- Genre browse -->
+    <string name="browse_by_genre">按流派浏览</string>
+    <string name="no_genres_available">没有可用的流派。</string>
+
+    <!-- About -->
+    <string name="about_no_contributors">当前未找到贡献者。请稍后重试。</string>
+    <string name="about_app_name">PixelPlayer</string>
+    <string name="about_tagline">由社区共同打造的开源音乐播放器。</string>
+    <string name="about_version_format">版本 v%1$s</string>
+    <string name="about_contributions_format">%1$d 次贡献</string>
+    <string name="screen_about">关于</string>
+    <string name="about_maintainer_title">维护者</string>
+    <string name="about_maintainer_subtitle">PixelPlayer 背后的那个人。</string>
+    <string name="about_spotlight_title">社区聚焦</string>
+    <string name="about_spotlight_subtitle">表彰带来重大影响的协作者。</string>
+    <string name="about_contributors_section_title">开源贡献者</string>
+    <string name="about_contributors_section_subtitle">来自 GitHub 的实时贡献者列表。</string>
+    <string name="about_signal_open_source">开源</string>
+    <string name="about_signal_community_first">社区优先</string>
+    <string name="about_signal_material3">Material 3 表现力设计</string>
+    <string name="cd_open_github_profile">打开 GitHub 个人主页</string>
+    <string name="cd_open_telegram">打开 Telegram</string>
+    <string name="cd_contributor_avatar">%1$s 的头像</string>
+    <string name="cd_contributor_icon">%1$s 的图标</string>
+
+    <!-- Streaming / cloud dashboards -->
+    <string name="screen_subsonic_dashboard_title">Subsonic</string>
+    <string name="dash_playlists_synced_count">已同步 %1$d 个播放列表</string>
+    <string name="dash_folders_synced_count">已同步 %1$d 个文件夹</string>
+    <string name="dash_title_playlists">播放列表</string>
+    <string name="dash_music_folders">音乐文件夹</string>
+    <string name="dash_action_sync">同步</string>
+    <string name="dash_playlists_empty_title">尚未同步任何播放列表</string>
+    <string name="dash_playlists_empty_hint_subsonic">点击同步以获取你的播放列表</string>
+    <string name="dash_playlists_empty_hint_jellyfin">点击同步以获取你的 Jellyfin 播放列表</string>
+    <string name="dash_no_folders_yet">还没有添加任何文件夹</string>
+    <string name="dash_tap_plus_add_drive_folder">点击 + 添加一个 Drive 文件夹</string>
+    <string name="dash_quick_actions">快速操作</string>
+    <string name="dash_quick_actions_subsonic_subtitle">管理 Navidrome、Airsonic 和其他兼容 Subsonic 的服务器。</string>
+    <string name="dash_quick_actions_jellyfin_subtitle">管理你的 Jellyfin 服务器连接。</string>
+    <string name="dash_status_syncing">同步中</string>
+    <string name="dash_action_sync_library">同步媒体库</string>
+    <string name="dash_action_disconnect">断开连接</string>
+    <string name="dash_song_count">%1$d 首歌曲</string>
+    <string name="cd_sync">同步</string>
+    <string name="cd_sync_all">全部同步</string>
+    <string name="cd_add_drive_folder">添加文件夹</string>
+    <string name="cd_logout">退出登录</string>
+    <string name="screen_netease_dashboard_title">网易云音乐</string>
+    <string name="screen_qq_music_dashboard_title">QQ 音乐</string>
+    <string name="cd_sync_all_playlists">同步所有播放列表</string>
+    <string name="error_with_message_format">错误：%1$s</string>
+    <string name="sync_status_syncing_ellipsis">同步中…</string>
+    <string name="qq_select_playlist_type_title">选择播放列表类型</string>
+    <string name="qq_choose_playlists_to_sync">选择要同步的播放列表：</string>
+    <string name="qq_all_playlists">所有播放列表</string>
+    <string name="qq_created_and_collected">创建和收藏</string>
+    <string name="qq_created_playlists">已创建的播放列表</string>
+    <string name="qq_collected_playlists">已收藏的播放列表</string>
+    <string name="cd_user_avatar">用户头像</string>
+    <string name="toast_playlist_created">播放列表创建成功</string>
+    <string name="toast_set_ai_provider_api_key_first">请先设置 AI 服务提供商的 API 密钥</string>
+    <string name="toast_set_gemini_api_key_first">请先设置 Gemini API 密钥</string>
+    <string name="toast_added_to_queue">已加入队列</string>
+    <string name="toast_playing_next">下一首播放</string>
+    <string name="error_share_song_format">无法分享歌曲：%1$s</string>
+</resources>

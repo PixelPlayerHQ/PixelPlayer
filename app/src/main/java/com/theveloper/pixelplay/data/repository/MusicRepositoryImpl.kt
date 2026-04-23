@@ -50,10 +50,12 @@ import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.ui.theme.GenreThemeUtils
 import com.theveloper.pixelplay.utils.DirectoryFilterUtils
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.StorageType
 import com.theveloper.pixelplay.utils.StorageUtils
+import com.theveloper.pixelplay.utils.toHexString
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -873,16 +875,15 @@ class MusicRepositoryImpl @Inject constructor(
                 .replace(" ", "_")
                 .replace("/", "_")
         }
-        val colorInt = genreName.hashCode()
-        val lightColorHex = "#${(colorInt and 0x00FFFFFF).toString(16).padStart(6, '0').uppercase()}"
-        val darkColorHex = "#${((colorInt xor 0xFFFFFF) and 0x00FFFFFF).toString(16).padStart(6, '0').uppercase()}"
+        val lightThemeColor = GenreThemeUtils.getGenreThemeColor(id, isDark = false)
+        val darkThemeColor = GenreThemeUtils.getGenreThemeColor(id, isDark = true)
         return Genre(
             id = id,
             name = genreName,
-            lightColorHex = lightColorHex,
-            onLightColorHex = "#000000",
-            darkColorHex = darkColorHex,
-            onDarkColorHex = "#FFFFFF"
+            lightColorHex = lightThemeColor.container.toHexString(),
+            onLightColorHex = lightThemeColor.onContainer.toHexString(),
+            darkColorHex = darkThemeColor.container.toHexString(),
+            onDarkColorHex = darkThemeColor.onContainer.toHexString()
         )
     }
 

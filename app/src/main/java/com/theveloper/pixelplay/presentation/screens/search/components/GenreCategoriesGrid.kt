@@ -49,6 +49,7 @@ import com.theveloper.pixelplay.presentation.components.getNavigationBarHeight
 import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.utils.GenreIconProvider
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -157,7 +158,7 @@ private fun GenreCard(
     onClick: () -> Unit,
     isGridView: Boolean
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = LocalPixelPlayDarkTheme.current
     val themeColor = remember(genre, isDark) {
         com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(
             genre = genre,

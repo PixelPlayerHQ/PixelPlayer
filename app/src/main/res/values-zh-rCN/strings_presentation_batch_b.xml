@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AccountsScreen -->
+    <string name="presentation_batch_b_accounts_linked_services">已关联服务</string>
+    <string name="presentation_batch_b_accounts_connected_hero_title">已连接账户</string>
+    <string name="presentation_batch_b_accounts_connected_hero_body">管理已关联的服务提供方，并始终掌控每项集成。</string>
+    <string name="presentation_batch_b_accounts_stat_active">已启用</string>
+    <string name="presentation_batch_b_accounts_stat_available">可用</string>
+    <string name="presentation_batch_b_accounts_status_soon">即将推出</string>
+    <string name="presentation_batch_b_accounts_status_connected">已连接</string>
+    <string name="presentation_batch_b_accounts_open_service">打开服务</string>
+    <string name="presentation_batch_b_accounts_coming_soon_short">即将推出</string>
+    <string name="presentation_batch_b_accounts_logging_out">正在退出登录…</string>
+    <string name="presentation_batch_b_accounts_no_linked_title">还没有已关联的账户</string>
+    <string name="presentation_batch_b_accounts_no_linked_body">连接一个服务提供方后，即可在此页面管理它。</string>
+    <string name="presentation_batch_b_accounts_connect_service">连接 %1$s</string>
+    <string name="presentation_batch_b_accounts_service_paren_coming_soon">%1$s（即将推出）</string>
+    <string name="presentation_batch_b_service_telegram">Telegram</string>
+    <string name="presentation_batch_b_service_netease">网易云音乐</string>
+
+    <!-- PlaylistDetailScreen -->
+    <string name="presentation_batch_b_sort_songs">排序歌曲</string>
+    <string name="presentation_batch_b_more_options">更多选项</string>
+    <string name="presentation_batch_b_play_it">播放</string>
+    <string name="presentation_batch_b_add_songs">添加歌曲</string>
+    <string name="presentation_batch_b_add">添加</string>
+    <string name="presentation_batch_b_remove_songs">移除歌曲</string>
+    <string name="presentation_batch_b_reorder_songs">重新排序歌曲</string>
+    <string name="presentation_batch_b_reorder">重新排序</string>
+    <string name="presentation_batch_b_reorder_song">重新排序歌曲</string>
+    <string name="presentation_batch_b_playlist_empty_title">这个播放列表为空。</string>
+    <string name="presentation_batch_b_playlist_empty_folder_body">这个文件夹中没有歌曲。</string>
+    <string name="presentation_batch_b_playlist_empty_add_hint">点击“添加歌曲”即可开始。</string>
+    <string name="presentation_batch_b_playlist_options_title">播放列表选项</string>
+    <string name="presentation_batch_b_edit_playlist">编辑播放列表</string>
+    <string name="presentation_batch_b_delete_playlist">删除播放列表</string>
+    <string name="presentation_batch_b_set_default_transition">设为默认过渡效果</string>
+    <string name="presentation_batch_b_export_playlist">导出播放列表</string>
+    <string name="presentation_batch_b_delete_playlist_confirm_title">删除播放列表？</string>
+    <string name="presentation_batch_b_delete_playlist_confirm_body">确定要删除这个播放列表吗？</string>
+    <string name="presentation_batch_b_rename_playlist_dialog_title">重命名播放列表</string>
+    <string name="presentation_batch_b_new_name">新名称</string>
+
+    <!-- DailyMixScreen -->
+    <string name="presentation_batch_b_daily_mix_title">每日合辑</string>
+
+    <!-- QuickFillScreen -->
+    <string name="presentation_batch_b_quick_fill_select_songs">选择歌曲</string>
+    <string name="presentation_batch_b_quick_fill_choose_genre">选择流派</string>
+    <string name="presentation_batch_b_search_songs_label">搜索歌曲</string>
+    <string name="presentation_batch_b_select_all">全选</string>
+    <string name="presentation_batch_b_clear">清除</string>
+    <string name="presentation_batch_b_genre_label_format">流派：%1$s</string>
+    <string name="presentation_batch_b_select_a_genre">选择一个流派</string>
+    <string name="presentation_batch_b_quick_fill">快速填充</string>
+    <string name="presentation_batch_b_add_custom_genre">添加自定义</string>
+    <string name="presentation_batch_b_new_genre">新流派</string>
+    <string name="presentation_batch_b_add_custom_genre_title">添加自定义流派</string>
+    <string name="presentation_batch_b_genre_name_label">流派名称</string>
+    <string name="presentation_batch_b_select_icon">选择图标</string>
+
+    <!-- RecentlyPlayedScreen -->
+    <string name="presentation_batch_b_recently_played_title">最近播放</string>
+    <string name="presentation_batch_b_play_latest">播放最新内容</string>
+    <string name="presentation_batch_b_recent_empty_title">%1$s 内还没有最近播放记录</string>
+    <string name="presentation_batch_b_recent_empty_subtitle">更改时间范围，或播放更多歌曲来填充这条时间线。</string>
+    <string name="presentation_batch_b_queue_recently_played">最近播放</string>
+    <string name="presentation_batch_b_date_today">今天</string>
+    <string name="presentation_batch_b_date_yesterday">昨天</string>
+
+    <!-- NavBarCornerRadiusScreen -->
+    <string name="presentation_batch_b_navbar_adjust_title">调整圆角半径</string>
+    <string name="presentation_batch_b_navbar_adjust_subtitle">让导航栏形状的圆角与设备实体边角相匹配，以获得更无缝的视觉效果。</string>
+    <string name="presentation_batch_b_corner_radius_label">圆角半径</string>
+    <string name="presentation_batch_b_corner_dp_format">%1$d dp</string>
+
+    <!-- GenreDetailScreen -->
+    <string name="presentation_batch_b_genre_shuffle_label">随机播放 %1$s</string>
+
+    <plurals name="presentation_batch_b_songs_dot_duration">
+        <item quantity="one">%1$d 首歌曲 • %2$s</item>
+        <item quantity="other">%1$d 首歌曲 • %2$s</item>
+    </plurals>
+</resources>

@@ -53,6 +53,7 @@ import coil.request.ImageRequest
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
@@ -240,23 +241,27 @@ fun GenreDetailScreen(
     
     val customGenres by playerViewModel.customGenres.collectAsStateWithLifecycle()
     val customGenreIcons by playerViewModel.customGenreIcons.collectAsStateWithLifecycle()
+    val genrePaletteStyle by playerViewModel.albumArtPaletteStyle.collectAsStateWithLifecycle(
+        initialValue = AlbumArtPaletteStyle.default
+    )
     val isMiniPlayerVisible = stablePlayerState.currentSong != null
     val fabBottomPadding by animateDpAsState(
         targetValue = if (isMiniPlayerVisible) MiniPlayerHeight + 16.dp else 16.dp,
         label = "fabPadding"
     )
 
-    // Dynamic Theme
-    val genreColorScheme = remember(themeGenre, decodedGenreId, darkMode) {
-        com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreColorScheme(
-            genre = themeGenre,
-            genreIdFallback = decodedGenreId,
-            isDark = darkMode
-        )
-    }
-
     // Capture Neutral Colors from the App Theme (before overriding)
     val baseColorScheme = MaterialTheme.colorScheme
+
+    // Dynamic Theme
+    val genreColorScheme = remember(themeGenre, decodedGenreId, darkMode, genrePaletteStyle) {
+        com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreDetailColorScheme(
+            genre = themeGenre,
+            fallbackGenreId = decodedGenreId,
+            isDark = darkMode,
+            paletteStyle = genrePaletteStyle
+        )
+    }
 
     MaterialTheme(colorScheme = genreColorScheme) {
         Box(

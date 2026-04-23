@@ -299,57 +299,35 @@ class SongMetadataEditor(
 
             val finalFilePath = filePath ?: ""
             val extension = finalFilePath.substringAfterLast('.', "").lowercase(Locale.ROOT)
+            val detectedContainer = if (finalFilePath.isNotBlank() && File(finalFilePath).exists()) {
+                detectContainerFormat(finalFilePath)
+            } else {
+                DetectedContainer.UNKNOWN
+            }
+            val effectiveExtension = if (
+                detectedContainer != DetectedContainer.UNKNOWN &&
+                detectedContainer.canonicalExtension != extension
+            ) {
+                Timber.tag(TAG).w(
+                    "METADATA_EDIT: Extension mismatch — filename has .$extension but magic bytes " +
+                        "indicate ${detectedContainer.name}. Routing write as .${detectedContainer.canonicalExtension} " +
+                        "via temp-file swap to avoid container corruption."
+                )
+                detectedContainer.canonicalExtension
+            } else {
+                extension
+            }
+            val needsExtensionSwap = effectiveExtension != extension
             val flacAnalysis = isProblematicFlacFile(finalFilePath)
             val isHighResFlac = flacAnalysis is FlacAnalysisResult.Problematic
-            val useJAudioTaggerPrimary = extension in setOf("wav", "ogg") || isHighResFlac
+            val useJAudioTaggerPrimary = effectiveExtension in setOf("wav", "ogg") || isHighResFlac
             val fileExists = finalFilePath.isNotBlank() && File(finalFilePath).exists()
 
-            val fileUpdateSuccess = if (!fileExists) {
-                if (isTelegramSong) {
-                    Timber.tag(TAG)
-                        .w("METADATA_EDIT: Telegram file not found (streaming?). Skipping file tags, updating DB only.")
-                    true
-                } else {
-                    Timber.tag(TAG).e("METADATA_EDIT: File does not exist: $finalFilePath")
-                    false
-                }
-            } else if (useJAudioTaggerPrimary) {
-                Timber.tag(TAG)
-                    .d("METADATA_EDIT: Using JAudioTagger as primary for $extension file: $finalFilePath")
-                updateFileMetadataWithJAudioTagger(
-                    filePath = finalFilePath,
-                    newTitle = newTitle,
-                    newArtist = newArtist,
-                    newAlbum = newAlbum,
-                    newGenre = trimmedGenre,
-                    newLyrics = trimmedLyrics,
-                    newTrackNumber = newTrackNumber,
-                    newDiscNumber = newDiscNumber,
-                    replayGainTrackUpdate = replayGainTrackUpdate,
-                    replayGainAlbumUpdate = replayGainAlbumUpdate,
-                    coverArtUpdate = coverArtUpdate
-                )
-            } else {
-                Timber.tag(TAG).d("METADATA_EDIT: Using TagLib for $extension file: $finalFilePath")
-                val tagLibSuccess = updateFileMetadataWithTagLib(
-                    filePath = finalFilePath,
-                    newTitle = newTitle,
-                    newArtist = newArtist,
-                    newAlbum = newAlbum,
-                    newGenre = trimmedGenre,
-                    newLyrics = trimmedLyrics,
-                    newTrackNumber = newTrackNumber,
-                    newDiscNumber = newDiscNumber,
-                    replayGainTrackUpdate = replayGainTrackUpdate,
-                    replayGainAlbumUpdate = replayGainAlbumUpdate,
-                    coverArtUpdate = coverArtUpdate
-                )
-
-                if (!tagLibSuccess) {
-                    Timber.tag(TAG)
-                        .w("METADATA_EDIT: TagLib failed for $extension, falling back to JAudioTagger")
+            val runPipeline: (String) -> Boolean = { path ->
+                if (useJAudioTaggerPrimary) {
+                    Timber.tag(TAG).d("METADATA_EDIT: Using JAudioTagger as primary for $effectiveExtension: $path")
                     updateFileMetadataWithJAudioTagger(
-                        filePath = finalFilePath,
+                        filePath = path,
                         newTitle = newTitle,
                         newArtist = newArtist,
                         newAlbum = newAlbum,
@@ -362,8 +340,53 @@ class SongMetadataEditor(
                         coverArtUpdate = coverArtUpdate
                     )
                 } else {
-                    true
+                    Timber.tag(TAG).d("METADATA_EDIT: Using TagLib for $effectiveExtension: $path")
+                    val tagLibSuccess = updateFileMetadataWithTagLib(
+                        filePath = path,
+                        newTitle = newTitle,
+                        newArtist = newArtist,
+                        newAlbum = newAlbum,
+                        newGenre = trimmedGenre,
+                        newLyrics = trimmedLyrics,
+                        newTrackNumber = newTrackNumber,
+                        newDiscNumber = newDiscNumber,
+                        replayGainTrackUpdate = replayGainTrackUpdate,
+                        replayGainAlbumUpdate = replayGainAlbumUpdate,
+                        coverArtUpdate = coverArtUpdate
+                    )
+                    if (!tagLibSuccess) {
+                        Timber.tag(TAG)
+                            .w("METADATA_EDIT: TagLib failed for $effectiveExtension, falling back to JAudioTagger")
+                        updateFileMetadataWithJAudioTagger(
+                            filePath = path,
+                            newTitle = newTitle,
+                            newArtist = newArtist,
+                            newAlbum = newAlbum,
+                            newGenre = trimmedGenre,
+                            newLyrics = trimmedLyrics,
+                            newTrackNumber = newTrackNumber,
+                            newDiscNumber = newDiscNumber,
+                            replayGainTrackUpdate = replayGainTrackUpdate,
+                            replayGainAlbumUpdate = replayGainAlbumUpdate,
+                            coverArtUpdate = coverArtUpdate
+                        )
+                    } else true
                 }
+            }
+
+            val fileUpdateSuccess = if (!fileExists) {
+                if (isTelegramSong) {
+                    Timber.tag(TAG)
+                        .w("METADATA_EDIT: Telegram file not found (streaming?). Skipping file tags, updating DB only.")
+                    true
+                } else {
+                    Timber.tag(TAG).e("METADATA_EDIT: File does not exist: $finalFilePath")
+                    false
+                }
+            } else if (needsExtensionSwap) {
+                writeMetadataViaExtensionSwap(finalFilePath, effectiveExtension, runPipeline)
+            } else {
+                runPipeline(finalFilePath)
             }
 
             if (!fileUpdateSuccess) {
@@ -469,6 +492,52 @@ class SongMetadataEditor(
     }
 
     /**
+     * Copies [originalPath] to a temp file with [correctExtension], runs [writer] on the temp
+     * path (so JAudioTagger/TagLib pick the correct parser by extension), and streams the edited
+     * bytes back into the original location. The original filename/extension are preserved so
+     * MediaStore URIs stay valid; only the file's byte content is replaced.
+     */
+    private fun writeMetadataViaExtensionSwap(
+        originalPath: String,
+        correctExtension: String,
+        writer: (String) -> Boolean
+    ): Boolean {
+        val originalFile = File(originalPath)
+        val tempFile = File(
+            context.cacheDir,
+            "metadata_edit_${System.nanoTime()}.$correctExtension"
+        )
+        return try {
+            originalFile.inputStream().use { input ->
+                FileOutputStream(tempFile).use { out -> input.copyTo(out) }
+            }
+            Timber.tag(TAG).d(
+                "METADATA_EDIT: Copied ${originalFile.length()} bytes to temp ${tempFile.name} for extension-corrected write"
+            )
+            val writeOk = writer(tempFile.absolutePath)
+            if (!writeOk) {
+                Timber.tag(TAG).e("METADATA_EDIT: Writer failed on temp file ${tempFile.absolutePath}")
+                return false
+            }
+            // Stream edited bytes back to the original path (truncate + overwrite).
+            tempFile.inputStream().use { input ->
+                FileOutputStream(originalFile, false).use { out -> input.copyTo(out) }
+            }
+            Timber.tag(TAG).d(
+                "METADATA_EDIT: Restored ${tempFile.length()} edited bytes back to $originalPath"
+            )
+            true
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "METADATA_EDIT: Extension-swap pipeline failed for $originalPath")
+            false
+        } finally {
+            if (tempFile.exists() && !tempFile.delete()) {
+                Timber.tag(TAG).w("METADATA_EDIT: Could not delete temp file ${tempFile.absolutePath}")
+            }
+        }
+    }
+
+    /**
      * FLAC files with high sample rates (>96kHz) or bit depths (>24bit) can cause issues with TagLib.
      * This function detects such files and logs warnings.
      */
@@ -534,6 +603,67 @@ class SongMetadataEditor(
         data class Safe(val sampleRate: Int, val bitsPerSample: Int) : FlacAnalysisResult()
         data class Problematic(val sampleRate: Int, val bitsPerSample: Int) : FlacAnalysisResult()
         object Unknown : FlacAnalysisResult()
+    }
+
+    private enum class DetectedContainer(val canonicalExtension: String) {
+        MP3("mp3"),
+        MP4("m4a"),
+        FLAC("flac"),
+        OGG("ogg"),
+        WAV("wav"),
+        UNKNOWN("")
+    }
+
+    /**
+     * Detects the actual audio container by reading the file's magic bytes.
+     * Many files in the wild have wrong extensions (e.g. MP4/M4A served as .mp3 by YouTube rippers
+     * or Telegram). Writing ID3v2 tags to an MP4 container corrupts it irreversibly, so the
+     * tag-writing pipeline must route by real content, not by extension.
+     */
+    private fun detectContainerFormat(filePath: String): DetectedContainer {
+        return try {
+            File(filePath).inputStream().use { input ->
+                val header = ByteArray(12)
+                if (input.read(header) < 12) return DetectedContainer.UNKNOWN
+                when {
+                    // "ID3" marker → MP3 with ID3v2 tag
+                    header[0] == 'I'.code.toByte() &&
+                        header[1] == 'D'.code.toByte() &&
+                        header[2] == '3'.code.toByte() -> DetectedContainer.MP3
+                    // MP3 frame sync (0xFFE... 11-bit sync word)
+                    header[0] == 0xFF.toByte() &&
+                        (header[1].toInt() and 0xE0) == 0xE0.toInt() -> DetectedContainer.MP3
+                    // "ftyp" at offset 4 → ISO BMFF (MP4/M4A)
+                    header[4] == 'f'.code.toByte() &&
+                        header[5] == 't'.code.toByte() &&
+                        header[6] == 'y'.code.toByte() &&
+                        header[7] == 'p'.code.toByte() -> DetectedContainer.MP4
+                    // "fLaC"
+                    header[0] == 'f'.code.toByte() &&
+                        header[1] == 'L'.code.toByte() &&
+                        header[2] == 'a'.code.toByte() &&
+                        header[3] == 'C'.code.toByte() -> DetectedContainer.FLAC
+                    // "OggS"
+                    header[0] == 'O'.code.toByte() &&
+                        header[1] == 'g'.code.toByte() &&
+                        header[2] == 'g'.code.toByte() &&
+                        header[3] == 'S'.code.toByte() -> DetectedContainer.OGG
+                    // "RIFF" + "WAVE"
+                    header[0] == 'R'.code.toByte() &&
+                        header[1] == 'I'.code.toByte() &&
+                        header[2] == 'F'.code.toByte() &&
+                        header[3] == 'F'.code.toByte() &&
+                        header[8] == 'W'.code.toByte() &&
+                        header[9] == 'A'.code.toByte() &&
+                        header[10] == 'V'.code.toByte() &&
+                        header[11] == 'E'.code.toByte() -> DetectedContainer.WAV
+                    else -> DetectedContainer.UNKNOWN
+                }
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w(e, "Container detection failed for $filePath")
+            DetectedContainer.UNKNOWN
+        }
     }
 
     private fun updateFileMetadataWithTagLib(

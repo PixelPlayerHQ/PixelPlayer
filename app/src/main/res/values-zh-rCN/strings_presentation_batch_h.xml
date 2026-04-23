@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cast: current/max route volume (integer steps) -->
+    <string name="presentation_batch_h_cast_volume_levels">%1$d/%2$d</string>
+    <!-- AI usage log: provider and model (dynamic) -->
+    <string name="presentation_batch_h_ai_usage_provider_model">%1$s · %2$s</string>
+    <!-- Artist settings: example row prefix -->
+    <string name="presentation_batch_h_artist_example_bullet">♪</string>
+    <!-- Mashup deck: speed multiplier label (two decimal places) -->
+    <string name="presentation_batch_h_mashup_speed_multiplier">x%1$.2f</string>
+    <!-- Beta info sheet: glyph in badge -->
+    <string name="presentation_batch_h_beta_glyph">β</string>
+    <!-- Watch transfer: transferred size / total size (formatted sizes) -->
+    <string name="presentation_batch_h_transfer_bytes_progress">%1$s / %2$s</string>
+</resources>

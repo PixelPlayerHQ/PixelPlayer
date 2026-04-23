@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Web login security notes (QQ / NetEase) -->
+    <string name="auth_web_login_security_note_qq">安全提醒：你的密码只会在 QQ 音乐网页中输入。PixelPlay 会存储会话 Cookie 以同步你的曲库。</string>
+    <string name="auth_web_login_security_note_netease">安全提醒：你的密码只会在网易云音乐网页中输入。PixelPlay 会存储会话 Cookie（MUSIC_U）以同步你的曲库。</string>
+    <string name="auth_error_read_qq_cookies_failed">读取 QQ 音乐 Cookie 失败：%1$s</string>
+    <string name="auth_error_read_netease_cookies_failed">读取网易云音乐 Cookie 失败：%1$s</string>
+
+    <!-- Google Drive folder setup -->
+    <string name="auth_gdrive_setting_up">正在设置 Google Drive…</string>
+    <string name="auth_gdrive_connect_title">连接 Google Drive</string>
+    <string name="auth_gdrive_connect_subtitle">直接从你的 Google Drive 串流播放音乐文件</string>
+    <string name="auth_gdrive_sign_in_with_google">使用 Google 登录</string>
+    <string name="auth_gdrive_select_music_folder_title">选择音乐文件夹</string>
+    <string name="auth_gdrive_select_music_folder_subtitle">选择或创建一个文件夹作为你的音乐来源</string>
+    <string name="auth_gdrive_create_pixelplay_music_title">创建“PixelPlay Music”</string>
+    <string name="auth_gdrive_create_folder_here_hint">在这里新建一个文件夹来存放你的音乐</string>
+    <string name="auth_gdrive_no_folders_here">这里没有文件夹</string>
+    <string name="auth_gdrive_use_this_folder">使用</string>
+    <string name="auth_gdrive_cd_open_folder">打开文件夹</string>
+</resources>

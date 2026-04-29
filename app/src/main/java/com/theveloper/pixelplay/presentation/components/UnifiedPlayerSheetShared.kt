@@ -67,7 +67,6 @@ internal fun MiniPlayerContentInternal(
     isPreparingPlayback: Boolean,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
-    cornerRadiusAlb: Dp,
     onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {

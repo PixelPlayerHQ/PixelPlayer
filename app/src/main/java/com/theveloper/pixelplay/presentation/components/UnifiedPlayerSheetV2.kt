@@ -230,6 +230,9 @@ fun UnifiedPlayerSheetV2(
         with(density) { configuration.screenHeightDp.dp.toPx() }
     }
     val miniPlayerContentHeightPx = remember { with(density) { MiniPlayerHeight.toPx() } }
+    val playerContentStableMeasureHeightPx = remember(containerHeight, density) {
+        with(density) { containerHeight.toPx().roundToInt().coerceAtLeast(0) }
+    }
 
     val isCastConnecting by playerViewModel.isCastConnecting.collectAsStateWithLifecycle()
     val showPlayerContentArea by remember(infrequentPlayerState.currentSong, isCastConnecting) {
@@ -644,33 +647,48 @@ fun UnifiedPlayerSheetV2(
                                 playerViewModel.togglePlayerSheetState()
                             }
                     ) {
-                        UnifiedPlayerMiniAndFullLayers(
-                            currentSong = infrequentPlayerState.currentSong,
-                            miniPlayerScheme = miniPlayerScheme,
-                            overallSheetTopCornerRadiusProvider = overallSheetTopCornerRadiusProvider,
-                            infrequentPlayerState = infrequentPlayerState,
-                            isCastConnecting = isCastConnecting,
-                            isPreparingPlayback = isPreparingPlayback,
-                            playerContentExpansionFraction = playerContentExpansionFraction,
-                            albumColorScheme = albumColorScheme,
-                            bottomSheetOpenFraction = bottomSheetOpenFraction,
-                            fullPlayerVisualState = fullPlayerVisualState,
-                            containerHeight = containerHeight,
-                            currentQueueSourceName = currentQueueSourceName,
-                            currentSheetContentState = currentSheetContentState,
-                            carouselStyle = carouselStyle,
-                            fullPlayerLoadingTweaks = fullPlayerLoadingTweaks,
-                            isSheetDragGestureActive = sheetBackAndDragState.isDraggingPlayerArea,
-                            playerViewModel = playerViewModel,
-                            currentPositionProvider = positionToDisplayProvider,
-                            isFavorite = isFavorite,
-                            shouldRenderFullPlayer = shouldRenderFullPlayer,
-                            onShowQueueClicked = sheetActionHandlers.openQueueSheet,
-                            onQueueDragStart = sheetActionHandlers.beginQueueDrag,
-                            onQueueDrag = sheetActionHandlers.dragQueueBy,
-                            onQueueRelease = sheetActionHandlers.endQueueDrag,
-                            onShowCastClicked = castSheetState.openCastSheet
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .layout { measurable, constraints ->
+                                    val placeable = measurable.measure(
+                                        constraints.copy(
+                                            minHeight = playerContentStableMeasureHeightPx,
+                                            maxHeight = playerContentStableMeasureHeightPx
+                                        )
+                                    )
+                                    layout(constraints.maxWidth, constraints.maxHeight) {
+                                        placeable.placeRelative(0, 0)
+                                    }
+                                }
+                        ) {
+                            UnifiedPlayerMiniAndFullLayers(
+                                currentSong = infrequentPlayerState.currentSong,
+                                miniPlayerScheme = miniPlayerScheme,
+                                infrequentPlayerState = infrequentPlayerState,
+                                isCastConnecting = isCastConnecting,
+                                isPreparingPlayback = isPreparingPlayback,
+                                playerContentExpansionFraction = playerContentExpansionFraction,
+                                albumColorScheme = albumColorScheme,
+                                bottomSheetOpenFraction = bottomSheetOpenFraction,
+                                fullPlayerVisualState = fullPlayerVisualState,
+                                containerHeight = containerHeight,
+                                currentQueueSourceName = currentQueueSourceName,
+                                currentSheetContentState = currentSheetContentState,
+                                carouselStyle = carouselStyle,
+                                fullPlayerLoadingTweaks = fullPlayerLoadingTweaks,
+                                isSheetDragGestureActive = sheetBackAndDragState.isDraggingPlayerArea,
+                                playerViewModel = playerViewModel,
+                                currentPositionProvider = positionToDisplayProvider,
+                                isFavorite = isFavorite,
+                                shouldRenderFullPlayer = shouldRenderFullPlayer,
+                                onShowQueueClicked = sheetActionHandlers.openQueueSheet,
+                                onQueueDragStart = sheetActionHandlers.beginQueueDrag,
+                                onQueueDrag = sheetActionHandlers.dragQueueBy,
+                                onQueueRelease = sheetActionHandlers.endQueueDrag,
+                                onShowCastClicked = castSheetState.openCastSheet
+                            )
+                        }
                     }
                 }
 

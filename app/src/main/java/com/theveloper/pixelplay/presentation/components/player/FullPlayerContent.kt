@@ -581,7 +581,8 @@ fun FullPlayerContent(
             chipColor = playerOnAccentColor.copy(alpha = 0.8f),
             chipContentColor = playerAccentColor,
             onQueueClick = onSongMetadataQueueClick,
-            onArtistClick = onSongMetadataArtistClick
+            onArtistClick = onSongMetadataArtistClick,
+            marqueeEnabled = allowRealtimeUpdates
         )
     }
 
@@ -603,7 +604,8 @@ fun FullPlayerContent(
             chipColor = playerOnAccentColor.copy(alpha = 0.8f),
             chipContentColor = playerAccentColor,
             onQueueClick = onSongMetadataQueueClick,
-            onArtistClick = onSongMetadataArtistClick
+            onArtistClick = onSongMetadataArtistClick,
+            marqueeEnabled = allowRealtimeUpdates
         )
     }
 
@@ -1299,7 +1301,8 @@ private fun FullPlayerSongMetadataSection(
     chipColor: Color,
     chipContentColor: Color,
     onQueueClick: () -> Unit,
-    onArtistClick: () -> Unit
+    onArtistClick: () -> Unit,
+    marqueeEnabled: Boolean
 ) {
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delaySongMetadata
 
@@ -1343,7 +1346,8 @@ private fun FullPlayerSongMetadataSection(
             chipContentColor = chipContentColor,
             showQueueButton = isLandscape,
             onClickQueue = onQueueClick,
-            onClickArtist = onArtistClick
+            onClickArtist = onArtistClick,
+            marqueeEnabled = marqueeEnabled
         )
     }
 }
@@ -1442,6 +1446,7 @@ private fun SongMetadataDisplaySection(
     showQueueButton: Boolean,
     onClickQueue: () -> Unit,
     onClickArtist: () -> Unit,
+    marqueeEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1463,6 +1468,7 @@ private fun SongMetadataDisplaySection(
                 gradientEdgeColor = gradientEdgeColor,
                 playerViewModel = playerViewModel,
                 onClickArtist = onClickArtist,
+                marqueeEnabled = marqueeEnabled,
                 modifier = Modifier
                     .weight(1f)
                     .align(Alignment.CenterVertically)
@@ -2110,6 +2116,7 @@ private fun PlayerSongInfo(
     gradientEdgeColor: Color,
     playerViewModel: PlayerViewModel,
     onClickArtist: () -> Unit,
+    marqueeEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -2139,17 +2146,13 @@ private fun PlayerSongInfo(
                 translationY = (1f - fraction) * 24f
             }
     ) {
-        // We pass 1f to AutoScrollingTextOnDemand because the alpha/translation is now handled by the parent Column graphicsLayer
-        // and we want it "fully rendered" but hidden/moved by the layer.
-        // Actually, AutoScrollingTextOnDemand uses expansionFraction to start scrolling only when fully expanded?
-        // Let's check AutoScrollingTextOnDemand. Assuming it uses it for scrolling trigger.
-        // If we want to avoid recomposition, we might need to pass the provider or just 1f if scrolling logic handles itself.
-        // For now, let's pass the current value from provider for logic correctness, but ideally this component should be optimized too.
         AutoScrollingTextOnDemand(
             title,
             titleStyle,
             gradientEdgeColor,
             expansionFractionProvider,
+            enabled = marqueeEnabled,
+            startDelayAfterExpandedMillis = 320L,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -2161,6 +2164,8 @@ private fun PlayerSongInfo(
             style = artistStyle,
             gradientEdgeColor = gradientEdgeColor,
             expansionFractionProvider = expansionFractionProvider,
+            enabled = marqueeEnabled,
+            startDelayAfterExpandedMillis = 320L,
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(

@@ -13,6 +13,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -29,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Constraints
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun AutoScrollingTextOnDemand(
@@ -36,10 +39,35 @@ fun AutoScrollingTextOnDemand(
     style: TextStyle,
     gradientEdgeColor: Color,
     expansionFractionProvider: () -> Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    startDelayAfterExpandedMillis: Long = 0L
 ) {
     var overflow by remember { mutableStateOf(false) }
-    val canStart by remember { derivedStateOf { expansionFractionProvider() > 0.99f && overflow } }
+    var expansionReady by remember { mutableStateOf(false) }
+
+    LaunchedEffect(enabled, expansionFractionProvider, startDelayAfterExpandedMillis) {
+        if (!enabled) {
+            expansionReady = false
+            return@LaunchedEffect
+        }
+
+        snapshotFlow { expansionFractionProvider() > 0.99f }
+            .collectLatest { ready ->
+                if (!ready) {
+                    expansionReady = false
+                } else {
+                    if (startDelayAfterExpandedMillis > 0L) {
+                        delay(startDelayAfterExpandedMillis)
+                    }
+                    expansionReady = true
+                }
+            }
+    }
+
+    val canStart by remember {
+        derivedStateOf { enabled && expansionReady && overflow }
+    }
 
 
 // Usamos un Text "medidor" sólo la primera composición para detectar overflow.

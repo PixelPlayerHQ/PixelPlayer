@@ -24,8 +24,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,7 +42,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     currentSong: Song?,
     miniPlayerScheme: ColorScheme?,
-    overallSheetTopCornerRadiusProvider: () -> Dp,
     infrequentPlayerState: StablePlayerState,
     isCastConnecting: Boolean,
     isPreparingPlayback: Boolean,
@@ -89,21 +86,17 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         }
                         .zIndex(miniPlayerZIndex)
                 ) {
-                    val miniAlbumCornerRadius by remember(overallSheetTopCornerRadiusProvider) {
-                        derivedStateOf {
-                            (overallSheetTopCornerRadiusProvider().value * 0.5f).dp
-                        }
-                    }
                     MiniPlayerContentInternal(
                         song = currentSongNonNull,
-                        cornerRadiusAlb = miniAlbumCornerRadius,
                         isPlaying = infrequentPlayerState.isPlaying,
                         isCastConnecting = isCastConnecting,
                         isPreparingPlayback = isPreparingPlayback,
                         onPlayPause = { playerViewModel.playPause() },
                         onPrevious = { playerViewModel.previousSong() },
                         onNext = { playerViewModel.nextSong() },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(MiniPlayerHeight)
                     )
                 }
             }

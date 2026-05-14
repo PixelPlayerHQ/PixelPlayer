@@ -201,10 +201,27 @@ class TelegramStreamProxy @Inject constructor(
 
                             var cachedDownloadedPrefixSize = fileInfo?.local?.downloadedPrefixSize?.toLong() ?: 0L
 
+                            // Fire tag enrichment once we have enough bytes on disk.
+                            // 512 KB comfortably covers ID3v2/FLAC/OGG text-tag blocks
+                            // without waiting for the full download to finish. The flag
+                            // prevents a second attempt if the player seeks and re-enters
+                            // this loop. enrichFromPartialFile() is a no-op if the song
+                            // is already marked metadataEnriched.
+                            var enrichmentFired = false
+                            val enrichmentThreshold = 512 * 1024L
+
                             while (true) {
                                 // 1. Check if we've reached the end of the requested range
                                 val remaining = end - currentPos + 1
                                 if (remaining <= 0) break
+
+                                // Fire metadata enrichment once the threshold is reached.
+                                if (!enrichmentFired && cachedDownloadedPrefixSize >= enrichmentThreshold) {
+                                    enrichmentFired = true
+                                    proxyScope.launch {
+                                        telegramRepository.enrichFromPartialFile(fileId, path)
+                                    }
+                                }
 
                                 // 2. Check strict limit based on valid downloaded bytes
                                 if (currentPos >= cachedDownloadedPrefixSize) {

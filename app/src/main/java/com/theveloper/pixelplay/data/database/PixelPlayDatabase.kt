@@ -36,7 +36,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AiCacheEntity::class,
         AiUsageEntity::class
     ],
-    version = 41,
+    version = 42,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -622,6 +622,21 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_songs_parent_directory_path_source_type_id " +
                         "ON songs(parent_directory_path, source_type, id)"
                 )
+            }
+        }
+
+        val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN album TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN album_artist TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN genre TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN lyrics TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN track_number INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN disc_number INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN year INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN bitrate INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN sample_rate INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN metadata_enriched INTEGER NOT NULL DEFAULT 0")
             }
         }
 

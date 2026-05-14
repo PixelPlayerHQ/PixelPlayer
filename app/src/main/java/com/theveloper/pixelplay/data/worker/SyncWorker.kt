@@ -1432,6 +1432,7 @@ constructor(
             val artistsToInsert = mutableMapOf<Long, ArtistEntity>() // Map to dedup by ID
             val albumsToInsert = mutableMapOf<Long, AlbumEntity>()   // Map to dedup by ID
             val crossRefsToInsert = mutableListOf<SongArtistCrossRef>()
+            val embeddedLyricsToInsert = mutableListOf<Pair<Long, String>>()
             
             telegramSongs.forEach { tSong ->
                 val channelName = channels[tSong.chatId]?.title ?: "Telegram Stream"
@@ -1457,30 +1458,52 @@ constructor(
                 var realSampleRate: Int? = null
                 var resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
                 
-                val file = java.io.File(tSong.filePath)
-                if (tSong.filePath.isNotEmpty() && file.exists()) {
-                     try {
-                        AudioMetadataReader.read(file, readArtwork = false)?.let { meta ->
-                            if (!meta.title.isNullOrBlank()) realTitle = meta.title
-                            if (!meta.artist.isNullOrBlank()) realArtistName = meta.artist
-                            if (!meta.album.isNullOrBlank()) realAlbumName = meta.album
-                            if (!meta.albumArtist.isNullOrBlank()) {
-                                realAlbumArtist = meta.albumArtist
-                            } else if (!realArtistName.isBlank()) {
-                                realAlbumArtist = realArtistName
+                if (tSong.metadataEnriched) {
+                    // Metadata was already read from the file's embedded tags on first play
+                    // and stored persistently — use it directly, no file I/O needed.
+                    realTitle = tSong.title
+                    realArtistName = tSong.artist
+                    if (!tSong.album.isNullOrBlank()) realAlbumName = tSong.album
+                    if (!tSong.albumArtist.isNullOrBlank()) {
+                        realAlbumArtist = tSong.albumArtist
+                    } else if (realArtistName.isNotBlank()) {
+                        realAlbumArtist = realArtistName
+                    }
+                    if (!tSong.genre.isNullOrBlank()) realGenre = tSong.genre
+                    if (!tSong.lyrics.isNullOrBlank()) realLyrics = tSong.lyrics
+                    if (tSong.trackNumber != null) realTrackNumber = tSong.trackNumber
+                    if (tSong.discNumber != null) realDiscNumber = tSong.discNumber
+                    if (tSong.year != null) realYear = tSong.year
+                    if (tSong.duration > 0L) realDuration = tSong.duration
+                    if (tSong.bitrate != null && tSong.bitrate > 0) realBitrate = tSong.bitrate
+                    if (tSong.sampleRate != null && tSong.sampleRate > 0) realSampleRate = tSong.sampleRate
+                    resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
+                } else {
+                    val file = java.io.File(tSong.filePath)
+                    if (tSong.filePath.isNotEmpty() && file.exists()) {
+                        try {
+                            AudioMetadataReader.read(file, readArtwork = false)?.let { meta ->
+                                if (!meta.title.isNullOrBlank()) realTitle = meta.title
+                                if (!meta.artist.isNullOrBlank()) realArtistName = meta.artist
+                                if (!meta.album.isNullOrBlank()) realAlbumName = meta.album
+                                if (!meta.albumArtist.isNullOrBlank()) {
+                                    realAlbumArtist = meta.albumArtist
+                                } else if (!realArtistName.isBlank()) {
+                                    realAlbumArtist = realArtistName
+                                }
+                                if (!meta.genre.isNullOrBlank()) realGenre = meta.genre
+                                if (!meta.lyrics.isNullOrBlank()) realLyrics = meta.lyrics
+                                if (meta.trackNumber != null) realTrackNumber = meta.trackNumber
+                                if (meta.discNumber != null) realDiscNumber = meta.discNumber
+                                if (meta.year != null) realYear = meta.year
+                                if (meta.durationMs != null && meta.durationMs > 0L) realDuration = meta.durationMs
+                                if (meta.bitrate != null && meta.bitrate > 0) realBitrate = meta.bitrate
+                                if (meta.sampleRate != null && meta.sampleRate > 0) realSampleRate = meta.sampleRate
                             }
-                            if (!meta.genre.isNullOrBlank()) realGenre = meta.genre
-                            if (!meta.lyrics.isNullOrBlank()) realLyrics = meta.lyrics
-                            if (meta.trackNumber != null) realTrackNumber = meta.trackNumber
-                            if (meta.discNumber != null) realDiscNumber = meta.discNumber
-                            if (meta.year != null) realYear = meta.year
-                            if (meta.durationMs != null && meta.durationMs > 0L) realDuration = meta.durationMs
-                            if (meta.bitrate != null && meta.bitrate > 0) realBitrate = meta.bitrate
-                            if (meta.sampleRate != null && meta.sampleRate > 0) realSampleRate = meta.sampleRate
+                            resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
+                        } catch (e: Exception) {
+                            // Ignore read errors, fall back to TdApi metadata
                         }
-                        resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
-                    } catch (e: Exception) {
-                        // Ignore read errors, fall back to TdApi metadata
                     }
                 }
                 
@@ -1594,8 +1617,12 @@ constructor(
                     sourceType = SourceType.TELEGRAM
                 )
                 songsToInsert.add(songEntity)
+
+                if (!realLyrics.isNullOrBlank()) {
+                    embeddedLyricsToInsert.add(finalSongId to realLyrics)
+                }
             }
-            
+
             // Calculate song counts for the albums we are inserting
             val albumCounts = songsToInsert.groupingBy { it.albumId }.eachCount()
 
@@ -1613,6 +1640,13 @@ constructor(
                 crossRefs = crossRefsToInsert,
                 deletedSongIds = deletedUnifiedSongIds
             )
+
+            // Persist embedded lyrics from file tags. Uses INSERT OR IGNORE so user-fetched
+            // or manually-set lyrics are never overwritten.
+            if (embeddedLyricsToInsert.isNotEmpty()) {
+                lyricsRepository.saveEmbeddedLyricsIfAbsent(embeddedLyricsToInsert)
+            }
+
             Log.i(TAG, "Synced ${songsToInsert.size} Telegram songs with Unified Metadata.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to sync Telegram data", e)

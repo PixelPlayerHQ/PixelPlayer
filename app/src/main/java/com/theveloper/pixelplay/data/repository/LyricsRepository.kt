@@ -43,6 +43,13 @@ interface LyricsRepository {
      * Update lyrics for a song in the database.
      */
     suspend fun updateLyrics(songId: Long, lyricsContent: String)
+
+    /**
+     * Persist embedded lyrics read from a file's tags for multiple songs in one pass.
+     * Uses INSERT OR IGNORE so existing user-fetched or manually-set lyrics are never overwritten.
+     * Entries with blank content are silently skipped.
+     */
+    suspend fun saveEmbeddedLyricsIfAbsent(entries: List<Pair<Long, String>>)
     
     /**
      * Reset lyrics for a song (remove from database and cache).

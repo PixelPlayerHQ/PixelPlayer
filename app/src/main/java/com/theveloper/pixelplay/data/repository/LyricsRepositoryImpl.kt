@@ -1436,6 +1436,22 @@ class LyricsRepositoryImpl @Inject constructor(
         LogUtils.d(this@LyricsRepositoryImpl, "Updated and cached lyrics for songId: $songId")
     }
 
+    override suspend fun saveEmbeddedLyricsIfAbsent(entries: List<Pair<Long, String>>): Unit = withContext(Dispatchers.IO) {
+        val entities = entries.mapNotNull { (songId, content) ->
+            val parsed = LyricsUtils.parseLyrics(content)
+            if (!parsed.isValid()) return@mapNotNull null
+            com.theveloper.pixelplay.data.database.LyricsEntity(
+                songId = songId,
+                content = content,
+                isSynced = parsed.synced?.isNotEmpty() == true,
+                source = "embedded"
+            )
+        }
+        if (entities.isNotEmpty()) {
+            lyricsDao.insertAllIfAbsent(entities)
+        }
+    }
+
     override suspend fun resetLyrics(songId: Long): Unit = withContext(Dispatchers.IO) {
         LogUtils.d(this, "Resetting lyrics for songId: $songId")
         val cacheKey = generateCacheKey(songId.toString())

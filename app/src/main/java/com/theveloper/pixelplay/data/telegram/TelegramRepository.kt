@@ -44,6 +44,11 @@ class TelegramRepository @Inject constructor(
         private const val AUTH_REQUEST_TIMEOUT_MS = 20_000L
         private const val TELEGRAM_PLAYLIST_PREFIX = "telegram_channel:"
         private const val TELEGRAM_TOPIC_PLAYLIST_PREFIX = "telegram_topic:"
+        // Minimum bytes on disk before attempting a tag read on a partial download.
+        // ID3v2/FLAC/OGG text tags live near the start of the file and fit easily
+        // within this window; ID3v1-only files will still be caught by the
+        // full-download path in persistSongFilePathIfNeeded.
+        private const val MIN_ENRICHMENT_FILE_SIZE = 64 * 1024L // 64 KB
     }
 
     val authorizationState: Flow<TdApi.AuthorizationState?> = clientManager.authorizationState
@@ -622,10 +627,62 @@ class TelegramRepository @Inject constructor(
         if (path.isNullOrBlank()) return
 
         val existingSong = dao.getSongByFileId(fileId) ?: return
-        if (existingSong.filePath == path) return
+        val pathChanged = existingSong.filePath != path
+        if (!pathChanged && existingSong.metadataEnriched) return
 
-        dao.insertSongs(listOf(existingSong.copy(filePath = path)))
-        _songFileUpdated.tryEmit(existingSong.id)
+        if (pathChanged) {
+            dao.insertSongs(listOf(existingSong.copy(filePath = path)))
+            _songFileUpdated.tryEmit(existingSong.id)
+        }
+
+        if (!existingSong.metadataEnriched) {
+            repositoryScope.launch {
+                enrichMetadataFromFile(existingSong.copy(filePath = path))
+            }
+        }
+    }
+
+    /**
+     * Called by the stream proxy once enough bytes have landed on disk to read tags
+     * without waiting for the full download to complete.
+     */
+    suspend fun enrichFromPartialFile(fileId: Int, path: String) {
+        val song = dao.getSongByFileId(fileId) ?: return
+        if (song.metadataEnriched) return
+        enrichMetadataFromFile(song.copy(filePath = path))
+    }
+
+    private suspend fun enrichMetadataFromFile(song: TelegramSongEntity) {
+        val file = java.io.File(song.filePath)
+        if (!file.exists()) return
+        // Guard against being called when the file is still nearly empty (e.g. immediately
+        // after TDLib allocates the path but before any bytes are written). TagLib on a
+        // near-empty file always returns null, so skip the call entirely.
+        if (file.length() < MIN_ENRICHMENT_FILE_SIZE) return
+        try {
+            val meta = com.theveloper.pixelplay.data.media.AudioMetadataReader.read(file, readArtwork = false)
+                ?: return
+            val enriched = song.copy(
+                title = meta.title?.takeIf { it.isNotBlank() } ?: song.title,
+                artist = meta.artist?.takeIf { it.isNotBlank() } ?: song.artist,
+                duration = meta.durationMs?.takeIf { it > 0L } ?: song.duration,
+                album = meta.album?.takeIf { it.isNotBlank() },
+                albumArtist = meta.albumArtist?.takeIf { it.isNotBlank() },
+                genre = meta.genre?.takeIf { it.isNotBlank() },
+                lyrics = meta.lyrics?.takeIf { it.isNotBlank() },
+                trackNumber = meta.trackNumber,
+                discNumber = meta.discNumber,
+                year = meta.year,
+                bitrate = meta.bitrate?.takeIf { it > 0 },
+                sampleRate = meta.sampleRate?.takeIf { it > 0 },
+                metadataEnriched = true
+            )
+            dao.insertSongs(listOf(enriched))
+            _songFileUpdated.tryEmit(song.id)
+            Timber.d("TelegramRepo: enriched metadata for fileId=${song.fileId}: ${enriched.title} / ${enriched.artist}")
+        } catch (e: Exception) {
+            Timber.w("TelegramRepo: metadata enrichment failed for fileId=${song.fileId}: ${e.message}")
+        }
     }
 
     suspend fun downloadFileAwait(fileId: Int, priority: Int = 1): String? {

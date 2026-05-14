@@ -14,6 +14,10 @@ interface LyricsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(lyrics: List<LyricsEntity>)
 
+    // IGNORE strategy: will not overwrite rows that already exist (e.g. user-fetched or manual lyrics).
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllIfAbsent(lyrics: List<LyricsEntity>)
+
     @Query("SELECT * FROM lyrics WHERE songId = :songId")
     suspend fun getLyrics(songId: Long): LyricsEntity?
 

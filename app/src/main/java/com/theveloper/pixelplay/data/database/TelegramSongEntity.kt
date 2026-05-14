@@ -36,7 +36,20 @@ data class TelegramSongEntity(
     @ColumnInfo(name = "album_art_uri") val albumArtUriString: String? = null,
 
     // NEW: null means the message is not in a topic / channel is not a forum
-    @ColumnInfo(name = "thread_id") val threadId: Long? = null
+    @ColumnInfo(name = "thread_id") val threadId: Long? = null,
+
+    // Rich metadata read from the file's embedded tags after first download.
+    // Null means not yet read (metadataEnriched == false).
+    @ColumnInfo(name = "album") val album: String? = null,
+    @ColumnInfo(name = "album_artist") val albumArtist: String? = null,
+    @ColumnInfo(name = "genre") val genre: String? = null,
+    @ColumnInfo(name = "lyrics") val lyrics: String? = null,
+    @ColumnInfo(name = "track_number") val trackNumber: Int? = null,
+    @ColumnInfo(name = "disc_number") val discNumber: Int? = null,
+    @ColumnInfo(name = "year") val year: Int? = null,
+    @ColumnInfo(name = "bitrate") val bitrate: Int? = null,
+    @ColumnInfo(name = "sample_rate") val sampleRate: Int? = null,
+    @ColumnInfo(name = "metadata_enriched") val metadataEnriched: Boolean = false
 )
 
 fun TelegramSongEntity.resolveAlbumArtUri(): String? {

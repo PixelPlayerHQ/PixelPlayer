@@ -8,6 +8,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -53,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
@@ -60,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.delay
+import org.drinkless.tdlib.TdApi
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -75,6 +80,8 @@ fun TelegramChannelSearchSheet(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    val myChannels by viewModel.myChannels.collectAsStateWithLifecycle()
+    val isLoadingMyChannels by viewModel.isLoadingMyChannels.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusRequester = remember { FocusRequester() }
 
@@ -92,15 +99,9 @@ fun TelegramChannelSearchSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        // can be used for resetting sheet on dismiss/every open to start as fresh. Theo you can use this if you want it to reset.
-//        onDismissRequest = {
-//            viewModel.resetState()
-//            onDismissRequest()
-//        },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
-            // Expressive drag handle
             Box(
                 modifier = Modifier
                     .padding(vertical = 16.dp)
@@ -131,7 +132,6 @@ fun TelegramChannelSearchSheet(
                     .padding(bottom = 32.dp)
                     .heightIn(min = 450.dp)
             ) {
-                // Header with expressive typography
                 Text(
                     text = stringResource(R.string.presentation_batch_f_add_channel_sheet_title),
                     style = MaterialTheme.typography.headlineMedium,
@@ -143,7 +143,7 @@ fun TelegramChannelSearchSheet(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = stringResource(R.string.presentation_batch_f_add_channel_sheet_subtitle),
+                    text = "Search public channels, paste an invite link, or pick from your chats below",
                     style = MaterialTheme.typography.bodyLarge,
                     fontFamily = GoogleSansRounded,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -151,18 +151,16 @@ fun TelegramChannelSearchSheet(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Expressive Search Input
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
-
                         value = searchQuery,
                         onValueChange = viewModel::onQueryChanged,
                         placeholder = {
                             Text(
-                                stringResource(R.string.presentation_batch_f_channel_search_placeholder),
+                                "@channel, t.me/link, or invite link",
                                 fontFamily = GoogleSansRounded
                             )
                         },
@@ -173,7 +171,9 @@ fun TelegramChannelSearchSheet(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        modifier = Modifier.weight(1f) .focusRequester(focusRequester),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
                         singleLine = true,
                         shape = inputShape,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -184,7 +184,6 @@ fun TelegramChannelSearchSheet(
                         )
                     )
 
-                    // Search button with spring animation
                     val searchButtonEnabled = !isLoading && searchQuery.isNotBlank()
 
                     FilledIconButton(
@@ -213,9 +212,8 @@ fun TelegramChannelSearchSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Status Content Area
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -224,7 +222,6 @@ fun TelegramChannelSearchSheet(
                 ) {
                     when {
                         isLoading -> {
-                            // Loading state with expressive animation
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
@@ -242,8 +239,8 @@ fun TelegramChannelSearchSheet(
                                 )
                             }
                         }
+
                         statusMessage != null -> {
-                            // Status message with animated icon
                             val isSuccess = statusMessage!!.contains("Success", ignoreCase = true)
 
                             val iconScale by animateFloatAsState(
@@ -259,7 +256,6 @@ fun TelegramChannelSearchSheet(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                // Animated icon with background
                                 Box(
                                     modifier = Modifier
                                         .graphicsLayer {
@@ -325,53 +321,132 @@ fun TelegramChannelSearchSheet(
                                 }
                             }
                         }
+
                         else -> {
-                            // Empty/Initial state
+                            // "From your chats" section
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                modifier = Modifier.fillMaxSize()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Icon(
-                                        Icons.Rounded.Search,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Text(
+                                        text = "From your chats",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontFamily = GoogleSansRounded,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    if (isLoadingMyChannels) {
+                                        LoadingIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                                Text(
-                                    text = stringResource(R.string.presentation_batch_f_search_channel_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                when {
+                                    isLoadingMyChannels && myChannels == null -> {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            LoadingIndicator(
+                                                modifier = Modifier.size(32.dp),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                    myChannels.isNullOrEmpty() -> {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "No channels found in your Telegram account.\nSearch by username or invite link above.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontFamily = GoogleSansRounded,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
 
-                                Text(
-                                    text = stringResource(R.string.presentation_batch_f_search_channel_body),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = GoogleSansRounded,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
+                                    else -> {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            items(myChannels!!, key = { it.id }) { chat ->
+                                                MyChannelRow(
+                                                    chat = chat,
+                                                    onClick = { viewModel.addChannelFromMyList(chat) }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MyChannelRow(
+    chat: TdApi.Chat,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = chat.title.take(1).uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = chat.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            val isChannel = (chat.type as? TdApi.ChatTypeSupergroup)?.isChannel == true
+            Text(
+                text = if (isChannel) "Channel" else "Group",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = GoogleSansRounded,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

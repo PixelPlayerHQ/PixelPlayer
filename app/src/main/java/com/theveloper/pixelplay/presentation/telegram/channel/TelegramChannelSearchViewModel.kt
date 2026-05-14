@@ -29,8 +29,6 @@ class TelegramChannelSearchViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    private val _resolvedUsername = MutableStateFlow<String?>(null)
-
     private val _foundChat = MutableStateFlow<TdApi.Chat?>(null)
     val foundChat = _foundChat.asStateFlow()
 
@@ -40,65 +38,89 @@ class TelegramChannelSearchViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
-    // Status message for errors or "Not Found"
     private val _statusMessage = MutableStateFlow<String?>(null)
     val statusMessage = _statusMessage.asStateFlow()
 
     private val _playbackRequest = kotlinx.coroutines.flow.MutableSharedFlow<Song>(extraBufferCapacity = 1)
     val playbackRequest = _playbackRequest.asSharedFlow()
 
-    private fun extractUsername(input: String): String {
-        val trimmed = input.trim()
-        return when {
-            trimmed.contains("t.me/") -> "@" + trimmed
-                .substringAfterLast("t.me/")
-                .substringBefore("?")
-                .substringBefore("/")
-                .removePrefix("@")
-            trimmed.startsWith("@") -> trimmed
-            else -> "@$trimmed"
+    // null = not yet loaded; empty list = loaded but no channels found
+    private val _myChannels = MutableStateFlow<List<TdApi.Chat>?>(null)
+    val myChannels = _myChannels.asStateFlow()
+
+    private val _isLoadingMyChannels = MutableStateFlow(false)
+    val isLoadingMyChannels = _isLoadingMyChannels.asStateFlow()
+
+    init {
+        loadMyChannels()
+    }
+
+    fun loadMyChannels() {
+        if (_isLoadingMyChannels.value) return
+        viewModelScope.launch {
+            _isLoadingMyChannels.value = true
+            _myChannels.value = telegramRepository.getUserChannels()
+            _isLoadingMyChannels.value = false
         }
     }
+
     fun onQueryChanged(query: String) {
         _searchQuery.value = query
     }
 
     fun searchChannel() {
-        val query = _searchQuery.value
-        if (query.isNotEmpty()) {
-            _isLoading.value = true
-            _statusMessage.value = null
-            _foundChat.value = null
-            _songs.value = emptyList()
+        val query = _searchQuery.value.trim()
+        if (query.isEmpty()) return
 
-            val resolvedUsername = extractUsername(query)
-            _resolvedUsername.value = resolvedUsername
+        _isLoading.value = true
+        _statusMessage.value = null
+        _foundChat.value = null
+        _songs.value = emptyList()
 
-            viewModelScope.launch {
-                val chat = telegramRepository.searchPublicChat(resolvedUsername)
-                _isLoading.value = false
-
-                if (chat != null) {
-                    _foundChat.value = chat
-                    fetchSongs(chat.id)
-                } else {
-                    _statusMessage.value = "Channel not found"
+        viewModelScope.launch {
+            when (val input = parseInput(query)) {
+                is ChannelInput.InviteLink -> {
+                    val result = telegramRepository.resolveInviteLink(input.link)
+                    _isLoading.value = false
+                    if (result.isSuccess) {
+                        val chat = result.getOrThrow()
+                        _foundChat.value = chat
+                        fetchSongs(chat)
+                    } else {
+                        _statusMessage.value = "Could not resolve invite link: ${result.exceptionOrNull()?.message}"
+                    }
+                }
+                is ChannelInput.Username -> {
+                    val chat = telegramRepository.searchPublicChat(input.username)
+                    _isLoading.value = false
+                    if (chat != null) {
+                        _foundChat.value = chat
+                        fetchSongs(chat)
+                    } else {
+                        _statusMessage.value = "Channel not found"
+                    }
                 }
             }
         }
     }
 
-    private fun fetchSongs(chatId: Long) {
+    fun addChannelFromMyList(chat: TdApi.Chat) {
+        if (_isLoading.value) return
+        _foundChat.value = chat
+        _statusMessage.value = null
+        fetchSongs(chat)
+    }
+
+    private fun fetchSongs(chat: TdApi.Chat) {
         _isLoading.value = true
-        _statusMessage.value = "Syncing songs from channel..."
+        _statusMessage.value = "Syncing songs from channel…"
 
         viewModelScope.launch {
             try {
-                val isForum = telegramRepository.isForum(chatId)
-                val chat = _foundChat.value ?: return@launch
+                val isForum = telegramRepository.isForum(chat.id)
 
-                val allSongs = telegramRepository.getAudioMessages(chatId)
-                musicRepository.replaceTelegramSongsForChannel(chatId, allSongs)
+                val allSongs = telegramRepository.getAudioMessages(chat.id)
+                musicRepository.replaceTelegramSongsForChannel(chat.id, allSongs)
 
                 var localPhotoPath: String? = null
                 val photoFileId = chat.photo?.small?.id
@@ -109,30 +131,29 @@ class TelegramChannelSearchViewModel @Inject constructor(
                 val baseEntity = TelegramChannelEntity(
                     chatId = chat.id,
                     title = chat.title,
-                    username = _resolvedUsername.value,
+                    username = null, // username resolved on demand from supergroup info
                     songCount = allSongs.size,
                     lastSyncTime = System.currentTimeMillis(),
                     photoPath = localPhotoPath
                 )
 
-                // Always save base entity first for channel playlist
                 musicRepository.saveTelegramChannel(baseEntity)
 
                 if (isForum) {
-                    val topics = telegramRepository.getForumTopics(chatId)
+                    val topics = telegramRepository.getForumTopics(chat.id)
                     if (topics.isNotEmpty()) {
-                        musicRepository.replaceTopicsForChannel(chatId, topics)
+                        musicRepository.replaceTopicsForChannel(chat.id, topics)
                         var totalSongs = 0
                         topics.forEach { topic ->
-                            val topicSongs = telegramRepository.getAudioMessagesByTopic(chatId, topic.threadId)
+                            val topicSongs = telegramRepository.getAudioMessagesByTopic(chat.id, topic.threadId)
                             totalSongs += topicSongs.size
                             musicRepository.replaceTelegramSongsForTopic(
-                                chatId = chatId,
+                                chatId = chat.id,
                                 threadId = topic.threadId,
                                 topicName = topic.name,
                                 songs = topicSongs
                             )
-                            musicRepository.saveTelegramTopics(chatId, listOf(
+                            musicRepository.saveTelegramTopics(chat.id, listOf(
                                 topic.copy(
                                     songCount = topicSongs.size,
                                     lastSyncTime = System.currentTimeMillis()
@@ -150,11 +171,6 @@ class TelegramChannelSearchViewModel @Inject constructor(
             } catch (e: Exception) {
                 _statusMessage.value = "Sync failed: ${e.message}"
             } finally {
-                // Guarantee the unified-table sync runs even if forum ingestion threw
-                // partway through the topic loop. Without this, topic songs persisted
-                // to telegram_songs before the failure would stay invisible until the
-                // next unrelated sync. KEEP policy means this is a no-op while another
-                // sync is still in flight.
                 runCatching { musicRepository.requestTelegramUnifiedSync() }
                 _songs.value = emptyList()
                 _isLoading.value = false
@@ -173,9 +189,8 @@ class TelegramChannelSearchViewModel @Inject constructor(
             _isLoading.value = false
 
             if (localPath != null) {
-                // Create a new Song with the local path
                 val playableSong = song.copy(path = localPath, contentUriString = localPath)
-                musicRepository.saveTelegramSongs(listOf(playableSong)) // Update DB with path
+                musicRepository.saveTelegramSongs(listOf(playableSong))
                 _playbackRequest.tryEmit(playableSong)
                 _statusMessage.value = "Playing..."
             } else {
@@ -190,6 +205,38 @@ class TelegramChannelSearchViewModel @Inject constructor(
         _songs.value = emptyList()
         _isLoading.value = false
         _statusMessage.value = null
-        _resolvedUsername.value = null
+    }
+
+    private sealed class ChannelInput {
+        data class Username(val username: String) : ChannelInput()
+        data class InviteLink(val link: String) : ChannelInput()
+    }
+
+    private fun parseInput(input: String): ChannelInput {
+        val trimmed = input.trim()
+        // Normalise to a full URL so we can check the path uniformly
+        val url = when {
+            trimmed.startsWith("https://") || trimmed.startsWith("http://") -> trimmed
+            trimmed.contains("t.me/") -> "https://$trimmed"
+            else -> trimmed
+        }
+
+        return when {
+            // Private invite link patterns: t.me/+ (modern) or t.me/joinchat/ (legacy)
+            url.contains("t.me/+") || url.contains("t.me/joinchat/") -> {
+                // Strip surrounding whitespace/newlines and ensure https:// prefix
+                val link = if (url.startsWith("http")) url else "https://t.me/${url.substringAfterLast("t.me/")}"
+                ChannelInput.InviteLink(link)
+            }
+            url.contains("t.me/") -> {
+                val slug = url.substringAfterLast("t.me/")
+                    .substringBefore("?")
+                    .substringBefore("/")
+                    .removePrefix("@")
+                ChannelInput.Username("@$slug")
+            }
+            trimmed.startsWith("@") -> ChannelInput.Username(trimmed)
+            else -> ChannelInput.Username("@$trimmed")
+        }
     }
 }

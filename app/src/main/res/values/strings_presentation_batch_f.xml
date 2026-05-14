@@ -208,7 +208,7 @@
     <string name="presentation_batch_f_remove_channel_confirm_body">%1$s will stop syncing and all cached songs from this channel will be removed.</string>
     <string name="presentation_batch_f_remove_channel_confirm_action">Remove</string>
     <string name="presentation_batch_f_no_channels_synced">No Channels Synced</string>
-    <string name="presentation_batch_f_no_channels_body">Add public Telegram channels to sync\nyour music library</string>
+    <string name="presentation_batch_f_no_channels_body">Add Telegram channels to sync\nyour music library</string>
     <string name="presentation_batch_f_add_channel_button">Add channel</string>
     <string name="presentation_batch_f_never_synced">Never synced</string>
     <string name="presentation_batch_f_synced_relative">Synced %1$s</string>

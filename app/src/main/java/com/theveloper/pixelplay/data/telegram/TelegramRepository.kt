@@ -127,6 +127,49 @@ class TelegramRepository @Inject constructor(
         }
     }
 
+    /**
+     * Returns channels and supergroups the signed-in account is already a member of.
+     * Loads the 200 most-recently-active chats from TDLib's local cache and filters
+     * for supergroups (covers both broadcast channels and forum groups).
+     */
+    suspend fun getUserChannels(): List<TdApi.Chat> {
+        return try {
+            val chats = clientManager.sendRequest<TdApi.Chats>(TdApi.GetChats(null, 200))
+            chats.chatIds.mapNotNull { chatId ->
+                try {
+                    clientManager.sendRequest<TdApi.Chat>(TdApi.GetChat(chatId))
+                } catch (e: Exception) {
+                    null
+                }
+            }.filter { it.type is TdApi.ChatTypeSupergroup }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load user channels")
+            emptyList()
+        }
+    }
+
+    /**
+     * Resolves a private invite link (t.me/+ or t.me/joinchat/ format).
+     * If the account is already a member of the chat, returns it without joining again.
+     * Otherwise joins via the invite link and returns the resulting chat.
+     */
+    suspend fun resolveInviteLink(inviteLink: String): Result<TdApi.Chat> {
+        return try {
+            val info = clientManager.sendRequest<TdApi.ChatInviteLinkInfo>(
+                TdApi.CheckChatInviteLink(inviteLink)
+            )
+            val chat = if (info.chatId != 0L) {
+                clientManager.sendRequest<TdApi.Chat>(TdApi.GetChat(info.chatId))
+            } else {
+                clientManager.sendRequest<TdApi.Chat>(TdApi.JoinChatByInviteLink(inviteLink))
+            }
+            Result.success(chat)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to resolve invite link: $inviteLink")
+            Result.failure(e)
+        }
+    }
+
     // ─── Forum Topic Support ──────────────────────────────────────────────────
 
     /**

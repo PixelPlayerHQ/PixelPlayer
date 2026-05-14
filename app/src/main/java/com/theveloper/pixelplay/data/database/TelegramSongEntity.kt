@@ -124,3 +124,29 @@ fun Song.toTelegramEntity(): TelegramSongEntity? {
 fun Song.toTelegramEntityWithThread(threadId: Long?): TelegramSongEntity? {
     return toTelegramEntity()?.copy(threadId = threadId)
 }
+
+/**
+ * Returns a copy of [this] (incoming from a fresh TDLib fetch) with enrichment data preserved
+ * from [existing]. Always keeps the existing filePath when it is non-blank. When the existing row
+ * was already enriched, all tag-derived columns are carried over so a resync never loses them.
+ */
+fun TelegramSongEntity.withPreservedEnrichment(existing: TelegramSongEntity): TelegramSongEntity {
+    val preservedPath = existing.filePath.takeIf { it.isNotBlank() } ?: filePath
+    return if (existing.metadataEnriched) {
+        copy(
+            filePath = preservedPath,
+            album = existing.album,
+            albumArtist = existing.albumArtist,
+            genre = existing.genre,
+            lyrics = existing.lyrics,
+            trackNumber = existing.trackNumber,
+            discNumber = existing.discNumber,
+            year = existing.year,
+            bitrate = existing.bitrate,
+            sampleRate = existing.sampleRate,
+            metadataEnriched = true,
+        )
+    } else {
+        copy(filePath = preservedPath)
+    }
+}

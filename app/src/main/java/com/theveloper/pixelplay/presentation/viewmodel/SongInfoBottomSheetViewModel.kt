@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.database.MusicDao
+import com.theveloper.pixelplay.data.database.TelegramDao
 import com.theveloper.pixelplay.data.database.toArtist
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
@@ -31,6 +32,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private val wearPhoneTransferSender: WearPhoneTransferSender,
     private val transferStateStore: PhoneWatchTransferStateStore,
     private val musicDao: MusicDao,
+    private val telegramDao: TelegramDao,
 ) : ViewModel() {
 
     data class SongLocationInfo(
@@ -78,6 +80,31 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     )
 
     val audioMeta: StateFlow<AudioMeta?> = _audioMeta.asStateFlow()
+
+    // null  → song is not a Telegram track
+    // false → Telegram track, metadata not yet enriched from file tags
+    // true  → Telegram track, fully enriched
+    private val _telegramEnriched = MutableStateFlow<Boolean?>(null)
+    val telegramEnriched: StateFlow<Boolean?> = _telegramEnriched.asStateFlow()
+
+    fun loadTelegramEnrichmentStatus(song: Song) {
+        if (!song.contentUriString.startsWith("telegram://")) {
+            _telegramEnriched.value = null
+            return
+        }
+        val parts = song.contentUriString.removePrefix("telegram://").split("/")
+        val chatId = parts.getOrNull(0)?.toLongOrNull()
+        val messageId = parts.getOrNull(1)?.toLongOrNull()
+        if (chatId == null || messageId == null) {
+            _telegramEnriched.value = null
+            return
+        }
+        val entityId = "${chatId}_${messageId}"
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val entity = telegramDao.getSongByEntityId(entityId)
+            _telegramEnriched.value = entity?.metadataEnriched
+        }
+    }
 
     fun loadArtistsForSong(song: Song) {
         val refs = song.artists

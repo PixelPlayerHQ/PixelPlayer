@@ -26,6 +26,9 @@ interface TelegramDao {
     @Query("SELECT * FROM telegram_songs WHERE file_id = :fileId LIMIT 1")
     suspend fun getSongByFileId(fileId: Int): TelegramSongEntity?
 
+    @Query("SELECT * FROM telegram_songs WHERE id = :entityId LIMIT 1")
+    suspend fun getSongByEntityId(entityId: String): TelegramSongEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSongs(songs: List<TelegramSongEntity>)
 

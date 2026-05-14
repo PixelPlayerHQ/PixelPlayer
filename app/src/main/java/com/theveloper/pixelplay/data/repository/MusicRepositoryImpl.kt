@@ -34,6 +34,7 @@ import com.theveloper.pixelplay.data.database.toSearchHistoryItem
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.database.toTelegramEntity
 import com.theveloper.pixelplay.data.database.toTelegramEntityWithThread
+import com.theveloper.pixelplay.data.database.withPreservedEnrichment
 import com.theveloper.pixelplay.data.database.TelegramTopicEntity
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Artist
@@ -378,12 +379,24 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun replaceTelegramSongsForChannel(chatId: Long, songs: List<Song>) {
-        val entities = songs.mapNotNull { it.toTelegramEntity() }.filter { it.chatId == chatId }
+        val incoming = songs.mapNotNull { it.toTelegramEntity() }.filter { it.chatId == chatId }
         ensureTelegramDownloadSyncObserverStarted()
-        telegramDao.deleteSongsByChatId(chatId)
-        if (entities.isNotEmpty()) {
-            telegramDao.insertSongs(entities)
-            telegramRepository.warmUpArtworkForSongs(entities)
+
+        val existing = telegramDao.getSongsByChatId(chatId).associateBy { it.id }
+        val incomingIds = incoming.map { it.id }.toSet()
+
+        // Hard-delete songs that were removed from the channel on Telegram's side
+        for (removedId in existing.keys - incomingIds) {
+            telegramDao.deleteSong(removedId)
+        }
+
+        // Merge enrichment data so resync never loses file-tag metadata
+        val merged = incoming.map { entity ->
+            existing[entity.id]?.let { entity.withPreservedEnrichment(it) } ?: entity
+        }
+        if (merged.isNotEmpty()) {
+            telegramDao.insertSongs(merged)
+            telegramRepository.warmUpArtworkForSongs(merged)
         }
         // Sync into the unified `songs` table is triggered later by saveTelegramChannel().
         // We deliberately do NOT enqueue here: the SyncWorker gates Telegram processing on
@@ -1089,19 +1102,30 @@ class MusicRepositoryImpl @Inject constructor(
         topicName: String,
         songs: List<Song>
     ) {
-        // Stamp each song entity with the threadId before inserting
-        val entities = songs.mapNotNull { it.toTelegramEntityWithThread(threadId) }
+        val incoming = songs.mapNotNull { it.toTelegramEntityWithThread(threadId) }
             .filter { it.chatId == chatId }
 
         ensureTelegramDownloadSyncObserverStarted()
-        telegramDao.deleteSongsByTopicId(chatId, threadId)
-        if (entities.isNotEmpty()) {
-            telegramDao.insertSongs(entities)
-            telegramRepository.warmUpArtworkForSongs(entities)
+
+        val existing = telegramDao.getSongsByTopicId(chatId, threadId).associateBy { it.id }
+        val incomingIds = incoming.map { it.id }.toSet()
+
+        // Hard-delete songs that were removed from this topic on Telegram's side
+        for (removedId in existing.keys - incomingIds) {
+            telegramDao.deleteSong(removedId)
+        }
+
+        // Merge enrichment data so resync never loses file-tag metadata
+        val merged = incoming.map { entity ->
+            existing[entity.id]?.let { entity.withPreservedEnrichment(it) } ?: entity
+        }
+        if (merged.isNotEmpty()) {
+            telegramDao.insertSongs(merged)
+            telegramRepository.warmUpArtworkForSongs(merged)
         }
 
         // Create/update the per-topic app playlist
-        telegramRepository.updateAppPlaylistForTopic(chatId, threadId, topicName, entities)
+        telegramRepository.updateAppPlaylistForTopic(chatId, threadId, topicName, merged)
 
         // Best-effort sync trigger: if no worker is in flight yet, KEEP enqueues a fresh
         // incremental run that will catch the rows being committed during the topic

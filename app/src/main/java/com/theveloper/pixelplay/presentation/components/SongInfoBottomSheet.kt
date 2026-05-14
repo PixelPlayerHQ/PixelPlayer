@@ -41,6 +41,8 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Pending
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -126,6 +128,7 @@ fun SongInfoBottomSheet(
     var showEditSheet by remember { mutableStateOf(false) }
     var showArtistPicker by remember { mutableStateOf(false) }
     val audioMeta by songInfoViewModel.audioMeta.collectAsStateWithLifecycle()
+    val telegramEnriched by songInfoViewModel.telegramEnriched.collectAsStateWithLifecycle()
     val resolvedArtists by songInfoViewModel.resolvedArtists.collectAsStateWithLifecycle()
     val isPixelPlayWatchAvailable by songInfoViewModel.isPixelPlayWatchAvailable.collectAsStateWithLifecycle()
     val isWatchAvailabilityResolved by songInfoViewModel.isWatchAvailabilityResolved.collectAsStateWithLifecycle()
@@ -291,6 +294,7 @@ fun SongInfoBottomSheet(
     LaunchedEffect(song.id) {
         songInfoViewModel.loadAudioMeta(song)
         songInfoViewModel.loadArtistsForSong(song)
+        songInfoViewModel.loadTelegramEnrichmentStatus(song)
     }
 
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 2 })
@@ -742,6 +746,28 @@ fun SongInfoBottomSheet(
                                                     ),
                                                     shape = infoSegmentItemShape,
                                                 )
+
+                                                if (telegramEnriched != null) {
+                                                    SongInfoSegmentedListItem(
+                                                        headline = "Metadata",
+                                                        supporting = if (telegramEnriched == true) {
+                                                            "Enriched from file tags"
+                                                        } else {
+                                                            "Not yet enriched — play once to read tags"
+                                                        },
+                                                        icon = if (telegramEnriched == true) {
+                                                            Icons.Rounded.Verified
+                                                        } else {
+                                                            Icons.Rounded.Pending
+                                                        },
+                                                        iconDescription = if (telegramEnriched == true) {
+                                                            "Metadata enriched"
+                                                        } else {
+                                                            "Metadata not yet enriched"
+                                                        },
+                                                        shape = infoSegmentItemShape,
+                                                    )
+                                                }
                                             }
                                         }
                                         item {

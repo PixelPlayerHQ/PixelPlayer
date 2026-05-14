@@ -141,12 +141,16 @@ internal fun rememberSheetVisualState(
         }
     }
 
+    // isPlaying and hasCurrentSong are read inside the lambda but kept out of the
+    // remember key set so play/pause toggles don't invalidate this provider's
+    // identity (which would cascade into a new playerShadowShape and re-outline
+    // the sheet's background/shadow modifiers).
+    val isPlayingState = rememberUpdatedState(isPlaying)
+    val hasCurrentSongState = rememberUpdatedState(hasCurrentSong)
     val playerContentActualBottomRadiusProvider: () -> Dp = remember(
         navBarStyle,
         showPlayerContentArea,
         playerContentExpansionFraction,
-        isPlaying,
-        hasCurrentSong,
         predictiveBackCollapseProgress,
         currentSheetContentState,
         swipeDismissProgress,
@@ -176,7 +180,7 @@ internal fun rememberSheetVisualState(
                                 lerp(26.dp, 0.dp, ((fraction - 0.2f) / 0.8f).coerceIn(0f, 1f))
                             }
                         } else {
-                            if (!isPlaying || !hasCurrentSong) {
+                            if (!isPlayingState.value || !hasCurrentSongState.value) {
                                 if (isNavBarHidden) 32.dp else navBarCornerRadiusDp
                             } else {
                                 if (isNavBarHidden) 32.dp else 12.dp

@@ -1011,12 +1011,13 @@ private fun FullPlayerAlbumCoverSection(
 ) {
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delayAlbumCarousel
     val shouldApplyPausedScale = !isPlayingProvider() && !playWhenReadyProvider()
+    // tween instead of Spring.StiffnessLow (~1.5s settle) so the pause "rest"
+    // animation finishes before the user can plausibly start an expand/collapse —
+    // otherwise the carousel keeps invalidating its graphicsLayer.scale during
+    // the sheet gesture and drops frames.
     val albumArtScale by animateFloatAsState(
         targetValue = if (shouldApplyPausedScale) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "AlbumArtScale"
     )
 

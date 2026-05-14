@@ -62,11 +62,15 @@ fun rememberSmoothProgress(
 
     val latestPositionProvider by rememberUpdatedState(newValue = currentPositionProvider)
     val latestIsPlayingProvider by rememberUpdatedState(newValue = isPlayingProvider)
+    // isVisible is read inside the loop (not as a LaunchedEffect key) so visibility
+    // transitions during expand/collapse don't cancel & restart this coroutine
+    // mid-gesture. The sampler simply idles while hidden.
+    val latestIsVisible by rememberUpdatedState(newValue = isVisible)
 
     val safeUpperBound = totalDuration.coerceAtLeast(0L)
     val safeDuration = totalDuration.coerceAtLeast(1L)
 
-    LaunchedEffect(totalDuration, sampleWhilePlayingMs, sampleWhilePausedMs, isVisible) {
+    LaunchedEffect(totalDuration, sampleWhilePlayingMs, sampleWhilePausedMs) {
         fun sampleNow() {
             val rawPosition = latestPositionProvider()
             val clampedPosition = rawPosition.coerceIn(0L, safeUpperBound)
@@ -75,9 +79,12 @@ fun rememberSmoothProgress(
         }
 
         sampleNow()
-        if (!isVisible) return@LaunchedEffect
 
         while (isActive) {
+            if (!latestIsVisible) {
+                delay(200L)
+                continue
+            }
             val isPlaying = latestIsPlayingProvider()
             val delayMillis = if (isPlaying) sampleWhilePlayingMs else sampleWhilePausedMs
             delay(delayMillis.coerceAtLeast(1L))

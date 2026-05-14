@@ -627,16 +627,14 @@ fun UnifiedPlayerSheetV2(
                                 alpha = miniReadyAlpha
                                 transformOrigin = TransformOrigin(0.5f, 1f)
                             }
-                            .then(
-                                if (visualCardShadowElevation > 0.dp) {
-                                    Modifier.shadow(
-                                        elevation = visualCardShadowElevation,
-                                        shape = sheetInteractionState.playerShadowShape,
-                                        clip = false
-                                    )
-                                } else {
-                                    Modifier
-                                }
+                            // Always keep Modifier.shadow attached. It is a no-op at 0.dp
+                            // and avoids restructuring the modifier subtree (and re-attaching
+                            // the layout node) every time elevation crosses the visibility
+                            // threshold during an expand/collapse animation.
+                            .shadow(
+                                elevation = visualCardShadowElevation,
+                                shape = sheetInteractionState.playerShadowShape,
+                                clip = false
                             )
                             .background(
                                 color = playerAreaBackground,

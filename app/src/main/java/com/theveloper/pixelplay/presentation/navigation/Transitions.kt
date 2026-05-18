@@ -14,8 +14,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 // cubic-bezier(0.2, 0, 0, 1.0) — fast start, smooth settle
 private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-// Decelerate for elements entering the screen
-private val EmphasizedDecelerateEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+// Decelerate for elements entering the screen — mirror of EmphasizedAccelerateEasing
+// so the entry feels as weighty/grounded as the pop-exit
+private val EmphasizedDecelerateEasing = CubicBezierEasing(0.2f, 0.85f, 0.7f, 1f)
 
 // Accelerate for elements leaving the screen
 private val EmphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
@@ -24,12 +25,18 @@ private val EmphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f
 // still smooth at 0.5x (system halves it to ~225 ms).
 const val TRANSITION_DURATION = 450
 
-// Push: Enter from Right — slides in 50% of screen width
+// Push: Enter from Right — slides in 50% of screen width + slight scale up (mirrors popExit's weight)
+// Fade uses an accelerate-style curve so alpha stays low while slide does its work,
+// then catches up at the end — prevents the "fade arrives before slide" perceptual mismatch.
 fun enterTransition() = slideInHorizontally(
     animationSpec = tween(TRANSITION_DURATION, easing = EmphasizedDecelerateEasing),
     initialOffsetX = { (it * 0.5f).toInt() }
+) + scaleIn(
+    animationSpec = tween(TRANSITION_DURATION, easing = EmphasizedDecelerateEasing),
+    initialScale = 0.92f,
+    transformOrigin = TransformOrigin(0.5f, 0.5f)
 ) + fadeIn(
-    animationSpec = tween(TRANSITION_DURATION / 2, easing = EmphasizedDecelerateEasing)
+    animationSpec = tween(TRANSITION_DURATION, easing = EmphasizedAccelerateEasing)
 )
 
 // Push: Exit to Left — recedes 25% (parallax, barely moves)

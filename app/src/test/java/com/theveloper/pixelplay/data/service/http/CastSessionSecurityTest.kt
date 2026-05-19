@@ -73,6 +73,21 @@ class CastSessionSecurityTest {
 
         assertNotNull(policy.authToken)
         assertTrue(policy.authToken!!.length >= 32)
-        assertFalse(policy.enforceClientAddressAllowlist)
+        // Allowlist must stay enforced even when the Cast device IP is unknown;
+        // the allowed set then contains only loopback (default-deny LAN).
+        assertTrue(policy.enforceClientAddressAllowlist)
+    }
+
+    @Test
+    fun `isAuthorizedClientAddress denies LAN when no Cast hint was provided`() {
+        val policy = CastSessionSecurity.buildAccessPolicy(
+            existingToken = null,
+            allowedSongIds = listOf("1"),
+            castDeviceIpHint = null
+        )
+
+        assertTrue(CastSessionSecurity.isAuthorizedClientAddress("127.0.0.1", policy))
+        assertFalse(CastSessionSecurity.isAuthorizedClientAddress("192.168.1.80", policy))
+        assertFalse(CastSessionSecurity.isAuthorizedClientAddress("10.0.0.5", policy))
     }
 }

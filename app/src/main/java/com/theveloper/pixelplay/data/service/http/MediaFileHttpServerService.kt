@@ -375,7 +375,10 @@ class MediaFileHttpServerService : Service() {
                 lastFailureReason = null
                 lastFailureMessage = null
 
-                server = embeddedServer(CIO, port = serverPort, host = "0.0.0.0") {
+                // Bind explicitly to the selected LAN interface instead of 0.0.0.0
+                // so the server is not reachable on other interfaces (tethering
+                // hotspot, VPN, etc.) that may carry untrusted clients.
+                server = embeddedServer(CIO, port = serverPort, host = addressSelection.hostAddress) {
                     routing {
                             get("/health") {
                                 if (!call.ensureLoopbackHealthRequest()) return@get

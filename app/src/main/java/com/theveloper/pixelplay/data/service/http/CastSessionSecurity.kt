@@ -55,7 +55,12 @@ internal object CastSessionSecurity {
             authToken = existingToken ?: generateAuthToken(),
             allowedSongIds = normalizedSongIds,
             allowedClientAddresses = allowedAddresses,
-            enforceClientAddressAllowlist = castAddressVariants.isNotEmpty()
+            // Always enforce. When the Cast device IP hint is missing the only
+            // addresses on the allowlist are loopback (and the server's own LAN
+            // IP if known) — i.e. default-deny non-loopback. Previously the
+            // allowlist was skipped entirely whenever the hint was unavailable,
+            // which silently widened the attack surface to the whole LAN.
+            enforceClientAddressAllowlist = true
         )
     }
 

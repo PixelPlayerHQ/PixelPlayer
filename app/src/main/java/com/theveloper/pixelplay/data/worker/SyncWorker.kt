@@ -320,7 +320,7 @@ constructor(
                                                 id = entity.id.toString(),
                                                 title = entity.title,
                                                 artist = entity.artistName,
-                                                artistId = entity.artistId,
+                                                artistId = entity.artistId ?: 0L,
                                                 album = entity.albumName,
                                                 albumId = entity.albumId,
                                                 path = entity.filePath,

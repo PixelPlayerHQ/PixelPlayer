@@ -63,9 +63,12 @@ object SourceType {
             entity = ArtistEntity::class,
             parentColumns = ["id"],
             childColumns = ["artist_id"],
-            onDelete = ForeignKey.SET_NULL // Si un artista se borra, el artist_id de la canción se pone a null
-                                          // o podrías elegir CASCADE si las canciones no deben existir sin artista.
-                                          // SET_NULL es más flexible si las canciones pueden ser de "Artista Desconocido".
+            // SET_NULL requires the column to be nullable; the column is declared
+            // INTEGER (nullable) in the schema below. Previously the column was
+            // NOT NULL while the FK action was SET_NULL, which guaranteed a
+            // transaction rollback the first time deleteOrphanedArtists() tried
+            // to clear a referenced artist.
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -73,7 +76,7 @@ data class SongEntity(
     @PrimaryKey val id: Long,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "artist_name") val artistName: String, // Display string (combined or primary)
-    @ColumnInfo(name = "artist_id") val artistId: Long, // Primary artist ID for backward compatibility
+    @ColumnInfo(name = "artist_id") val artistId: Long?, // Nullable: FK ON DELETE SET NULL needs this
     @ColumnInfo(name = "album_artist") val albumArtist: String? = null, // Album artist from metadata
     @ColumnInfo(name = "album_name") val albumName: String,
     @ColumnInfo(name = "album_id") val albumId: Long, // index = true eliminado
@@ -103,7 +106,7 @@ private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
         id = this.id.toString(),
         title = this.title.normalizeMetadataTextOrEmpty(),
         artist = this.artistName.normalizeMetadataTextOrEmpty(),
-        artistId = this.artistId,
+        artistId = this.artistId ?: 0L,
         artists = artists,
         album = this.albumName.normalizeMetadataTextOrEmpty(),
         albumId = this.albumId,

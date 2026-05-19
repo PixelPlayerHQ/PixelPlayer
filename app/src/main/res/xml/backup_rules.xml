@@ -6,6 +6,7 @@
     <exclude domain="sharedpref" path="netease_prefs.xml"/>
     <exclude domain="sharedpref" path="gdrive_prefs.xml"/>
     <exclude domain="sharedpref" path="qqmusic_prefs.xml"/>
+    <exclude domain="sharedpref" path="ai_prefs.xml"/>
 
     <!-- Also exclude the plaintext fallback files written when
          EncryptedSharedPreferences fails to initialize. -->
@@ -14,6 +15,7 @@
     <exclude domain="sharedpref" path="netease_prefs_plain.xml"/>
     <exclude domain="sharedpref" path="gdrive_prefs_plain.xml"/>
     <exclude domain="sharedpref" path="qqmusic_prefs_plain.xml"/>
+    <exclude domain="sharedpref" path="ai_prefs_plain.xml"/>
 
     <!-- Exclude DataStore preferences that may contain API keys/sensitive settings -->
     <exclude domain="file" path="datastore/settings.preferences_pb"/>

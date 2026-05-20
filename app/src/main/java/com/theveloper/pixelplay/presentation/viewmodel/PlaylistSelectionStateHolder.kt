@@ -107,7 +107,7 @@ class PlaylistSelectionStateHolder @Inject constructor(
      * @return True if the playlist is selected, false otherwise
      */
     fun isSelected(playlistId: String): Boolean {
-        return _selectedPlaylists.value.any { it.id == playlistId }
+        return selectedPlaylistIds.value.contains(playlistId)
     }
 
     /**

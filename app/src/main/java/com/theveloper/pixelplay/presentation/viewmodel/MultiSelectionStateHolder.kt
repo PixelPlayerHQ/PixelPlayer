@@ -106,7 +106,7 @@ class MultiSelectionStateHolder @Inject constructor(
      * @return True if the song is selected, false otherwise
      */
     fun isSelected(songId: String): Boolean {
-        return _selectedSongs.value.any { it.id == songId }
+        return selectedSongIds.value.contains(songId)
     }
 
     /**

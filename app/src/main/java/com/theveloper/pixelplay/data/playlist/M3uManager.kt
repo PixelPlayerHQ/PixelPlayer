@@ -55,7 +55,7 @@ class M3uManager @Inject constructor(
                     }
 
                     // Strip UTF-8 BOM if it leaked through readLine on line 1.
-                    val payload = if (processed == 1) trimmedLine.removePrefix("﻿") else trimmedLine
+                    val payload = if (processed == 1) trimmedLine.removePrefix("\uFEFF") else trimmedLine
 
                     // payload is likely a file path or URI
                     // We need to find a song in our database that matches this path

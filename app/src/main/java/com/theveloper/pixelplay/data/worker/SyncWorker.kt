@@ -419,7 +419,12 @@ constructor(
 
                     Result.success(workDataOf(OUTPUT_TOTAL_SONGS to finalTotalSongs.toLong()))
                 } catch (e: CancellationException) {
-                    Log.w(TAG, "Sync cancelled — returning retry so WorkManager re-runs", e)
+                    // Propagate cancellation so structured-concurrency teardown
+                    // and WorkManager's own cancellation handling proceed
+                    // normally. WorkManager treats a cancelled worker as
+                    // cancelled (not retried); rescheduling happens on the
+                    // next sync trigger, not here.
+                    Log.w(TAG, "Sync cancelled — propagating CancellationException", e)
                     throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "Error during MediaStore synchronization", e)
@@ -1380,11 +1385,18 @@ constructor(
          * ~50% collision probability around 65k entries, which is reachable
          * for large Telegram channels. FNV-1a keeps the full 64 bits and the
          * collision probability stays below 1e-10 well past a million entries.
+         *
+         * Hashing the UTF-8 byte sequence (rather than `Char.code and 0xFF`)
+         * preserves the high byte of non-ASCII characters — important for
+         * Netease/Telegram libraries with CJK/Cyrillic/accented artist and
+         * album names, where the 8-bit truncation would otherwise collapse
+         * different names to the same hash.
          */
         internal fun stableFnv1aHash64(input: String): Long {
             var hash = -3750763034362895579L // FNV-1a 64-bit offset basis
-            for (c in input) {
-                hash = hash xor (c.code.toLong() and 0xFFL)
+            val bytes = input.toByteArray(Charsets.UTF_8)
+            for (b in bytes) {
+                hash = hash xor (b.toLong() and 0xFFL)
                 hash *= 1099511628211L // FNV-1a 64-bit prime
             }
             return hash

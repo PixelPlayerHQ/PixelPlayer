@@ -36,6 +36,11 @@ lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
 material = "1.14.0"
+# Pinned to an alpha to keep ExperimentalMaterial3ExpressiveApi features
+# (LinearWavyProgressIndicator, LoadingIndicator,
+# MediumExtendedFloatingActionButton, titleLargeEmphasized, etc.) available.
+# The Compose BOM tracks the stable Material3 line and does not yet ship
+# these expressive APIs, so this pin intentionally overrides the BOM.
 material3 = "1.5.0-alpha19"
 media = "1.8.0"
 media3Session = "1.10.1"
@@ -166,8 +171,10 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", vers
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeUi" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "composeUi" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "composeUi" }
-# androidx-compose-material3 is BOM-managed (composeBom) — no explicit
-# version.ref to avoid pinning to an alpha while the BOM tracks stable.
+# androidx-compose-material3 is pinned to an alpha because the codebase
+# depends on Material3 Expressive APIs (see the `material3` version comment
+# for the list). This pin intentionally overrides the Compose BOM, which
+# tracks the stable line and does not yet ship the expressive APIs.
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }

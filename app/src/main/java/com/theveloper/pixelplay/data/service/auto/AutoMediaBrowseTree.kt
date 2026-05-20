@@ -14,6 +14,9 @@ import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.utils.MediaItemBuilder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -123,12 +126,22 @@ class AutoMediaBrowseTree @Inject constructor(
         // Run the three searches concurrently and round-robin-merge the
         // results so an album/artist hit isn't squeezed out by 30+ song
         // matches. Previous behaviour always biased to songs.
-        val songs = musicRepository.searchSongs(trimmedQuery).first()
-            .map { buildPlayableSongItem(it) }
-        val albums = musicRepository.searchAlbums(trimmedQuery).first()
-            .map { buildBrowsableAlbumItem(it) }
-        val artists = musicRepository.searchArtists(trimmedQuery).first()
-            .map { buildBrowsableArtistItem(it) }
+        val (songs, albums, artists) = coroutineScope {
+            val songsDeferred = async {
+                musicRepository.searchSongs(trimmedQuery).first()
+                    .map { buildPlayableSongItem(it) }
+            }
+            val albumsDeferred = async {
+                musicRepository.searchAlbums(trimmedQuery).first()
+                    .map { buildBrowsableAlbumItem(it) }
+            }
+            val artistsDeferred = async {
+                musicRepository.searchArtists(trimmedQuery).first()
+                    .map { buildBrowsableArtistItem(it) }
+            }
+            val results = awaitAll(songsDeferred, albumsDeferred, artistsDeferred)
+            Triple(results[0], results[1], results[2])
+        }
 
         val results = mutableListOf<MediaItem>()
         val songIter = songs.iterator()

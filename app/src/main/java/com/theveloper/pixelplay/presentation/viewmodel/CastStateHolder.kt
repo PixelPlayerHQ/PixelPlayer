@@ -234,7 +234,11 @@ class CastStateHolder @Inject constructor(
 
     fun refreshRoutes(@Suppress("UNUSED_PARAMETER") scope: kotlinx.coroutines.CoroutineScope = appScope) {
         refreshRoutesJob?.cancel()
-        refreshRoutesJob = appScope.launch {
+        // MediaRouter requires its methods (addCallback/removeCallback/routes/
+        // selectedRoute) to be invoked on the application's main thread, so
+        // dispatch onto Main.immediate even though the job is tied to @AppScope
+        // for lifetime. immediate avoids an extra post when already on Main.
+        refreshRoutesJob = appScope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
             _isRefreshingRoutes.value = true
             mediaRouter.removeCallback(mediaRouterCallback)
             val mediaRouteSelector = buildCastRouteSelector()

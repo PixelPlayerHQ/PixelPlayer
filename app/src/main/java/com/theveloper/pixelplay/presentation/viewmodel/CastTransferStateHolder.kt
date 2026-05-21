@@ -94,6 +94,7 @@ class CastTransferStateHolder @Inject constructor(
 
     // State tracking variables
     private var lastRemoteMediaStatus: MediaStatus? = null
+    private var consecutiveErrorSkipCount = 0
     var lastRemoteQueue: List<Song> = emptyList()
         private set
     var lastRemoteSongId: String? = null
@@ -237,8 +238,14 @@ class CastTransferStateHolder @Inject constructor(
         castStateHolder.setRemotePlaybackActive(currentSession != null)
         
         if (currentSession != null) {
-            currentSession.remoteMediaClient?.registerCallback(remoteMediaClientCallback!!)
-            currentSession.remoteMediaClient?.addProgressListener(remoteProgressListener!!, 1000)
+            val callback = remoteMediaClientCallback
+            val progressListener = remoteProgressListener
+            if (callback != null) {
+                currentSession.remoteMediaClient?.registerCallback(callback)
+            }
+            if (progressListener != null) {
+                currentSession.remoteMediaClient?.addProgressListener(progressListener, 1000)
+            }
             startRemoteProgressObserver()
             playbackStateHolder.startProgressUpdates()
             currentSession.remoteMediaClient?.requestStatus()
@@ -391,6 +398,22 @@ class CastTransferStateHolder @Inject constructor(
                     "media title=${currentRemoteItem?.media?.metadata?.getString(com.google.android.gms.cast.MediaMetadata.KEY_TITLE)} contentType=${currentRemoteItem?.media?.contentType} contentId=${currentRemoteItem?.media?.contentId}"
                 )
             }
+
+            // Implement auto-skip logic to jump to the next track if available
+            val queueItems = mediaStatus.queueItems
+            val currentIndex = queueItems.indexOfFirst { it.itemId == currentItemId }
+            val nextItem = if (currentIndex >= 0) queueItems.getOrNull(currentIndex + 1) else null
+            if (nextItem != null) {
+                if (consecutiveErrorSkipCount < 3) {
+                    consecutiveErrorSkipCount++
+                    Timber.tag(CAST_LOG_TAG).w("Auto-skipping failed remote track. Consecutive failures: %d. Jumping to next item itemId=%d", consecutiveErrorSkipCount, nextItem.itemId)
+                    Log.w("PX_CAST_AUTO_SKIP", "consecutiveFailures=$consecutiveErrorSkipCount jumpingToItem=${nextItem.itemId}")
+                    castStateHolder.castPlayer?.jumpToItem(nextItem.itemId, 0L)
+                } else {
+                    Timber.tag(CAST_LOG_TAG).e("Max consecutive Cast failures reached (%d). Stopping skip loop.", consecutiveErrorSkipCount)
+                    Log.e("PX_CAST_AUTO_SKIP", "maxConsecutiveFailuresReached=$consecutiveErrorSkipCount stoppingSkipLoop")
+                }
+            }
         }
 
         val itemChanged = lastRemoteItemId != currentItemId
@@ -448,6 +471,9 @@ class CastTransferStateHolder @Inject constructor(
         val songChanged = currentSongFallback?.id != playbackStateHolder.stablePlayerState.value.currentSong?.id
 
         val isPlaying = mediaStatus.playerState == MediaStatus.PLAYER_STATE_PLAYING
+        if (isPlaying) {
+            consecutiveErrorSkipCount = 0
+        }
         lastKnownRemoteIsPlaying = isPlaying
         lastRemoteStreamPosition = streamPosition
         lastRemoteRepeatMode = mediaStatus.queueRepeatMode
@@ -631,8 +657,14 @@ class CastTransferStateHolder @Inject constructor(
 
             loadInitialQueueAttempt()
 
-            session.remoteMediaClient?.registerCallback(remoteMediaClientCallback!!)
-            session.remoteMediaClient?.addProgressListener(remoteProgressListener!!, 1000)
+            val callback = remoteMediaClientCallback
+            val progressListener = remoteProgressListener
+            if (callback != null) {
+                session.remoteMediaClient?.registerCallback(callback)
+            }
+            if (progressListener != null) {
+                session.remoteMediaClient?.addProgressListener(progressListener, 1000)
+            }
             
             startRemoteProgressObserver()
         }

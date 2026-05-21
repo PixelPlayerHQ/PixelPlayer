@@ -34,6 +34,13 @@ class CastPlayer(
     private val contentResolver: ContentResolver? = null
 ) {
 
+    companion object {
+        private const val MIME_NONE = ""
+        private val extractorMimeCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+        private val retrieverMimeCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+        private val signatureMimeCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    }
+
     private val remoteMediaClient: RemoteMediaClient? = castSession.remoteMediaClient
     private val queueLoadTimeoutMs = 25000L
     private val commandTimeoutMs = 3500L
@@ -48,7 +55,6 @@ class CastPlayer(
     private var pendingSeekPositionMs: Long? = null
     private var seekDispatchRunnable: Runnable? = null
     private val castLogTag = "CastPlayer"
-    private val signatureMimeCache = mutableMapOf<String, String?>()
 
     private data class QueuedCommand(
         val name: String,
@@ -261,38 +267,48 @@ class CastPlayer(
                 try {
                     val forcedMimeBySongId = mutableMapOf<String, String>()
 
-                    // Probe every song that could be in an M4A container for ALAC codec.
-                    // The server transcodes ALAC → AAC ADTS (audio/aac), so those queue items must be
-                    // declared as audio/aac, not audio/mp4 (the container type).
-                    // IMPORTANT: only force audio/aac when the raw codec MIME is "audio/alac".
-                    // "audio/mp4a-latm" means AAC-LC inside an MP4 container; the server serves it
-                    // as audio/mp4 (no transcode), so declaring audio/aac would cause a MIME mismatch
-                    // and a Cast load failure (status 2103).  Let resolveCastContentType() handle those.
-                    for (song in songs) {
+                    // Probe songs that could be transcode candidates.
+                    // The server transcodes ALAC or FLAC → AAC ADTS (audio/aac).
+                    for (index in songs.indices) {
+                        val song = songs[index]
                         val ext = song.path.substringAfterLast('.', "").lowercase(Locale.ROOT)
                         val mimeL = song.mimeType?.lowercase(Locale.ROOT)
-                        // We need to probe songs that the server will transcode (ALAC or FLAC → AAC).
+
+                        // Optimize: FLAC is easily identified without extractor calls
+                        val isFlac = ext == "flac" || mimeL == "audio/flac" || mimeL == "audio/x-flac"
+                        if (isFlac) {
+                            val flacDecoderAvailable = isFlacTranscodeSupported()
+                            val forcedMime = if (flacDecoderAvailable) "audio/aac" else "audio/flac"
+                            forcedMimeBySongId[song.id] = forcedMime
+                            Log.i(
+                                "PX_CAST_QLOAD",
+                                "flac_direct songId=${song.id} forcedMime=$forcedMime decoderAvailable=$flacDecoderAvailable nonce=$queueLoadNonce"
+                            )
+                            continue
+                        }
+
+                        // We need to probe songs that the server will transcode (ALAC → AAC).
                         val isMaybeTranscodeCandidate =
-                            ext.let { it == "m4a" || it == "m4b" || it == "mp4" || it == "3gp" || it == "3gpp" || it == "flac" } ||
-                            mimeL?.let { it.contains("mp4") || it.contains("m4a") || it == "audio/alac" || it == "audio/flac" || it == "audio/x-flac" } == true
+                            ext.let { it == "m4a" || it == "m4b" || it == "mp4" || it == "3gp" || it == "3gpp" } ||
+                            mimeL?.let { it.contains("mp4") || it.contains("m4a") || it == "audio/alac" } == true
 
                         if (!isMaybeTranscodeCandidate && song.id != startSong?.id) {
                             // Not a transcode-candidate file and not the start song — skip the probe.
                             continue
                         }
 
-                        val rawExtractorMime = detectAudioMimeTypeViaExtractor(song)
+                        // Sliding window: only probe if cached, start song, or within window
+                        val cachedExtractorMime = extractorMimeCache[song.id]
+                        val rawExtractorMime = if (cachedExtractorMime != null) {
+                            if (cachedExtractorMime == MIME_NONE) null else cachedExtractorMime
+                        } else if (song.id == startSong?.id || index in (safeStartIndex - 2)..(safeStartIndex + 8)) {
+                            detectAudioMimeTypeViaExtractor(song)
+                        } else {
+                            null
+                        }
 
                         // Only override the MIME when the server will transcode (ALAC or FLAC → AAC ADTS).
-                        // For every other codec — including audio/mp4a-latm (AAC-LC in MP4 container) —
-                        // the server pipes the raw bytes as audio/mp4, which resolveCastContentType()
-                        // already returns correctly from the file extension / metadata.
                         if (rawExtractorMime == "audio/alac") {
-                            // Only declare audio/aac if the server can actually transcode.
-                            // If findDecoderForFormat returns null (e.g. device AudioCapabilities
-                            // rejects audio/alac at this sample rate), the server falls back to
-                            // serving the raw M4A, so we must declare audio/mp4 instead to avoid
-                            // a content-type mismatch that causes Cast to reject the item.
                             val alacDecoderAvailable = isAlacTranscodeSupported()
                             val forcedMime = if (alacDecoderAvailable) "audio/aac" else "audio/mp4"
                             forcedMimeBySongId[song.id] = forcedMime
@@ -304,11 +320,6 @@ class CastPlayer(
                         }
 
                         if (rawExtractorMime == "audio/flac") {
-                            // FLAC: Cast DMR can play FLAC natively but its duration estimate is
-                            // wrong (VBR without seektable → Cast reports wrong total time), so any
-                            // seek computes a bad byte offset, overshoots, and triggers an involuntary
-                            // track skip. The server transcodes FLAC → AAC-ADTS (CBR), which gives
-                            // Cast an accurate byte↔time mapping and reliable seeking.
                             val flacDecoderAvailable = isFlacTranscodeSupported()
                             val forcedMime = if (flacDecoderAvailable) "audio/aac" else "audio/flac"
                             forcedMimeBySongId[song.id] = forcedMime
@@ -320,16 +331,7 @@ class CastPlayer(
                         }
 
                         if (song.id == startSong?.id) {
-                            // ALAC is already caught by the rawExtractorMime == "audio/alac" branch above.
-                            // Do NOT feed rawExtractorMime into toCastSupportedMimeTypeOrNull() here:
-                            // MediaExtractor returns codec-level MIMEs (e.g. "audio/mp4a-latm" for
-                            // AAC-LC inside an MP4 container), which normalise to "audio/aac".
-                            // That would declare audio/aac while the server pipes the raw MP4 container
-                            // as audio/mp4 — a mismatch the Cast receiver rejects with status 2103.
-                            // MediaMetadataRetriever returns the container MIME ("audio/mp4") instead.
                             val retrieverMime = detectAudioMimeTypeViaMetadataRetriever(song)?.toCastSupportedMimeTypeOrNull()
-                            // Only consult signature when retriever failed; the framing scan can produce
-                            // false positives on binary container data (e.g. 0xFF bytes in moov atom).
                             val signatureMime = if (retrieverMime == null) {
                                 detectAudioMimeTypeBySignature(song)?.toCastSupportedMimeTypeOrNull()
                             } else null
@@ -345,8 +347,6 @@ class CastPlayer(
                                 retrieverMime, signatureMime, forcedMime, queueLoadNonce
                             )
                         }
-                        // Non-start, non-ALAC M4A: no forced override needed. resolveCastContentType()
-                        // correctly returns audio/mp4 from the file extension, matching what the server sends.
                     }
 
                     // Post back to Main thread — Cast SDK requires Main for queueLoad.
@@ -722,9 +722,12 @@ class CastPlayer(
     }
 
     private fun detectAudioMimeTypeBySignature(song: Song): String? {
-        signatureMimeCache[song.id]?.let { return it }
+        val cached = signatureMimeCache[song.id]
+        if (cached != null) {
+            return if (cached == MIME_NONE) null else cached
+        }
         val bytes = readAudioSignature(song) ?: run {
-            signatureMimeCache[song.id] = null
+            signatureMimeCache[song.id] = MIME_NONE
             return null
         }
 
@@ -733,7 +736,7 @@ class CastPlayer(
             ?: detectMimeAtOffset(bytes, 0)
             ?: detectFramedAudioMime(bytes, id3PayloadOffset)
             ?: detectFramedAudioMime(bytes, 0)
-        signatureMimeCache[song.id] = detected
+        signatureMimeCache[song.id] = detected ?: MIME_NONE
         return detected
     }
 
@@ -862,9 +865,13 @@ class CastPlayer(
     }
 
     private fun detectAudioMimeTypeViaExtractor(song: Song): String? {
+        val cached = extractorMimeCache[song.id]
+        if (cached != null) {
+            return if (cached == MIME_NONE) null else cached
+        }
         val resolver = contentResolver ?: return null
         val uri = song.contentUriString.toUri()
-        return runCatching {
+        val result = runCatching {
             val extractor = MediaExtractor()
             try {
                 val sourceAttached = runCatching {
@@ -917,10 +924,6 @@ class CastPlayer(
                                 }.also { runCatching { mmr.release() } }
                             }
                         }
-                        // MediaExtractor sometimes exposes the decoded PCM track of a FLAC file
-                        // as "audio/raw" instead of the container format "audio/flac".  Recover the
-                        // true format from the file extension / mime metadata so the FLAC → AAC
-                        // transcode path in the caller is correctly triggered.
                         if (trackMime == "audio/raw") {
                             val mimeL = song.mimeType?.lowercase(Locale.ROOT)
                             val isFlac = song.path.endsWith(".flac", true) ||
@@ -937,6 +940,9 @@ class CastPlayer(
                 runCatching { extractor.release() }
             }
         }.getOrNull()
+        
+        extractorMimeCache[song.id] = result ?: MIME_NONE
+        return result
     }
 
     private fun isMimeTypeDecoderSupported(mimeType: String): Boolean {
@@ -985,10 +991,14 @@ class CastPlayer(
     }
 
     private fun detectAudioMimeTypeViaMetadataRetriever(song: Song): String? {
+        val cached = retrieverMimeCache[song.id]
+        if (cached != null) {
+            return if (cached == MIME_NONE) null else cached
+        }
         val resolver = contentResolver ?: return null
         val uri = song.contentUriString.toUri()
         val retriever = MediaMetadataRetriever()
-        return runCatching {
+        val result = runCatching {
             val sourceConfigured = runCatching {
                 resolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
                     val length = afd.length
@@ -1015,6 +1025,8 @@ class CastPlayer(
         }.getOrNull().also {
             runCatching { retriever.release() }
         }
+        retrieverMimeCache[song.id] = result ?: MIME_NONE
+        return result
     }
 
     private fun logQueueDiagnostics(

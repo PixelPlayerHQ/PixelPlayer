@@ -18,6 +18,13 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+val localProperties = Properties().apply {
+    val propFile = rootProject.file("local.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
+}
+
 val enableAbiSplits = providers.gradleProperty("pixelplay.enableAbiSplits")
     .getOrElse("true")
     .toBoolean()
@@ -75,9 +82,11 @@ android {
         // The fallback values keep the build working for OSS contributors.
         val telegramApiId = (project.findProperty("TELEGRAM_API_ID") as? String)
             ?: keystoreProperties.getProperty("TELEGRAM_API_ID")
+            ?: localProperties.getProperty("TELEGRAM_API_ID")
             ?: "2040"
         val telegramApiHash = (project.findProperty("TELEGRAM_API_HASH") as? String)
             ?: keystoreProperties.getProperty("TELEGRAM_API_HASH")
+            ?: localProperties.getProperty("TELEGRAM_API_HASH")
             ?: "b18441a1ff607e10a989891a5462e627"
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")

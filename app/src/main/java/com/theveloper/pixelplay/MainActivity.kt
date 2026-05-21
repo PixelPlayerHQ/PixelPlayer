@@ -792,6 +792,7 @@ class MainActivity : ComponentActivity() {
                             navBarStyle,
                             showPlayerContentArea,
                             playerContentExpansionFraction,
+                            navBarCornerRadius
                         ) {
                             derivedStateOf {
                                 if (navBarStyle == NavBarStyle.FULL_WIDTH) {
@@ -800,7 +801,7 @@ class MainActivity : ComponentActivity() {
 
                                 if (showPlayerContentArea) {
                                     if (playerContentExpansionFraction < 0.2f) {
-                                        lerp(12.dp, 26.dp, (playerContentExpansionFraction / 0.2f).coerceIn(0f, 1f))
+                                        lerp(navBarCornerRadius.dp, 26.dp, (playerContentExpansionFraction / 0.2f).coerceIn(0f, 1f))
                                     } else {
                                         26.dp
                                     }

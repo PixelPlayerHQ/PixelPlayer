@@ -776,9 +776,12 @@ class PlayerViewModel @Inject constructor(
                 }
 
                 Timber.e(error, failureMessage, song.id)
+                val fallbackQueue = libraryStateHolder.allSongs.value.takeIf { songs ->
+                    songs.isNotEmpty() && songs.any { it.id == song.id }
+                } ?: listOf(song)
                 showAndPlaySong(
                     song = song,
-                    contextSongs = listOf(song),
+                    contextSongs = fallbackQueue,
                     queueName = queueName,
                     isVoluntaryPlay = isVoluntaryPlay,
                     cancelPendingQueueBuild = false
@@ -2213,8 +2216,15 @@ class PlayerViewModel @Inject constructor(
 
     fun showAndPlaySong(song: Song) {
         Log.d("ShuffleDebug", "showAndPlaySong (single song overload) called for '${song.title}'")
-        // Use the song directly without scanning allSongs — the caller provides up-to-date data
-        showAndPlaySong(song, listOf(song), "Library")
+        val castSession = castStateHolder.castSession.value
+        val contextSongs = if (castSession != null && castSession.remoteMediaClient != null) {
+            libraryStateHolder.allSongs.value.takeIf { songs ->
+                songs.isNotEmpty() && songs.any { it.id == song.id }
+            } ?: listOf(song)
+        } else {
+            listOf(song)
+        }
+        showAndPlaySong(song, contextSongs, "Library")
     }
 
     private fun List<Song>.matchesSongOrder(contextSongs: List<Song>): Boolean {

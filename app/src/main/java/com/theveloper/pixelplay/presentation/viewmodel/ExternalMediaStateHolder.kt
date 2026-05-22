@@ -9,6 +9,7 @@ import com.theveloper.pixelplay.data.media.AudioMetadataReader
 import com.theveloper.pixelplay.data.media.guessImageMimeType
 import com.theveloper.pixelplay.data.media.imageExtensionFromMimeType
 import com.theveloper.pixelplay.data.media.isValidImageData
+import com.theveloper.pixelplay.data.media.resolveAudioFileExtension
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -154,8 +155,11 @@ class ExternalMediaStateHolder @Inject constructor(
         var storeTrack: Int? = null
         var storeYear: Int? = null
         var storeDateAddedSeconds: Long? = null
+        var storeDataPath: String? = null
+        var storeMediaId: Long? = null
 
         val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
             OpenableColumns.DISPLAY_NAME,
             MediaStore.Audio.Media.RELATIVE_PATH,
             MediaStore.Audio.Media.BUCKET_ID,
@@ -165,12 +169,16 @@ class ExternalMediaStateHolder @Inject constructor(
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.TRACK,
             MediaStore.Audio.Media.YEAR,
-            MediaStore.Audio.Media.DATE_ADDED
+            MediaStore.Audio.Media.DATE_ADDED,
+            MediaStore.Audio.Media.DATA
         )
 
         try {
             resolver.query(uri, projection, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
+                    val mediaIdIndex = cursor.getColumnIndex(MediaStore.Audio.Media._ID)
+                    if (mediaIdIndex != -1) storeMediaId = cursor.getLong(mediaIdIndex)
+
                     val displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (displayNameIndex != -1) displayName = cursor.getString(displayNameIndex)
 
@@ -200,6 +208,9 @@ class ExternalMediaStateHolder @Inject constructor(
                     
                     val dateAddedIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATE_ADDED)
                     if (dateAddedIndex != -1) storeDateAddedSeconds = cursor.getLong(dateAddedIndex)
+
+                    val dataPathIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+                    if (dataPathIndex != -1) storeDataPath = cursor.getString(dataPathIndex)
                 }
             }
         } catch (e: Exception) {
@@ -223,8 +234,23 @@ class ExternalMediaStateHolder @Inject constructor(
         val finalDuration = storeDuration?.takeIf { it > 0 } ?: metadata.durationMs ?: 0L
 
         val mimeType = context.contentResolver.getType(uri) ?: "audio/*"
-        
-        val songId = "external:${uri}" 
+        val directFilePath = resolveDirectFilePath(uri, storeDataPath)
+        val cachedPlaybackFile = if (directFilePath == null && uri.scheme == "content") {
+            persistExternalAudioForPlayback(uri)
+        } else {
+            null
+        }
+        val playbackContentUriString = when {
+            cachedPlaybackFile != null -> Uri.fromFile(cachedPlaybackFile).toString()
+            directFilePath != null -> Uri.fromFile(File(directFilePath)).toString()
+            else -> uri.toString()
+        }
+        val playbackPath = cachedPlaybackFile?.absolutePath
+            ?: directFilePath
+            ?: uri.toString()
+
+        val mediaStoreSongId = storeMediaId ?: uri.mediaStoreAudioId()
+        val songId = mediaStoreSongId?.toString() ?: "external:${uri}"
         
         val song = Song(
             id = songId, 
@@ -234,8 +260,8 @@ class ExternalMediaStateHolder @Inject constructor(
             album = finalAlbum,
             albumId = -1, // No DB ID
             albumArtist = metadata.albumArtist,
-            path = uri.toString(), // Path is URI
-            contentUriString = uri.toString(),
+            path = playbackPath,
+            contentUriString = playbackContentUriString,
             albumArtUriString = albumArtUriString,
             duration = finalDuration,
             genre = metadata.genre, // Metadata reader might provide genre
@@ -253,6 +279,63 @@ class ExternalMediaStateHolder @Inject constructor(
             bucketId = if (captureFolderInfo) bucketId else null,
             displayName = displayName
         )
+    }
+
+    private fun Uri.mediaStoreAudioId(): Long? {
+        val normalizedUri = toString().substringBefore('?').substringBefore('#')
+        if (
+            !normalizedUri.startsWith("content://media/", ignoreCase = true) ||
+            !normalizedUri.contains("/audio/media/", ignoreCase = true)
+        ) {
+            return null
+        }
+
+        return normalizedUri.substringAfterLast('/').toLongOrNull()?.takeIf { it > 0L }
+    }
+
+    private fun resolveDirectFilePath(uri: Uri, storeDataPath: String?): String? {
+        storeDataPath
+            ?.takeIf { it.isNotBlank() }
+            ?.let(::File)
+            ?.takeIf { it.exists() && it.canRead() }
+            ?.absolutePath
+            ?.let { return it }
+
+        if (uri.scheme == "file") {
+            return uri.path
+                ?.takeIf { it.isNotBlank() }
+                ?.let(::File)
+                ?.takeIf { it.exists() && it.canRead() }
+                ?.absolutePath
+        }
+
+        return null
+    }
+
+    private fun persistExternalAudioForPlayback(uri: Uri): File? {
+        return runCatching {
+            val directory = File(context.cacheDir, "external_audio")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+
+            val fileNamePrefix = "audio_${uri.toString().hashCode()}."
+            directory.listFiles { file ->
+                file.name.startsWith(fileNamePrefix)
+            }?.forEach { it.delete() }
+
+            val extension = resolveAudioFileExtension(context, uri).trimStart('.').ifBlank { "mp3" }
+            val file = File(directory, "$fileNamePrefix$extension")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return@runCatching null
+
+            file.takeIf { it.length() > 0L }
+        }.onFailure { throwable ->
+            Timber.w(throwable, "Unable to persist external audio for playback uri: $uri")
+        }.getOrNull()
     }
 
     private fun persistExternalAlbumArt(uri: Uri, data: ByteArray, mimeType: String? = null): String? {

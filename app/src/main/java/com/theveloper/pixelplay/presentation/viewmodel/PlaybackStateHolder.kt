@@ -68,6 +68,7 @@ class PlaybackStateHolder @Inject constructor(
     // MediaController
     var mediaController: MediaController? = null
         private set
+    private val mediaControllerStack = mutableListOf<MediaController>()
 
     // Player State
     private val _stablePlayerState = MutableStateFlow(StablePlayerState())
@@ -158,7 +159,33 @@ class PlaybackStateHolder @Inject constructor(
     }
 
     fun setMediaController(controller: MediaController?) {
-        this.mediaController = controller
+        if (controller == null) {
+            mediaControllerStack.clear()
+            mediaController = null
+            return
+        }
+
+        mediaControllerStack.removeAll { it === controller }
+        mediaControllerStack.add(controller)
+        mediaController = controller
+    }
+
+    fun clearMediaController(controller: MediaController?) {
+        if (controller == null) return
+
+        mediaControllerStack.removeAll { it === controller }
+        if (mediaController === controller) {
+            mediaController = mediaControllerStack.lastOrNull()
+        }
+    }
+
+    private fun activeLocalPlayer(): Player {
+        val controller = mediaController
+        return if (controller?.isConnected == true) {
+            controller
+        } else {
+            dualPlayerEngine.masterPlayer
+        }
     }
     
     fun updateStablePlayerState(update: (StablePlayerState) -> StablePlayerState) {
@@ -353,10 +380,13 @@ class PlaybackStateHolder @Inject constructor(
                 }
             }
         } else {
-            val controller = mediaController ?: return
+            val controller = activeLocalPlayer()
             if (controller.isPlaying) {
                 controller.pause()
             } else {
+                if (controller.playbackState == Player.STATE_IDLE && controller.mediaItemCount > 0) {
+                    controller.prepare()
+                }
                 controller.play()
             }
         }
@@ -382,13 +412,14 @@ class PlaybackStateHolder @Inject constructor(
             remoteSeekUnlockJob?.cancel()
             castStateHolder.setRemotelySeeking(false)
             val targetPosition = position.coerceAtLeast(0L)
-            val currentMediaId = mediaController?.currentMediaItem?.mediaId
+            val player = activeLocalPlayer()
+            val currentMediaId = player.currentMediaItem?.mediaId
             rememberPausedPositionOverride(currentMediaId, targetPosition)
             // Mark the seek before dispatching so the engine's HAL-reset heuristic does
             // not misinterpret the resulting STATE_BUFFERING as an audio HAL underflow and
             // rebuild the players (which would race with the in-flight seek command).
             dualPlayerEngine.notifyExternalSeekInitiated()
-            mediaController?.seekTo(targetPosition)
+            player.seekTo(targetPosition)
         }
     }
 
@@ -397,7 +428,7 @@ class PlaybackStateHolder @Inject constructor(
         if (castSession != null && castSession.remoteMediaClient != null) {
             castStateHolder.castPlayer?.previous()
         } else {
-            val controller = mediaController ?: return
+            val controller = activeLocalPlayer()
              if (controller.currentPosition > 10000) { // 10 seconds
                  controller.seekTo(0)
             } else {
@@ -411,7 +442,7 @@ class PlaybackStateHolder @Inject constructor(
         if (castSession != null && castSession.remoteMediaClient != null) {
             castStateHolder.castPlayer?.next()
         } else {
-             mediaController?.seekToNext()
+             activeLocalPlayer().seekToNext()
         }
     }
 
@@ -576,8 +607,8 @@ class PlaybackStateHolder @Inject constructor(
                         }
                     }
                 } else {
-                     val controller = mediaController
-                     if (controller != null && shouldSampleLocalProgress(controller)) {
+                     val controller = activeLocalPlayer()
+                     if (shouldSampleLocalProgress(controller)) {
                          val visibleSong = _stablePlayerState.value.currentSong
                          val currentMediaId = controller.currentMediaItem?.mediaId
                          val hasMediaMismatch = visibleSong?.id != null &&

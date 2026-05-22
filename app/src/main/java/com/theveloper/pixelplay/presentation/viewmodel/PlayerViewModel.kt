@@ -132,6 +132,7 @@ private const val ENABLE_FOLDERS_SOURCE_SWITCHING = true
 private const val MAX_ALBUM_BATCH_SELECTION = 6
 private const val SONG_ID_QUERY_CHUNK_SIZE = 900
 private const val HOME_MIX_PREVIEW_LIMIT = 48
+private const val EXTERNAL_SONG_ID_PREFIX = "external:"
 
 private fun List<Song>.toPlaybackQueue(): ImmutableList<Song> = when (this) {
     is PersistentList<Song> -> this
@@ -1228,10 +1229,21 @@ class PlayerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val isCurrentSongFavorite: StateFlow<Boolean> = combine(
-        stablePlayerState.map { it.currentSong?.id }.distinctUntilChanged(),
+        stablePlayerState
+            .map { it.currentSong }
+            .distinctUntilChanged { old, new ->
+                old?.id == new?.id &&
+                    old?.contentUriString == new?.contentUriString &&
+                    old?.path == new?.path
+            }
+            .flatMapLatest { song ->
+                kotlinx.coroutines.flow.flow {
+                    emit(resolveFavoriteSongId(song))
+                }
+            },
         favoriteSongIds
-    ) { songId, ids ->
-        songId?.let { ids.contains(it) } ?: false
+    ) { favoriteSongId, ids ->
+        favoriteSongId?.let { ids.contains(it) } ?: false
     }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -3467,20 +3479,72 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun toggleFavorite() {
-        playbackStateHolder.stablePlayerState.value.currentSong?.id?.let { songId ->
-            viewModelScope.launch {
-                val currentlyFavorite = favoriteSongIds.value.contains(songId)
-                setFavoriteStatusEverywhere(songId, !currentlyFavorite)
-            }
+        val currentSong = playbackStateHolder.stablePlayerState.value.currentSong ?: return
+        viewModelScope.launch {
+            val favoriteSongId = resolveFavoriteSongId(currentSong) ?: return@launch
+            val currentlyFavorite = favoriteSongIds.value.contains(favoriteSongId)
+            setFavoriteStatusEverywhere(favoriteSongId, !currentlyFavorite)
         }
     }
 
     fun toggleFavoriteSpecificSong(song: Song, removing: Boolean = false) {
         viewModelScope.launch {
-            val currentlyFavorite = favoriteSongIds.value.contains(song.id)
+            val favoriteSongId = resolveFavoriteSongId(song) ?: return@launch
+            val currentlyFavorite = favoriteSongIds.value.contains(favoriteSongId)
             val targetFavoriteState = if (removing) false else !currentlyFavorite
-            setFavoriteStatusEverywhere(song.id, targetFavoriteState)
+            setFavoriteStatusEverywhere(favoriteSongId, targetFavoriteState)
         }
+    }
+
+    private suspend fun resolveFavoriteSongId(song: Song?): String? {
+        song ?: return null
+        if (song.id.toLongOrNull() != null) {
+            return song.id
+        }
+
+        val contentUriCandidates = buildList {
+            if (song.id.startsWith(EXTERNAL_SONG_ID_PREFIX)) {
+                add(song.id.removePrefix(EXTERNAL_SONG_ID_PREFIX))
+            }
+            add(song.contentUriString)
+        }.filter { it.isNotBlank() }.distinct()
+
+        for (candidate in contentUriCandidates) {
+            musicRepository.getSongIdByContentUri(candidate)?.let { return it.toString() }
+            parseMediaStoreAudioId(candidate)?.let { return it.toString() }
+        }
+
+        val pathCandidates = buildList {
+            add(song.path)
+            contentUriCandidates.forEach { candidate ->
+                parseFileUriPath(candidate)?.let(::add)
+            }
+        }.filter { it.isNotBlank() }.distinct()
+
+        for (candidate in pathCandidates) {
+            musicRepository.getSongByPath(candidate)?.id?.takeIf { it.toLongOrNull() != null }?.let {
+                return it
+            }
+        }
+
+        return null
+    }
+
+    private fun parseMediaStoreAudioId(uriString: String): Long? {
+        val normalizedUri = uriString.substringBefore('?').substringBefore('#')
+        if (
+            !normalizedUri.startsWith("content://media/", ignoreCase = true) ||
+            !normalizedUri.contains("/audio/media/", ignoreCase = true)
+        ) {
+            return null
+        }
+
+        return normalizedUri.substringAfterLast('/').toLongOrNull()?.takeIf { it > 0L }
+    }
+
+    private fun parseFileUriPath(uriString: String): String? {
+        val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return null
+        return uri.takeIf { it.scheme == "file" }?.path?.takeIf { it.isNotBlank() }
     }
 
     fun addSongToQueue(song: Song) {
@@ -4140,41 +4204,48 @@ class PlayerViewModel @Inject constructor(
                 }
             }
         } else {
-            mediaController?.let { controller ->
-                if (controller.isPlaying) {
-                    controller.pause()
-                } else {
-                    if (controller.currentMediaItem == null) {
-                        val currentQueue = _playerUiState.value.currentPlaybackQueue
-                        val currentSong = playbackStateHolder.stablePlayerState.value.currentSong
-                        when {
-                            currentQueue.isNotEmpty() && currentSong != null -> {
-                                viewModelScope.launch {
-                                    transitionSchedulerJob?.cancel()
-                                    internalPlaySongs(
-                                        currentQueue.toList(),
-                                        currentSong,
-                                        _playerUiState.value.currentQueueSourceName
-                                    )
-                                }
+            val controller = mediaController
+            if (controller == null || !controller.isConnected) {
+                playbackStateHolder.playPause()
+                return
+            }
+
+            if (controller.isPlaying) {
+                controller.pause()
+            } else {
+                if (controller.currentMediaItem == null) {
+                    val currentQueue = _playerUiState.value.currentPlaybackQueue
+                    val currentSong = playbackStateHolder.stablePlayerState.value.currentSong
+                    when {
+                        currentQueue.isNotEmpty() && currentSong != null -> {
+                            viewModelScope.launch {
+                                transitionSchedulerJob?.cancel()
+                                internalPlaySongs(
+                                    currentQueue.toList(),
+                                    currentSong,
+                                    _playerUiState.value.currentQueueSourceName
+                                )
                             }
-                            currentSong != null -> {
-                                loadAndPlaySong(currentSong)
-                            }
-                            else -> {
-                                viewModelScope.launch {
-                                    val fallbackSong = musicRepository.getFirstPlayableSong()
-                                    if (fallbackSong != null) {
-                                        loadAndPlaySong(fallbackSong)
-                                    } else {
-                                        controller.play()
-                                    }
+                        }
+                        currentSong != null -> {
+                            loadAndPlaySong(currentSong)
+                        }
+                        else -> {
+                            viewModelScope.launch {
+                                val fallbackSong = musicRepository.getFirstPlayableSong()
+                                if (fallbackSong != null) {
+                                    loadAndPlaySong(fallbackSong)
+                                } else {
+                                    controller.play()
                                 }
                             }
                         }
-                    } else {
-                        controller.play()
                     }
+                } else {
+                    if (controller.playbackState == Player.STATE_IDLE && controller.mediaItemCount > 0) {
+                        controller.prepare()
+                    }
+                    controller.play()
                 }
             }
         }
@@ -4394,12 +4465,13 @@ class PlayerViewModel @Inject constructor(
 
 
     override fun onCleared() {
+        val controllerToRelease = mediaController
         mediaControllerPlaybackListener?.let { listener ->
-            mediaController?.removeListener(listener)
+            controllerToRelease?.removeListener(listener)
             mediaControllerPlaybackListener = null
         }
-        playbackStateHolder.setMediaController(null)
-        mediaController?.release()
+        playbackStateHolder.clearMediaController(controllerToRelease)
+        controllerToRelease?.release()
         mediaController = null
         mediaControllerFuture.cancel(true)
         super.onCleared()

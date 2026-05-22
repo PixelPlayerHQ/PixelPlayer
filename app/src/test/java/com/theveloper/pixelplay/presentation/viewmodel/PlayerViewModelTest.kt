@@ -111,6 +111,8 @@ class PlayerViewModelTest {
     private val _selectedSearchFilterFlow = MutableStateFlow(SearchFilterType.ALL)
     private val _castSessionFlow = MutableStateFlow<com.google.android.gms.cast.framework.CastSession?>(null)
     private val _repeatModeFlow = MutableStateFlow(Player.REPEAT_MODE_OFF)
+    private val _favoriteIdsFlow = MutableStateFlow<Set<String>>(emptySet())
+    private lateinit var stablePlayerStateFlow: MutableStateFlow<StablePlayerState>
     private lateinit var mockController: MediaController
     private val controllerRepeatModeWrites = mutableListOf<Int>()
     private var controllerRepeatMode = Player.REPEAT_MODE_OFF
@@ -186,8 +188,9 @@ class PlayerViewModelTest {
         every { mockConnectivityStateHolder.initialize() } just runs
         every { mockConnectivityStateHolder.offlinePlaybackBlocked } returns MutableSharedFlow()
 
-        val stablePlayerState = MutableStateFlow(StablePlayerState(currentSong = null))
-        every { mockPlaybackStateHolder.stablePlayerState } returns stablePlayerState
+        _favoriteIdsFlow.value = emptySet()
+        stablePlayerStateFlow = MutableStateFlow(StablePlayerState(currentSong = null))
+        every { mockPlaybackStateHolder.stablePlayerState } returns stablePlayerStateFlow
         every { mockPlaybackStateHolder.setMediaController(any()) } just runs // Added missing mock
 
         every { mockSleepTimerStateHolder.initialize(any(), any(), any(), any(), any()) } just runs // Added missing mock
@@ -205,7 +208,11 @@ class PlayerViewModelTest {
         every { mockMusicRepository.searchSongs(any(), any()) } returns flowOf(emptyList())
         every { mockMusicRepository.getMusicByGenre(any()) } returns flowOf(emptyList())
         coEvery { mockMusicRepository.getFavoriteSongIdsOnce() } returns emptySet()
-        every { mockMusicRepository.getFavoriteSongIdsFlow() } returns flowOf(emptySet())
+        every { mockMusicRepository.getFavoriteSongIdsFlow() } returns _favoriteIdsFlow
+        every { mockMusicRepository.getSong(any()) } returns flowOf(null)
+        coEvery { mockMusicRepository.getSongIdByContentUri(any()) } returns null
+        coEvery { mockMusicRepository.getSongByPath(any()) } returns null
+        coEvery { mockMusicRepository.setFavoriteStatus(any(), any()) } just Runs
         coEvery { mockMusicRepository.getAllSongsOnce() } returns emptyList()
         coEvery { mockMusicRepository.getFavoriteSongsOnce(any()) } returns emptyList()
         coEvery { mockMusicRepository.getFirstPlayableSong() } returns null
@@ -422,6 +429,61 @@ class PlayerViewModelTest {
             advanceUntilIdle()
 
             expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `toggleFavorite resolves external current song to MediaStore favorite id`() = runTest {
+        val externalSong = Song(
+            id = "external:content://media/external/audio/media/42",
+            title = "External Song",
+            artist = "Artist",
+            artistId = -1L,
+            album = "Album",
+            albumId = -1L,
+            path = "/storage/emulated/0/Music/external-song.mp3",
+            contentUriString = "file:///data/user/0/com.theveloper.pixelplay/cache/external_audio/audio_42.mp3",
+            albumArtUriString = null,
+            duration = 180000L,
+            mimeType = "audio/mpeg",
+            bitrate = null,
+            sampleRate = null
+        )
+        stablePlayerStateFlow.value = StablePlayerState(currentSong = externalSong)
+
+        playerViewModel.toggleFavorite()
+        advanceUntilIdle()
+
+        coVerify { mockMusicRepository.setFavoriteStatus("42", true) }
+    }
+
+    @Test
+    fun `isCurrentSongFavorite resolves external current song before reading favorite ids`() = runTest {
+        _favoriteIdsFlow.value = setOf("42")
+        val externalSong = Song(
+            id = "external:content://media/external/audio/media/42",
+            title = "External Song",
+            artist = "Artist",
+            artistId = -1L,
+            album = "Album",
+            albumId = -1L,
+            path = "/storage/emulated/0/Music/external-song.mp3",
+            contentUriString = "file:///data/user/0/com.theveloper.pixelplay/cache/external_audio/audio_42.mp3",
+            albumArtUriString = null,
+            duration = 180000L,
+            mimeType = "audio/mpeg",
+            bitrate = null,
+            sampleRate = null
+        )
+
+        playerViewModel.isCurrentSongFavorite.test {
+            assertEquals(false, awaitItem())
+
+            stablePlayerStateFlow.value = StablePlayerState(currentSong = externalSong)
+            advanceUntilIdle()
+
+            assertEquals(true, awaitItem())
+            cancelAndConsumeRemainingEvents()
         }
     }
 

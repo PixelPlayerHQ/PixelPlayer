@@ -468,21 +468,32 @@
     <string name="presentation_batch_g_changelog_sec_added">新增</string>
     <string name="presentation_batch_g_changelog_sec_changed">变更</string>
     <string name="presentation_batch_g_changelog_sec_fixed">修复</string>
-    <string-array name="presentation_batch_g_changelog_070_highlights">
-        <item>AI 集成改进，更聪明的播放列表生成功能。</item>
-        <item>收听数据增强，包含更深层的洞察数据和新的视觉效果。</item>
-        <item>适用于所有云服务提供商的媒体库同步流程改进。</item>
-        <item>元数据编辑体验优化，支持专辑封面。</item>
+    <string-array name="presentation_batch_g_changelog_070_whats_new">
+        <item>Wear OS：音乐传输、本地播放、队列同步和手表远程控制。</item>
+        <item>AI：集成 Groq AI 和 OpenRouter（实验性）并优化令牌使用。</item>
+        <item>Cloud：新增 Jellyfin 支持。</item>
+        <item>歌词：同步翻译专用开关、Kugou LRC 格式支持、文本对齐自定义和远程加载改进。</item>
+        <item>UI/UX：紧凑导航栏模式、基于专辑封面调色板的动态主题、长标题跑马灯效果和新的排序选项。</item>
+        <item>Telegram：原生话题支持和增强显示模式。</item>
     </string-array>
     <string-array name="presentation_batch_g_changelog_070_improvements">
-        <item>启动、媒体库、队和播放界面的性能表现全面优化。</item>
-        <item>重新打磨的 Material 3 UI，带来更加简洁、流畅的体验。</item>
-        <item>应用整体动画和过渡更顺滑。</item>
-        <item>优化搜索相关性和快速发现功能。</item>
+        <item>音频引擎：全面改造，支持更多格式（MIDI、ALAC、M4A）并优化解码器。</item>
+        <item>能效：大幅降低能耗，修复过热问题，优化后台任务（SyncWorker）。</item>
+        <item>数据库：大规模查询优化和重新设计的封面缓存以防止数据丢失。</item>
+        <item>启动：通过 Baseline Profile 优化缩短加载时间。</item>
     </string-array>
     <string-array name="presentation_batch_g_changelog_070_fixes">
-        <item>改善了队列和随机播放行为，播放更稳定。</item>
-        <item>修复了后台播放和通知的相关问题。</item>
-        <item>常规问题修复和 UI 打磨。</item>
+        <item>播放：修复 Opus/MP3 卡顿、交叉淡入淡出时 ReplayGain 错误以及三星解码器启动问题。</item>
+        <item>稳定性：消除启动、艺术家导航和 Android 12+ 设备上的崩溃。</item>
+        <item>UI：修复封面闪烁、非拉丁文字溢出以及导航栏/迷你播放器行为问题。</item>
+        <item>安全：加强凭据处理、存储权限和媒体服务器通信。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_070_added">
+        <item>西班牙语</item>
+        <item>法语</item>
+        <item>俄语</item>
+        <item>简体中文</item>
+        <item>印度尼西亚语</item>
+        <item>意大利语</item>
     </string-array>
 </resources>

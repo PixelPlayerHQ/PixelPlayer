@@ -572,21 +572,32 @@ Backslash (\) can be used to escape character delimiters.</string>
         <item>Fixed a bug where the playback notification was not clearing.</item>
         <item>Fixed several bugs that caused the app to crash.</item>
     </string-array>
-    <string-array name="presentation_batch_g_changelog_070_highlights">
-        <item>AI integration improvements and smarter playlist generation.</item>
-        <item>Enhanced listening stats with deeper insights and new visualizations.</item>
-        <item>Improved library sync flow across all cloud providers.</item>
-        <item>Better metadata editing with cover art support.</item>
+    <string-array name="presentation_batch_g_changelog_070_whats_new">
+        <item>Wear OS: Music transfer, local playback, queue sync, and remote control from watch.</item>
+        <item>AI: Groq AI and OpenRouter (experimental) integration with token optimization.</item>
+        <item>Cloud: Jellyfin support added.</item>
+        <item>Lyrics: Synced translation with dedicated toggle, Kugou LRC format support, text alignment customization, and improved remote loading.</item>
+        <item>UI/UX: Compact navigation bar mode, dynamic themes from album art palette, marquee for long titles, and new sorting options.</item>
+        <item>Telegram: Native topics support and enhanced display modes.</item>
     </string-array>
     <string-array name="presentation_batch_g_changelog_070_improvements">
-        <item>Performance improvements across startup, library, queue, and player interactions.</item>
-        <item>Refined Material 3 UI for a cleaner and more cohesive experience.</item>
-        <item>Smoother animations and transitions throughout the app.</item>
-        <item>Better search relevance and faster discovery.</item>
+        <item>Audio Engine: Complete overhaul with support for more formats (MIDI, ALAC, M4A) and decoder optimization.</item>
+        <item>Efficiency: Drastic energy consumption reduction, overheating fixes, and background task optimization (SyncWorker).</item>
+        <item>Database: Massive query optimizations and redesigned cover art cache to prevent data loss.</item>
+        <item>Startup: Improved loading time via Baseline Profile optimization.</item>
     </string-array>
     <string-array name="presentation_batch_g_changelog_070_fixes">
-        <item>Fixed queue and shuffle behavior for more stable playback.</item>
-        <item>Resolved background playback and notification issues.</item>
-        <item>General bug fixes and UI polish.</item>
+        <item>Playback: Fixed stuttering in Opus/MP3, ReplayGain errors during crossfades, and startup issues on Samsung decoders.</item>
+        <item>Stability: Eliminated crashes on startup, artist navigation, and Android 12+ devices.</item>
+        <item>UI: Fixed cover art flickering, text overflow in non-Latin scripts, and navigation bar/miniplayer behavior.</item>
+        <item>Security: Hardened credential handling, storage permissions, and media server communication.</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_070_added">
+        <item>Spanish</item>
+        <item>French</item>
+        <item>Russian</item>
+        <item>Simplified Chinese</item>
+        <item>Indonesian</item>
+        <item>Italian</item>
     </string-array>
 </resources>

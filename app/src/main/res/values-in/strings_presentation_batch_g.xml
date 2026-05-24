@@ -466,24 +466,36 @@
     <string name="presentation_batch_g_changelog_sec_changed">Diubah</string>
     <string name="presentation_batch_g_changelog_sec_fixed">Diperbaiki</string>
 
-    <string-array name="presentation_batch_g_changelog_070_highlights">
-        <item>Peningkatan integrasi AI dan pembuatan playlist yang lebih cerdas.</item>
-        <item>Statistik mendengarkan yang lebih lengkap dengan insight dan visualisasi baru.</item>
-        <item>Alur sinkronisasi pustaka yang lebih baik di semua penyedia cloud.</item>
-        <item>Pengeditan metadata yang lebih baik dengan dukungan sampul album.</item>
+    <string-array name="presentation_batch_g_changelog_070_whats_new">
+        <item>Wear OS: Transfer musik, pemutaran lokal, sinkronisasi antrean, dan kendali jarak jauh dari jam tangan.</item>
+        <item>AI: Integrasi Groq AI dan OpenRouter (eksperimental) dengan optimasi token.</item>
+        <item>Cloud: Dukungan Jellyfin ditambahkan.</item>
+        <item>Lirik: Terjemahan tersinkronisasi dengan toggle khusus, dukungan format Kugou LRC, kustomisasi perataan teks, dan pemuatan jarak jauh yang ditingkatkan.</item>
+        <item>UI/UX: Mode bilah navigasi kompak, tema dinamis dari palet sampul album, marquee untuk judul panjang, dan opsi pengurutan baru.</item>
+        <item>Telegram: Dukungan topics asli dan mode tampilan yang ditingkatkan.</item>
     </string-array>
 
     <string-array name="presentation_batch_g_changelog_070_improvements">
-        <item>Peningkatan performa pada startup, pustaka, antrean, dan interaksi pemutar.</item>
-        <item>Tampilan Material 3 yang disempurnakan untuk pengalaman yang lebih rapi dan konsisten.</item>
-        <item>Animasi dan transisi yang lebih mulus di seluruh aplikasi.</item>
-        <item>Pencarian yang lebih relevan dan penemuan lagu yang lebih cepat.</item>
+        <item>Mesin Audio: Perombakan total dengan dukungan lebih banyak format (MIDI, ALAC, M4A) dan optimalisasi decoder.</item>
+        <item>Efisiensi: Pengurangan konsumsi energi drastis, perbaikan panas berlebih, dan optimalisasi tugas latar belakang (SyncWorker).</item>
+        <item>Database: Optimalisasi kueri besar-besaran dan cache sampul yang dirancang ulang untuk mencegah kehilangan data.</item>
+        <item>Startup: Waktu muat ditingkatkan melalui optimalisasi Baseline Profile.</item>
     </string-array>
 
     <string-array name="presentation_batch_g_changelog_070_fixes">
-        <item>Memperbaiki perilaku antrean dan shuffle agar pemutaran lebih stabil.</item>
-        <item>Memperbaiki masalah pemutaran latar belakang dan notifikasi.</item>
-        <item>Perbaikan bug umum dan penyempurnaan UI.</item>
+        <item>Pemutaran: Memperbaiki stuttering di Opus/MP3, kesalahan ReplayGain saat crossfade, dan masalah startup pada decoder Samsung.</item>
+        <item>Stabilitas: Menghilangkan crash saat startup, navigasi artis, dan perangkat Android 12+.</item>
+        <item>UI: Memperbaiki kedipan sampul, luapan teks di skrip non-Latin, dan perilaku bilah navigasi/miniplayer.</item>
+        <item>Keamanan: Pengerasan penanganan kredensial, izin penyimpanan, dan komunikasi server media.</item>
+    </string-array>
+
+    <string-array name="presentation_batch_g_changelog_070_added">
+        <item>Spanyol</item>
+        <item>Prancis</item>
+        <item>Rusia</item>
+        <item>Mandarin Sederhana</item>
+        <item>Indonesia</item>
+        <item>Italia</item>
     </string-array>
     <string name="presentation_batch_g_cast_nearby_title">Perangkat terdekat</string>
 </resources>

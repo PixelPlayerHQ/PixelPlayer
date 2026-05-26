@@ -659,6 +659,7 @@ class MainActivity : ComponentActivity() {
         val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
         val navBarCornerRadiusRaw by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
         val navBarCornerRadius = sanitizeNavBarCornerRadius(navBarCornerRadiusRaw)
+        val isMiniPlayerDismissing by playerViewModel.isMiniPlayerDismissing.collectAsStateWithLifecycle()
         val hapticsEnabled by playerViewModel.hapticsEnabled.collectAsStateWithLifecycle()
         val rootView = LocalView.current
         val platformHapticFeedback = LocalHapticFeedback.current
@@ -799,12 +800,25 @@ class MainActivity : ComponentActivity() {
                             label = "NavBarCornerRadius"
                         )
 
-                        val actualShape = remember(navBarStyle, showPlayerContentArea, navBarCornerRadius, animatedNavBarCornerRadius) {
+                        val animatedDefaultTopCornerRadius by animateDpAsState(
+                            targetValue = if (showPlayerContentArea && !isMiniPlayerDismissing) 10.dp else navBarCornerRadius.dp,
+                            animationSpec = tween(400),
+                            label = "NavBarDefaultTopCornerRadius"
+                        )
+
+                        val actualShape = remember(
+                            navBarStyle,
+                            showPlayerContentArea,
+                            isMiniPlayerDismissing,
+                            navBarCornerRadius,
+                            animatedNavBarCornerRadius,
+                            animatedDefaultTopCornerRadius
+                        ) {
                             DynamicSmoothCornerShape(
                                 topRadiusProvider = {
                                     val fraction = playerViewModel.playerContentExpansionFraction.value
                                     if (navBarStyle == NavBarStyle.DEFAULT) {
-                                        10.dp
+                                        animatedDefaultTopCornerRadius
                                     } else if (navBarStyle == NavBarStyle.FULL_WIDTH) {
                                         lerp(navBarCornerRadius.dp, 26.dp, fraction)
                                     } else if (showPlayerContentArea) {

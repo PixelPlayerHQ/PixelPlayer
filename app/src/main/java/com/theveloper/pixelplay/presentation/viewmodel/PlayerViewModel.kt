@@ -495,6 +495,13 @@ class PlayerViewModel @Inject constructor(
 
     val playerContentExpansionFraction = Animatable(0f)
 
+    private val _isMiniPlayerDismissing = MutableStateFlow(false)
+    val isMiniPlayerDismissing: StateFlow<Boolean> = _isMiniPlayerDismissing.asStateFlow()
+
+    fun setMiniPlayerDismissing(dismissing: Boolean) {
+        _isMiniPlayerDismissing.value = dismissing
+    }
+
     // AI Ecosystem: States delegated to AiStateHolder for centralized management
     val showAiPlaylistSheet: StateFlow<Boolean> = aiStateHolder.showAiPlaylistSheet
     val isGeneratingAiPlaylist: StateFlow<Boolean> = aiStateHolder.isGeneratingAiPlaylist
@@ -4688,6 +4695,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun dismissPlaylistAndShowUndo() {
+        setMiniPlayerDismissing(false)
         playlistDismissUndoStateHolder.dismissPlaylistAndShowUndo(
             scope = viewModelScope,
             currentSong = playbackStateHolder.stablePlayerState.value.currentSong,
@@ -4734,6 +4742,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun undoDismissPlaylist() {
+        setMiniPlayerDismissing(false)
         playlistDismissUndoStateHolder.undoDismissPlaylist(
             scope = viewModelScope,
             getUiState = { _playerUiState.value },

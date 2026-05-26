@@ -34,7 +34,8 @@ class AiStateHolder @Inject constructor(
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
-    private val notificationManager: AiNotificationManager
+    private val notificationManager: AiNotificationManager,
+    private val aiOrchestrator: com.theveloper.pixelplay.data.ai.AiOrchestrator
 ) {
     // State
     // AI State Management: Observables for tracking background generation progress
@@ -336,6 +337,39 @@ class AiStateHolder @Inject constructor(
             Result.failure(e)
         } finally {
             _isGeneratingMetadata.value = false
+        }
+    }
+
+    suspend fun translateLyrics(lyricsText: String): Result<String> {
+        return try {
+            val prompt = """
+Translate the provided song lyrics into Russian.
+
+Keep every timestamp exactly unchanged.
+
+For each original line, output the original line first, then on the next line output the Russian translation with the same timestamp.
+
+Do not add any extra text, explanations, numbering, labels, or formatting.
+
+Do not remove, merge, split, or reorder lines.
+
+Output only:
+
+[timestamp] original text
+[timestamp] translated text
+
+Lyrics to translate:
+$lyricsText
+            """.trimIndent()
+            
+            val response = aiOrchestrator.generateContent(
+                prompt = prompt,
+                type = AiSystemPromptType.GENERAL,
+                temperature = 0.1f
+            )
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

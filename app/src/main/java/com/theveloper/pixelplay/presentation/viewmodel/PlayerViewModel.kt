@@ -4825,6 +4825,39 @@ class PlayerViewModel @Inject constructor(
         lyricsStateHolder.importLyricsFromFile(songId, validatedImport, currentSong)
     }
 
+    fun translateLyricsViaAi() {
+        val currentSong = stablePlayerState.value.currentSong ?: return
+        val songId = currentSong.id.toLongOrNull() ?: return
+        val rawLyrics = currentSong.lyrics
+
+        if (rawLyrics.isNullOrBlank()) {
+            sendToast("No lyrics to translate")
+            return
+        }
+
+        viewModelScope.launch {
+            sendToast("Translating lyrics...")
+            val result = aiStateHolder.translateLyrics(rawLyrics)
+            result.onSuccess { translatedText ->
+                if (translatedText.isNotBlank()) {
+                    val validation = com.theveloper.pixelplay.utils.LyricsImportSecurity.validateImportedLrcContent(translatedText)
+                    if (validation is com.theveloper.pixelplay.utils.LyricsImportValidationResult.Valid) {
+                        lyricsStateHolder.importLyricsFromFile(songId, validation.value, currentSong)
+                        sendToast("Lyrics translated successfully!")
+                    } else {
+                        val reason = (validation as com.theveloper.pixelplay.utils.LyricsImportValidationResult.Invalid).reason
+                        val errorMsg = com.theveloper.pixelplay.utils.LyricsImportSecurity.messageFor(reason)
+                        sendToast("AI format error: $errorMsg")
+                    }
+                } else {
+                     sendToast("AI returned empty response")
+                }
+            }.onFailure {
+                sendToast("Translation failed: ${it.message}")
+            }
+        }
+    }
+
     /**
      * Resetea el estado de la búsqueda de letras a Idle.
      */

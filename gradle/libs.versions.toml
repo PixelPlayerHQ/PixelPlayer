@@ -80,10 +80,22 @@ javax-inject = "1"
 ksp = "2.3.8"
 smoothCornerRectAndroidCompose = "v1.0.0"
 spleeterAndroidIos = "1.0.2"
+
+# TensorFlow Lite & Local AI
 tensorflowLite = "2.17.0"
+tensorflowLiteTask = "0.4.4"
 tensorflowLiteSelectTfOps = "2.16.1"
 tensorflowLiteSelectTfOpsVersion = "2.16.1"
 tensorflowLiteSupport = "0.5.0"
+tensorflowLiteGpu = "2.17.0"
+
+# ML Kit
+mlkitTranslate = "17.0.3"
+mlkitLanguageId = "17.0.6"
+
+# Google AI Edge
+googleAiEdge = "0.4.1"
+
 wavySlider = "2.2.0"
 workRuntimeKtx = "2.11.2"
 composeTesting = "1.0.0-alpha03"
@@ -201,9 +213,13 @@ accompanist-permissions = { module = "com.google.accompanist:accompanist-permiss
 smooth-corner-rect-android-compose = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smoothCornerRectAndroidCompose" }
 spleeter-android-ios = { module = "com.github.FaceOnLive:Spleeter-Android-iOS", version.ref = "spleeterAndroidIos" }
 tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
-#tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflowLiteSelectTfOps" }
-tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflowLiteSelectTfOpsVersion" }
+tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflowLiteGpu" }
 tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
+tensorflow-lite-task-text = { module = "org.tensorflow:tensorflow-lite-task-text", version.ref = "tensorflowLiteTask" }
+mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
+mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkitLanguageId" }
+google-ai-edge-litert = { module = "com.google.ai.edge.litert:litert", version.ref = "googleAiEdge" }
+google-ai-edge-litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "googleAiEdge" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 wavy-slider = { module = "ir.mahozad.multiplatform:wavy-slider", version.ref = "wavySlider" }
 checker-qual = { group = "org.checkerframework", name = "checker-qual", version.ref = "checkerframework" }

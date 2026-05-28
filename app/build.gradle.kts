@@ -294,6 +294,20 @@ dependencies {
         exclude(group = "androidx.compose.ui")
     }
 
+    // Local AI: TensorFlow Lite
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.tensorflow.lite.task.text)
+
+    // Local AI: ML Kit
+    implementation(libs.mlkit.translate)
+    implementation(libs.mlkit.language.id)
+
+    // Local AI: Google AI Edge (LiteRT)
+    implementation(libs.google.ai.edge.litert)
+    implementation(libs.google.ai.edge.litert.gpu)
+
     // Projects
     implementation(project(":shared"))
 

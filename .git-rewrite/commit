@@ -1,0 +1,10 @@
+tree a690b117ae4904404ad559bf32e8183d958804b2
+parent fd932f2a6b6405289bbff532adc415db7e82416e
+author theov <theovilardo@gmail.com> 1778174484 -0300
+committer theov <theovilardo@gmail.com> 1778174484 -0300
+
+Preserve artist image metadata during database updates
+
+- Add `getArtistsByIds` query to `MusicDao` to fetch existing artist entities.
+- Update `upsertArtists` logic to merge incoming artist data with existing records.
+- Ensure `imageUrl` and `customImageUri` are preserved if the incoming data contains null values for these fields.

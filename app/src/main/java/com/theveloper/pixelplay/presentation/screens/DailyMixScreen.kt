@@ -233,7 +233,6 @@ fun DailyMixScreen(
                 )
             },
             removeFromListTrigger = removeFromListTrigger,
-            aiError = aiError,
         )
 
         if (showPlaylistBottomSheet) {

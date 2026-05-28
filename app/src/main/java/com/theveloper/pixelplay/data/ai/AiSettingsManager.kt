@@ -6,6 +6,7 @@ import com.theveloper.pixelplay.data.ai.local.LocalModelCatalog
 import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
 import com.theveloper.pixelplay.data.ai.local.ModelSource
 import com.theveloper.pixelplay.data.ai.local.ModelStatus
+import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -54,19 +55,24 @@ class AiSettingsManager @Inject constructor(
      * Loads settings from preferences.
      */
     suspend fun loadSettings() {
-        val prefs = aiPreferencesRepository.getPreferences.first()
+        val provider = aiPreferencesRepository.aiProvider.first()
+        val model = aiPreferencesRepository.getModel(AiProvider.fromString(provider)).first()
 
         _settingsState.value = AiSettingsState(
-            activeProvider = prefs.aiProvider,
-            activeModel = prefs.aiModel,
-            temperature = prefs.aiTemperature,
-            maxTokens = prefs.aiMaxTokens,
-            enableStreaming = prefs.aiEnableStreaming,
-            includeContext = prefs.aiIncludeContext,
-            contextWindowSize = prefs.maxSongsForContext,
-            includeLikedSongs = prefs.includeLikedSongs,
-            includeDailyMixHistory = prefs.includeDailyMixHistory,
-            includeUserHabits = prefs.includeUserHabits
+            activeProvider = provider,
+            activeModel = model,
+            temperature = aiPreferencesRepository.aiTemperature.first(),
+            maxTokens = aiPreferencesRepository.aiMaxTokens.first(),
+            enableStreaming = aiPreferencesRepository.aiEnableStreaming.first(),
+            includeContext = aiPreferencesRepository.aiIncludeContext.first(),
+            contextWindowSize = aiPreferencesRepository.maxSongsForContext.first(),
+            includeLikedSongs = aiPreferencesRepository.includeLikedSongs.first(),
+            includeDailyMixHistory = aiPreferencesRepository.includeDailyMixHistory.first(),
+            includeUserHabits = aiPreferencesRepository.includeUserHabits.first(),
+            localModelEnabled = aiPreferencesRepository.localMlEnabled.first(),
+            localModelId = aiPreferencesRepository.localMlActiveModelId.first(),
+            ollamaEndpoint = aiPreferencesRepository.localMlOllamaUrl.first(),
+            huggingFaceToken = aiPreferencesRepository.localMlHfToken.first()
         )
 
         // Load available models based on device capabilities
@@ -120,6 +126,10 @@ class AiSettingsManager @Inject constructor(
         aiPreferencesRepository.setIncludeLikedSongs(newState.includeLikedSongs)
         aiPreferencesRepository.setIncludeDailyMixHistory(newState.includeDailyMixHistory)
         aiPreferencesRepository.setIncludeUserHabits(newState.includeUserHabits)
+        aiPreferencesRepository.setLocalMlEnabled(newState.localModelEnabled)
+        aiPreferencesRepository.setLocalMlActiveModelId(newState.localModelId ?: "")
+        aiPreferencesRepository.setLocalMlOllamaUrl(newState.ollamaEndpoint)
+        aiPreferencesRepository.setLocalMlHfToken(newState.huggingFaceToken ?: "")
     }
 
     /**

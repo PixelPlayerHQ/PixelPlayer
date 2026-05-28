@@ -275,7 +275,7 @@ dependencies {
 
     // UI Utilities & Extra
     implementation(libs.timber)
-    implementation(libs.generativeai)
+    implementation("com.google.genai:google-genai:${libs.versions.googleGenai.get()}")
     implementation(libs.smooth.corner.rect.android.compose)
     implementation(libs.reorderables)
     implementation(libs.codeview)

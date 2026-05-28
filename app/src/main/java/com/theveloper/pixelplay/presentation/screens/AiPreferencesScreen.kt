@@ -87,6 +87,80 @@ fun AiPreferencesScreen(
                     onCheckedChange = { settingsViewModel.setIncludeUserHabits(it) }
                 )
             }
+
+            item {
+                Text(
+                    text = stringResource(R.string.settings_ai_local_models_section),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            item {
+                SwitchPreference(
+                    title = stringResource(R.string.settings_ai_local_models_enabled_title),
+                    subtitle = stringResource(R.string.settings_ai_local_models_enabled_subtitle),
+                    checked = uiState.localMlEnabled,
+                    onCheckedChange = { settingsViewModel.setLocalMlEnabled(it) }
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = uiState.localMlActiveModelId,
+                    onValueChange = { settingsViewModel.setLocalMlActiveModelId(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.settings_ai_local_model_id_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_ai_local_model_id_placeholder)) }
+                )
+            }
+
+            item {
+                SwitchPreference(
+                    title = stringResource(R.string.settings_ai_local_models_fallback_title),
+                    subtitle = stringResource(R.string.settings_ai_local_models_fallback_subtitle),
+                    checked = uiState.localMlFallbackToRemote,
+                    onCheckedChange = { settingsViewModel.setLocalMlFallbackToRemote(it) }
+                )
+            }
+
+            item {
+                SwitchPreference(
+                    title = stringResource(R.string.settings_ai_local_models_gpu_title),
+                    subtitle = stringResource(R.string.settings_ai_local_models_gpu_subtitle),
+                    checked = uiState.localMlUseGpu,
+                    onCheckedChange = { settingsViewModel.setLocalMlUseGpu(it) }
+                )
+            }
+
+            item {
+                Text("Local model prompt context: ${uiState.localMlContextSize}")
+                Slider(
+                    value = uiState.localMlContextSize.toFloat(),
+                    onValueChange = { settingsViewModel.setLocalMlContextSize(it.toInt()) },
+                    valueRange = 20f..200f
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = uiState.localMlOllamaUrl,
+                    onValueChange = { settingsViewModel.setLocalMlOllamaUrl(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.settings_ai_local_models_ollama_url_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_ai_local_models_ollama_url_placeholder)) }
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = uiState.localMlHfToken,
+                    onValueChange = { settingsViewModel.setLocalMlHfToken(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.settings_ai_local_models_hf_token_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_ai_local_models_hf_token_placeholder)) }
+                )
+            }
         }
     }
 }

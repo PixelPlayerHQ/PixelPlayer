@@ -114,7 +114,14 @@ data class SettingsUiState(
     val maxSongsForContext: Int = AiPreferencesRepository.DEFAULT_MAX_SONGS_FOR_CONTEXT,
     val includeLikedSongs: Boolean = true,
     val includeDailyMixHistory: Boolean = true,
-    val includeUserHabits: Boolean = true
+    val includeUserHabits: Boolean = true,
+    val localMlEnabled: Boolean = false,
+    val localMlActiveModelId: String = "",
+    val localMlFallbackToRemote: Boolean = true,
+    val localMlUseGpu: Boolean = false,
+    val localMlContextSize: Int = AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE,
+    val localMlOllamaUrl: String = "http://localhost:11434",
+    val localMlHfToken: String = ""
 )
 
 data class FailedSongInfo(
@@ -435,6 +442,34 @@ class SettingsViewModel @Inject constructor(
     fun resetAnthropicSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.ANTHROPIC) }
     fun resetOllamaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OLLAMA) }
 
+    fun setLocalMlEnabled(enabled: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlEnabled(enabled) }
+    }
+
+    fun setLocalMlActiveModelId(modelId: String) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlActiveModelId(modelId) }
+    }
+
+    fun setLocalMlFallbackToRemote(fallback: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlFallbackToRemote(fallback) }
+    }
+
+    fun setLocalMlUseGpu(enabled: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlUseGpu(enabled) }
+    }
+
+    fun setLocalMlContextSize(size: Int) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlContextSize(size.coerceIn(20, 200)) }
+    }
+
+    fun setLocalMlOllamaUrl(url: String) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlOllamaUrl(url.trim()) }
+    }
+
+    fun setLocalMlHfToken(token: String) {
+        viewModelScope.launch { aiPreferencesRepository.setLocalMlHfToken(token.trim()) }
+    }
+
     fun clearAiUsageData() {
         viewModelScope.launch {
             aiUsageDao.clearUsage()
@@ -443,6 +478,27 @@ class SettingsViewModel @Inject constructor(
 
     val isSafeTokenLimitEnabled: StateFlow<Boolean> = aiPreferencesRepository.isSafeTokenLimitEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val localMlEnabled: StateFlow<Boolean> = aiPreferencesRepository.localMlEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val localMlActiveModelId: StateFlow<String> = aiPreferencesRepository.localMlActiveModelId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val localMlFallbackToRemote: StateFlow<Boolean> = aiPreferencesRepository.localMlFallbackToRemote
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val localMlUseGpu: StateFlow<Boolean> = aiPreferencesRepository.localMlUseGpu
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val localMlContextSize: StateFlow<Int> = aiPreferencesRepository.localMlContextSize
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE)
+
+    val localMlOllamaUrl: StateFlow<String> = aiPreferencesRepository.localMlOllamaUrl
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "http://localhost:11434")
+
+    val localMlHfToken: StateFlow<String> = aiPreferencesRepository.localMlHfToken
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     val recentAiUsage: StateFlow<List<AiUsageEntity>> = aiUsageDao.getRecentUsages(20)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -720,6 +776,48 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             aiPreferencesRepository.isSafeTokenLimitEnabled.collect { enabled ->
                 _uiState.update { it.copy(isSafeTokenLimitEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlEnabled.collect { enabled ->
+                _uiState.update { it.copy(localMlEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlActiveModelId.collect { modelId ->
+                _uiState.update { it.copy(localMlActiveModelId = modelId) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlFallbackToRemote.collect { fallback ->
+                _uiState.update { it.copy(localMlFallbackToRemote = fallback) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlUseGpu.collect { useGpu ->
+                _uiState.update { it.copy(localMlUseGpu = useGpu) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlContextSize.collect { size ->
+                _uiState.update { it.copy(localMlContextSize = size) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlOllamaUrl.collect { url ->
+                _uiState.update { it.copy(localMlOllamaUrl = url) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlHfToken.collect { token ->
+                _uiState.update { it.copy(localMlHfToken = token) }
             }
         }
     }

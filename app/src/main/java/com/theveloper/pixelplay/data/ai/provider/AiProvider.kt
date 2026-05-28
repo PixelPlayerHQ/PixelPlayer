@@ -12,7 +12,9 @@ enum class AiProvider(val displayName: String, val requiresApiKey: Boolean) {
     KIMI("Kimi (Moonshot)", requiresApiKey = true),
     GLM("Zhipu GLM", requiresApiKey = true),
     OPENAI("OpenAI", requiresApiKey = true),
-    OPENROUTER("OpenRouter", requiresApiKey = true);
+    OPENROUTER("OpenRouter", requiresApiKey = true),
+    ANTHROPIC("Anthropic Claude", requiresApiKey = true),
+    OLLAMA("Ollama (Local)", requiresApiKey = false);
     
     companion object {
         fun fromString(value: String): AiProvider {

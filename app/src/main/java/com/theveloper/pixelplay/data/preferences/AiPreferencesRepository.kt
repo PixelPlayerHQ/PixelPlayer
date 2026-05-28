@@ -30,6 +30,8 @@ class AiPreferencesRepository @Inject constructor(
         val DEFAULT_GLM_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         val DEFAULT_OPENAI_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         val DEFAULT_OPENROUTER_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_ANTHROPIC_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_OLLAMA_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
     }
 
     private object Keys {
@@ -41,7 +43,7 @@ class AiPreferencesRepository @Inject constructor(
         fun getSystemPrompt(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_system_prompt")
     }
 
-    // Generic accessors for AiOrchestrator
+    // Generic accessors for AiHandler
     fun getApiKey(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)]?.trim() ?: "" }
 
@@ -107,6 +109,14 @@ class AiPreferencesRepository @Inject constructor(
     val openrouterApiKey: Flow<String> = getApiKey(AiProvider.OPENROUTER)
     val openrouterModel: Flow<String> = getModel(AiProvider.OPENROUTER)
     val openrouterSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.OPENROUTER)
+
+    val anthropicApiKey: Flow<String> = getApiKey(AiProvider.ANTHROPIC)
+    val anthropicModel: Flow<String> = getModel(AiProvider.ANTHROPIC)
+    val anthropicSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.ANTHROPIC)
+
+    val ollamaApiKey: Flow<String> = getApiKey(AiProvider.OLLAMA)
+    val ollamaModel: Flow<String> = getModel(AiProvider.OLLAMA)
+    val ollamaSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.OLLAMA)
 
     val aiProvider: Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.AI_PROVIDER] ?: "GEMINI" }

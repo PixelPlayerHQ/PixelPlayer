@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.data.ai
 
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.network.NetworkTimeouts
 import com.theveloper.pixelplay.data.worker.AiWorkerManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,7 +16,7 @@ data class GeminiModel(
 
 @Singleton
 class GeminiModelService @Inject constructor(
-    private val orchestrator: AiOrchestrator,
+    private val orchestrator: AiHandler,
     private val digestGenerator: UserProfileDigestGenerator,
     private val musicRepository: MusicRepository,
     private val workerManager: AiWorkerManager
@@ -43,8 +44,8 @@ class GeminiModelService @Inject constructor(
                 val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
 
                 connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
+                connection.connectTimeout = NetworkTimeouts.GITHUB_CONNECT_MS
+                connection.readTimeout = NetworkTimeouts.GITHUB_READ_MS
 
                 val responseCode = connection.responseCode
                 val apiModels = if (responseCode == 200) {

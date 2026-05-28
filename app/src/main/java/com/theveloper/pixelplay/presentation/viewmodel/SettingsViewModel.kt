@@ -271,6 +271,20 @@ class SettingsViewModel @Inject constructor(
     val openrouterSystemPrompt: StateFlow<String> = aiPreferencesRepository.openrouterSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OPENROUTER_SYSTEM_PROMPT)
 
+    val anthropicApiKey: StateFlow<String> = aiPreferencesRepository.anthropicApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val anthropicModel: StateFlow<String> = aiPreferencesRepository.anthropicModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val anthropicSystemPrompt: StateFlow<String> = aiPreferencesRepository.anthropicSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_ANTHROPIC_SYSTEM_PROMPT)
+
+    val ollamaApiKey: StateFlow<String> = aiPreferencesRepository.ollamaApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaModel: StateFlow<String> = aiPreferencesRepository.ollamaModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.ollamaSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OLLAMA_SYSTEM_PROMPT)
+
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
             val providerStr = aiProvider.value
@@ -345,6 +359,19 @@ class SettingsViewModel @Inject constructor(
             else clearModelsState("OPENROUTER")
         }
     }
+    fun onAnthropicApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.ANTHROPIC, apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "ANTHROPIC")
+            else clearModelsState("ANTHROPIC")
+        }
+    }
+    fun onOllamaApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.OLLAMA, apiKey)
+            fetchAvailableModels(apiKey, "OLLAMA")
+        }
+    }
 
     fun onAiModelChange(model: String) {
         viewModelScope.launch {
@@ -362,6 +389,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GLM, model) }
     fun onOpenAiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENAI, model) }
     fun onOpenrouterModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENROUTER, model) }
+    fun onAnthropicModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.ANTHROPIC, model) }
+    fun onOllamaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OLLAMA, model) }
 
     fun onAiSystemPromptChange(prompt: String) {
         viewModelScope.launch {
@@ -379,6 +408,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GLM, prompt) }
     fun onOpenAiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENAI, prompt) }
     fun onOpenrouterSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENROUTER, prompt) }
+    fun onAnthropicSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.ANTHROPIC, prompt) }
+    fun onOllamaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OLLAMA, prompt) }
 
     fun resetAiSystemPrompt() {
         viewModelScope.launch {
@@ -396,6 +427,8 @@ class SettingsViewModel @Inject constructor(
     fun resetGlmSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GLM) }
     fun resetOpenAiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENAI) }
     fun resetOpenrouterSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENROUTER) }
+    fun resetAnthropicSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.ANTHROPIC) }
+    fun resetOllamaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OLLAMA) }
 
     fun clearAiUsageData() {
         viewModelScope.launch {

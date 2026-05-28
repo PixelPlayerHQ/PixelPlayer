@@ -11,7 +11,7 @@ import kotlin.math.max
 
 class AiPlaylistGenerator @Inject constructor(
     private val dailyMixManager: DailyMixManager,
-    private val aiOrchestrator: AiOrchestrator,
+    private val aiHandler: AiHandler,
     private val digestGenerator: UserProfileDigestGenerator,
     private val preferencesRepo: AiPreferencesRepository,
     private val json: Json
@@ -73,7 +73,7 @@ class AiPlaylistGenerator @Inject constructor(
             </candidate_pool>
             """.trimIndent()
 
-            val responseText = aiOrchestrator.generateContent(fullPrompt, type)
+            val responseText = aiHandler.generateContent(fullPrompt, type)
 
             val songIds = extractPlaylistSongIds(responseText)
 

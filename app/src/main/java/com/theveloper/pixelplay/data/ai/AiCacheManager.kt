@@ -3,7 +3,6 @@ package com.theveloper.pixelplay.data.ai
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
@@ -18,8 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AiCacheManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val userPreferencesRepository: UserPreferencesRepository
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val PREFS_NAME = "ai_cache_settings"
@@ -133,21 +131,17 @@ class AiCacheManager @Inject constructor(
     }
 
     /**
-     * Gets debug mode state from UserPreferencesRepository.
+     * Gets debug mode state from local SharedPreferences.
+     * This is used as a proxy for AI features enabled status.
      */
     private suspend fun isDebugModeEnabled(): Boolean {
         return try {
-            val preferences = userPreferencesRepository.getPreferences.first()
-            // Access debugModeEnabled from the preferences object
-            // The exact field name may vary - common patterns:
-            preferences.debugModeEnabled
-            // OR
-            // preferences.getBoolean("debug_mode_enabled", false)
-            // OR
-            // preferences.isDebugMode
+            // Use local SharedPreferences for debug mode
+            // This acts as a proxy for AI features being enabled
+            settingsPrefs.getBoolean(KEY_DEBUG_MODE, true) // Default to true to enable caching
         } catch (e: Exception) {
-            // Fallback to local SharedPreferences if UserPreferencesRepository fails
-            settingsPrefs.getBoolean(KEY_DEBUG_MODE, false)
+            Timber.tag("AiCache").e(e, "Failed to check debug mode")
+            false
         }
     }
 

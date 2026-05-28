@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -240,13 +241,32 @@ class AiSettingsManager @Inject constructor(
      */
     suspend fun setupLocalModel(modelId: String): Boolean {
         return try {
-            val success = localMlManager.downloadModel(modelId)
-            if (success) {
+            // Find the model info from catalog
+            val modelInfo = LocalModelCatalog.all.find { it.id == modelId }
+            if (modelInfo == null) {
+                Timber.tag("AiSettingsManager").e("Model not found in catalog: $modelId")
+                return false
+            }
+
+            // Download using the model info and wait for completion
+            var finalStatus: ModelStatus = ModelStatus.NotDownloaded
+            localMlManager.downloadModel(modelInfo).collect { status ->
+                Timber.tag("AiSettingsManager").d("Download progress: $status")
+                finalStatus = status
+            }
+
+            // Check if download was successful
+            val isReady = finalStatus is ModelStatus.Ready || localMlManager.isInstalled(modelId)
+            if (isReady) {
                 setLocalModelId(modelId)
                 setLocalModelEnabled(true)
+                true
+            } else {
+                Timber.tag("AiSettingsManager").e("Download failed: $finalStatus")
+                false
             }
-            success
         } catch (e: Exception) {
+            Timber.tag("AiSettingsManager").e(e, "Failed to setup local model: $modelId")
             false
         }
     }
@@ -315,7 +335,7 @@ class AiSettingsManager @Inject constructor(
      * Gets the status of a specific local model.
      */
     suspend fun getModelStatus(modelId: String): ModelStatus {
-        return localMlManager.getModelStatus(modelId)
+        return localMlManager.getStatus(modelId)
     }
 
     /**

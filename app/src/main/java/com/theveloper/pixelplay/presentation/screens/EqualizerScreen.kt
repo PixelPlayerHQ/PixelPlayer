@@ -559,8 +559,11 @@ private fun BandSlidersSection(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
             ) {
                  val isCustomOrSaved = editingPresetName != null || currentPreset.name == "custom" || currentPreset.isCustom
                  val displayLabel = editingPresetName ?: currentPreset.displayName
@@ -599,7 +602,7 @@ private fun BandSlidersSection(
                         shape = CircleShape,
                         onClick = onSaveClick
                     ) {
-                         Row(
+                          Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -615,11 +618,12 @@ private fun BandSlidersSection(
                                  color = MaterialTheme.colorScheme.onTertiaryContainer,
                                  fontWeight = FontWeight.Bold
                              )
-                         }
+                          }
                      }
                 }
                 
                 if (editingPresetName != null) {
+                    // Update Option
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = CircleShape,
@@ -639,6 +643,31 @@ private fun BandSlidersSection(
                             Text(
                                 text = stringResource(R.string.presentation_batch_d_action_update),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Save New Option
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = CircleShape,
+                        onClick = onSaveClick
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Save,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.equalizer_action_save_new),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 fontWeight = FontWeight.Bold
                             )
                         }

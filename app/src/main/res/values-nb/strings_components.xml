@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Endre navn på forhåndsinnstilling</string>
     <string name="error_name_empty">Navnet kan ikke være tomt</string>
     <string name="action_save">Lagre</string>
+    <string name="equalizer_action_save_new">Lagre ny</string>
     <string name="action_rename">Endre navn</string>
 
     <!-- AI metadata sheet -->

@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">프리셋 이름 변경</string>
     <string name="error_name_empty">이름은 비워둘 수 없습니다</string>
     <string name="action_save">저장</string>
+    <string name="equalizer_action_save_new">새로 저장</string>
     <string name="action_rename">이름 변경</string>
 
     <!-- AI metadata sheet -->

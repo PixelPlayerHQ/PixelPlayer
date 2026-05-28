@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Переименовать пресет</string>
     <string name="error_name_empty">Имя не может быть пустым</string>
     <string name="action_save">Сохранить</string>
+    <string name="equalizer_action_save_new">Сохранить как новый</string>
     <string name="action_rename">Переименовать</string>
 
     <!-- AI metadata sheet -->

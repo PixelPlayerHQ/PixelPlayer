@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Rinomina preset</string>
     <string name="error_name_empty">Il nome non può essere vuoto</string>
     <string name="action_save">Salva</string>
+    <string name="equalizer_action_save_new">Salva nuovo</string>
     <string name="action_rename">Rinomina</string>
 
     <!-- AI metadata sheet -->

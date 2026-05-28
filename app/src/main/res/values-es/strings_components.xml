@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Renombrar preset</string>
     <string name="error_name_empty">El nombre no puede estar vacío</string>
     <string name="action_save">Guardar</string>
+    <string name="equalizer_action_save_new">Guardar nuevo</string>
     <string name="action_rename">Renombrar</string>
 
     <!-- AI metadata sheet -->

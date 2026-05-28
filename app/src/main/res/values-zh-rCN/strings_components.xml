@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">重命名预设</string>
     <string name="error_name_empty">名称不能为空</string>
     <string name="action_save">保存</string>
+    <string name="equalizer_action_save_new">保存新预设</string>
     <string name="action_rename">重命名</string>
 
     <!-- AI metadata sheet -->

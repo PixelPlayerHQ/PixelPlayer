@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.data.ai
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -20,9 +22,16 @@ class AiCacheManager @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
     companion object {
+        private const val PREFS_NAME = "ai_cache_settings"
+        private const val KEY_CACHING_ENABLED = "ai_caching_enabled"
+        private const val KEY_DEBUG_MODE = "debug_mode_enabled"
         private const val CACHE_DIR = "ai_cache"
         private const val MAX_CACHE_SIZE_MB = 50
         private const val CACHE_EXPIRY_DAYS = 7
+    }
+
+    private val settingsPrefs: SharedPreferences by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     private val cacheDir: File
@@ -115,17 +124,49 @@ class AiCacheManager @Inject constructor(
         return generatePromptHash(combined)
     }
 
-    private fun getCacheFile(promptHash: String): File {
-        return File(cacheDir, "cache_$promptHash.txt")
+    /**
+     * Enables or disables AI caching.
+     */
+    fun setCachingEnabled(enabled: Boolean) {
+        settingsPrefs.edit().putBoolean(KEY_CACHING_ENABLED, enabled).apply()
+        Timber.tag("AiCache").d("Caching enabled: $enabled")
+    }
+
+    /**
+     * Gets debug mode state from UserPreferencesRepository.
+     */
+    private suspend fun isDebugModeEnabled(): Boolean {
+        return try {
+            val preferences = userPreferencesRepository.getPreferences.first()
+            // Access debugModeEnabled from the preferences object
+            // The exact field name may vary - common patterns:
+            preferences.debugModeEnabled
+            // OR
+            // preferences.getBoolean("debug_mode_enabled", false)
+            // OR
+            // preferences.isDebugMode
+        } catch (e: Exception) {
+            // Fallback to local SharedPreferences if UserPreferencesRepository fails
+            settingsPrefs.getBoolean(KEY_DEBUG_MODE, false)
+        }
     }
 
     private suspend fun isCachingEnabled(): Boolean {
         return try {
-            val prefs = userPreferencesRepository.getPreferences.first()
-            prefs.debugModeEnabled // Using debug mode as proxy for enabling AI caching
+            // First check if caching is explicitly enabled in local settings
+            val cachingEnabled = settingsPrefs.getBoolean(KEY_CACHING_ENABLED, true)
+            if (!cachingEnabled) return false
+            
+            // Then check debug mode (or use as proxy for AI features)
+            isDebugModeEnabled()
         } catch (e: Exception) {
+            Timber.tag("AiCache").e(e, "Failed to check if caching enabled")
             false
         }
+    }
+
+    private fun getCacheFile(promptHash: String): File {
+        return File(cacheDir, "cache_$promptHash.txt")
     }
 
     private fun cleanupOldCache() {

@@ -4,6 +4,7 @@ import android.content.Context
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -36,6 +37,11 @@ class AiLogger @Inject constructor(
         get() = File(logDir, LOG_FILE)
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    
+    // Cache debug mode to avoid calling suspend function repeatedly
+    private var cachedDebugMode: Boolean? = null
+    private var lastCacheTime = 0L
+    private val cacheValidDuration = 5000L // 5 seconds
 
     /**
      * Logs an AI operation with full context.
@@ -52,7 +58,7 @@ class AiLogger @Inject constructor(
         tokensUsed: Int = 0,
         cost: Double = 0.0
     ) {
-        if (!shouldLog()) return
+        if (!shouldLogSync()) return
 
         val timestamp = dateFormat.format(Date())
         val status = if (success) "SUCCESS" else "FAILED"
@@ -83,7 +89,7 @@ class AiLogger @Inject constructor(
         durationMs: Long,
         error: String? = null
     ) {
-        if (!shouldLog()) return
+        if (!shouldLogSync()) return
 
         val timestamp = dateFormat.format(Date())
         val status = if (success) "SUCCESS" else "FAILED"
@@ -110,7 +116,7 @@ class AiLogger @Inject constructor(
         success: Boolean,
         error: String? = null
     ) {
-        if (!shouldLog()) return
+        if (!shouldLogSync()) return
 
         val timestamp = dateFormat.format(Date())
         val status = if (success) "SUCCESS" else "FAILED"
@@ -130,7 +136,7 @@ class AiLogger @Inject constructor(
      * Logs API key validation results.
      */
     fun logApiKeyValidation(provider: String, valid: Boolean, error: String? = null) {
-        if (!shouldLog()) return
+        if (!shouldLogSync()) return
 
         val timestamp = dateFormat.format(Date())
         val status = if (valid) "VALID" else "INVALID"
@@ -186,6 +192,35 @@ class AiLogger @Inject constructor(
         }
     }
 
+    /**
+     * Synchronous version of shouldLog that caches the result.
+     * This avoids calling suspend functions from non-suspend contexts.
+     */
+    private fun shouldLogSync(): Boolean {
+        // Check cache
+        val now = System.currentTimeMillis()
+        if (cachedDebugMode != null && (now - lastCacheTime) < cacheValidDuration) {
+            return cachedDebugMode == true
+        }
+        
+        // Refresh cache
+        cachedDebugMode = try {
+            // Use runBlocking to call suspend function - OK for logging since it's not performance critical
+            runBlocking {
+                val prefs = userPreferencesRepository.getPreferences.first()
+                prefs.debugModeEnabled
+            }
+        } catch (e: Exception) {
+            false
+        }
+        lastCacheTime = now
+        
+        return cachedDebugMode == true
+    }
+
+    /**
+     * Asynchronous version for coroutine contexts.
+     */
     private suspend fun shouldLog(): Boolean {
         return try {
             val prefs = userPreferencesRepository.getPreferences.first()

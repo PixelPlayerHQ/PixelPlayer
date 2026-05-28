@@ -55,28 +55,33 @@ class AiSettingsManager @Inject constructor(
      * Loads settings from preferences.
      */
     suspend fun loadSettings() {
-        val provider = aiPreferencesRepository.aiProvider.first()
-        val model = aiPreferencesRepository.getModel(AiProvider.fromString(provider)).first()
+        try {
+            val provider = aiPreferencesRepository.aiProvider.first()
+            val model = aiPreferencesRepository.getModel(AiProvider.fromString(provider)).first()
 
-        _settingsState.value = AiSettingsState(
-            activeProvider = provider,
-            activeModel = model,
-            temperature = aiPreferencesRepository.aiTemperature.first(),
-            maxTokens = aiPreferencesRepository.aiMaxTokens.first(),
-            enableStreaming = aiPreferencesRepository.aiEnableStreaming.first(),
-            includeContext = aiPreferencesRepository.aiIncludeContext.first(),
-            contextWindowSize = aiPreferencesRepository.maxSongsForContext.first(),
-            includeLikedSongs = aiPreferencesRepository.includeLikedSongs.first(),
-            includeDailyMixHistory = aiPreferencesRepository.includeDailyMixHistory.first(),
-            includeUserHabits = aiPreferencesRepository.includeUserHabits.first(),
-            localModelEnabled = aiPreferencesRepository.localMlEnabled.first(),
-            localModelId = aiPreferencesRepository.localMlActiveModelId.first(),
-            ollamaEndpoint = aiPreferencesRepository.localMlOllamaUrl.first(),
-            huggingFaceToken = aiPreferencesRepository.localMlHfToken.first()
-        )
+            _settingsState.value = AiSettingsState(
+                activeProvider = provider,
+                activeModel = model,
+                temperature = aiPreferencesRepository.aiTemperature.first(),
+                maxTokens = aiPreferencesRepository.aiMaxTokens.first(),
+                enableStreaming = aiPreferencesRepository.aiEnableStreaming.first(),
+                includeContext = aiPreferencesRepository.aiIncludeContext.first(),
+                contextWindowSize = aiPreferencesRepository.maxSongsForContext.first(),
+                includeLikedSongs = aiPreferencesRepository.includeLikedSongs.first(),
+                includeDailyMixHistory = aiPreferencesRepository.includeDailyMixHistory.first(),
+                includeUserHabits = aiPreferencesRepository.includeUserHabits.first(),
+                localModelEnabled = aiPreferencesRepository.localMlEnabled.first(),
+                localModelId = aiPreferencesRepository.localMlActiveModelId.first().takeIf { it.isNotEmpty() },
+                ollamaEndpoint = aiPreferencesRepository.localMlOllamaUrl.first(),
+                huggingFaceToken = aiPreferencesRepository.localMlHfToken.first().takeIf { it.isNotEmpty() }
+            )
 
-        // Load available models based on device capabilities
-        refreshAvailableModels()
+            // Load available models based on device capabilities
+            refreshAvailableModels()
+        } catch (e: Exception) {
+            // Handle loading error - keep default state
+            e.printStackTrace()
+        }
     }
 
     /**
@@ -168,6 +173,13 @@ class AiSettingsManager @Inject constructor(
     }
 
     /**
+     * Sets whether to include context.
+     */
+    suspend fun setIncludeContext(include: Boolean) {
+        updateSetting { copy(includeContext = include) }
+    }
+
+    /**
      * Sets the context window size.
      */
     suspend fun setContextWindowSize(size: Int) {
@@ -196,6 +208,20 @@ class AiSettingsManager @Inject constructor(
     }
 
     /**
+     * Enables/disables local models.
+     */
+    suspend fun setLocalModelEnabled(enabled: Boolean) {
+        updateSetting { copy(localModelEnabled = enabled) }
+    }
+
+    /**
+     * Sets the active local model.
+     */
+    suspend fun setLocalModelId(modelId: String?) {
+        updateSetting { copy(localModelId = modelId, localModelEnabled = modelId != null) }
+    }
+
+    /**
      * Sets the Ollama endpoint.
      */
     suspend fun setOllamaEndpoint(endpoint: String) {
@@ -210,10 +236,19 @@ class AiSettingsManager @Inject constructor(
     }
 
     /**
-     * Enables local model mode.
+     * Downloads and sets up a local model.
      */
-    suspend fun setLocalModelEnabled(enabled: Boolean, modelId: String? = null) {
-        updateSetting { copy(localModelEnabled = enabled, localModelId = modelId) }
+    suspend fun setupLocalModel(modelId: String): Boolean {
+        return try {
+            val success = localMlManager.downloadModel(modelId)
+            if (success) {
+                setLocalModelId(modelId)
+                setLocalModelEnabled(true)
+            }
+            success
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
@@ -224,8 +259,22 @@ class AiSettingsManager @Inject constructor(
             "GEMINI" -> listOf("gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash")
             "OPENAI" -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo")
             "ANTHROPIC" -> listOf("claude-sonnet-4-20250514", "claude-haiku-4-20250307")
-            "OLLAMA" -> listOf("llama3", "mistral", "phi3", "tinyllama")
+            "OLLAMA" -> listOf("llama3", "mistral", "phi3", "tinyllama", "llama2")
+            "LOCAL" -> _availableModels.value.map { it.modelId }
             else -> emptyList()
+        }
+    }
+
+    /**
+     * Checks if the current provider is ready for API calls.
+     */
+    fun isProviderReady(): Boolean {
+        val state = _settingsState.value
+        return when (state.activeProvider) {
+            "LOCAL" -> state.localModelEnabled && state.localModelId != null && 
+                       localMlManager.isInstalled(state.localModelId)
+            "OLLAMA" -> state.ollamaEndpoint.isNotBlank()
+            else -> true  // Cloud providers assume API keys are set elsewhere
         }
     }
 
@@ -237,7 +286,9 @@ class AiSettingsManager @Inject constructor(
 
         return when (state.activeProvider) {
             "LOCAL" -> {
-                if (!state.localModelEnabled || state.localModelId == null) {
+                if (!state.localModelEnabled) {
+                    ValidationResult.Error("Local models are disabled")
+                } else if (state.localModelId == null) {
                     ValidationResult.Error("No local model selected")
                 } else if (!localMlManager.isInstalled(state.localModelId)) {
                     ValidationResult.Error("Selected model not downloaded")
@@ -252,7 +303,34 @@ class AiSettingsManager @Inject constructor(
                     ValidationResult.Valid
                 }
             }
-            else -> ValidationResult.Valid
+            "GEMINI", "OPENAI", "ANTHROPIC" -> {
+                // API key validation happens at the provider level
+                ValidationResult.Valid
+            }
+            else -> ValidationResult.Error("Unknown provider: ${state.activeProvider}")
+        }
+    }
+
+    /**
+     * Gets the status of a specific local model.
+     */
+    suspend fun getModelStatus(modelId: String): ModelStatus {
+        return localMlManager.getModelStatus(modelId)
+    }
+
+    /**
+     * Deletes a downloaded local model.
+     */
+    suspend fun deleteLocalModel(modelId: String): Boolean {
+        return try {
+            val success = localMlManager.deleteModel(modelId)
+            if (success && _settingsState.value.localModelId == modelId) {
+                setLocalModelId(null)
+                setLocalModelEnabled(false)
+            }
+            success
+        } catch (e: Exception) {
+            false
         }
     }
 

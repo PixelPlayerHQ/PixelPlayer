@@ -16,7 +16,7 @@ class AiClientFactory @Inject constructor() {
      * @return AiClient instance
      */
     fun createClient(provider: AiProvider, apiKey: String): AiClient {
-        if (apiKey.isBlank()) {
+        if (apiKey.isBlank() && provider.requiresApiKey) {
             throw IllegalArgumentException("API Key cannot be blank for ${provider.displayName}")
         }
         
@@ -55,6 +55,8 @@ class AiClientFactory @Inject constructor() {
                 defaultModelId = "google/gemini-2.0-flash-lite-preview-02-05:free",
                 providerName = "OpenRouter"
             )
+            AiProvider.ANTHROPIC -> AnthropicAiClient(apiKey)
+            AiProvider.OLLAMA -> OllamaAiClient()
         }
     }
 }

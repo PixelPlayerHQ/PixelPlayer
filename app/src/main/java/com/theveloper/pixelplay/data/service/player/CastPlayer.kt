@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.MimeTypes
 import androidx.media3.decoder.ffmpeg.FfmpegLibrary
@@ -22,8 +21,7 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.api.PendingResult
 import com.google.android.gms.common.images.WebImage
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.service.cast.CastAudioMimeUtils
-import com.theveloper.pixelplay.data.service.cast.IsoBmffAudioCodecDetector
+import com.theveloper.pixelplay.data.network.NetworkTimeouts
 import com.theveloper.pixelplay.data.service.http.CastSessionSecurity
 import org.json.JSONObject
 import timber.log.Timber
@@ -46,7 +44,7 @@ class CastPlayer(
     }
 
     private val remoteMediaClient: RemoteMediaClient? = castSession.remoteMediaClient
-    private val queueLoadTimeoutMs = 25000L
+    private val queueLoadTimeoutMs = NetworkTimeouts.CAST_QUEUE_LOAD_MS
     private val commandTimeoutMs = 3500L
     private val commandRetryDelayMs = 220L
     private val minCommandSpacingMs = 120L
@@ -146,17 +144,11 @@ class CastPlayer(
                     val isInvalidRequest = result.status.statusMessage
                         ?.contains("Invalid Request", ignoreCase = true) == true
                     if (isInvalidRequest) {
-                        Log.e(
-                            "PX_CAST_CMD",
-                            "Invalid Request command=${queuedCommand.name} status=${result.status.statusCode} msg=${result.status.statusMessage}"
-                        )
-                    }
-                    if (isInvalidRequest) {
                         Timber.w(
-                            "Cast command invalid request: %s (%s/%d)",
+                            "Cast InvalidRequest command=%s status=%d msg=%s",
                             queuedCommand.name,
-                            result.status.statusMessage,
-                            result.status.statusCode
+                            result.status.statusCode,
+                            result.status.statusMessage
                         )
                         complete(requestStatus = true)
                         return@setResultCallback
@@ -175,10 +167,6 @@ class CastPlayer(
                 }
 
                 if (!result.status.isSuccess) {
-                    Log.e(
-                        "PX_CAST_CMD",
-                        "Command failed command=${queuedCommand.name} status=${result.status.statusCode} msg=${result.status.statusMessage}"
-                    )
                     Timber.w(
                         "Cast command failed: %s (%s/%d)",
                         queuedCommand.name,
@@ -325,9 +313,9 @@ class CastPlayer(
                             val alacDecoderAvailable = isAlacTranscodeSupported()
                             val forcedMime = if (alacDecoderAvailable) "audio/aac" else "audio/mp4"
                             forcedMimeBySongId[song.id] = forcedMime
-                            Log.i(
-                                "PX_CAST_QLOAD",
-                                "alac_probe songId=${song.id} rawCodec=audio/alac forcedMime=$forcedMime decoderAvailable=$alacDecoderAvailable nonce=$queueLoadNonce"
+                            Timber.tag(castLogTag).i(
+                                "alac_probe songId=%s rawCodec=audio/alac forcedMime=%s decoderAvailable=%s nonce=%s",
+                                song.id, forcedMime, alacDecoderAvailable, queueLoadNonce
                             )
                             continue
                         }
@@ -336,9 +324,9 @@ class CastPlayer(
                             val flacDecoderAvailable = isFlacTranscodeSupported()
                             val forcedMime = if (flacDecoderAvailable) "audio/aac" else "audio/flac"
                             forcedMimeBySongId[song.id] = forcedMime
-                            Log.i(
-                                "PX_CAST_QLOAD",
-                                "flac_probe songId=${song.id} rawCodec=audio/flac forcedMime=$forcedMime decoderAvailable=$flacDecoderAvailable nonce=$queueLoadNonce"
+                            Timber.tag(castLogTag).i(
+                                "flac_probe songId=%s rawCodec=audio/flac forcedMime=%s decoderAvailable=%s nonce=%s",
+                                song.id, forcedMime, flacDecoderAvailable, queueLoadNonce
                             )
                             continue
                         }
@@ -352,11 +340,9 @@ class CastPlayer(
                             if (forcedMime != null) {
                                 forcedMimeBySongId[song.id] = forcedMime
                             }
-                            val resolverMime = contentResolver
-                                ?.let { resolver -> runCatching { resolver.getType(song.contentUriString.toUri()) }.getOrNull() }
-                            Log.i(
-                                "PX_CAST_QLOAD",
-                                "start_probe songId=${song.id} songMime=${song.mimeType} resolverMime=$resolverMime rawExtractorMime=$rawExtractorMime retrieverMime=$retrieverMime signatureMime=$signatureMime forcedMime=$forcedMime nonce=$queueLoadNonce"
+                            Timber.tag(castLogTag).i(
+                                "start_probe songId=%s songMime=%s rawExtractorMime=%s retrieverMime=%s signatureMime=%s forcedMime=%s nonce=%s",
+                                song.id, song.mimeType, rawExtractorMime, retrieverMime, signatureMime, forcedMime, queueLoadNonce
                             )
                         }
                     }
@@ -380,10 +366,6 @@ class CastPlayer(
                                 startSong?.id,
                                 autoPlay,
                                 serverAddress
-                            )
-                            Log.i(
-                                "PX_CAST_QLOAD",
-                                "start size=${songs.size} startIndex=$safeStartIndex songId=${startSong?.id} autoPlay=$autoPlay nonce=$queueLoadNonce"
                             )
                             logQueueDiagnostics(
                                 songs = songs,
@@ -419,10 +401,6 @@ class CastPlayer(
                                         result.status.statusCode,
                                         result.status.statusMessage
                                     )
-                                    Log.i(
-                                        "PX_CAST_QLOAD",
-                                        "success status=${result.status.statusCode} msg=${result.status.statusMessage}"
-                                    )
                                     if (!autoPlay) {
                                         // queueLoad typically starts playback by default; explicitly pause when caller requests no autoplay.
                                         client.pause()
@@ -438,10 +416,6 @@ class CastPlayer(
                                         result.status.statusMessage,
                                         startSong?.id,
                                         songs.size
-                                    )
-                                    Log.e(
-                                        "PX_CAST_QLOAD",
-                                        "failed status=${result.status.statusCode} msg=${result.status.statusMessage} songId=${startSong?.id} size=${songs.size}"
                                     )
                                     onComplete(false, failureDetail)
                                 }

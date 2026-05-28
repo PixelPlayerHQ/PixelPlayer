@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -30,18 +31,28 @@ class AiPreferencesRepository @Inject constructor(
         val DEFAULT_GLM_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         val DEFAULT_OPENAI_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         val DEFAULT_OPENROUTER_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_ANTHROPIC_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_OLLAMA_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+
+        const val DEFAULT_MAX_SONGS_FOR_CONTEXT = 50
     }
 
     private object Keys {
         val AI_PROVIDER = stringPreferencesKey("ai_provider")
         val SAFE_TOKEN_LIMIT = booleanPreferencesKey("safe_token_limit")
+        
+        // AI Preferences for data sharing
+        val MAX_SONGS_FOR_CONTEXT = intPreferencesKey("max_songs_for_context")
+        val INCLUDE_LIKED_SONGS = booleanPreferencesKey("include_liked_songs")
+        val INCLUDE_DAILY_MIX_HISTORY = booleanPreferencesKey("include_daily_mix_history")
+        val INCLUDE_USER_HABITS = booleanPreferencesKey("include_user_habits")
 
         fun getApiKey(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_api_key")
         fun getModel(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_model")
         fun getSystemPrompt(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_system_prompt")
     }
 
-    // Generic accessors for AiOrchestrator
+    // Generic accessors for AiHandler
     fun getApiKey(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)]?.trim() ?: "" }
 
@@ -108,11 +119,32 @@ class AiPreferencesRepository @Inject constructor(
     val openrouterModel: Flow<String> = getModel(AiProvider.OPENROUTER)
     val openrouterSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.OPENROUTER)
 
+    val anthropicApiKey: Flow<String> = getApiKey(AiProvider.ANTHROPIC)
+    val anthropicModel: Flow<String> = getModel(AiProvider.ANTHROPIC)
+    val anthropicSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.ANTHROPIC)
+
+    val ollamaApiKey: Flow<String> = getApiKey(AiProvider.OLLAMA)
+    val ollamaModel: Flow<String> = getModel(AiProvider.OLLAMA)
+    val ollamaSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.OLLAMA)
+
     val aiProvider: Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.AI_PROVIDER] ?: "GEMINI" }
 
     val isSafeTokenLimitEnabled: Flow<Boolean> =
         dataStore.data.map { preferences -> preferences[Keys.SAFE_TOKEN_LIMIT] ?: true }
+
+    // New AI Data Preferences
+    val maxSongsForContext: Flow<Int> =
+        dataStore.data.map { preferences -> preferences[Keys.MAX_SONGS_FOR_CONTEXT] ?: DEFAULT_MAX_SONGS_FOR_CONTEXT }
+
+    val includeLikedSongs: Flow<Boolean> =
+        dataStore.data.map { preferences -> preferences[Keys.INCLUDE_LIKED_SONGS] ?: true }
+
+    val includeDailyMixHistory: Flow<Boolean> =
+        dataStore.data.map { preferences -> preferences[Keys.INCLUDE_DAILY_MIX_HISTORY] ?: true }
+
+    val includeUserHabits: Flow<Boolean> =
+        dataStore.data.map { preferences -> preferences[Keys.INCLUDE_USER_HABITS] ?: true }
 
     suspend fun setAiProvider(provider: String) {
         dataStore.edit { preferences -> preferences[Keys.AI_PROVIDER] = provider }
@@ -120,5 +152,21 @@ class AiPreferencesRepository @Inject constructor(
 
     suspend fun setSafeTokenLimitEnabled(enabled: Boolean) {
         dataStore.edit { preferences -> preferences[Keys.SAFE_TOKEN_LIMIT] = enabled }
+    }
+
+    suspend fun setMaxSongsForContext(maxSongs: Int) {
+        dataStore.edit { preferences -> preferences[Keys.MAX_SONGS_FOR_CONTEXT] = maxSongs }
+    }
+
+    suspend fun setIncludeLikedSongs(include: Boolean) {
+        dataStore.edit { preferences -> preferences[Keys.INCLUDE_LIKED_SONGS] = include }
+    }
+
+    suspend fun setIncludeDailyMixHistory(include: Boolean) {
+        dataStore.edit { preferences -> preferences[Keys.INCLUDE_DAILY_MIX_HISTORY] = include }
+    }
+
+    suspend fun setIncludeUserHabits(include: Boolean) {
+        dataStore.edit { preferences -> preferences[Keys.INCLUDE_USER_HABITS] = include }
     }
 }

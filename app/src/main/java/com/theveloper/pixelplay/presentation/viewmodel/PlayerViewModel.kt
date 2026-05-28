@@ -130,7 +130,6 @@ import coil.memory.MemoryCache
 import dagger.Lazy
 
 private const val CAST_LOG_TAG = "PlayerCastTransfer"
-private const val ENABLE_FOLDERS_SOURCE_SWITCHING = true
 private const val MAX_ALBUM_BATCH_SELECTION = 6
 private const val SONG_ID_QUERY_CHUNK_SIZE = 900
 private const val HOME_MIX_PREVIEW_LIMIT = 48
@@ -575,35 +574,13 @@ class PlayerViewModel @Inject constructor(
             initialValue = CarouselStyle.NO_PEEK
         )
 
-    val hasActiveAiProviderApiKey: StateFlow<Boolean> = combine(
-        aiPreferencesRepository.aiProvider,
-        aiPreferencesRepository.geminiApiKey,
-        aiPreferencesRepository.deepseekApiKey,
-        aiPreferencesRepository.groqApiKey,
-        aiPreferencesRepository.mistralApiKey,
-        aiPreferencesRepository.nvidiaApiKey,
-        aiPreferencesRepository.kimiApiKey,
-        aiPreferencesRepository.glmApiKey,
-        aiPreferencesRepository.openaiApiKey
-    ) { values ->
-        val provider = values[0]
-        val gemini = values[1]
-        val deepseek = values[2]
-        val groq = values[3]
-        val mistral = values[4]
-        val nvidia = values[5]
-        val kimi = values[6]
-        val glm = values[7]
-        val openai = values[8]
-        when (provider) {
-            "DEEPSEEK" -> deepseek.isNotBlank()
-            "GROQ" -> groq.isNotBlank()
-            "MISTRAL" -> mistral.isNotBlank()
-            "NVIDIA" -> nvidia.isNotBlank()
-            "KIMI" -> kimi.isNotBlank()
-            "GLM" -> glm.isNotBlank()
-            "OPENAI" -> openai.isNotBlank()
-            else -> gemini.isNotBlank()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val hasActiveAiProviderApiKey: StateFlow<Boolean> = aiPreferencesRepository.aiProvider.flatMapLatest { providerStr ->
+        val provider = com.theveloper.pixelplay.data.ai.provider.AiProvider.fromString(providerStr)
+        if (!provider.requiresApiKey) {
+            flowOf(true)
+        } else {
+            aiPreferencesRepository.getApiKey(provider).map { it.isNotBlank() }
         }
     }.distinctUntilChanged()
         .stateIn(
@@ -1699,9 +1676,7 @@ class PlayerViewModel @Inject constructor(
             ?.path
             ?.path
 
-        val effectiveSource = if (!ENABLE_FOLDERS_SOURCE_SWITCHING) {
-            FolderSource.INTERNAL
-        } else if (preferredSource == FolderSource.SD_CARD && sdPath == null) {
+        val effectiveSource = if (preferredSource == FolderSource.SD_CARD && sdPath == null) {
             FolderSource.INTERNAL
         } else {
             preferredSource
@@ -4539,7 +4514,6 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun setFoldersSource(source: FolderSource) {
-        if (!ENABLE_FOLDERS_SOURCE_SWITCHING) return
         viewModelScope.launch {
             userPreferencesRepository.setFoldersSource(source)
         }

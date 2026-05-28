@@ -31,7 +31,7 @@ fun AiPreferencesScreen(
                 title = { Text(stringResource(R.string.settings_category_ai_preferences_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigationIconClick) {
-                        Icon(androidx.compose.material.icons.Icons.Rounded.ArrowBack, null)
+                        Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, null)
                     }
                 }
             )

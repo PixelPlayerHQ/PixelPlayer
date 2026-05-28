@@ -17,11 +17,7 @@ import java.util.concurrent.TimeUnit
 class GeminiAiClient(private val apiKey: String) : AiClient {
 
     companion object {
-<<<<<<< HEAD
         private val DEFAULT_MODEL get() = AiProviderEndpoints.GEMINI_DEFAULT_MODEL
-=======
-        private val DEFAULT_GEMINI_MODEL get() = AiProviderEndpoints.GEMINI_DEFAULT_MODEL
->>>>>>> 80a54c1b (refactor(ai): GeminiAiClient – use AiProviderEndpoints, no hardcoded URLs or model IDs)
         private val BASE_URL get() = AiProviderEndpoints.GEMINI_BASE_URL
     }
 
@@ -63,13 +59,9 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         val resolvedModel = model.ifBlank { DEFAULT_MODEL }
         val modelPath = if (resolvedModel.startsWith("models/")) resolvedModel else "models/$resolvedModel"
 
-<<<<<<< HEAD
         val systemInstruction = if (systemPrompt.isNotBlank()) {
             SystemInstruction(parts = listOf(Part(systemPrompt)))
         } else null
-=======
-            val url = "$BASE_URL/$modelPath:generateContent?key=$apiKey"
->>>>>>> 80a54c1b (refactor(ai): GeminiAiClient – use AiProviderEndpoints, no hardcoded URLs or model IDs)
 
         val requestBody = GenerateRequest(
             contents = listOf(Content(parts = listOf(Part(prompt)))),
@@ -164,7 +156,6 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
 
     override fun getDefaultModel(): String = DEFAULT_MODEL
 
-<<<<<<< HEAD
     private fun getDefaultModels(): List<String> = listOf(
         AiProviderEndpoints.GEMINI_DEFAULT_MODEL,
         "gemini-3-flash-preview",
@@ -176,19 +167,4 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         "gemini-1.5-flash",
         "gemini-1.5-pro"
     ).distinct()
-=======
-    private fun getDefaultModels(): List<String> {
-        return listOf(
-            AiProviderEndpoints.GEMINI_DEFAULT_MODEL,
-            "gemini-3-flash-preview",
-            "gemini-3.1-pro-preview",
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro"
-        ).distinct()
-    }
->>>>>>> 80a54c1b (refactor(ai): GeminiAiClient – use AiProviderEndpoints, no hardcoded URLs or model IDs)
 }

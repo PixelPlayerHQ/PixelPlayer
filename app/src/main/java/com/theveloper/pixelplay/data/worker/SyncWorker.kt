@@ -8,6 +8,7 @@ import android.os.Environment
 import android.os.Build
 import android.os.Trace // Import Trace
 import android.provider.MediaStore
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker

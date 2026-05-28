@@ -19,6 +19,7 @@ import timber.log.Timber
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class AiModel(

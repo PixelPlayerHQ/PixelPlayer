@@ -4,7 +4,7 @@ package com.theveloper.pixelplay.presentation.screens
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
-
+import com.theveloper.pixelplay.presentation.components.SmartImage
 import android.os.Trace
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
@@ -1353,6 +1353,10 @@ fun LibraryScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             val isList = playerUiState.isAlbumsListView
+                                            val primaryColor = MaterialTheme.colorScheme.tertiaryContainer
+                                            val onPrimaryColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                            val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+                                            val onSurfaceColor = MaterialTheme.colorScheme.onSurfaceVariant
 
                                             // Grid Item
                                             ToggleSegmentButton(

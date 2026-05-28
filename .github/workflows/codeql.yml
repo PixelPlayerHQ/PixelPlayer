@@ -36,10 +36,12 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
-          build-mode: autobuild
+          build-mode: manual
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug -x :app:validateSigningBenchmark -x :app:validateSigningRelease
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          # Match the languages defined in the init step
           category: "/language:java-kotlin"

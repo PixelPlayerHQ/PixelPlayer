@@ -242,7 +242,7 @@
     <string name="batch_edit_mixed_values">(Mixed values)</string>
     <string name="batch_edit_optional">(Optional - leave empty to skip)</string>
     <string name="batch_edit_success">Successfully updated %d songs</string>
-    <string name="batch_edit_partial_success">Updated %d of %d songs. Some files could not be edited.</string>
+    <string name="batch_edit_partial_success">Updated %1$d of %2$d songs. Some files could not be edited.</string>
     <string name="batch_edit_failed">Failed to update songs</string>
 
     <!-- Batch Edit Cover Art -->

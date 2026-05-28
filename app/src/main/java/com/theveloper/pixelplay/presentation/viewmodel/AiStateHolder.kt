@@ -4,7 +4,6 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
-import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
@@ -30,7 +29,6 @@ import javax.inject.Singleton
 class AiStateHolder @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiPlaylistGenerator: AiPlaylistGenerator,
-    private val aiMetadataGenerator: AiMetadataGenerator,
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
@@ -45,12 +43,6 @@ class AiStateHolder @Inject constructor(
     private val _isGeneratingAiPlaylist = MutableStateFlow(false)
     val isGeneratingAiPlaylist = _isGeneratingAiPlaylist.asStateFlow()
 
-    private val _isGeneratingMetadata = MutableStateFlow(false)
-    val isGeneratingMetadata = _isGeneratingMetadata.asStateFlow()
-
-    private val _aiMetadataSuccess = MutableStateFlow(false)
-    val aiMetadataSuccess = _aiMetadataSuccess.asStateFlow()
-
     private val _aiSuccess = MutableStateFlow(false)
     val aiSuccess = _aiSuccess.asStateFlow()
 
@@ -63,10 +55,6 @@ class AiStateHolder @Inject constructor(
     private var _lastPlaylistPrompt: String? = null
     private var _lastMinLength: Int = 5
     private var _lastMaxLength: Int = 15
-
-    // Metadata Retry Cache: Stores parameters for the last metadata generation
-    private var _lastMetadataSong: Song? = null
-    private var _lastMetadataFields: List<String>? = null
 
     private var scope: CoroutineScope? = null
     private var allSongsProvider: (suspend () -> List<Song>)? = null
@@ -111,7 +99,6 @@ class AiStateHolder @Inject constructor(
         _showAiPlaylistSheet.value = false
         _aiError.value = null
         _aiSuccess.value = false
-        _aiMetadataSuccess.value = false
         _isGeneratingAiPlaylist.value = false
         _aiStatus.value = null
     }
@@ -120,16 +107,6 @@ class AiStateHolder @Inject constructor(
         // Safe retry using cached prompt and length constraints
         val prompt = _lastPlaylistPrompt ?: return
         generateAiPlaylist(prompt, _lastMinLength, _lastMaxLength)
-    }
-
-    fun retryLastMetadataGeneration() {
-        // Safe retry for metadata using cached song and requested fields
-        val song = _lastMetadataSong ?: return
-        val fields = _lastMetadataFields ?: return
-        
-        scope?.launch {
-            generateAiMetadata(song, fields)
-        }
     }
 
     fun clearAiPlaylistError() {
@@ -305,38 +282,6 @@ class AiStateHolder @Inject constructor(
                 _isGeneratingAiPlaylist.value = false
                 _aiStatus.value = null
             }
-        }
-    }
-
-    /**
-     * Fetches AI-generated metadata (tags, genre, lyrics) for a specific song.
-     * Updates internal success and error states for UI feedback.
-     */
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        _lastMetadataSong = song
-        _lastMetadataFields = fields
-        
-        _isGeneratingMetadata.value = true
-        _aiMetadataSuccess.value = false
-        _aiError.value = null
-        
-        return try {
-            val result = aiMetadataGenerator.generate(song, fields)
-            if (result.isSuccess) {
-                _aiMetadataSuccess.value = true
-                notificationManager.showCompletion("Metadata Enhanced", "Applied tags and genre refinements.")
-            } else {
-                result.exceptionOrNull()?.let {
-                    _aiError.value = resolveAiErrorMessage(it)
-                    notificationManager.showCompletion("Metadata Error", "Check your AI configuration.")
-                }
-            }
-            result
-        } catch (e: Exception) {
-            _aiError.value = resolveAiErrorMessage(e)
-            Result.failure(e)
-        } finally {
-            _isGeneratingMetadata.value = false
         }
     }
 

@@ -304,10 +304,6 @@ dependencies {
     implementation(libs.mlkit.translate)
     implementation(libs.mlkit.language.id)
 
-    // Local AI: Google AI Edge (LiteRT)
-    implementation(libs.google.ai.edge.litert)
-    implementation(libs.google.ai.edge.litert.gpu)
-
     // Projects
     implementation(project(":shared"))
 

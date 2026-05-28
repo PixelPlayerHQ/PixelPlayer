@@ -28,6 +28,8 @@ import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.repository.LyricsRepository
+import com.theveloper.pixelplay.data.ai.AiDeviceCapabilities
+import com.theveloper.pixelplay.data.ai.local.LocalModelCatalog
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.worker.SyncManager
@@ -121,7 +123,9 @@ data class SettingsUiState(
     val localMlUseGpu: Boolean = false,
     val localMlContextSize: Int = AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE,
     val localMlOllamaUrl: String = "http://localhost:11434",
-    val localMlHfToken: String = ""
+    val localMlHfToken: String = "",
+    val localMlSupported: Boolean = true,
+    val localMlSupportMessage: String = ""
 )
 
 data class FailedSongInfo(
@@ -188,6 +192,7 @@ private sealed interface SettingsUiUpdate {
 class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val aiPreferencesRepository: AiPreferencesRepository,
+    private val aiDeviceCapabilities: AiDeviceCapabilities,
     private val themePreferencesRepository: ThemePreferencesRepository,
     private val colorSchemeProcessor: com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor,
     private val syncManager: SyncManager,
@@ -546,6 +551,37 @@ class SettingsViewModel @Inject constructor(
     private val _dataTransferEvents = MutableSharedFlow<String>()
     val dataTransferEvents: SharedFlow<String> = _dataTransferEvents.asSharedFlow()
 
+    private fun refreshLocalMlSupport() {
+        val capabilities = aiDeviceCapabilities.getCapabilities()
+        val supportedModels = LocalModelCatalog.all.filter { model ->
+            aiDeviceCapabilities.canRunModel((model.fileSizeBytes / (1024 * 1024)).toInt())
+        }
+
+        val supported = capabilities.supportsTflite && supportedModels.isNotEmpty()
+        val supportMessage = when {
+            !capabilities.supportsTflite -> context.getString(R.string.settings_ai_local_models_unsupported_tflite)
+            supportedModels.isEmpty() -> context.getString(
+                R.string.settings_ai_local_models_unsupported_memory,
+                capabilities.recommendedModelSizeMb
+            )
+            else -> ""
+        }
+
+        _uiState.update {
+            it.copy(
+                localMlSupported = supported,
+                localMlSupportMessage = supportMessage,
+                localMlEnabled = it.localMlEnabled && supported
+            )
+        }
+
+        if (!supported) {
+            viewModelScope.launch {
+                aiPreferencesRepository.setLocalMlEnabled(false)
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
             backupManager.getBackupHistory().collect { history ->
@@ -577,6 +613,8 @@ class SettingsViewModel @Inject constructor(
                 appLanguageTag = AppLocaleManager.currentLanguageTag(context)
             )
         }
+
+        refreshLocalMlSupport()
 
         // Consolidated collectors using combine() to reduce coroutine overhead
         // Instead of 20 separate coroutines, we use 2 combined flows

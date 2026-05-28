@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,8 +102,22 @@ fun AiPreferencesScreen(
                     title = stringResource(R.string.settings_ai_local_models_enabled_title),
                     subtitle = stringResource(R.string.settings_ai_local_models_enabled_subtitle),
                     checked = uiState.localMlEnabled,
-                    onCheckedChange = { settingsViewModel.setLocalMlEnabled(it) }
+                    onCheckedChange = { settingsViewModel.setLocalMlEnabled(it) },
+                    enabled = uiState.localMlSupported
                 )
+            }
+
+            if (!uiState.localMlSupported) {
+                item {
+                    Text(
+                        text = uiState.localMlSupportMessage.ifEmpty {
+                            stringResource(R.string.settings_ai_local_models_unsupported)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
             }
 
             item {
@@ -110,6 +125,7 @@ fun AiPreferencesScreen(
                     value = uiState.localMlActiveModelId,
                     onValueChange = { settingsViewModel.setLocalMlActiveModelId(it) },
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = uiState.localMlSupported,
                     label = { Text(stringResource(R.string.settings_ai_local_model_id_title)) },
                     placeholder = { Text(stringResource(R.string.settings_ai_local_model_id_placeholder)) }
                 )
@@ -120,7 +136,8 @@ fun AiPreferencesScreen(
                     title = stringResource(R.string.settings_ai_local_models_fallback_title),
                     subtitle = stringResource(R.string.settings_ai_local_models_fallback_subtitle),
                     checked = uiState.localMlFallbackToRemote,
-                    onCheckedChange = { settingsViewModel.setLocalMlFallbackToRemote(it) }
+                    onCheckedChange = { settingsViewModel.setLocalMlFallbackToRemote(it) },
+                    enabled = uiState.localMlSupported
                 )
             }
 
@@ -129,7 +146,8 @@ fun AiPreferencesScreen(
                     title = stringResource(R.string.settings_ai_local_models_gpu_title),
                     subtitle = stringResource(R.string.settings_ai_local_models_gpu_subtitle),
                     checked = uiState.localMlUseGpu,
-                    onCheckedChange = { settingsViewModel.setLocalMlUseGpu(it) }
+                    onCheckedChange = { settingsViewModel.setLocalMlUseGpu(it) },
+                    enabled = uiState.localMlSupported
                 )
             }
 
@@ -138,7 +156,8 @@ fun AiPreferencesScreen(
                 Slider(
                     value = uiState.localMlContextSize.toFloat(),
                     onValueChange = { settingsViewModel.setLocalMlContextSize(it.toInt()) },
-                    valueRange = 20f..200f
+                    valueRange = 20f..200f,
+                    enabled = uiState.localMlSupported
                 )
             }
 
@@ -170,16 +189,23 @@ fun SwitchPreference(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall)
+        CompositionLocalProvider(LocalContentAlpha provides if (enabled) ContentAlpha.high else ContentAlpha.disabled) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall)
+            }
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
     }
 }

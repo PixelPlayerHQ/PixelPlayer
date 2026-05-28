@@ -208,6 +208,9 @@
     <string name="settings_ai_local_models_fallback_subtitle">Use remote AI when the selected local model is unavailable.</string>
     <string name="settings_ai_local_models_gpu_title">Use GPU Acceleration</string>
     <string name="settings_ai_local_models_gpu_subtitle">Enable GPU execution for supported local models.</string>
+    <string name="settings_ai_local_models_unsupported">Local models are unavailable on this device.</string>
+    <string name="settings_ai_local_models_unsupported_tflite">Local models require TensorFlow Lite runtime support.</string>
+    <string name="settings_ai_local_models_unsupported_memory">Device does not meet the minimum local model threshold (%1$d MB recommended).</string>
     <string name="settings_ai_local_models_ollama_url_title">Ollama Server URL</string>
     <string name="settings_ai_local_models_ollama_url_placeholder">http://localhost:11434</string>
     <string name="settings_ai_local_models_hf_token_title">Hugging Face Token</string>

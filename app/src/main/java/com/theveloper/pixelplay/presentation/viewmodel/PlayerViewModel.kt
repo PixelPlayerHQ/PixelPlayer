@@ -4045,13 +4045,20 @@ class PlayerViewModel @Inject constructor(
                 }
                 if (deleteRequests.size == deletableSongs.size) {
                     val uris = deleteRequests.map { it.second }.distinctBy { it.toString() }
-                    val intentSender = com.theveloper.pixelplay.utils.MediaStorePermissionHelper
-                        .createDeleteRequestIntentSender(activity, uris)
-                    if (intentSender != null) {
-                        pendingBatchDeleteSongs = deleteRequests.map { it.first }
-                        pendingBatchDeleteSkippedCount = skippedCount
+                    val deleteRequest = com.theveloper.pixelplay.utils.MediaStorePermissionHelper
+                        .createDeleteRequest(activity, uris)
+                    if (deleteRequest != null) {
+                        val acceptedUriStrings = deleteRequest.acceptedUris
+                            .mapTo(mutableSetOf()) { it.toString() }
+                        val acceptedSongs = deleteRequests
+                            .filter { (_, uri) -> uri.toString() in acceptedUriStrings }
+                            .map { it.first }
+                        val invalidRequestCount = deletableSongs.size - acceptedSongs.size
+
+                        pendingBatchDeleteSongs = acceptedSongs
+                        pendingBatchDeleteSkippedCount = skippedCount + invalidRequestCount
                         pendingBatchDeleteOnComplete = onComplete
-                        _deletePermissionRequest.emit(intentSender)
+                        _deletePermissionRequest.emit(deleteRequest.intentSender)
                         return@launch
                     }
                 }

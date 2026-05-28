@@ -2188,7 +2188,8 @@ class PlayerViewModel @Inject constructor(
         queueName: String = "Current Context",
         isVoluntaryPlay: Boolean = true,
         cancelPendingQueueBuild: Boolean = true,
-        playlistId: String? = null
+        playlistId: String? = null,
+        indexInQueue: Int? = null
     ) {
         if (cancelPendingQueueBuild) {
             cancelPendingFullQueuePlayback()
@@ -2266,7 +2267,7 @@ class PlayerViewModel @Inject constructor(
         }    // Local playback logic
         val controller = mediaController
         val currentQueue = _playerUiState.value.currentPlaybackQueue
-        val songIndexInQueue = currentQueue.indexOfFirst { it.id == song.id }
+        val songIndexInQueue = indexInQueue ?: currentQueue.indexOfFirst { it.id == song.id }
         val queueMatchesContext = currentQueue.matchesSongOrder(playbackContext)
         val reusableTargetIndex = if (
             controller != null &&
@@ -2275,7 +2276,11 @@ class PlayerViewModel @Inject constructor(
             songIndexInQueue != -1 &&
             queueMatchesContext
         ) {
-            controller.resolveReusablePlaybackTargetIndex(songIndexInQueue, song.id)
+            controller.resolveReusablePlaybackTargetIndex(
+                songIndexInQueue = songIndexInQueue,
+                songId = song.id,
+                isExplicitQueueTarget = indexInQueue != null
+            )
         } else {
             null
         }
@@ -2316,10 +2321,13 @@ class PlayerViewModel @Inject constructor(
 
     private fun MediaController.resolveReusablePlaybackTargetIndex(
         songIndexInQueue: Int,
-        songId: String
+        songId: String,
+        isExplicitQueueTarget: Boolean = false
     ): Int? {
-        currentMediaItem?.takeIf { it.mediaId == songId }?.let {
-            return currentMediaItemIndex.takeIf { index -> index != C.INDEX_UNSET } ?: 0
+        if (!isExplicitQueueTarget) {
+            currentMediaItem?.takeIf { it.mediaId == songId }?.let {
+                return currentMediaItemIndex.takeIf { index -> index != C.INDEX_UNSET } ?: 0
+            }
         }
 
         if (songIndexInQueue !in 0 until mediaItemCount) return null
@@ -2839,7 +2847,8 @@ class PlayerViewModel @Inject constructor(
 
         val mediaItem = player.currentMediaItem ?: return
         val currentSongId = playbackStateHolder.stablePlayerState.value.currentSong?.id
-        if (currentSongId == mediaItem.mediaId) return
+        val currentIndex = playbackStateHolder.stablePlayerState.value.currentMediaItemIndex
+        if (currentSongId == mediaItem.mediaId && currentIndex == player.currentMediaItemIndex) return
 
         playbackStateHolder.onPlaybackOccurrenceTransition(mediaItem.mediaId)
         preparePlaybackAudioMetadataForMedia(mediaItem.mediaId)

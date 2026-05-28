@@ -67,7 +67,7 @@ internal fun UnifiedPlayerQueueLayer(
     isEndOfTrackTimerActive: State<Boolean>,
     onDismissQueue: () -> Unit,
     onSongInfoClick: (Song) -> Unit,
-    onPlaySong: (Song) -> Unit,
+    onPlaySong: (Song, Int) -> Unit,
     onRemoveSong: (String) -> Unit,
     onReorder: (Int, Int) -> Unit,
     onToggleRepeat: () -> Unit,
@@ -335,11 +335,12 @@ internal fun UnifiedPlayerQueueAndSongInfoHost(
                 { song: Song -> onSelectedSongForInfoChange(song) }
             }
             val onPlayQueueSong = remember(playerViewModel) {
-                { song: Song ->
+                { song: Song, index: Int ->
                     playerViewModel.showAndPlaySong(
                         song = song,
                         contextSongs = latestPlaybackQueue.value,
-                        queueName = latestQueueSourceName.value
+                        queueName = latestQueueSourceName.value,
+                        indexInQueue = index
                     )
                 }
             }

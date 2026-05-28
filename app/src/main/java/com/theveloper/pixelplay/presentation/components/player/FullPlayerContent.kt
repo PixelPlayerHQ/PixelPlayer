@@ -385,11 +385,12 @@ fun FullPlayerContent(
         }
     }
 
-    val onAlbumSongSelected: (Song) -> Unit = { newSong ->
+    val onAlbumSongSelected: (Song, Int) -> Unit = { newSong, index ->
         playerViewModel.showAndPlaySong(
             song = newSong,
             contextSongs = currentPlaybackQueue,
-            queueName = currentQueueSourceName
+            queueName = currentQueueSourceName,
+            indexInQueue = index
         )
     }
 
@@ -1010,7 +1011,7 @@ private fun FullPlayerAlbumCoverSection(
     placeholderOnColor: Color,
     albumArtQuality: AlbumArtQuality,
     requestedScrollIndex: Int?,
-    onSongSelected: (Song) -> Unit,
+    onSongSelected: (Song, Int) -> Unit,
     onAlbumClick: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1081,9 +1082,9 @@ private fun FullPlayerAlbumCoverSection(
                 expansionFraction = 1f,
                 currentMediaItemIndex = currentMediaItemIndex,
                 requestedScrollIndex = requestedScrollIndex,
-                onSongSelected = { newSong ->
-                    if (newSong.id != song.id) {
-                        onSongSelected(newSong)
+                onSongSelected = { newSong, index ->
+                    if (newSong.id != song.id || index != currentMediaItemIndex) {
+                        onSongSelected(newSong, index)
                     }
                 },
                 onAlbumClick = onAlbumClick,

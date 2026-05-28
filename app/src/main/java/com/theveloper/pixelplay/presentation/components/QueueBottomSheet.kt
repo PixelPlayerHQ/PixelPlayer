@@ -222,7 +222,7 @@ fun QueueBottomSheet(
     isShuffleOn: Boolean,
     onDismiss: () -> Unit,
     onSongInfoClick: (Song) -> Unit,
-    onPlaySong: (Song) -> Unit,
+    onPlaySong: (Song, Int) -> Unit,
     onRemoveSong: (String) -> Unit,
     onReorder: (from: Int, to: Int) -> Unit,
     onToggleRepeat: () -> Unit,
@@ -836,7 +836,7 @@ fun QueueBottomSheet(
                                                 scaleX = scale
                                                 scaleY = scale
                                             },
-                                        onClick = { onPlaySong(song) },
+                                        onClick = { onPlaySong(song, queueIndex) },
                                         song = song,
                                         isCurrentSong = index == currentSongDisplayIndex,
                                         isPlaying = isPlaying && isVisible,

@@ -920,9 +920,6 @@ fun PlaylistDetailScreen(
                         coverArtUpdate
                     )
                 },
-                generateAiMetadata = { fields ->
-                    playerViewModel.generateAiMetadata(currentSong, fields)
-                },
                 removeFromListTrigger = {
                     playlistViewModel.removeSongFromPlaylist(playlistId, currentSong.id)
                 }

@@ -523,7 +523,6 @@ class DualPlayerEngine @Inject constructor(
             if (!audioOffloadEnabled || transitionRunning || player !== playerA) return@launch
             if (currentMediaId != watchedMediaId) return@launch
             if (player.playbackState != Player.STATE_BUFFERING || player.isPlaying || !player.playWhenReady) return@launch
-            if (player.currentPosition > 1_000L) return@launch
 
             disableAudioOffloadForSession(
                 reason = "Local media stayed buffering for ${AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS}ms"

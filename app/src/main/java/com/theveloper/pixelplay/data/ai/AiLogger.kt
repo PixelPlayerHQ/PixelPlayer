@@ -30,12 +30,6 @@ class AiLogger @Inject constructor(
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    companion object {
-        private const val LOG_DIR = "ai_logs"
-        private const val LOG_FILE = "ai_operations.log"
-        private const val MAX_LOG_SIZE_MB = 10
-        private const val MAX_LOG_FILES = 5
-    }
 
     private val logDir: File
         get() = File(context.filesDir, LOG_DIR).also { it.mkdirs() }

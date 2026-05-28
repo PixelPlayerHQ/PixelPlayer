@@ -213,3 +213,9 @@
     public static int d(...);
     public static int i(...);
 }
+# TensorFlow Lite
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-keep class org.tensorflow.lite.support.** { *; }
+-keep class org.tensorflow.lite.task.** { *; }
+-dontwarn org.tensorflow.lite.**

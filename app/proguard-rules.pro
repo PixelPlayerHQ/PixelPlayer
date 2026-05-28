@@ -215,7 +215,15 @@
 }
 # TensorFlow Lite
 -keep class org.tensorflow.lite.** { *; }
--keep class org.tensorflow.lite.gpu.** { *; }
--keep class org.tensorflow.lite.support.** { *; }
--keep class org.tensorflow.lite.task.** { *; }
 -dontwarn org.tensorflow.lite.**
+
+# TensorFlow Lite GPU Delegate
+-keep class org.tensorflow.lite.gpu.GpuDelegateFactory$Options { *; }
+-keep class org.tensorflow.lite.gpu.GpuDelegateFactory$Options$GpuBackend { *; }
+
+# TensorFlow Lite Support
+-keep class org.tensorflow.lite.support.label.Category { *; }
+-keep class org.tensorflow.lite.support.** { *; }
+
+# TensorFlow Lite Task
+-keep class org.tensorflow.lite.task.** { *; }

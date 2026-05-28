@@ -109,7 +109,12 @@ data class SettingsUiState(
     val minTracksPerAlbum: Int = 1,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
-    val isSafeTokenLimitEnabled: Boolean = true
+    val isSafeTokenLimitEnabled: Boolean = true,
+    // AI Preferences
+    val maxSongsForContext: Int = AiPreferencesRepository.DEFAULT_MAX_SONGS_FOR_CONTEXT,
+    val includeLikedSongs: Boolean = true,
+    val includeDailyMixHistory: Boolean = true,
+    val includeUserHabits: Boolean = true
 )
 
 data class FailedSongInfo(
@@ -1036,6 +1041,30 @@ class SettingsViewModel @Inject constructor(
     fun setSafeTokenLimitEnabled(enabled: Boolean) {
         viewModelScope.launch {
             aiPreferencesRepository.setSafeTokenLimitEnabled(enabled)
+        }
+    }
+
+    fun setMaxSongsForContext(maxSongs: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setMaxSongsForContext(maxSongs)
+        }
+    }
+
+    fun setIncludeLikedSongs(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeLikedSongs(include)
+        }
+    }
+
+    fun setIncludeDailyMixHistory(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeDailyMixHistory(include)
+        }
+    }
+
+    fun setIncludeUserHabits(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeUserHabits(include)
         }
     }
 

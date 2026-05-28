@@ -48,7 +48,7 @@ class AiSettingsManager @Inject constructor(
     val settingsState: StateFlow<AiSettingsState> = _settingsState.asStateFlow()
 
     private val _availableModels = MutableStateFlow<List<LocalModelInfo>>(emptyList())
-    val availableModels: StateFlow<List<LocalModelInfo>> = _settingsState.asStateFlow()
+    val availableModels: StateFlow<List<LocalModelInfo>> = _availableModels.asStateFlow()
 
     /**
      * Loads settings from preferences.

@@ -58,6 +58,11 @@ class AiPreferencesRepository @Inject constructor(
         val LOCAL_ML_OLLAMA_URL = stringPreferencesKey("local_ml_ollama_url")
         val LOCAL_ML_HF_TOKEN = stringPreferencesKey("local_ml_hf_token")
 
+        val AI_TEMPERATURE = intPreferencesKey("ai_temperature")
+        val AI_MAX_TOKENS = intPreferencesKey("ai_max_tokens")
+        val AI_ENABLE_STREAMING = booleanPreferencesKey("ai_enable_streaming")
+        val AI_INCLUDE_CONTEXT = booleanPreferencesKey("ai_include_context")
+
         // Granular behavioral telemetry
         val TELEMETRY_INCLUDE_SKIP_COUNT = booleanPreferencesKey("telemetry_include_skip_count")
         val TELEMETRY_INCLUDE_COMPLETION_RATE = booleanPreferencesKey("telemetry_include_completion_rate")
@@ -141,7 +146,7 @@ class AiPreferencesRepository @Inject constructor(
     val kimiSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.KIMI)
 
     val glmApiKey: Flow<String> = getApiKey(AiProvider.GLM)
-    val glmModel: Flow<String> = getModel(AiProvider.KIMI)
+    val glmModel: Flow<String> = getModel(AiProvider.GLM)
     val glmSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.GLM)
 
     val openaiApiKey: Flow<String> = getApiKey(AiProvider.OPENAI)
@@ -201,6 +206,18 @@ class AiPreferencesRepository @Inject constructor(
 
     val localMlHfToken: Flow<String> =
         dataStore.data.map { it[Keys.LOCAL_ML_HF_TOKEN] ?: "" }
+
+    val aiTemperature: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_TEMPERATURE] ?: 70 }
+
+    val aiMaxTokens: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_MAX_TOKENS] ?: 2048 }
+
+    val aiEnableStreaming: Flow<Boolean> =
+        dataStore.data.map { it[Keys.AI_ENABLE_STREAMING] ?: true }
+
+    val aiIncludeContext: Flow<Boolean> =
+        dataStore.data.map { it[Keys.AI_INCLUDE_CONTEXT] ?: true }
 
     // ---- Granular behavioral telemetry ----
 
@@ -290,6 +307,11 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun setLocalMlContextSize(size: Int) { dataStore.edit { it[Keys.LOCAL_ML_CONTEXT_SIZE] = size } }
     suspend fun setLocalMlOllamaUrl(url: String) { dataStore.edit { it[Keys.LOCAL_ML_OLLAMA_URL] = url } }
     suspend fun setLocalMlHfToken(token: String) { dataStore.edit { it[Keys.LOCAL_ML_HF_TOKEN] = token } }
+
+    suspend fun setAiTemperature(value: Int) { dataStore.edit { it[Keys.AI_TEMPERATURE] = value.coerceIn(1, 200) } }
+    suspend fun setAiMaxTokens(value: Int) { dataStore.edit { it[Keys.AI_MAX_TOKENS] = value.coerceIn(128, 16000) } }
+    suspend fun setAiEnableStreaming(enabled: Boolean) { dataStore.edit { it[Keys.AI_ENABLE_STREAMING] = enabled } }
+    suspend fun setAiIncludeContext(enabled: Boolean) { dataStore.edit { it[Keys.AI_INCLUDE_CONTEXT] = enabled } }
 
     // Telemetry mutators
     suspend fun setTelemetryIncludeSkipCount(v: Boolean) { dataStore.edit { it[Keys.TELEMETRY_INCLUDE_SKIP_COUNT] = v } }

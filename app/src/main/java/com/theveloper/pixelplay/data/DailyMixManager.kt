@@ -45,7 +45,9 @@ class DailyMixManager @Inject constructor(
     data class SongEngagementStats(
         val playCount: Int = 0,
         val totalPlayDurationMs: Long = 0L,
-        val lastPlayedTimestamp: Long = 0L
+        val lastPlayedTimestamp: Long = 0L,
+        val skipCount: Int = 0,
+        val completedCount: Int = 0
     )
 
     init {
@@ -118,7 +120,9 @@ class DailyMixManager @Inject constructor(
             entity.songId to SongEngagementStats(
                 playCount = entity.playCount,
                 totalPlayDurationMs = entity.totalPlayDurationMs,
-                lastPlayedTimestamp = entity.lastPlayedTimestamp
+                lastPlayedTimestamp = entity.lastPlayedTimestamp,
+                skipCount = entity.skipCount,
+                completedCount = entity.completedCount
             )
         }
     }
@@ -237,7 +241,9 @@ class DailyMixManager @Inject constructor(
         return stats.copy(
             playCount = stats.playCount.coerceAtLeast(0),
             totalPlayDurationMs = stats.totalPlayDurationMs.coerceAtLeast(0L),
-            lastPlayedTimestamp = stats.lastPlayedTimestamp.coerceAtLeast(0L)
+            lastPlayedTimestamp = stats.lastPlayedTimestamp.coerceAtLeast(0L),
+            skipCount = stats.skipCount.coerceAtLeast(0),
+            completedCount = stats.completedCount.coerceAtLeast(0)
         )
     }
 
@@ -257,6 +263,24 @@ class DailyMixManager @Inject constructor(
         )
     }
 
+    suspend fun recordEngagement(
+        songId: String,
+        playInc: Int,
+        songDurationMs: Long = 0L,
+        timestamp: Long = System.currentTimeMillis(),
+        skipInc: Int = 0,
+        completedInc: Int = 0
+    ) {
+        engagementDao.recordEngagement(
+            songId = songId,
+            playInc = playInc,
+            durationMs = songDurationMs.coerceAtLeast(0L),
+            timestamp = timestamp.coerceAtLeast(0L),
+            skipInc = skipInc,
+            completedInc = completedInc
+        )
+    }
+
     suspend fun incrementScore(songId: String) {
         recordPlay(songId)
     }
@@ -270,7 +294,9 @@ class DailyMixManager @Inject constructor(
             SongEngagementStats(
                 playCount = entity.playCount,
                 totalPlayDurationMs = entity.totalPlayDurationMs,
-                lastPlayedTimestamp = entity.lastPlayedTimestamp
+                lastPlayedTimestamp = entity.lastPlayedTimestamp,
+                skipCount = entity.skipCount,
+                completedCount = entity.completedCount
             )
         }
     }

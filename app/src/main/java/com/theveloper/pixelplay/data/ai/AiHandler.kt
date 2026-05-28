@@ -8,6 +8,8 @@ import com.theveloper.pixelplay.data.database.AiCacheEntity
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.AiUsageEntity
+import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.worker.AiWorkerManager
 import com.theveloper.pixelplay.di.AppScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -18,6 +20,12 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Serializable
+data class AiModel(
+    val name: String,
+    val displayName: String
+)
+
 @Singleton
 class AiHandler @Inject constructor(
     private val preferencesRepo: AiPreferencesRepository,
@@ -25,6 +33,9 @@ class AiHandler @Inject constructor(
     private val cacheDao: AiCacheDao,
     private val usageDao: AiUsageDao,
     private val promptEngine: AiSystemPromptEngine,
+    private val musicRepository: MusicRepository,
+    private val digestGenerator: UserProfileDigestGenerator,
+    private val workerManager: AiWorkerManager,
     @AppScope private val appScope: CoroutineScope
 ) {
     // Cooldown timer: Provider -> Expiry Timestamp
@@ -58,6 +69,57 @@ class AiHandler @Inject constructor(
 
     private suspend fun setModel(provider: AiProvider, model: String) {
         preferencesRepo.setModel(provider, model)
+    }
+
+    suspend fun fetchAvailableModels(provider: AiProvider, apiKey: String): Result<List<AiModel>> {
+        return try {
+            if (apiKey.isBlank() && provider.requiresApiKey) {
+                return Result.failure(Exception("API Key is required for ${provider.displayName}"))
+            }
+            val client = clientFactory.createClient(provider, apiKey)
+            val models = client.getAvailableModels(apiKey).map { modelName ->
+                AiModel(modelName, formatDisplayName(modelName))
+            }
+            Result.success(models)
+        } catch (e: Exception) {
+            Timber.tag("AiHandler").e(e, "Error fetching models for ${provider.displayName}")
+            Result.failure(e)
+        }
+    }
+
+    private fun formatDisplayName(modelName: String): String {
+        return modelName
+            .split("-", "_", "/")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { word ->
+                word.replaceFirstChar { it.uppercase() }
+            }
+    }
+
+    suspend fun performAiTask(
+        prompt: String,
+        type: AiSystemPromptType,
+        runInBackground: Boolean = false,
+        temperature: Float = 0.7f
+    ): String? {
+        if (runInBackground) {
+            workerManager.enqueueAiTask(prompt, type, temperature)
+            return null
+        } else {
+            val allSongs = musicRepository.getAllSongsOnce()
+            val context = if (type == AiSystemPromptType.PLAYLIST || 
+                            type == AiSystemPromptType.TAGGING || 
+                            type == AiSystemPromptType.PERSONA) {
+                digestGenerator.generateDigest(allSongs)
+            } else ""
+
+            return generateContent(
+                prompt = prompt,
+                type = type,
+                temperature = temperature,
+                context = context
+            )
+        }
     }
 
     private suspend fun generateWithRecovery(

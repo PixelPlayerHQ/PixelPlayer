@@ -144,8 +144,6 @@ class AiHandler @Inject constructor(
         // Dynamic temperature adjustment if default value is used
         val resolvedTemperature = if (temperature == 0.7f) {
             when (type) {
-                // AI Optimization: Use low temperature for high-precision metadata to prevent hallucinations
-                AiSystemPromptType.METADATA -> 0.1f
                 AiSystemPromptType.MOOD_ANALYSIS -> 0.2f
                 // AI Optimization: Moderate temperature for tags to allow creative yet relevant descriptors
                 AiSystemPromptType.TAGGING -> 0.4f

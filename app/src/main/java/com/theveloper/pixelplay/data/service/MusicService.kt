@@ -835,13 +835,7 @@ class MusicService : MediaLibraryService() {
         if (temporaryForegroundStartedInOnCreate) {
             serviceScope.launch {
                 delay(2_000L)
-                val player = mediaSession?.player
-                val isActivelyPlaying = player?.let {
-                    it.playWhenReady &&
-                        it.playbackState != Player.STATE_IDLE &&
-                        it.playbackState != Player.STATE_ENDED
-                } == true
-                if (!isActivelyPlaying) {
+                if (mediaSession?.player?.hasForegroundPlaybackIntent() != true) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
                 }
             }
@@ -1004,9 +998,14 @@ class MusicService : MediaLibraryService() {
 
     private fun isServiceAlreadyForeground(): Boolean {
         val player = mediaSession?.player ?: return false
-        return player.playWhenReady &&
-            player.playbackState != Player.STATE_IDLE &&
-            player.playbackState != Player.STATE_ENDED
+        return player.hasForegroundPlaybackIntent()
+    }
+
+    private fun Player.hasForegroundPlaybackIntent(): Boolean {
+        return playWhenReady &&
+            mediaItemCount > 0 &&
+            playbackState != Player.STATE_IDLE &&
+            playbackState != Player.STATE_ENDED
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1115,13 +1114,7 @@ class MusicService : MediaLibraryService() {
         }
         val startCommandResult = super.onStartCommand(intent, flags, startId)
         if (needsTemporaryForeground || startedTemporaryForegroundInOnCreate) {
-            val player = mediaSession?.player
-            val isActivelyPlaying = player?.let {
-                it.playWhenReady &&
-                    it.playbackState != Player.STATE_IDLE &&
-                    it.playbackState != Player.STATE_ENDED
-            } == true
-            if (!isActivelyPlaying) {
+            if (mediaSession?.player?.hasForegroundPlaybackIntent() != true) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 if (needsTemporaryForeground) {
                     stopSelfResult(startId)
@@ -1677,7 +1670,7 @@ class MusicService : MediaLibraryService() {
             return
         }
 
-        if (player == null || !player.playWhenReady || player.mediaItemCount == 0 || player.playbackState == Player.STATE_ENDED) {
+        if (player?.hasForegroundPlaybackIntent() != true) {
             stopPlaybackAndUnload(
                 reason = "task_removed_not_playing"
             )
@@ -2841,15 +2834,14 @@ class MusicService : MediaLibraryService() {
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        val playWhenReady = session.player.playWhenReady
-        val playbackState = session.player.playbackState
+        val hasPlaybackIntent = session.player.hasForegroundPlaybackIntent()
 
-        // Android 12+ (API 31+): Only request foreground when actively playing.
-        // This prevents requesting foreground start when player is idle/ended.
+        // Android 12+ (API 31+): keep the service foreground while playback is intended,
+        // even if an OEM offload path reports READY/BUFFERING without audio for a moment.
+        // That gives the generic offload fallback time to rebuild the player instead of
+        // letting task removal/backgrounding tear the session down first.
         val shouldStartInForeground = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            startInForegroundRequired && playWhenReady
-                    && playbackState != Player.STATE_IDLE
-                    && playbackState != Player.STATE_ENDED
+            startInForegroundRequired || hasPlaybackIntent
         } else {
             startInForegroundRequired
         }

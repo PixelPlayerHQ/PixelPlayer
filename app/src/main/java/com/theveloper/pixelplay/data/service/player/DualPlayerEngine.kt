@@ -74,6 +74,58 @@ internal fun shouldResumeAfterTransientAudioFocusLoss(
         (transitionRunning && (auxiliaryPlayWhenReady || auxiliaryIsPlaying))
 }
 
+internal fun shouldDisableAudioOffloadByDefaultForDevice(
+    manufacturer: String,
+    brand: String,
+    model: String,
+    hardware: String,
+    sdkInt: Int
+): Boolean {
+    val manufacturerName = manufacturer.trim().lowercase()
+    val brandName = brand.trim().lowercase()
+    val modelName = model.trim().lowercase()
+    val hardwareName = hardware.trim().lowercase()
+
+    val isXiaomiFamilyDevice = manufacturerName == "xiaomi" ||
+        brandName == "xiaomi" ||
+        brandName == "redmi" ||
+        brandName == "poco"
+    if (isXiaomiFamilyDevice && sdkInt >= 36) return true
+
+    val isLavaDevice =
+        manufacturerName == "lava" ||
+            brandName == "lava"
+    val looksLikeMtkHardware =
+        hardwareName.startsWith("mt") ||
+            hardwareName.contains("mediatek") ||
+            hardwareName.contains("mtk")
+    val isReportedLxxFamily = modelName.startsWith("lxx") && isLavaDevice
+    val isMtkLavaVariant = isLavaDevice && looksLikeMtkHardware
+
+    return sdkInt >= 35 && (isReportedLxxFamily || isMtkLavaVariant)
+}
+
+internal fun shouldTriggerAudioOffloadStallFallback(
+    audioOffloadEnabled: Boolean,
+    transitionRunning: Boolean,
+    isCurrentMasterPlayer: Boolean,
+    mediaIdMatches: Boolean,
+    playbackState: Int,
+    isPlaying: Boolean,
+    playWhenReady: Boolean,
+    playbackSuppressionReason: Int
+): Boolean {
+    return audioOffloadEnabled &&
+        !transitionRunning &&
+        isCurrentMasterPlayer &&
+        mediaIdMatches &&
+        playWhenReady &&
+        !isPlaying &&
+        playbackSuppressionReason == Player.PLAYBACK_SUPPRESSION_REASON_NONE &&
+        playbackState != Player.STATE_IDLE &&
+        playbackState != Player.STATE_ENDED
+}
+
 /**
  * Manages two ExoPlayer instances (A and B) to enable seamless transitions.
  *
@@ -97,7 +149,7 @@ class DualPlayerEngine @Inject constructor(
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
     private companion object {
-        private const val AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS = 4_000L
+        private const val AUDIO_OFFLOAD_STALL_FALLBACK_MS = 4_000L
         private const val MAX_AUXILIARY_TIMELINE_ITEMS = 200
         private val LOCAL_MEDIA_SCHEMES = setOf("content", "file", "android.resource")
         private val REMOTE_MEDIA_SCHEMES = setOf("http", "https", "telegram", "netease", "qqmusic", "navidrome", "jellyfin", "gdrive")
@@ -203,6 +255,7 @@ class DualPlayerEngine @Inject constructor(
             if (playWhenReady) {
                 lastPlayWhenReadyAtMs = SystemClock.elapsedRealtime()
                 requestAudioFocus()
+                scheduleAudioOffloadFallbackIfNeeded(playerA)
             } else {
                 cancelAudioOffloadFallback()
                 // Keep focus across user pauses so a quick resume doesn't have to re-acquire it.
@@ -362,7 +415,8 @@ class DualPlayerEngine @Inject constructor(
                         scheduleAudioOffloadFallbackIfNeeded(playerA)
                     }
                 }
-                Player.STATE_READY, Player.STATE_IDLE, Player.STATE_ENDED -> cancelAudioOffloadFallback()
+                Player.STATE_READY -> scheduleAudioOffloadFallbackIfNeeded(playerA)
+                Player.STATE_IDLE, Player.STATE_ENDED -> cancelAudioOffloadFallback()
             }
         }
 
@@ -512,20 +566,30 @@ class DualPlayerEngine @Inject constructor(
 
     private fun scheduleAudioOffloadFallbackIfNeeded(player: ExoPlayer) {
         cancelAudioOffloadFallback()
-        if (!audioOffloadEnabled || transitionRunning || !player.playWhenReady) return
+        if (!audioOffloadEnabled || transitionRunning || !player.playWhenReady || player.isPlaying) return
         if (!isLikelyLocalMedia(player.currentMediaItem)) return
 
         val watchedMediaId = player.currentMediaItem?.mediaId ?: return
+        if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return
         bufferingFallbackJob = scope.launch {
-            delay(AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS)
+            delay(AUDIO_OFFLOAD_STALL_FALLBACK_MS)
 
             val currentMediaId = player.currentMediaItem?.mediaId
-            if (!audioOffloadEnabled || transitionRunning || player !== playerA) return@launch
-            if (currentMediaId != watchedMediaId) return@launch
-            if (player.playbackState != Player.STATE_BUFFERING || player.isPlaying || !player.playWhenReady) return@launch
+            val shouldFallback = shouldTriggerAudioOffloadStallFallback(
+                audioOffloadEnabled = audioOffloadEnabled,
+                transitionRunning = transitionRunning,
+                isCurrentMasterPlayer = player === playerA,
+                mediaIdMatches = currentMediaId == watchedMediaId,
+                playbackState = player.playbackState,
+                isPlaying = player.isPlaying,
+                playWhenReady = player.playWhenReady,
+                playbackSuppressionReason = player.playbackSuppressionReason
+            )
+            if (!shouldFallback) return@launch
 
             disableAudioOffloadForSession(
-                reason = "Local media stayed buffering for ${AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS}ms"
+                reason = "Local media did not produce audio for " +
+                    "${AUDIO_OFFLOAD_STALL_FALLBACK_MS}ms (state=${player.playbackState})"
             )
         }
     }
@@ -567,22 +631,13 @@ class DualPlayerEngine @Inject constructor(
     }
 
     private fun shouldDisableAudioOffloadByDefault(): Boolean {
-        val manufacturer = Build.MANUFACTURER.lowercase()
-        val brand = Build.BRAND.lowercase()
-        // Xiaomi-family devices on SDK 36+ still need the static disable: their
-        // HAL offload path has its own quirks that the runtime fallback below
-        // hasn't been validated against.
-        val isXiaomiFamilyDevice = manufacturer == "xiaomi" || brand == "xiaomi" || brand == "redmi" || brand == "poco"
-        if (isXiaomiFamilyDevice && Build.VERSION.SDK_INT >= 36) return true
-
-        // Pixel blacklist (previously: SDK >= 34) removed. The original "playback
-        // does not start with offload" symptom is now caught by
-        // scheduleAudioOffloadFallbackIfNeeded() + disableAudioOffloadForSession(),
-        // which rebuild the player to PCM if the HAL stays in STATE_BUFFERING
-        // for more than AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS. Leaving offload on
-        // by default reclaims the 30–50% battery savings the DSP path provides
-        // for the common case where the HAL works correctly.
-        return false
+        return shouldDisableAudioOffloadByDefaultForDevice(
+            manufacturer = Build.MANUFACTURER,
+            brand = Build.BRAND,
+            model = Build.MODEL,
+            hardware = Build.HARDWARE,
+            sdkInt = Build.VERSION.SDK_INT
+        )
     }
 
     private fun disableAudioOffloadForSession(reason: String) {

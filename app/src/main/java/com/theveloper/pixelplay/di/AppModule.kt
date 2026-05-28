@@ -164,7 +164,8 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_37_38,
             PixelPlayDatabase.MIGRATION_38_39,
             PixelPlayDatabase.MIGRATION_39_40,
-            PixelPlayDatabase.MIGRATION_40_41
+            PixelPlayDatabase.MIGRATION_40_41,
+            PixelPlayDatabase.MIGRATION_41_42
         )
             .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)

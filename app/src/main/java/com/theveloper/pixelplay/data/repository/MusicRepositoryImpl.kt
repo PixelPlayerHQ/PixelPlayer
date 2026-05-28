@@ -1,42 +1,32 @@
 package com.theveloper.pixelplay.data.repository
 
-// import kotlinx.coroutines.withContext // May not be needed for Flow transformations
-
-// import kotlinx.coroutines.sync.withLock // May not be needed if directoryScanMutex logic changes
-
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-
-import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.repository.ArtistImageRepository
-import dagger.Lazy
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 import androidx.core.net.toUri
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.filter
+import androidx.paging.map
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.SearchHistoryDao
 import com.theveloper.pixelplay.data.database.SearchHistoryEntity
 import com.theveloper.pixelplay.data.database.TelegramChannelEntity
 import com.theveloper.pixelplay.data.database.TelegramDao
+import com.theveloper.pixelplay.data.database.TelegramTopicEntity
 import com.theveloper.pixelplay.data.database.toAlbum
 import com.theveloper.pixelplay.data.database.toArtist
 import com.theveloper.pixelplay.data.database.toSearchHistoryItem
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.database.toTelegramEntity
 import com.theveloper.pixelplay.data.database.toTelegramEntityWithThread
-import com.theveloper.pixelplay.data.database.TelegramTopicEntity
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Artist
+import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.Genre
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
@@ -45,8 +35,8 @@ import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.SearchFilterType
 import com.theveloper.pixelplay.data.model.SearchHistoryItem
 import com.theveloper.pixelplay.data.model.SearchResultItem
+import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
-import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
@@ -56,33 +46,36 @@ import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.StorageType
 import com.theveloper.pixelplay.utils.StorageUtils
 import com.theveloper.pixelplay.utils.toHexString
+import dagger.Lazy
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.map
-import androidx.paging.filter
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.CoroutineScope
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton

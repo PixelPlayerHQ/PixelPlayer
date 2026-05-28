@@ -75,6 +75,7 @@ fun TelegramChannelSearchSheet(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusRequester = remember { FocusRequester() }
 

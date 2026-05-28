@@ -329,9 +329,9 @@ class ConnectivityStateHolder @Inject constructor(
                 device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
                 device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
             ) {
-                val name = device.productName?.toString()?.trim().orEmpty()
+                val name = device.productName.toString().trim()
                 if (name.isNotEmpty() && !isOwnBluetoothDeviceName(name, localDeviceNames)) {
-                    val address = device.address?.trim().orEmpty().takeIf { it.isNotEmpty() }
+                    val address = device.address.trim().takeIf { it.isNotEmpty() }
                     val key = bluetoothDeviceKey(address, name)
                     connectedDevices[key] = BluetoothAudioDeviceState(
                         name = name,
@@ -506,9 +506,12 @@ class ConnectivityStateHolder @Inject constructor(
     private fun readConnectedWifiSsid(): String? {
         if (!hasFineLocationPermission()) return null
 
+        @Suppress("DEPRECATION")
         val info = wifiManager?.connectionInfo ?: return null
+        @Suppress("DEPRECATION")
         if (info.supplicantState != android.net.wifi.SupplicantState.COMPLETED) return null
 
+        @Suppress("DEPRECATION")
         var ssid = info.ssid
         if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
             ssid = ssid.substring(1, ssid.length - 1)

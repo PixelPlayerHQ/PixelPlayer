@@ -307,6 +307,7 @@ fun SongInfoBottomSheet(
         )
     }
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { true }

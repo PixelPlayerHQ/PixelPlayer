@@ -84,6 +84,7 @@ fun PlaylistMultiSelectionBottomSheet(
     onMergeAll: () -> Unit,
     onShareAll: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val evenCornerRadius = 26.dp
     val buttonShape = AbsoluteSmoothCornerShape(

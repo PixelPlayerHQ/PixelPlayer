@@ -382,7 +382,7 @@ class MediaStoreSongRepository @Inject constructor(
             val minDuration = values[3] as Int
             Triple(allowedDirs, blockedDirs, minDuration)
         }.flatMapLatest { (allowedDirs, blockedDirs, minDuration) ->
-            val minDurationMs = minDuration as Int
+            val minDurationMs = minDuration
             val musicIds = getFilteredSongIds(allowedDirs.toList(), blockedDirs.toList(), minDurationMs)
             val genreMap = getSongIdToGenreMap(context.contentResolver)
 

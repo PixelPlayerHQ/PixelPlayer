@@ -106,6 +106,7 @@ fun MultiSelectionBottomSheet(
     onBatchEdit: () -> Unit
 ) {
     val context = LocalContext.current
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     // Compute if all selected songs are liked

@@ -4005,9 +4005,7 @@ class PlayerViewModel @Inject constructor(
                 _toastEvents.emit(
                     context.getString(R.string.player_share_zip_failed_format, error.localizedMessage ?: ""),
                 )
-                println(
-                    "Failed to share: ${error.localizedMessage}"
-                )
+                Timber.e(error, "Failed to share")
             }
         }
     }

@@ -694,7 +694,7 @@ class PlaybackStateHolder @Inject constructor(
                          if (hasMediaMismatch) {
                             Timber.tag(TAG).v(
                                  "Skipping local progress tick due media mismatch (visible=%s, player=%s)",
-                                 visibleSong?.id,
+                                 visibleSong.id,
                                  currentMediaId
                              )
                             delay(tickMs)

@@ -276,6 +276,7 @@ fun SettingsCategoryScreen(
     var paletteBulkCompletedCount by remember { mutableStateOf(0) }
     var paletteBulkTotalCount by remember { mutableStateOf(0) }
     var paletteSongSearchQuery by remember { mutableStateOf("") }
+    @Suppress("DEPRECATION")
     val paletteRegenerateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isAnyPaletteRegenerateRunning = isPaletteRegenerateRunning || isPaletteBulkRegenerateRunning
     val filteredPaletteSongs = remember(paletteRegenerateTargets, paletteSongSearchQuery) {

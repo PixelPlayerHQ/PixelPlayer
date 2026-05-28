@@ -214,7 +214,7 @@ fun LibraryAlbumsTab(
 
     when {
         refreshState is LoadState.Error && albums.itemCount == 0 -> {
-            val error = (refreshState as LoadState.Error).error
+            val error = refreshState.error
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -524,7 +524,7 @@ fun LibraryArtistsTab(
 
     when {
         refreshState is LoadState.Error && artists.itemCount == 0 -> {
-            val error = (refreshState as LoadState.Error).error
+            val error = refreshState.error
             Box(
                 modifier = Modifier
                     .fillMaxSize()

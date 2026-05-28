@@ -28,6 +28,7 @@ fun DailyMixMenu(
     onApplyPrompt: (String) -> Unit,
     isLoading: Boolean
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState()
     var prompt by remember { mutableStateOf("") }
 

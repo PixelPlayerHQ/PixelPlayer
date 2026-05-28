@@ -51,6 +51,7 @@ fun CustomPresetsSheet(
     onDelete: (EqualizerPreset) -> Unit,
     onDismiss: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(

@@ -66,6 +66,7 @@ fun MashupScreen(
     mashupViewModel: MashupViewModel = hiltViewModel()
 ) {
     val mashupUiState by mashupViewModel.uiState.collectAsStateWithLifecycle()
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
 

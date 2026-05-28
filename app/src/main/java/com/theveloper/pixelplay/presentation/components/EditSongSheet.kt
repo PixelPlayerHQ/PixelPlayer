@@ -10,18 +10,15 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Notes
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.BasicAlertDialog
@@ -72,16 +69,13 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import dev.shreyaspatil.capturable.capturable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.rounded.Restore
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.net.toUri
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.media3.common.Player
 import com.theveloper.pixelplay.data.media.AudioMetadataReader
 import com.theveloper.pixelplay.data.media.CoverArtUpdate
 import dev.shreyaspatil.capturable.controller.rememberCaptureController
@@ -623,7 +617,7 @@ private fun EditSongContent(
                                 val encodedTitle = URLEncoder.encode(title, "UTF-8")
                                 val encodedArtist = URLEncoder.encode(artist, "UTF-8")
                                 val url = "https://lrclib.net/search/$encodedTitle%20$encodedArtist"
-                                val intent = Intent(Intent.ACTION_VIEW).setData(Uri.parse(url))
+                                val intent = Intent(Intent.ACTION_VIEW).setData(url.toUri())
                                 context.startActivity(intent)
                             },
                         ) {
@@ -862,9 +856,11 @@ fun CoverArtCropperDialog(
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
-    var scale by remember { mutableStateOf(1f) }
+    var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var containerSize by remember { mutableStateOf(0f) }
+    var containerSize by remember { mutableFloatStateOf(0f) }
+
+    val errorMsg = stringResource(R.string.edit_song_unable_to_load_image)
 
     LaunchedEffect(sourceUri) {
         isLoading = true
@@ -873,7 +869,7 @@ fun CoverArtCropperDialog(
         if (bitmap != null) {
             loadedBitmap = bitmap.asImageBitmap()
         } else {
-            loadError = context.getString(R.string.edit_song_unable_to_load_image)
+            loadError = errorMsg
         }
         isLoading = false
         scale = 1f
@@ -886,7 +882,7 @@ fun CoverArtCropperDialog(
         }
     }
 
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+    val transformableState = rememberTransformableState { _, zoomChange, panChange, _ ->
         val newScale = (scale * zoomChange).coerceIn(1f, 4f)
         scale = newScale
         loadedBitmap?.let { bitmap ->
@@ -1039,26 +1035,21 @@ fun CoverArtCropperDialog(
                     Button(
                         enabled = canConfirm && !isSaving,
                         onClick = {
-                            if (!canConfirm) return@Button
                             dialogScope.launch {
                                 isSaving = true
                                 val captured = captureController.captureAsync().await()
-                                if (captured != null) {
-                                    val bytes = withContext(Dispatchers.IO) {
-                                        imageBitmapToJpeg(captured)
-                                    }
-                                    if (bytes != null) {
-                                        onConfirm(
-                                            CoverArtCropResult(
-                                                preview = captured,
-                                                update = CoverArtUpdate(bytes, COVER_ART_MIME_TYPE)
-                                            )
+                                val bytes = withContext(Dispatchers.IO) {
+                                    imageBitmapToJpeg(captured)
+                                }
+                                if (bytes != null) {
+                                    onConfirm(
+                                        CoverArtCropResult(
+                                            preview = captured,
+                                            update = CoverArtUpdate(bytes, COVER_ART_MIME_TYPE)
                                         )
-                                    } else {
-                                        Timber.w("Failed to convert captured cover art to JPEG")
-                                    }
+                                    )
                                 } else {
-                                    Timber.w("CaptureController returned null bitmap")
+                                    Timber.w("Failed to convert captured cover art to JPEG")
                                 }
                                 isSaving = false
                             }

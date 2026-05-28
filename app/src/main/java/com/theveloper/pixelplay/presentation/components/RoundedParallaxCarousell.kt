@@ -576,7 +576,7 @@ private class CarouselItemModifierNode(
                 }
 
                 // --- limitar además al propio layer (seguro)
-                val layerBounds = Rect(0f, 0f, size.width.toFloat(), size.height.toFloat())
+                val layerBounds = Rect(0f, 0f, size.width, size.height)
                 val maskRect = Rect(left, top, right, bottom).intersect(layerBounds)
 
                 // --- actualizar info para la máscara (para MaskScope, etc.)

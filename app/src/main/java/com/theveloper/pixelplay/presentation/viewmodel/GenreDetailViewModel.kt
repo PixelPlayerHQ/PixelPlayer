@@ -158,7 +158,7 @@ class GenreDetailViewModel @Inject constructor(
 
                     val sections = buildDisplaySections(songs, SortOption.ARTIST)
                     val flattened = flattenSections(sections, artistMap)
-                    val sorted = songs.sortedBy { it.artist ?: "Unknown Artist" }
+                    val sorted = songs.sortedBy { it.artist }
                     
                     ProcessingResult(genre, songs, sorted, sections, flattened)
                 }
@@ -195,8 +195,8 @@ class GenreDetailViewModel @Inject constructor(
                 val sections = buildDisplaySections(currentState.songs, newSort)
                 val flattened = flattenSections(sections, artistMap)
                 val sorted = when (newSort) {
-                    SortOption.ARTIST -> currentState.songs.sortedBy { it.artist ?: "Unknown Artist" }
-                    SortOption.ALBUM -> currentState.songs.sortedBy { it.album ?: "Unknown Album" }
+                    SortOption.ARTIST -> currentState.songs.sortedBy { it.artist }
+                    SortOption.ALBUM -> currentState.songs.sortedBy { it.album }
                     SortOption.TITLE -> currentState.songs.sortedBy { it.title }
                 }
                 Triple(sections, flattened, sorted)
@@ -278,10 +278,10 @@ class GenreDetailViewModel @Inject constructor(
     private fun buildDisplaySections(songs: List<Song>, sort: SortOption): List<SectionData> {
         return when (sort) {
             SortOption.ARTIST -> {
-                val sorted = songs.sortedBy { it.artist ?: "Unknown Artist" }
-                val grouped = sorted.groupBy { it.artist ?: "Unknown Artist" }
+                val sorted = songs.sortedBy { it.artist }
+                val grouped = sorted.groupBy { it.artist }
                 grouped.map { (artist, artistSongs) ->
-                    val albums = artistSongs.groupBy { it.album ?: "Unknown Album" }.map { (albumName, albumSongs) ->
+                    val albums = artistSongs.groupBy { it.album }.map { (albumName, albumSongs) ->
                         val sortedAlbumSongs = albumSongs.sortedWith(
                             compareBy<Song> { it.discNumber ?: 1 }
                                 .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }
@@ -293,8 +293,8 @@ class GenreDetailViewModel @Inject constructor(
                 }
             }
             SortOption.ALBUM -> {
-                val sorted = songs.sortedBy { it.album ?: "Unknown Album" }
-                val grouped = sorted.groupBy { it.album ?: "Unknown Album" }
+                val sorted = songs.sortedBy { it.album }
+                val grouped = sorted.groupBy { it.album }
                 grouped.map { (album, albumSongs) ->
                     val sortedAlbumSongs = albumSongs.sortedWith(
                         compareBy<Song> { it.discNumber ?: 1 }

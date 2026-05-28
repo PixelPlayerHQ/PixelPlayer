@@ -84,6 +84,7 @@ fun AiPlaylistSheet(
     var minLength by remember { mutableStateOf("5") }
     var maxLength by remember { mutableStateOf("15") }
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )

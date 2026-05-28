@@ -449,6 +449,7 @@ fun LyricsSheet(
     var immersiveMode by remember { mutableStateOf(false) }
     var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var showMoreSheet by remember { mutableStateOf(false) }
+    @Suppress("DEPRECATION")
     val moreSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )

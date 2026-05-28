@@ -703,6 +703,7 @@ private fun ChannelActionsBottomSheet(
     onSync: () -> Unit,
     onDelete: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val publicChannelFallback = stringResource(R.string.presentation_batch_f_public_channel_fallback)
     val usernameLabel = remember(channel.username) {

@@ -130,7 +130,8 @@ android {
     }
 
     lint {
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
+        abortOnError = false // Keep it from failing the build entirely on CI if you have minor warnings
     }
 
     splits {
@@ -196,52 +197,29 @@ dependencies {
 
     // AndroidX & Compose
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.lifecycleprocess)
+    implementation(libs.bundles.lifecycle)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.material.icons.core)
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.constraintlayout.compose)
-    implementation(libs.androidx.foundation)
-    implementation(libs.androidx.animation)
+    implementation(libs.bundles.compose)
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.material)
     implementation(libs.androidx.appcompat)
 
     // DI & Navigation
-    implementation(libs.hilt.android)
+    implementation(libs.bundles.hilt)
     ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.navigation.runtime.ktx)
 
     // Storage & Paging
-    implementation(libs.androidx.room.runtime)
+    implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.androidx.paging.compose)
-    implementation(libs.androidx.paging.common)
+    implementation(libs.bundles.paging)
 
     // Media & Files
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.session)
+    implementation(libs.bundles.media3)
     implementation(libs.androidx.media3.exoplayer.ffmpeg)
-    implementation(libs.androidx.media3.exoplayer.midi)
-    implementation(libs.androidx.media3.transformer)
     implementation(libs.androidx.mediarouter)
     implementation(libs.androidx.media)
     implementation(libs.coil.compose)
@@ -252,10 +230,7 @@ dependencies {
     implementation(libs.androidx.graphics.shapes)
 
     // Networking & Serialization
-    implementation(libs.retrofit)
-    implementation(libs.converter.gson)
-    implementation(libs.okhttp)
-    implementation(libs.logging.interceptor)
+    implementation(libs.bundles.networking)
     implementation(libs.gson)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.collections.immutable)

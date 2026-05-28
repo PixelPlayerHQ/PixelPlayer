@@ -252,7 +252,9 @@ fun HomeScreen(
     var showBetaInfoBottomSheet by remember { mutableStateOf(false) }
     var showStreamingProviderSheet by remember { mutableStateOf(false) }
     var cleanInstallDisclaimerDismissedThisSession by rememberSaveable { mutableStateOf(false) }
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState()
+    @Suppress("DEPRECATION")
     val betaSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     LocalContext.current

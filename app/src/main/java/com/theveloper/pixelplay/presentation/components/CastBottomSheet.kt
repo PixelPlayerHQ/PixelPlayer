@@ -333,6 +333,7 @@ fun CastBottomSheet(
         bluetoothName = activeBluetoothName
     )
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { true }

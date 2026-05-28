@@ -49,6 +49,7 @@ fun AiMetadataSheet(
     error: String?,
     onRetry: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = MaterialTheme.colorScheme
 

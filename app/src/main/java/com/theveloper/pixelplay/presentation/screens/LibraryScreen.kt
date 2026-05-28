@@ -2644,6 +2644,7 @@ private fun LibraryTabSwitcherSheet(
     onEditClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(

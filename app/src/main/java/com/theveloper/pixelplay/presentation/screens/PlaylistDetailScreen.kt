@@ -696,6 +696,7 @@ fun PlaylistDetailScreen(
         )
     }
     if (showPlaylistOptionsSheet && !isFolderPlaylist) {
+    @Suppress("DEPRECATION")
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
         ModalBottomSheet(

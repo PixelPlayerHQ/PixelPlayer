@@ -978,6 +978,7 @@ fun FullPlayerContent(
         )
     }
 
+    @Suppress("DEPRECATION")
     val artistPickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     if (showArtistPicker && currentSongArtists.isNotEmpty()) {
         PlayerArtistPickerBottomSheet(

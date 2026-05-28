@@ -77,6 +77,7 @@ fun LibrarySortBottomSheet(
     sourceToggleContent: (@Composable () -> Unit)? = null,
     extraContent: (@Composable () -> Unit)? = null
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val selectedColor = MaterialTheme.colorScheme.secondaryContainer

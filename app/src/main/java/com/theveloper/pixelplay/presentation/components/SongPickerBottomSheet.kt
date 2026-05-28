@@ -103,6 +103,7 @@ fun SongPickerBottomSheet(
     onConfirm: (Set<String>) -> Unit,
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val selectedSongIds = remember {
         mutableStateMapOf<String, Boolean>().apply {

@@ -57,6 +57,7 @@ fun AlbumMultiSelectionOptionSheet(
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(

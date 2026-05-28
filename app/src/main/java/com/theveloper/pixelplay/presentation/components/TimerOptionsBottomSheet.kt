@@ -75,6 +75,7 @@ fun TimerOptionsBottomSheet(
     var showCustomTimePicker by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     var timerSliderPosition by remember { mutableStateOf(0f) }
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val isSwitchEnabled = isEndOfTrackTimerActive

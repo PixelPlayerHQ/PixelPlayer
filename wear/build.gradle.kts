@@ -32,11 +32,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            lint {
-                abortOnError = false
-                checkReleaseBuilds = false
-            }
         }
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = true
     }
 
     buildFeatures {
@@ -60,62 +61,39 @@ kotlin {
 dependencies {
     implementation(project(":shared"))
 
-    // Wear OS Compose
-    implementation(libs.wear.compose.material)
-    implementation(libs.wear.compose.material3)
-    implementation(libs.wear.compose.foundation)
-    implementation(libs.wear.compose.navigation)
-
-    // Horologist
-    implementation(libs.horologist.compose.layout)
-    implementation(libs.horologist.media.ui)
-    implementation(libs.horologist.audio.ui)
-    implementation(libs.horologist.composables)
+    // Wear OS & Horologist
+    implementation(libs.bundles.wear)
+    implementation(libs.bundles.horologist)
 
     // Data Layer
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
 
-    // Hilt
-    implementation(libs.hilt.android)
+    // DI & Navigation
+    implementation(libs.bundles.hilt)
     ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    ksp(libs.androidx.hilt.compiler)
 
-    // Compose core
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.foundation)
-
-    // Serialization
-    implementation(libs.kotlinx.serialization.json)
-
-    // Image loading
-    implementation(libs.coil.compose)
-
-    // Logging
-    implementation(libs.timber)
-
-    // Core
+    // AndroidX & Compose
     implementation(libs.androidx.core.ktx)
-
-    // Lifecycle
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-
-    // Material icons for Wear
+    implementation(libs.bundles.lifecycle)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.foundation)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
 
-    // Room (local database for transferred songs)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+    // Storage & Media
+    implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
-
-    // Media3 ExoPlayer (standalone local playback)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.mediarouter)
+
+    // UI Utilities
+    implementation(libs.coil.compose)
+    implementation(libs.timber)
+    implementation(libs.kotlinx.serialization.json)
 
     constraints {
         // Fix vulnerabilities in transitive dependencies

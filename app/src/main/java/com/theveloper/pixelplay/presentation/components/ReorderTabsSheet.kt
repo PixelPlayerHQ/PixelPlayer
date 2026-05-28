@@ -65,6 +65,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ReorderTabsSheet(
@@ -106,6 +107,7 @@ fun ReorderTabsSheet(
         )
     }
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()

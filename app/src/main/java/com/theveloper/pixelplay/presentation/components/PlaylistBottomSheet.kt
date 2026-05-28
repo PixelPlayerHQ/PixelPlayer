@@ -64,6 +64,7 @@ fun PlaylistBottomSheet(
 ) {
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { true }

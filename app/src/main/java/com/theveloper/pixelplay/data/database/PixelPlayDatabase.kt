@@ -291,19 +291,19 @@ abstract class PixelPlayDatabase : RoomDatabase() {
         }
 
         val MIGRATION_18_19 = object : Migration(18, 19) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `lyrics` (`songId` INTEGER NOT NULL, `content` TEXT NOT NULL, `isSynced` INTEGER NOT NULL DEFAULT 0, `source` TEXT, PRIMARY KEY(`songId`))"
                 )
-                database.execSQL(
+                db.execSQL(
                     "INSERT INTO lyrics (songId, content) SELECT id, lyrics FROM songs WHERE lyrics IS NOT NULL AND lyrics != ''"
                 )
             }
         }
 
         val MIGRATION_14_15 = object : Migration(14, 15) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     "ALTER TABLE album_art_themes ADD COLUMN paletteStyle TEXT NOT NULL DEFAULT 'tonal_spot'"
                 )
 
@@ -332,14 +332,14 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 val prefixes = listOf("light_", "dark_")
                 prefixes.forEach { prefix ->
                     newRoleColumns.forEach { role ->
-                        database.execSQL(
+                        db.execSQL(
                             "ALTER TABLE album_art_themes ADD COLUMN ${prefix}${role} TEXT NOT NULL DEFAULT '#00000000'"
                         )
                     }
                 }
 
                 // The table is a cache; wipe stale rows so we always regenerate with full token data.
-                database.execSQL("DELETE FROM album_art_themes")
+                db.execSQL("DELETE FROM album_art_themes")
             }
         }
 

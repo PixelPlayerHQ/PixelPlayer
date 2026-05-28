@@ -282,3 +282,62 @@ android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[bundles]
+compose = [
+    "androidx-ui",
+    "androidx-ui-graphics",
+    "androidx-ui-tooling-preview",
+    "androidx-compose-material3",
+    "androidx-material-icons-core",
+    "androidx-material-icons-extended",
+    "androidx-constraintlayout-compose",
+    "androidx-foundation",
+    "androidx-animation",
+    "androidx-ui-text-google-fonts"
+]
+lifecycle = [
+    "androidx-lifecycle-runtime-ktx",
+    "androidx-lifecycle-runtime-compose",
+    "lifecycleprocess"
+]
+room = [
+    "androidx-room-runtime",
+    "androidx-room-ktx",
+    "androidx-room-paging"
+]
+paging = [
+    "androidx-paging-runtime",
+    "androidx-paging-compose"
+]
+media3 = [
+    "androidx-media3-exoplayer",
+    "androidx-media3-ui",
+    "androidx-media3-session",
+    "androidx-media3-exoplayer-midi",
+    "androidx-media3-transformer"
+]
+hilt = [
+    "hilt-android",
+    "androidx-hilt-navigation-compose",
+    "androidx-hilt-lifecycle-viewmodel-compose",
+    "androidx-hilt-work"
+]
+networking = [
+    "retrofit",
+    "converter-gson",
+    "okhttp",
+    "logging-interceptor"
+]
+wear = [
+    "wear-compose-material",
+    "wear-compose-material3",
+    "wear-compose-foundation",
+    "wear-compose-navigation"
+]
+horologist = [
+    "horologist-compose-layout",
+    "horologist-media-ui",
+    "horologist-audio-ui",
+    "horologist-composables"
+]

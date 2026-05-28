@@ -48,6 +48,7 @@ fun GenreSortBottomSheet(
     onShuffle: () -> Unit,
     headerContent: @Composable (() -> Unit)? = null
 ) {
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )

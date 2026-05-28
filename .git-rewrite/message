@@ -1,3 +1,3 @@
-Fix typo in AI Playlists description
+Merge pull request #2007 from theovilardo/fix/remove-wifi-illustration-legacy-placeholder
 
-Corrected the spelling of 'OpenIA' to 'OpenAI' in the README.
+refactor: remove connectivity-off illustration from CastBottomSheet

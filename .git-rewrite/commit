@@ -1,10 +1,26 @@
-tree a690b117ae4904404ad559bf32e8183d958804b2
-parent fd932f2a6b6405289bbff532adc415db7e82416e
-author theov <theovilardo@gmail.com> 1778174484 -0300
-committer theov <theovilardo@gmail.com> 1778174484 -0300
+tree 649130606d84abd29097d120bacadf411e31da53
+parent da905d52e54e3d88944dcc49f26424e24e7b0d9b
+parent f06e85b088d2fef0c97549c8eddb5e2e81bb674d
+author theovilardo <theovilardo@gmail.com> 1778822726 -0300
+committer GitHub <noreply@github.com> 1778822726 -0300
+gpgsig -----BEGIN PGP SIGNATURE-----
+ 
+ wsFcBAABCAAQBQJqBq5GCRC1aQ7uu5UhlAAAYAEQAIXjoinriXBJIZbmxMgjk9kI
+ ENW0cgfjPBuKvmGIqmNHslondS2/MouphyOP8WkonhEMjWCzwLHrHV60ueB9q/0w
+ CtUXjrTxCCUkJdXVKId7Mr4VmAtCRQyvnVCiNpg1FO8ps/PmfIjtpFampPAaxWWy
+ YjlgX5n8eDkoMp9iGqZpi/Ep7wPjU84FTF0MwX0aeRVvbi0K+LT9cxoH1t5XfH1J
+ fj/XSS0246Na1L6Vo9NmkDZ/8ojJ/4VPaVScESPNrlEcQ8joazIjht3wCpscsryb
+ qr7GOZk3TYXonxi7EH+gg/bl7q0ebqhkjOdOF7pJzsfw6EKnnh3WWqDc4Xsdpabf
+ 9TzD21X/8QuWnXAOOQL4ZnZ3sZXEFPQzFIPcREa4t+PcsDkWDaORXS2lxzHZ3iKz
+ 3OQ+lIDL8rO/dQhHK5aPzYBv5E1z8L8B9VJqvGhbOwHtOndbeetXCcakMuKt1xNB
+ fwrfvR1cu4ZwSyP4Kqt0akPw1Auy91A0Ufcj7JUO1UDrQ/+JtxhM+tUMhoml4Doc
+ cW4EP9oGJ683TNxb9JCoPn9HasxWmcvhZZuA/IavRpdqvxpBoTUIkCx9qu+Y7qZp
+ SYsyWr4NwQThS+v2vYOBXfrwC9ar7FMK6O93C+dZTaBXmT29kClnapjdcXH4FWjQ
+ GnpK1Ln9vh3xypPawQWd
+ =zAwW
+ -----END PGP SIGNATURE-----
+ 
 
-Preserve artist image metadata during database updates
+Merge pull request #2007 from theovilardo/fix/remove-wifi-illustration-legacy-placeholder
 
-- Add `getArtistsByIds` query to `MusicDao` to fetch existing artist entities.
-- Update `upsertArtists` logic to merge incoming artist data with existing records.
-- Ensure `imageUrl` and `customImageUri` are preserved if the incoming data contains null values for these fields.
+refactor: remove connectivity-off illustration from CastBottomSheet

@@ -226,7 +226,15 @@ class ListeningStatsTracker @Inject constructor(
         val nowEpoch = System.currentTimeMillis()
         accumulateRealtimeListening(session, nowRealtime)
         val listened = session.accumulatedListeningMs.coerceAtLeast(0L)
-        if (listened >= MIN_SESSION_LISTEN_MS) {
+        val totalDuration = session.totalDurationMs
+
+        // Define skip and completion thresholds:
+        // Skip: listened duration < 15 seconds AND (totalDuration <= 0L OR listened < totalDuration * 0.25)
+        // Completion: totalDuration > 0L AND (listened >= totalDuration * 0.9 OR (totalDuration - listened) <= 10000L)
+        val isSkip = listened < 15000L && (totalDuration <= 0L || listened < totalDuration * 0.25)
+        val isCompletion = totalDuration > 0L && (listened >= totalDuration * 0.9 || (totalDuration - listened) <= 10000L)
+
+        if (listened >= MIN_SESSION_LISTEN_MS || isSkip) {
             val rawEndTimestamp = when {
                 session.isPlaying -> nowEpoch
                 session.lastUpdateEpochMs > 0L -> session.lastUpdateEpochMs
@@ -243,10 +251,18 @@ class ListeningStatsTracker @Inject constructor(
             _playbackHistory.update { current ->
                 (listOf(historyEntry) + current).take(MAX_INTERNAL_PLAYBACK_HISTORY_ITEMS)
             }
+
+            val playInc = if (isSkip) 0 else 1
+            val skipInc = if (isSkip) 1 else 0
+            val completedInc = if (isCompletion) 1 else 0
+
             persistPlayback(
                 songId = songId,
                 listened = listened,
                 timestamp = timestamp,
+                playInc = playInc,
+                skipInc = skipInc,
+                completedInc = completedInc,
                 forceSynchronous = forceSynchronousPersistence
             )
         }
@@ -267,33 +283,55 @@ class ListeningStatsTracker @Inject constructor(
         scope = null
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun persistPlayback(
         songId: String,
         listened: Long,
         timestamp: Long,
+        playInc: Int,
+        skipInc: Int,
+        completedInc: Int,
         forceSynchronous: Boolean
     ) {
         persistenceScope.launch {
             runCatching {
-                persistPlaybackInternal(songId = songId, listened = listened, timestamp = timestamp)
+                persistPlaybackInternal(
+                    songId = songId,
+                    listened = listened,
+                    timestamp = timestamp,
+                    playInc = playInc,
+                    skipInc = skipInc,
+                    completedInc = completedInc
+                )
             }.onFailure { throwable ->
                 Timber.e(throwable, "Failed to persist listening session for song=%s", songId)
             }
         }
     }
 
-    private suspend fun persistPlaybackInternal(songId: String, listened: Long, timestamp: Long) {
-        dailyMixManager.recordPlay(
+    private suspend fun persistPlaybackInternal(
+        songId: String,
+        listened: Long,
+        timestamp: Long,
+        playInc: Int,
+        skipInc: Int,
+        completedInc: Int
+    ) {
+        dailyMixManager.recordEngagement(
             songId = songId,
+            playInc = playInc,
             songDurationMs = listened,
-            timestamp = timestamp
+            timestamp = timestamp,
+            skipInc = skipInc,
+            completedInc = completedInc
         )
-        playbackStatsRepository.recordPlayback(
-            songId = songId,
-            durationMs = listened,
-            timestamp = timestamp
-        )
+        // For playback stats repository, we only record if it wasn't a quick skip
+        if (playInc > 0) {
+            playbackStatsRepository.recordPlayback(
+                songId = songId,
+                durationMs = listened,
+                timestamp = timestamp
+            )
+        }
     }
 
     private fun accumulateRealtimeListening(session: ActiveSession, nowRealtime: Long) {

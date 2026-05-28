@@ -493,6 +493,20 @@ fun AppNavigation(
                 }
             }
             composable(
+                Screen.AiPreferences.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    com.theveloper.pixelplay.presentation.screens.AiPreferencesScreen(
+                        navController = navController,
+                        onNavigationIconClick = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(
                 Screen.DelimiterConfig.route,
                 enterTransition = { enterTransition() },
                 exitTransition = { exitTransition() },

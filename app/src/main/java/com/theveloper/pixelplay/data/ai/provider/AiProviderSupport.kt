@@ -86,9 +86,11 @@ internal object AiProviderSupport {
             AiProvider.MISTRAL,
             AiProvider.OPENAI,
             AiProvider.OPENROUTER,
+            AiProvider.ANTHROPIC,
             AiProvider.NVIDIA,
             AiProvider.KIMI,
-            AiProvider.GLM
+            AiProvider.GLM,
+            AiProvider.OLLAMA
         )
 
         return buildList {

@@ -43,13 +43,14 @@ import javax.inject.Inject
 
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
-import com.theveloper.pixelplay.data.ai.GeminiModel
-import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
+import com.theveloper.pixelplay.data.ai.AiModel
+import com.theveloper.pixelplay.data.ai.AiHandler
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.player.HiFiCapabilityChecker
 import com.theveloper.pixelplay.utils.AppLocaleManager
+import com.theveloper.pixelplay.utils.ColorSchemePair
 import java.io.File
 
 data class SettingsUiState(
@@ -79,7 +80,7 @@ data class SettingsUiState(
     val lyricsSourcePreference: LyricsSourcePreference = LyricsSourcePreference.EMBEDDED_FIRST,
     val autoScanLrcFiles: Boolean = false,
     val blockedDirectories: Set<String> = emptySet(),
-    val availableModels: List<GeminiModel> = emptyList(),
+    val availableModels: List<AiModel> = emptyList(),
     val isLoadingModels: Boolean = false,
     val modelsFetchError: String? = null,
     val appRebrandDialogShown: Boolean = false,
@@ -108,7 +109,12 @@ data class SettingsUiState(
     val minTracksPerAlbum: Int = 1,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
-    val isSafeTokenLimitEnabled: Boolean = true
+    val isSafeTokenLimitEnabled: Boolean = true,
+    // AI Preferences
+    val maxSongsForContext: Int = AiPreferencesRepository.DEFAULT_MAX_SONGS_FOR_CONTEXT,
+    val includeLikedSongs: Boolean = true,
+    val includeDailyMixHistory: Boolean = true,
+    val includeUserHabits: Boolean = true
 )
 
 data class FailedSongInfo(
@@ -176,10 +182,9 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val aiPreferencesRepository: AiPreferencesRepository,
     private val themePreferencesRepository: ThemePreferencesRepository,
-    private val colorSchemeProcessor: ColorSchemeProcessor,
+    private val colorSchemeProcessor: com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor,
     private val syncManager: SyncManager,
-    private val aiClientFactory: AiClientFactory,
-    private val geminiModelService: com.theveloper.pixelplay.data.ai.GeminiModelService,
+    private val aiHandler: AiHandler,
     private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
@@ -271,6 +276,20 @@ class SettingsViewModel @Inject constructor(
     val openrouterSystemPrompt: StateFlow<String> = aiPreferencesRepository.openrouterSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OPENROUTER_SYSTEM_PROMPT)
 
+    val anthropicApiKey: StateFlow<String> = aiPreferencesRepository.anthropicApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val anthropicModel: StateFlow<String> = aiPreferencesRepository.anthropicModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val anthropicSystemPrompt: StateFlow<String> = aiPreferencesRepository.anthropicSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_ANTHROPIC_SYSTEM_PROMPT)
+
+    val ollamaApiKey: StateFlow<String> = aiPreferencesRepository.ollamaApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaModel: StateFlow<String> = aiPreferencesRepository.ollamaModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.ollamaSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OLLAMA_SYSTEM_PROMPT)
+
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
             val providerStr = aiProvider.value
@@ -345,6 +364,19 @@ class SettingsViewModel @Inject constructor(
             else clearModelsState("OPENROUTER")
         }
     }
+    fun onAnthropicApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.ANTHROPIC, apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "ANTHROPIC")
+            else clearModelsState("ANTHROPIC")
+        }
+    }
+    fun onOllamaApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.OLLAMA, apiKey)
+            fetchAvailableModels(apiKey, "OLLAMA")
+        }
+    }
 
     fun onAiModelChange(model: String) {
         viewModelScope.launch {
@@ -362,6 +394,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GLM, model) }
     fun onOpenAiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENAI, model) }
     fun onOpenrouterModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENROUTER, model) }
+    fun onAnthropicModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.ANTHROPIC, model) }
+    fun onOllamaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OLLAMA, model) }
 
     fun onAiSystemPromptChange(prompt: String) {
         viewModelScope.launch {
@@ -379,6 +413,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GLM, prompt) }
     fun onOpenAiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENAI, prompt) }
     fun onOpenrouterSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENROUTER, prompt) }
+    fun onAnthropicSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.ANTHROPIC, prompt) }
+    fun onOllamaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OLLAMA, prompt) }
 
     fun resetAiSystemPrompt() {
         viewModelScope.launch {
@@ -396,6 +432,8 @@ class SettingsViewModel @Inject constructor(
     fun resetGlmSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GLM) }
     fun resetOpenAiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENAI) }
     fun resetOpenrouterSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENROUTER) }
+    fun resetAnthropicSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.ANTHROPIC) }
+    fun resetOllamaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OLLAMA) }
 
     fun clearAiUsageData() {
         viewModelScope.launch {
@@ -1006,6 +1044,30 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setMaxSongsForContext(maxSongs: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setMaxSongsForContext(maxSongs)
+        }
+    }
+
+    fun setIncludeLikedSongs(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeLikedSongs(include)
+        }
+    }
+
+    fun setIncludeDailyMixHistory(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeDailyMixHistory(include)
+        }
+    }
+
+    fun setIncludeUserHabits(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeUserHabits(include)
+        }
+    }
+
 
 
     /**
@@ -1126,16 +1188,8 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
             try {
                 val provider = AiProvider.fromString(providerName)
-                val models = if (provider == AiProvider.GEMINI) {
-                    geminiModelService.fetchAvailableModels(apiKey).getOrThrow()
-                } else {
-                    val aiClient = aiClientFactory.createClient(provider, apiKey)
-                    aiClient.getAvailableModels(apiKey)
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
-                        .distinct()
-                        .map { com.theveloper.pixelplay.data.ai.GeminiModel(it, formatModelDisplayName(it)) }
-                }
+                val modelsResult = aiHandler.fetchAvailableModels(provider, apiKey)
+                val models = modelsResult.getOrThrow()
                 
                 _uiState.update { 
                     it.copy(
@@ -1162,18 +1216,6 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-
-    private fun formatModelDisplayName(modelName: String): String {
-        return modelName
-            .removePrefix("models/")
-            .replace('-', ' ')
-            .replace('_', ' ')
-            .split(' ')
-            .joinToString(" ") { token ->
-                token.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-            }
-    }
-
 
     fun setNavBarCornerRadius(radius: Int) {
         viewModelScope.launch { userPreferencesRepository.setNavBarCornerRadius(radius) }

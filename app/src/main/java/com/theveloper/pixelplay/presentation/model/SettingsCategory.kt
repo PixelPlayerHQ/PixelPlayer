@@ -73,6 +73,12 @@ enum class SettingsCategory(
         subtitleRes = R.string.settings_category_device_capabilities_subtitle,
         icon = Icons.Rounded.DeveloperBoard // Placeholder, maybe Memory or SettingsInputComponent
     ),
+    AI_PREFERENCES(
+        id = "ai_preferences",
+        titleRes = R.string.settings_category_ai_preferences_title,
+        subtitleRes = R.string.settings_category_ai_preferences_subtitle,
+        iconRes = R.drawable.generate_playlist_ai
+    ),
     ABOUT(
         id = "about",
         titleRes = R.string.settings_category_about_title,

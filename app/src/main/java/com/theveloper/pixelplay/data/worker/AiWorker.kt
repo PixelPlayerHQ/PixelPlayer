@@ -7,7 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
-import com.theveloper.pixelplay.data.ai.AiOrchestrator
+import com.theveloper.pixelplay.data.ai.AiHandler
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.UserProfileDigestGenerator
 import com.theveloper.pixelplay.data.model.Song
@@ -24,7 +24,7 @@ import timber.log.Timber
 class AiWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val orchestrator: AiOrchestrator,
+    private val orchestrator: AiHandler,
     private val notificationManager: AiNotificationManager,
     private val musicRepository: MusicRepository,
     private val digestGenerator: UserProfileDigestGenerator,

@@ -35,7 +35,7 @@ class AiStateHolder @Inject constructor(
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
     private val notificationManager: AiNotificationManager,
-    private val aiOrchestrator: com.theveloper.pixelplay.data.ai.AiOrchestrator
+    private val aiHandler: com.theveloper.pixelplay.data.ai.AiHandler
 ) {
     // State
     // AI State Management: Observables for tracking background generation progress
@@ -363,7 +363,7 @@ Lyrics to translate:
 $lyricsText
             """.trimIndent()
             
-            val response = aiOrchestrator.generateContent(
+            val response = aiHandler.generateContent(
                 prompt = prompt,
                 type = AiSystemPromptType.GENERAL,
                 temperature = 0.1f

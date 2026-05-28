@@ -6,7 +6,6 @@ import javax.inject.Singleton
 
 enum class AiSystemPromptType {
     PLAYLIST,
-    METADATA,
     TAGGING,
     MOOD_ANALYSIS,
     PERSONA,
@@ -41,18 +40,6 @@ class AiSystemPromptEngine @Inject constructor() {
                 <output_schema>
                 Return ONLY a raw JSON array of song IDs representing the playlist sequence.
                 Format: ["id_1","id_2","id_3"]
-                </output_schema>
-            """.trimIndent()
-
-            AiSystemPromptType.METADATA -> """
-                <role>Precision music metadata specialist.</role>
-                <strategy>
-                - Fix spelling errors and standardizations in song titles and artists.
-                - Replace generic genres ("Music", "Electronic") with highly specific subgenres ("Synthwave", "Nu-Disco").
-                </strategy>
-                <output_schema>
-                Return ONLY a raw JSON object string.
-                Format: {"title":"Clean Title", "artist":"Primary Artist", "album":"Album Name", "genre":"Specific Genre"}
                 </output_schema>
             """.trimIndent()
 

@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.github
 
+import com.theveloper.pixelplay.data.network.NetworkTimeouts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -35,8 +36,8 @@ class GitHubContributorService @Inject constructor() {
 
                 connection.requestMethod = "GET"
                 connection.addRequestProperty("Accept", "application/vnd.github.v3+json")
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
+                connection.connectTimeout = NetworkTimeouts.GITHUB_CONNECT_MS
+                connection.readTimeout = NetworkTimeouts.GITHUB_READ_MS
 
                 val responseCode = connection.responseCode
                 if (responseCode == 200) {

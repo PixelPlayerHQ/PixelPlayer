@@ -251,4 +251,14 @@
     <string name="batch_edit_set_cover_art">Set Cover Art for All</string>
     <string name="batch_edit_remove_all_art">Remove All Cover Art</string>
     <string name="batch_edit_multiple_covers">(Multiple different covers)</string>
+    <string name="settings_category_ai_preferences_title">AI Data &amp; Privacy</string>
+    <string name="settings_category_ai_preferences_subtitle">Control what information is shared with AI providers</string>
+    <string name="settings_ai_max_songs_title">Context Song Limit</string>
+    <string name="settings_ai_max_songs_subtitle">Maximum number of songs to send for personalization</string>
+    <string name="settings_ai_include_liked_title">Include Liked Songs</string>
+    <string name="settings_ai_include_liked_subtitle">Share your favorites to improve recommendations</string>
+    <string name="settings_ai_include_daily_mix_title">Include Daily Mix History</string>
+    <string name="settings_ai_include_daily_mix_subtitle">Share recent mix choices</string>
+    <string name="settings_ai_include_habits_title">Include User Habits</string>
+    <string name="settings_ai_include_habits_subtitle">Share listening patterns and time preferences</string>
 </resources>

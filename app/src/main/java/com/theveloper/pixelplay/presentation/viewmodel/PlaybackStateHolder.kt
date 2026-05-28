@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.cast.CastRemotePlaybackState
 import com.google.android.gms.cast.MediaStatus
+import com.theveloper.pixelplay.data.network.NetworkTimeouts
 import timber.log.Timber
 import com.theveloper.pixelplay.utils.QueueUtils
 import com.theveloper.pixelplay.utils.MediaItemBuilder
@@ -463,7 +464,7 @@ class PlaybackStateHolder @Inject constructor(
             remoteSeekUnlockJob?.cancel()
             remoteSeekUnlockJob = scope?.launch {
                 // Fail-safe: never keep remote seeking lock indefinitely.
-                delay(1800)
+                delay(NetworkTimeouts.CAST_SEEK_UNLOCK_MS)
                 castStateHolder.setRemotelySeeking(false)
                 castSession.remoteMediaClient?.requestStatus()
             }

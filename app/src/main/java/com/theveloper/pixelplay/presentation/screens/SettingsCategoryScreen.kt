@@ -918,6 +918,8 @@ fun SettingsCategoryScreen(
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.GLM -> stringResource(R.string.setcat_ai_source_glm)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENAI -> stringResource(R.string.setcat_ai_source_openai)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENROUTER -> "OpenRouter (openrouter.ai)"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.ANTHROPIC -> "Anthropic Claude (anthropic.com)"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OLLAMA -> "Ollama (localhost:11434)"
                                 }
                                 
                                 AiApiKeyItem(
@@ -929,7 +931,7 @@ fun SettingsCategoryScreen(
                             }
 
                             // Model Selection Section
-                            if (currentAiApiKey.isNotBlank()) {
+                            if (currentAiApiKey.isNotBlank() || !com.theveloper.pixelplay.data.ai.provider.AiProvider.fromString(aiProvider).requiresApiKey) {
                                 SettingsSubsection(title = stringResource(R.string.setcat_model_selection)) {
                                     if (uiState.isLoadingModels) {
                                         Surface(

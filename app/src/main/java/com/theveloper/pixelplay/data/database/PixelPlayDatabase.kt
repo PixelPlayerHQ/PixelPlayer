@@ -36,7 +36,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AiCacheEntity::class,
         AiUsageEntity::class
     ],
-    version = 41,
+    version = 42,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -646,6 +646,13 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_albums_album_artist ON albums(album_artist)")
+            }
+        }
+
+        val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE song_engagements ADD COLUMN skip_count INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE song_engagements ADD COLUMN completed_count INTEGER NOT NULL DEFAULT 0")
             }
         }
 

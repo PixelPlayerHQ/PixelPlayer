@@ -36,10 +36,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
-          build-mode: manual
-
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug # Use the wrapper for consistency
+          build-mode: autobuild
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

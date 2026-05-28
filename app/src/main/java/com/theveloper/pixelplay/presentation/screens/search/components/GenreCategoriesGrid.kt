@@ -206,7 +206,7 @@ private fun GenreCard(
             val textMeasurer = rememberTextMeasurer()
             val density = LocalDensity.current
             val titleStartPadding = 14.dp
-            val titleEndPadding = 14.dp
+            val titleEndPadding = if (isGridView) 14.dp else 96.dp
             val titlePresentation = remember(
                 genre.id,
                 genre.name,
@@ -215,12 +215,14 @@ private fun GenreCard(
                 density.density,
                 density.fontScale
             ) {
+                val startPaddingPx = with(density) { titleStartPadding.roundToPx() }
+                val endPaddingPx = with(density) { titleEndPadding.roundToPx() }
                 GenreTypography.resolveTitlePresentation(
                     genreId = genre.id,
                     genreName = genre.name,
                     isGridView = isGridView,
                     cardWidthPx = with(density) { maxWidth.roundToPx() },
-                    horizontalPaddingPx = with(density) { titleStartPadding.roundToPx() },
+                    horizontalPaddingPx = (startPaddingPx + endPaddingPx) / 2,
                     textMeasurer = textMeasurer
                 )
             }

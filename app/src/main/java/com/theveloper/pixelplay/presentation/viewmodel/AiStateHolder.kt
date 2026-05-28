@@ -34,7 +34,8 @@ class AiStateHolder @Inject constructor(
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
-    private val notificationManager: AiNotificationManager
+    private val notificationManager: AiNotificationManager,
+    private val aiOrchestrator: com.theveloper.pixelplay.data.ai.AiOrchestrator
 ) {
     // State
     // AI State Management: Observables for tracking background generation progress
@@ -339,6 +340,40 @@ class AiStateHolder @Inject constructor(
         }
     }
 
+    suspend fun translateLyrics(lyricsText: String): Result<String> {
+        return try {
+            val targetLanguage = context.resources.configuration.locales[0].displayLanguage
+            val prompt = """
+Translate the provided song lyrics into $targetLanguage.
+
+Keep every timestamp exactly unchanged.
+
+If the lyrics are ALREADY mostly in $targetLanguage, output ONLY the exact phrase "ALREADY_IN_TARGET_LANGUAGE" without any other text.
+
+For each original line, output the original line first, then on the next line output the $targetLanguage translation with the same timestamp.
+
+Do not add any extra text, explanations, numbering, labels, or formatting.
+Do not remove, merge, split, or reorder lines.
+
+Output only:
+[timestamp] original text
+[timestamp] translated text
+
+Lyrics to translate:
+$lyricsText
+            """.trimIndent()
+            
+            val response = aiOrchestrator.generateContent(
+                prompt = prompt,
+                type = AiSystemPromptType.GENERAL,
+                temperature = 0.1f
+            )
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun onCleared() {
         scope = null
         allSongsProvider = null
@@ -353,7 +388,11 @@ class AiStateHolder @Inject constructor(
         val detail = extractAiErrorDetail(error)
 
         return when {
-            providerFailure?.isApiKeyIssue() == true || detail.contains("api key", ignoreCase = true) ->
+            providerFailure?.isApiKeyIssue() == true ||
+                detail.contains("api key not valid", ignoreCase = true) ||
+                detail.contains("invalid api key", ignoreCase = true) ||
+                detail.contains("incorrect api key", ignoreCase = true) ||
+                detail.contains("invalid key", ignoreCase = true) ->
                 context.getString(R.string.ai_error_api_key)
 
             providerFailure?.isBillingIssue() == true ->
@@ -385,10 +424,12 @@ class AiStateHolder @Inject constructor(
             detail.contains("permission", ignoreCase = true) ||
             detail.contains("denied", ignoreCase = true) ||
             detail.contains("forbidden", ignoreCase = true) ||
-            detail.contains("unauthorized", ignoreCase = true) ||
-            detail.contains("401", ignoreCase = true) ||
             detail.contains("403", ignoreCase = true) ->
-                "Permission Denied. Your API key might be invalid, or it lacks the necessary permissions for this model."
+                "Permission denied by the AI provider. Check that this API key has access to the selected model and that the provider API is enabled."
+
+            detail.contains("unauthorized", ignoreCase = true) ||
+            detail.contains("401", ignoreCase = true) ->
+                context.getString(R.string.ai_error_api_key)
 
             // Rate limiting
             detail.contains("rate limit", ignoreCase = true) ||

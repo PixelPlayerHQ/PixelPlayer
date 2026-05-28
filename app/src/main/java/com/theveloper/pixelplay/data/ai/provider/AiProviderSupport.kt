@@ -46,11 +46,13 @@ internal class AiProviderException(
     fun isApiKeyIssue(): Boolean {
         val text = buildSearchText()
         return statusCode == 401 ||
-            statusCode == 403 ||
-            text.contains("api key") ||
+            text.contains("api_key_invalid") ||
+            text.contains("api key not valid") ||
+            text.contains("invalid api key") ||
             text.contains("invalid key") ||
-            text.contains("unauthorized") ||
-            text.contains("forbidden")
+            text.contains("incorrect api key") ||
+            text.contains("authentication failed") ||
+            text.contains("unauthorized")
     }
 
     fun shouldCooldown(): Boolean {

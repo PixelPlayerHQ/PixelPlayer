@@ -43,7 +43,7 @@ class AiPreferencesRepository @Inject constructor(
 
     // Generic accessors for AiOrchestrator
     fun getApiKey(provider: AiProvider): Flow<String> =
-        dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)] ?: "" }
+        dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)]?.trim() ?: "" }
 
     fun getModel(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getModel(provider)] ?: "" }
@@ -54,7 +54,7 @@ class AiPreferencesRepository @Inject constructor(
         }
 
     suspend fun setApiKey(provider: AiProvider, apiKey: String) {
-        dataStore.edit { preferences -> preferences[Keys.getApiKey(provider)] = apiKey }
+        dataStore.edit { preferences -> preferences[Keys.getApiKey(provider)] = apiKey.trim() }
     }
 
     suspend fun setModel(provider: AiProvider, model: String) {

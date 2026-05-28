@@ -148,6 +148,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.presentation.components.PlaylistArtCollage
 import com.theveloper.pixelplay.presentation.components.ReorderTabsSheet
+import com.theveloper.pixelplay.presentation.components.EditMultipleSongsSheet
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.LibraryActionRow
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -524,6 +525,7 @@ fun LibraryScreen(
     val selectedAlbumIds = remember(selectedAlbums) { selectedAlbums.map { it.id }.toSet() }
     val isAlbumSelectionMode = selectedAlbums.isNotEmpty()
     var showAlbumMultiSelectionSheet by remember { mutableStateOf(false) }
+    var showBatchEditSheet by remember { mutableStateOf(false) }
 
     var songsShowLocateButton by remember { mutableStateOf(false) }
     var likedShowLocateButton by remember { mutableStateOf(false) }
@@ -1990,6 +1992,10 @@ fun LibraryScreen(
                         onComplete(true)
                     }
                 }
+            },
+            onBatchEdit = {
+                showMultiSelectionSheet = false
+                showBatchEditSheet = true
             }
         )
     }
@@ -2149,6 +2155,32 @@ fun LibraryScreen(
                 }) {
                     Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+            }
+        )
+    }
+
+    // Batch Edit Sheet
+    if (showBatchEditSheet && selectedSongs.isNotEmpty()) {
+        EditMultipleSongsSheet(
+            visible = showBatchEditSheet,
+            songs = selectedSongs,
+            onDismiss = { showBatchEditSheet = false },
+            onSave = { songs, title, artist, album, albumArtist, composer, genre, lyrics, trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                playerViewModel.saveBatchMetadata(
+                    songs = songs,
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    albumArtist = albumArtist,
+                    composer = composer,
+                    genre = genre,
+                    lyrics = lyrics,
+                    trackNumber = trackNumber,
+                    discNumber = discNumber,
+                    replayGainTrackGainDb = replayGainTrackGainDb,
+                    replayGainAlbumGainDb = replayGainAlbumGainDb,
+                    coverArtUpdate = coverArtUpdate
+                )
             }
         )
     }

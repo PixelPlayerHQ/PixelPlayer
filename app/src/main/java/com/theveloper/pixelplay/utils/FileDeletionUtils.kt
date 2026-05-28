@@ -1,10 +1,6 @@
 package com.theveloper.pixelplay.utils
-import android.content.ContentUris
 import android.content.Context
-import android.net.Uri
 import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -73,7 +69,7 @@ object FileDeletionUtils {
     @RequiresApi(Build.VERSION_CODES.R)
     fun getDeleteRequestIntentSender(context: Context, filePath: String): android.content.IntentSender? {
         val uri = MediaStorePermissionHelper.getMediaStoreUri(context, filePath) ?: return null
-        return MediaStore.createDeleteRequest(context.contentResolver, listOf(uri)).intentSender
+        return MediaStorePermissionHelper.createDeleteRequestIntentSender(context, listOf(uri))
     }
 
     /**

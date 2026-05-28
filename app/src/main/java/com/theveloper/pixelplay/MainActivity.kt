@@ -10,6 +10,9 @@ import android.content.Context
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
+import android.graphics.RenderEffect as AndroidRenderEffect
+import android.graphics.Shader as AndroidShader
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import android.os.Bundle
 import android.os.Trace
 import android.provider.Settings
@@ -656,6 +659,7 @@ class MainActivity : ComponentActivity() {
         val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
         val navBarCornerRadiusRaw by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
         val navBarCornerRadius = sanitizeNavBarCornerRadius(navBarCornerRadiusRaw)
+        val isMiniPlayerDismissing by playerViewModel.isMiniPlayerDismissing.collectAsStateWithLifecycle()
         val hapticsEnabled by playerViewModel.hapticsEnabled.collectAsStateWithLifecycle()
         val rootView = LocalView.current
         val platformHapticFeedback = LocalHapticFeedback.current
@@ -796,11 +800,26 @@ class MainActivity : ComponentActivity() {
                             label = "NavBarCornerRadius"
                         )
 
-                        val actualShape = remember(navBarStyle, showPlayerContentArea, navBarCornerRadius, animatedNavBarCornerRadius) {
+                        val animatedDefaultTopCornerRadius by animateDpAsState(
+                            targetValue = if (showPlayerContentArea && !isMiniPlayerDismissing) 10.dp else navBarCornerRadius.dp,
+                            animationSpec = tween(400),
+                            label = "NavBarDefaultTopCornerRadius"
+                        )
+
+                        val actualShape = remember(
+                            navBarStyle,
+                            showPlayerContentArea,
+                            isMiniPlayerDismissing,
+                            navBarCornerRadius,
+                            animatedNavBarCornerRadius,
+                            animatedDefaultTopCornerRadius
+                        ) {
                             DynamicSmoothCornerShape(
                                 topRadiusProvider = {
                                     val fraction = playerViewModel.playerContentExpansionFraction.value
-                                    if (navBarStyle == NavBarStyle.FULL_WIDTH) {
+                                    if (navBarStyle == NavBarStyle.DEFAULT) {
+                                        animatedDefaultTopCornerRadius
+                                    } else if (navBarStyle == NavBarStyle.FULL_WIDTH) {
                                         lerp(navBarCornerRadius.dp, 26.dp, fraction)
                                     } else if (showPlayerContentArea) {
                                         if (fraction < 0.2f) {
@@ -813,7 +832,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 bottomRadiusProvider = {
-                                    if (navBarStyle == NavBarStyle.FULL_WIDTH) 0.dp else animatedNavBarCornerRadius
+                                    if (navBarStyle == NavBarStyle.DEFAULT) {
+                                        animatedNavBarCornerRadius
+                                    } else if (navBarStyle == NavBarStyle.FULL_WIDTH) {
+                                        0.dp
+                                    } else {
+                                        animatedNavBarCornerRadius
+                                    }
                                 }
                             )
                         }
@@ -904,14 +929,38 @@ class MainActivity : ComponentActivity() {
                             bottomSpacerPx = spacerPx
                         )
 
-                        AppNavigation(
-                            playerViewModel = playerViewModel,
-                            navController = navController,
-                            paddingValues = innerPadding,
-                            userPreferencesRepository = userPreferencesRepository,
-                            onSearchBarActiveChange = { isSearchBarActive = it },
-                            onOpenSidebar = { scope.launch { drawerState.open() } }
-                        )
+                        val expansionFractionProvider = remember(playerViewModel.playerContentExpansionFraction) {
+                            { playerViewModel.playerContentExpansionFraction.value }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val fraction = expansionFractionProvider()
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        val blurPx = fraction * 100f // 40px target blur at 100% expanded
+                                        if (blurPx > 0f) {
+                                            renderEffect = AndroidRenderEffect.createBlurEffect(
+                                                blurPx,
+                                                blurPx,
+                                                AndroidShader.TileMode.CLAMP
+                                            ).asComposeRenderEffect()
+                                        } else {
+                                            renderEffect = null
+                                        }
+                                    }
+                                }
+                        ) {
+                            AppNavigation(
+                                playerViewModel = playerViewModel,
+                                navController = navController,
+                                paddingValues = innerPadding,
+                                userPreferencesRepository = userPreferencesRepository,
+                                onSearchBarActiveChange = { isSearchBarActive = it },
+                                onOpenSidebar = { scope.launch { drawerState.open() } }
+                            )
+                        }
 
                         val isExpandedOrExpanding by remember {
                             derivedStateOf {
@@ -927,7 +976,11 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.6f))
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+                                            alpha = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.35f else 0.6f
+                                        )
+                                    )
                                     .pointerInput(Unit) {
                                         detectTapGestures {
                                             playerViewModel.collapsePlayerSheet()

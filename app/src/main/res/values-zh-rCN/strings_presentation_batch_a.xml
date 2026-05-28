@@ -13,7 +13,7 @@
     <string name="auth_gdrive_sign_in_with_google">使用 Google 登录</string>
     <string name="auth_gdrive_select_music_folder_title">选择音乐文件夹</string>
     <string name="auth_gdrive_select_music_folder_subtitle">选择或创建一个文件夹作为你的音乐来源</string>
-    <string name="auth_gdrive_create_pixelplay_music_title">创建“PixelPlayer Music”</string>
+    <string name="auth_gdrive_create_pixelplay_music_title">创建「PixelPlayer Music」</string>
     <string name="auth_gdrive_create_folder_here_hint">在这里新建一个文件夹来存放你的音乐</string>
     <string name="auth_gdrive_no_folders_here">这里没有文件夹</string>
     <string name="auth_gdrive_use_this_folder">使用</string>

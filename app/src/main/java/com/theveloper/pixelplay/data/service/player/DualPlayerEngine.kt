@@ -129,6 +129,12 @@ class DualPlayerEngine @Inject constructor(
     private val onPlayerSwappedListeners = mutableListOf<(Player) -> Unit>()
     private val onTransitionDisplayPlayerListeners = mutableListOf<(Player) -> Unit>()
     private val onTransitionFinishedListeners = mutableListOf<() -> Unit>()
+
+    private var onPlayerAboutToBeReleasedListener: ((Player) -> Unit)? = null
+
+    fun setOnPlayerAboutToBeReleasedListener(listener: (Player) -> Unit) {
+        onPlayerAboutToBeReleasedListener = listener
+    }
     
     // Active Audio Session ID Flow
     private val _activeAudioSessionId = MutableStateFlow(0)
@@ -192,7 +198,7 @@ class DualPlayerEngine @Inject constructor(
     }
 
     // Listener to attach to the active master player (playerA)
-    private val masterPlayerListener = object : Player.Listener, AnalyticsListener {
+    private val masterPlayerListener = object : Player.Listener, AnalyticsListener, ExoPlayer.AudioOffloadListener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (playWhenReady) {
                 lastPlayWhenReadyAtMs = SystemClock.elapsedRealtime()
@@ -210,6 +216,46 @@ class DualPlayerEngine @Inject constructor(
             if (isPlaying) {
                 lastPlayingAtMs = SystemClock.elapsedRealtime()
                 cancelAudioOffloadFallback()
+            }
+        }
+
+        /**
+         * Fires when ExoPlayer believes the audio HAL is producing output via
+         * offload and the renderer thread can stop polling — at that point the
+         * CPU genuinely doesn't need a wake lock to keep playing audio. When
+         * [sleepingForOffload] flips back to false (track change, format
+         * mismatch, fallback path), restore [C.WAKE_MODE_LOCAL] so the
+         * non-offload PCM path keeps the CPU awake correctly.
+         *
+         * Battery: this is what actually lets the SoC race-to-sleep during
+         * music playback. The static [C.WAKE_MODE_LOCAL] we set at build time
+         * is the safe default; this callback is the dynamic optimisation.
+         */
+        @Suppress("UnsafeOptInUsageError")
+        override fun onSleepingForOffloadChanged(sleepingForOffload: Boolean) {
+            if (!::playerA.isInitialized) return
+            // Only override the wake mode for local media. Remote schemes need
+            // C.WAKE_MODE_NETWORK to keep the wifi lock; we never want to drop
+            // that to NONE.
+            val baseMode = wakeModeFor(playerA.currentMediaItem)
+            val desiredMode = if (sleepingForOffload && baseMode == C.WAKE_MODE_LOCAL) {
+                C.WAKE_MODE_NONE
+            } else {
+                baseMode
+            }
+            if (currentWakeMode == desiredMode) return
+
+            try {
+                playerA.setWakeMode(desiredMode)
+                playerB?.setWakeMode(desiredMode)
+                currentWakeMode = desiredMode
+                Timber.tag("DualPlayerEngine").d(
+                    "Wake mode -> %d (sleepingForOffload=%b)",
+                    desiredMode,
+                    sleepingForOffload
+                )
+            } catch (e: Exception) {
+                Timber.tag("DualPlayerEngine").w(e, "Failed to apply offload-aware wake mode")
             }
         }
 
@@ -255,33 +301,38 @@ class DualPlayerEngine @Inject constructor(
 
             // --- Pre-Resolve Next/Prev Tracks with Debounce to prevent flooding ---
             preResolutionJob?.cancel()
-            preResolutionJob = scope.launch {
-                delay(600) // Wait for user to stop skipping/navigating
-                try {
-                    val currentIndex = playerA.currentMediaItemIndex
-                    if (currentIndex != C.INDEX_UNSET) {
-                        val itemsToPreResolve = mutableListOf<Uri>()
-                        
-                        if (currentIndex + 1 < playerA.mediaItemCount) {
-                            playerA.getMediaItemAt(currentIndex + 1).localConfiguration?.uri?.let { 
-                                itemsToPreResolve.add(it) 
-                            }
-                        }
-                        if (currentIndex - 1 >= 0) {
-                            playerA.getMediaItemAt(currentIndex - 1).localConfiguration?.uri?.let { 
-                                itemsToPreResolve.add(it) 
-                            }
-                        }
+            // Battery: skip scheduling entirely for local-only neighbours.
+            // Pre-resolution only does meaningful work for cloud schemes (telegram,
+            // netease, qqmusic, navidrome, jellyfin, gdrive). For libraries with
+            // no cloud sources around the current index, the 600 ms delay + Main
+            // dispatch + scope.launch is pure overhead repeated on every track
+            // change. Snapshot the adjacent URIs synchronously so we can early-
+            // return before paying for the coroutine.
+            val currentIndex = playerA.currentMediaItemIndex
+            if (currentIndex != C.INDEX_UNSET) {
+                val adjacentCloudUris = mutableListOf<Uri>()
+                if (currentIndex + 1 < playerA.mediaItemCount) {
+                    playerA.getMediaItemAt(currentIndex + 1).localConfiguration?.uri?.let { uri ->
+                        if (uri.scheme in REMOTE_MEDIA_SCHEMES) adjacentCloudUris.add(uri)
+                    }
+                }
+                if (currentIndex - 1 >= 0) {
+                    playerA.getMediaItemAt(currentIndex - 1).localConfiguration?.uri?.let { uri ->
+                        if (uri.scheme in REMOTE_MEDIA_SCHEMES) adjacentCloudUris.add(uri)
+                    }
+                }
 
-                        for (uriToResolve in itemsToPreResolve) {
-                            val scheme = uriToResolve.scheme
-                            if (scheme == "telegram" || scheme == "netease" || scheme == "qqmusic" || scheme == "navidrome" || scheme == "jellyfin" || scheme == "gdrive") {
+                if (adjacentCloudUris.isNotEmpty()) {
+                    preResolutionJob = scope.launch {
+                        delay(600) // Wait for user to stop skipping/navigating
+                        try {
+                            for (uriToResolve in adjacentCloudUris) {
                                 resolveCloudUri(uriToResolve)
                             }
+                        } catch (e: Exception) {
+                            Timber.tag("DualPlayerEngine").w(e, "Error during pre-resolution in onMediaItemTransition")
                         }
                     }
-                } catch (e: Exception) {
-                    Timber.tag("DualPlayerEngine").w(e, "Error during pre-resolution in onMediaItemTransition")
                 }
             }
         }
@@ -326,6 +377,18 @@ class DualPlayerEngine @Inject constructor(
                 lastSeekAtMs = SystemClock.elapsedRealtime()
             }
         }
+    }
+
+    private fun addMasterPlayerListeners(player: ExoPlayer) {
+        player.addListener(masterPlayerListener)
+        player.addAnalyticsListener(masterPlayerListener)
+        player.addAudioOffloadListener(masterPlayerListener)
+    }
+
+    private fun removeMasterPlayerListeners(player: ExoPlayer) {
+        player.removeListener(masterPlayerListener)
+        player.removeAnalyticsListener(masterPlayerListener)
+        player.removeAudioOffloadListener(masterPlayerListener)
     }
 
     fun addPlayerSwapListener(listener: (Player) -> Unit) {
@@ -386,6 +449,8 @@ class DualPlayerEngine @Inject constructor(
         }
 
         if (::playerA.isInitialized) {
+            removeMasterPlayerListeners(playerA)
+            onPlayerAboutToBeReleasedListener?.invoke(playerA)
             try { playerA.release() } catch (e: Exception) { /* Ignore */ }
         }
         playerB?.let { try { it.release() } catch (e: Exception) { /* Ignore */ } }
@@ -393,8 +458,7 @@ class DualPlayerEngine @Inject constructor(
 
         playerA = buildPlayer()
 
-        playerA.addListener(masterPlayerListener)
-        playerA.addAnalyticsListener(masterPlayerListener)
+        addMasterPlayerListeners(playerA)
 
         _activeAudioSessionId.value = playerA.audioSessionId
         isReleased = false
@@ -459,10 +523,7 @@ class DualPlayerEngine @Inject constructor(
             if (!audioOffloadEnabled || transitionRunning || player !== playerA) return@launch
             if (currentMediaId != watchedMediaId) return@launch
             if (player.playbackState != Player.STATE_BUFFERING || player.isPlaying || !player.playWhenReady) return@launch
-            if (player.currentPosition > 1_000L || player.bufferedPosition <= 0L) return@launch
-
-            val timeSincePlayRequestMs = (SystemClock.elapsedRealtime() - lastPlayWhenReadyAtMs).coerceAtLeast(0L)
-            if (timeSincePlayRequestMs < AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS) return@launch
+            if (player.currentPosition > 1_000L) return@launch
 
             disableAudioOffloadForSession(
                 reason = "Local media stayed buffering for ${AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS}ms"
@@ -509,12 +570,19 @@ class DualPlayerEngine @Inject constructor(
     private fun shouldDisableAudioOffloadByDefault(): Boolean {
         val manufacturer = Build.MANUFACTURER.lowercase()
         val brand = Build.BRAND.lowercase()
+        // Xiaomi-family devices on SDK 36+ still need the static disable: their
+        // HAL offload path has its own quirks that the runtime fallback below
+        // hasn't been validated against.
         val isXiaomiFamilyDevice = manufacturer == "xiaomi" || brand == "xiaomi" || brand == "redmi" || brand == "poco"
         if (isXiaomiFamilyDevice && Build.VERSION.SDK_INT >= 36) return true
 
-        val isGooglePixel = manufacturer == "google" && brand == "google"
-        if (isGooglePixel && Build.VERSION.SDK_INT >= 34) return true
-
+        // Pixel blacklist (previously: SDK >= 34) removed. The original "playback
+        // does not start with offload" symptom is now caught by
+        // scheduleAudioOffloadFallbackIfNeeded() + disableAudioOffloadForSession(),
+        // which rebuild the player to PCM if the HAL stays in STATE_BUFFERING
+        // for more than AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS. Leaving offload on
+        // by default reclaims the 30–50% battery savings the DSP path provides
+        // for the common case where the HAL works correctly.
         return false
     }
 
@@ -544,16 +612,15 @@ class DualPlayerEngine @Inject constructor(
         val pauseAtEnd = playerA.pauseAtEndOfMediaItems
         val playbackParameters: PlaybackParameters = playerA.playbackParameters
 
-        playerA.removeListener(masterPlayerListener)
-        playerA.removeAnalyticsListener(masterPlayerListener)
+        removeMasterPlayerListeners(playerA)
+        onPlayerAboutToBeReleasedListener?.invoke(playerA)
         playerA.release()
         playerB?.release()
         playerB = null
 
         playerA = buildPlayer()
 
-        playerA.addListener(masterPlayerListener)
-        playerA.addAnalyticsListener(masterPlayerListener)
+        addMasterPlayerListeners(playerA)
         playerA.volume = volume
         playerA.pauseAtEndOfMediaItems = pauseAtEnd
         playerA.playbackParameters = playbackParameters
@@ -967,8 +1034,7 @@ class DualPlayerEngine @Inject constructor(
         incomingPlayer.volume = incomingTrackReplayGainVolume ?: 1f
         incomingTrackReplayGainVolume = null
 
-        outgoingPlayer.removeListener(masterPlayerListener)
-        outgoingPlayer.removeAnalyticsListener(masterPlayerListener)
+        removeMasterPlayerListeners(outgoingPlayer)
 
         playerA = incomingPlayer
         playerB = outgoingPlayer
@@ -978,8 +1044,7 @@ class DualPlayerEngine @Inject constructor(
 
         playerA.pauseAtEndOfMediaItems = false
         playerB?.pauseAtEndOfMediaItems = false
-        playerA.addListener(masterPlayerListener)
-        playerA.addAnalyticsListener(masterPlayerListener)
+        addMasterPlayerListeners(playerA)
         if (playerA.playWhenReady) requestAudioFocus()
 
         onPlayerSwappedListeners.forEach { it(playerA) }
@@ -1116,8 +1181,8 @@ class DualPlayerEngine @Inject constructor(
         scope.coroutineContext[Job]?.cancel()
         abandonAudioFocus()
         if (::playerA.isInitialized) {
-            playerA.removeListener(masterPlayerListener)
-            playerA.removeAnalyticsListener(masterPlayerListener)
+            removeMasterPlayerListeners(playerA)
+            onPlayerAboutToBeReleasedListener?.invoke(playerA)
             playerA.release()
         }
         playerB?.release()

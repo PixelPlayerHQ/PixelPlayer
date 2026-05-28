@@ -287,8 +287,8 @@
     <string name="presentation_batch_g_presets_cd_pin">Закрепить</string>
     <string name="presentation_batch_g_presets_cd_rename">Переименовать</string>
     <string name="presentation_batch_g_presets_cd_delete">Удалить</string>
-    <string name="presentation_batch_g_beta_sheet_version">Бета 0.6.0</string>
-    <string name="presentation_batch_g_beta_sheet_welcome_title">Добро пожаловать в PixelPlayer 0.6.0-beta</string>
+    <string name="presentation_batch_g_beta_sheet_version">Бета 0.7.0</string>
+    <string name="presentation_batch_g_beta_sheet_welcome_title">Добро пожаловать в PixelPlayer 0.7.0-beta</string>
     <string name="presentation_batch_g_beta_sheet_welcome_body">Эта бета сфокусирована на стабильности, скорости и кросс-девайс воспроизведении.</string>
     <string name="presentation_batch_g_beta_sheet_expect_title">Что нового</string>
     <string name="presentation_batch_g_beta_sheet_expect_1">Быстрая работа: плавный запуск, навигация и работа плеера.</string>

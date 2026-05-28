@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.FolderZip
@@ -62,6 +63,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
@@ -86,6 +88,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.presentation.components.subcomps.AutoSizingTextToFill
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -99,7 +102,8 @@ fun MultiSelectionBottomSheet(
     onAddToPlaylist: () -> Unit,
     onToggleLikeAll: (shouldLike: Boolean) -> Unit,
     onShareAll: () -> Unit,
-    onDeleteAll: (activity: Activity, onResult: (Boolean) -> Unit) -> Unit
+    onDeleteAll: (activity: Activity, onResult: (Boolean) -> Unit) -> Unit,
+    onBatchEdit: () -> Unit
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -182,13 +186,18 @@ fun MultiSelectionBottomSheet(
                     Spacer(modifier = Modifier.width(16.dp))
                     
                     // Song count and label
-                    Column {
-                        Text(
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    ){
+                        AutoSizingTextToFill(
                             text = stringResource(R.string.multi_selection_songs_count_upper, selectedSongs.size),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             fontFamily = GoogleSansRounded,
-                            color = MaterialTheme.colorScheme.onSurface
+                            modifier = Modifier.padding(end = 4.dp),
+                            maxFontSizeLimit = 30.sp,
                         )
                         Spacer(
                             modifier = Modifier
@@ -198,8 +207,28 @@ fun MultiSelectionBottomSheet(
                         Text(
                             text = stringResource(R.string.multi_selection_selected),
                             style = MaterialTheme.typography.bodyLarge,
+                            fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = GoogleSansRounded
+                        )
+                    }
+
+                    //Batch edit button
+                    FilledTonalIconButton(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(vertical = 6.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceBright,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        onClick = {
+                            onBatchEdit()
+                        },
+                    ) {
+                        Icon(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = stringResource(R.string.cd_edit_song_metadata)
                         )
                     }
                 }

@@ -5,6 +5,7 @@
     <string name="presentation_batch_e_cd_queue_actions">队列操作</string>
     <string name="presentation_batch_e_action_clear_queue">清空队列</string>
     <string name="presentation_batch_e_action_save_as_playlist">保存为播放列表</string>
+    <string name="presentation_batch_e_action_locate_current_song">定位当前曲目</string>
     <string name="presentation_batch_e_queue_named_suffix">%1$s 队列</string>
     <string name="presentation_batch_e_queue_current">当前队列</string>
     <string name="presentation_batch_e_removed">已移除</string>
@@ -22,7 +23,7 @@
     <string name="presentation_batch_e_search_songs_to_include_placeholder">搜索要包含的歌曲……</string>
     <string name="presentation_batch_e_save_as_format">保存为：%1$s</string>
     <string name="presentation_batch_e_enter_playlist_name">输入播放列表名称</string>
-    <string name="presentation_batch_e_no_songs_match_query">没有歌曲匹配“%1$s”</string>
+    <string name="presentation_batch_e_no_songs_match_query">没有歌曲匹配「%1$s」</string>
     <string name="presentation_batch_e_cd_dismiss_song">关闭歌曲</string>
     <string name="presentation_batch_e_cd_remove_from_playlist">从播放列表中移除</string>
     <string name="presentation_batch_e_more_options_for_song">%1$s 的更多选项</string>
@@ -38,7 +39,7 @@
 
     <!-- PlaylistContainer -->
     <string name="presentation_batch_e_no_playlist_created">尚未创建任何播放列表。</string>
-    <string name="presentation_batch_e_new_playlist_hint">点击“新建播放列表”按钮开始创建。</string>
+    <string name="presentation_batch_e_new_playlist_hint">点击「新建播放列表」按钮开始创建。</string>
 
     <!-- PlaylistCreationDialogs: create flow -->
     <string name="presentation_batch_e_create_playlist_title">创建播放列表</string>

@@ -23,6 +23,7 @@
     <string name="auth_navidrome_server_url_hint">使用服务器完整的 https:// 基础地址。</string>
     <string name="auth_navidrome_username_hint">这是你的 Subsonic 或 Navidrome 账户名。</string>
     <string name="auth_navidrome_password_hint">如果服务器支持，也可以使用应用密码。</string>
+    <string name="auth_navidrome_пароль_hint">如果你的服务器支持，也可以使用应用密码。</string>
     <string name="auth_prefill_https">预填充 https://</string>
     <string name="auth_navidrome_footer">兼容 Navidrome、Gonic、Airsonic 及其他 Subsonic 兼容服务器</string>
     <string name="cd_navidrome_logo">Navidrome</string>

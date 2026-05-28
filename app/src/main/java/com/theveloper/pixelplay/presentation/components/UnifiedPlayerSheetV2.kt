@@ -293,6 +293,14 @@ fun UnifiedPlayerSheetV2(
     )
     val shouldRenderFullPlayer = fullPlayerCompositionPolicy.shouldRenderFullPlayer
 
+    // Battery: tell the PlaybackStateHolder when the slider-bearing UI is
+    // actually rendered. When it isn't (mini-player only), the position
+    // ticker drops from 250 ms to 1 s — slider precision isn't needed.
+    DisposableEffect(shouldRenderFullPlayer) {
+        playerViewModel.setSliderUiMounted(shouldRenderFullPlayer)
+        onDispose { playerViewModel.setSliderUiMounted(false) }
+    }
+
     suspend fun animatePlayerSheet(
         targetExpanded: Boolean,
         animationSpec: androidx.compose.animation.core.AnimationSpec<Float> = sheetAnimationSpec,
@@ -439,7 +447,8 @@ fun UnifiedPlayerSheetV2(
         hapticFeedback = hapticFeedback,
         offsetAnimatable = offsetAnimatable,
         screenWidthPx = screenWidthPx,
-        onDismissPlaylistAndShowUndo = { playerViewModel.dismissPlaylistAndShowUndo() }
+        onDismissPlaylistAndShowUndo = { playerViewModel.dismissPlaylistAndShowUndo() },
+        onDismissStarted = { playerViewModel.setMiniPlayerDismissing(true) }
     )
 
     QueueSheetRuntimeEffects(

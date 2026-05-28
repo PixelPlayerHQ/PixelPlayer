@@ -98,7 +98,7 @@
     <string name="setcat_carousel_one_peek">单侧预览</string>
     <string name="setcat_home_collage">主页拼贴</string>
     <string name="setcat_collage_pattern_label">拼贴图案</string>
-    <string name="setcat_collage_pattern_desc">为“你的 Mix”拼贴选择形状排列方式。</string>
+    <string name="setcat_collage_pattern_desc">为「你的精选辑」拼贴选择形状排列方式。</string>
     <string name="setcat_auto_rotate_patterns_title">自动轮换图案</string>
     <string name="setcat_auto_rotate_patterns_subtitle">每次访问主页时轮换拼贴图案。</string>
     <string name="setcat_navigation_bar">导航栏</string>
@@ -163,7 +163,7 @@
     <!-- Behavior -->
     <string name="setcat_folders">文件夹</string>
     <string name="setcat_folder_back_gesture_title">返回手势优先控制文件夹</string>
-    <string name="setcat_folder_back_gesture_subtitle">在“文件夹”标签页中，系统返回会先在文件夹层级中返回，再离开媒体库。</string>
+    <string name="setcat_folder_back_gesture_subtitle">在「文件夹」标签页中，系统返回会先在文件夹层级中返回，再离开媒体库。</string>
     <string name="setcat_player_gestures">播放器手势</string>
     <string name="setcat_tap_bg_closes_title">点按背景关闭播放器</string>
     <string name="setcat_tap_bg_closes_subtitle">点按模糊背景即可关闭播放器面板。</string>

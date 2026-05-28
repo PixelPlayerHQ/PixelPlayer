@@ -23,7 +23,7 @@
     <string name="lyrics_more_show_romanization">显示罗马音</string>
     <string name="lyrics_more_show_translations">显示翻译</string>
     <string name="lyrics_more_disable_immersive_once">关闭沉浸模式（仅本次）</string>
-    <string name="lyrics_more_keep_screen_on">Keep screen on</string>
+    <string name="lyrics_more_keep_screen_on">保持屏幕开启</string>
     <string name="cd_lyrics_align_left">歌词左对齐</string>
     <string name="cd_lyrics_align_center">歌词居中对齐</string>
     <string name="cd_lyrics_align_right">歌词右对齐</string>
@@ -51,7 +51,9 @@
     <string name="song_field_title">标题</string>
     <string name="song_field_artist">艺术家</string>
     <string name="song_field_album">专辑</string>
+    <string name="song_field_album_artist">专辑艺术家</string>
     <string name="song_field_genre">流派</string>
+    <string name="song_field_composer">作曲</string>
     <string name="action_try_again">重试</string>
     <string name="action_apply_changes">应用更改</string>
 
@@ -117,15 +119,15 @@
     <string name="song_info_tone_alarm_title">闹钟声音</string>
     <string name="song_info_tone_alarm_subtitle">时钟闹钟</string>
     <string name="song_info_tone_confirm_title">确认声音更改</string>
-    <string name="song_info_tone_confirm_body">将“%1$s”设为%2$s？</string>
+    <string name="song_info_tone_confirm_body">将「%1$s」设为%2$s？</string>
     <string name="song_info_tone_confirm_action">设置声音</string>
-    <string name="song_info_tone_success">已将“%1$s”设为%2$s</string>
+    <string name="song_info_tone_success">已将「%1$s」设为%2$s</string>
     <string name="song_info_tone_ringtone_label">铃声</string>
     <string name="song_info_tone_notification_label">通知声音</string>
     <string name="song_info_tone_alarm_label">闹钟声音</string>
     <string name="song_info_ringtone_permission_prompt">开启修改系统设置，然后返回 PixelPlayer 自动完成。</string>
     <string name="song_info_ringtone_permission_missing">未开启修改系统设置。</string>
-    <string name="song_info_ringtone_success">已将“%1$s”设为铃声</string>
+    <string name="song_info_ringtone_success">已将「%1$s」设为铃声</string>
     <string name="song_info_ringtone_local_only">只有本地歌曲可用作系统声音。</string>
     <string name="song_info_ringtone_missing_file">无法准备此音频文件。</string>
     <string name="song_info_ringtone_failed">无法更改声音：%1$s</string>

@@ -12,6 +12,7 @@ import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.UserProfileDigestGenerator
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.service.PlaybackActivityTracker
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
@@ -36,9 +37,24 @@ class AiWorker @AssistedInject constructor(
         const val INPUT_TEMP = "input_temp"
         const val OUTPUT_RESULT = "output_result"
         const val WORK_NAME = "ai_generation_worker"
+        // After this many retries we stop deferring even if playback is still
+        // active — prevents indefinite postponement during very long sessions.
+        // With WorkManager's default exponential backoff (30s -> 60s -> 2m ->
+        // 4m -> 8m -> ...), 5 retries spans roughly 16 minutes of grace.
+        private const val MAX_PLAYBACK_DEFERRALS = 5
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        // Defer if the user is actively listening: AI generation is heavy
+        // (LLM call + digest build) and competes for CPU/NPU/thermal budget
+        // with playback. WorkManager's exponential backoff means each retry
+        // doubles the wait, so a playing session ≤ a few hours converges
+        // naturally to running once playback stops.
+        if (PlaybackActivityTracker.isPlaybackActive && runAttemptCount < MAX_PLAYBACK_DEFERRALS) {
+            Timber.d("AiWorker deferring (playback active, attempt=$runAttemptCount)")
+            return@withContext Result.retry()
+        }
+
         val prompt = inputData.getString(INPUT_PROMPT) ?: return@withContext Result.failure()
         val typeStr = inputData.getString(INPUT_TYPE) ?: AiSystemPromptType.GENERAL.name
         val type = AiSystemPromptType.valueOf(typeStr)

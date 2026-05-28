@@ -204,7 +204,7 @@ fun LibraryActionRow(
                         visible = shouldShowImport,
                         enter = fadeIn() + expandHorizontally(
                             expandFrom = Alignment.Start,
-                            clip = false, // <— evita el “corte” durante la expansión
+                            clip = false, // <— evita el 「corte」 durante la expansión
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessLow
@@ -212,7 +212,7 @@ fun LibraryActionRow(
                         ),
                         exit = fadeOut() + shrinkHorizontally(
                             shrinkTowards = Alignment.Start,
-                            clip = false, // <— evita el “corte” durante la expansión
+                            clip = false, // <— evita el 「corte」 durante la expansión
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioNoBouncy,
                                 stiffness = Spring.StiffnessMedium

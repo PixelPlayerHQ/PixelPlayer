@@ -17,8 +17,8 @@
     <string name="cd_import_m3u_playlist">导入 M3U 播放列表</string>
     <string name="cd_locate_current_song">定位当前歌曲</string>
     <string name="library_storage_filter_all_songs">全部歌曲</string>
-    <string name="library_storage_filter_online">在线</string>
-    <string name="library_storage_filter_offline">离线</string>
+    <string name="library_storage_filter_online">云端</string>
+    <string name="library_storage_filter_offline">本地</string>
     <string name="cd_sort_options">排序选项</string>
 
     <!-- Fetch lyrics (manual search fields) -->
@@ -29,7 +29,8 @@
     <string name="song_picker_title">添加歌曲</string>
     <string name="cd_confirm_add_songs">添加所选歌曲</string>
     <string name="song_picker_action_add">添加</string>
-    <string name="song_picker_search_label">搜索歌曲……</string>
+    <string name="song_picker_search_label">搜索或筛选歌曲……</string>
+    <string name="song_picker_filter_favorites">喜爱的歌曲</string>
     <string name="song_picker_error_load_failed">加载歌曲失败</string>
     <string name="song_picker_load_more">加载更多</string>
 

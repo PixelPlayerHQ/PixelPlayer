@@ -311,4 +311,8 @@ class ThemeStateHolder @Inject constructor(
         }
     }
 
+    fun onCleared() {
+        scope = null
+    }
+
 }

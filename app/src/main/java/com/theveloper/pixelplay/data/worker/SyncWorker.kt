@@ -31,6 +31,7 @@ import com.theveloper.pixelplay.data.media.AudioMetadataReader
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.LyricsRepository
+import com.theveloper.pixelplay.data.service.PlaybackActivityTracker
 import com.theveloper.pixelplay.utils.AlbumArtCacheManager
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.AudioMetaUtils.getAudioMetadata
@@ -90,6 +91,23 @@ constructor(
                             inputData.getString(INPUT_SYNC_MODE) ?: SyncMode.INCREMENTAL.name
                     val syncMode = SyncMode.valueOf(syncModeName)
                     val forceMetadata = inputData.getBoolean(INPUT_FORCE_METADATA, false)
+
+                    // Battery / thermal: defer background INCREMENTAL syncs while
+                    // music is playing. FULL and REBUILD are skipped from this
+                    // gate because they're either user-initiated from settings
+                    // (user is waiting for the result) or required for first-run
+                    // population. INCREMENTAL is opportunistic and safe to push
+                    // back until playback ends.
+                    if (
+                        syncMode == SyncMode.INCREMENTAL &&
+                        PlaybackActivityTracker.isPlaybackActive &&
+                        runAttemptCount < MAX_PLAYBACK_DEFERRALS
+                    ) {
+                        Timber.tag(TAG).d(
+                            "SyncWorker deferring INCREMENTAL sync (playback active, attempt=$runAttemptCount)"
+                        )
+                        return@withContext Result.retry()
+                    }
 
                     Timber.tag(TAG)
                         .i("Starting MediaStore synchronization (Mode: $syncMode, ForceMetadata: $forceMetadata)...")
@@ -1339,6 +1357,10 @@ constructor(
         private const val TAG = "SyncWorker"
         const val INPUT_FORCE_METADATA = "input_force_metadata"
         const val INPUT_SYNC_MODE = "input_sync_mode"
+        // INCREMENTAL syncs back off this many times while playback is active
+        // before running anyway. With WorkManager's exponential backoff
+        // (30s -> 60s -> 2m -> 4m -> 8m -> ...), 5 retries cover ~16 minutes.
+        private const val MAX_PLAYBACK_DEFERRALS = 5
 
         // Progress reporting constants
         const val PROGRESS_CURRENT = "progress_current"

@@ -83,7 +83,7 @@
     <string name="playlist_not_found">未找到播放列表。</string>
     <string name="disc_number_header">碟片 %d</string>
 
-    <string name="ai_error_api_key">请在“设置”中为所选 AI 提供商配置有效的 API 密钥。</string>
+    <string name="ai_error_api_key">请在「设置」中为所选 AI 提供商配置有效的 API 密钥。</string>
     <string name="ai_error_generic">AI 错误：%s</string>
     <string name="ai_error_quota">所选 AI 提供商拒绝了该请求，因为账户没有余额或可用配额。</string>
     <string name="ai_error_model_unavailable">所选 AI 模型已不可用。PixelPlayer 已尝试自动切换到受支持的模型。</string>
@@ -125,7 +125,7 @@
     <string name="playlist_none_to_export">没有可导出的播放列表</string>
     <string name="playlist_export_failed">导出失败：%1$s</string>
     <string name="playlist_export_folder_display">Music/PixelPlayer Exports</string>
-    <string name="ai_playlist_gemini_key_required">请在“设置”中配置你的 Gemini API 密钥。</string>
+    <string name="ai_playlist_gemini_key_required">请在「设置」中配置你的 Gemini API 密钥。</string>
     <string name="error_unknown">未知错误</string>
 
     <!-- Watch transfer foreground service -->
@@ -153,6 +153,7 @@
     <string name="cast_server_notification_title">正在投放到设备</string>
     <string name="cast_server_notification_text">正在向 Cast 设备提供媒体内容</string>
     <string name="cast_server_foreground_error">%1$s：%2$s</string>
+    <string name="cast_seek_unavailable_for_format">为避免投放进程崩溃，暂不支持调整此音频格式的播放进度。</string>
 
     <!-- Backup / data transfer (ViewModels) -->
     <string name="backup_invalid_format">无效备份：%1$s</string>
@@ -210,8 +211,8 @@
     <string name="sleep_timer_display_eot">曲目结束时</string>
     <string name="sleep_timer_set_for_minutes_toast">已设置 %1$d 分钟后停止。</string>
     <string name="sleep_timer_cancelled_toast">定时器已取消。</string>
-    <string name="sleep_timer_eot_no_song_toast">无法启用“曲目结束时”：当前没有活动歌曲。</string>
-    <string name="sleep_timer_eot_song_changed_toast">“曲目结束时”定时器已停用：歌曲已从 %1$s 切换为 %2$s。</string>
+    <string name="sleep_timer_eot_no_song_toast">无法启用「曲目结束时」：当前没有活动歌曲。</string>
+    <string name="sleep_timer_eot_song_changed_toast">「曲目结束时」定时器已停用：歌曲已从 %1$s 切换为 %2$s。</string>
     <string name="sleep_timer_eot_stop_at_end_toast">播放将在曲目结束时停止。</string>
     <string name="sleep_timer_label_previous_track">上一曲</string>
     <string name="sleep_timer_label_current_track">当前曲目</string>

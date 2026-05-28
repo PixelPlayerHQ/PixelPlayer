@@ -179,6 +179,7 @@ class SettingsViewModel @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
     private val syncManager: SyncManager,
     private val aiClientFactory: AiClientFactory,
+    private val geminiModelService: com.theveloper.pixelplay.data.ai.GeminiModelService,
     private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
@@ -1125,13 +1126,16 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
             try {
                 val provider = AiProvider.fromString(providerName)
-                val aiClient = aiClientFactory.createClient(provider, apiKey)
-                val modelStrings = aiClient.getAvailableModels(apiKey)
-                val models = modelStrings
-                    .map { it.trim() }
-                    .filter { it.isNotBlank() }
-                    .distinct()
-                    .map { com.theveloper.pixelplay.data.ai.GeminiModel(it, formatModelDisplayName(it)) }
+                val models = if (provider == AiProvider.GEMINI) {
+                    geminiModelService.fetchAvailableModels(apiKey).getOrThrow()
+                } else {
+                    val aiClient = aiClientFactory.createClient(provider, apiKey)
+                    aiClient.getAvailableModels(apiKey)
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .map { com.theveloper.pixelplay.data.ai.GeminiModel(it, formatModelDisplayName(it)) }
+                }
                 
                 _uiState.update { 
                     it.copy(
@@ -1165,7 +1169,6 @@ class SettingsViewModel @Inject constructor(
             .replace('-', ' ')
             .replace('_', ' ')
             .split(' ')
-            .filter { it.isNotBlank() }
             .joinToString(" ") { token ->
                 token.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }

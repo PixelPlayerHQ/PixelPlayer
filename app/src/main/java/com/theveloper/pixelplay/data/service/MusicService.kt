@@ -266,28 +266,20 @@ class MusicService : MediaLibraryService() {
     }
 
     private val playerSwapListener: (Player) -> Unit = { newPlayer ->
-        serviceScope.launch(Dispatchers.Main) {
-            publishMediaSessionPlayer(newPlayer, "Swapped MediaSession player to new instance.")
-            prepareReplayGainForTransitionPlayer(newPlayer)
-        }
+        publishMediaSessionPlayer(newPlayer, "Swapped MediaSession player to new instance.")
+        prepareReplayGainForTransitionPlayer(newPlayer)
     }
 
     private val transitionDisplayPlayerListener: (Player) -> Unit = { displayPlayer ->
-        serviceScope.launch(Dispatchers.Main) {
-            publishMediaSessionPlayer(
-                displayPlayer,
-                "Published incoming crossfade player to MediaSession."
-            )
-            prepareReplayGainForTransitionPlayer(displayPlayer)
-        }
+        publishMediaSessionPlayer(
+            displayPlayer,
+            "Published incoming crossfade player to MediaSession."
+        )
+        prepareReplayGainForTransitionPlayer(displayPlayer)
     }
 
     private val transitionFinishedListener: () -> Unit = {
-        // Dispatch to Main so it runs after any pending playerSwapListener coroutine
-        // has completed — otherwise onTransitionFinished() may see stale state.
-        serviceScope.launch(Dispatchers.Main) {
-            onTransitionFinished()
-        }
+        onTransitionFinished()
     }
 
     private fun publishMediaSessionPlayer(player: Player, logMessage: String) {
@@ -382,12 +374,13 @@ class MusicService : MediaLibraryService() {
             }
         }
 
-        // A MEDIA_BUTTON broadcast starts the 5-second foreground-service timeout
-        // BEFORE MusicService is created. Promote to foreground before super.onCreate()
-        // — Hilt injection plus MediaLibraryService.onCreate() can otherwise consume
-        // most of the budget on a slow cold-start. The temporary notification only uses
-        // Context/resources, no injected fields, so it is safe before super.onCreate().
-        temporaryForegroundStartedInOnCreate = consumePendingMediaButtonForegroundStart()
+        // A media-button startForegroundService() can reach MusicService directly (not always
+        // through PixelPlayMediaButtonReceiver), so the pending counter is only a hint. Promote
+        // immediately on cold start before super.onCreate(): Hilt injection and MediaLibraryService
+        // startup can otherwise consume Android's 5-second FGS deadline before onStartCommand()
+        // receives the media-button intent.
+        temporaryForegroundStartedInOnCreate =
+            consumePendingMediaButtonForegroundStart() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         if (temporaryForegroundStartedInOnCreate) {
             startTemporaryForegroundForCommand()
         }
@@ -403,6 +396,9 @@ class MusicService : MediaLibraryService() {
         engine.masterPlayer.addListener(playerListener)
 
         // Handle player swaps (crossfade) to keep MediaSession in sync
+        engine.setOnPlayerAboutToBeReleasedListener { oldPlayer ->
+            oldPlayer.removeListener(playerListener)
+        }
         engine.addPlayerSwapListener(playerSwapListener)
         engine.addTransitionDisplayPlayerListener(transitionDisplayPlayerListener)
         engine.addTransitionFinishedListener(transitionFinishedListener)
@@ -834,6 +830,20 @@ class MusicService : MediaLibraryService() {
             it.setSmallIcon(R.drawable.monochrome_player)
         }
         setMediaNotificationProvider(localOnlyProvider)
+        if (temporaryForegroundStartedInOnCreate) {
+            serviceScope.launch {
+                delay(2_000L)
+                val player = mediaSession?.player
+                val isActivelyPlaying = player?.let {
+                    it.playWhenReady &&
+                        it.playbackState != Player.STATE_IDLE &&
+                        it.playbackState != Player.STATE_ENDED
+                } == true
+                if (!isActivelyPlaying) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                }
+            }
+        }
         serviceScope.launch {
             restorePlaybackQueueSnapshotIfNeeded()
             mediaSession?.let { refreshMediaSessionUi(it) }
@@ -1102,7 +1112,7 @@ class MusicService : MediaLibraryService() {
             }
         }
         val startCommandResult = super.onStartCommand(intent, flags, startId)
-        if (needsTemporaryForeground) {
+        if (needsTemporaryForeground || startedTemporaryForegroundInOnCreate) {
             val player = mediaSession?.player
             val isActivelyPlaying = player?.let {
                 it.playWhenReady &&
@@ -1111,7 +1121,9 @@ class MusicService : MediaLibraryService() {
             } == true
             if (!isActivelyPlaying) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelfResult(startId)
+                if (needsTemporaryForeground) {
+                    stopSelfResult(startId)
+                }
             }
         }
         return startCommandResult
@@ -1191,8 +1203,12 @@ class MusicService : MediaLibraryService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             val player = mediaSession?.player ?: engine.masterPlayer
             Timber.tag(TAG).d("onIsPlayingChanged: $isPlaying. Duration: ${player.duration}, Seekable: ${player.isCurrentMediaItemSeekable}")
+            // Surface playback state to background workers so they can defer
+            // non-urgent work (AI generation, incremental sync) while audio
+            // is producing — keeps thermal headroom and battery for playback.
+            PlaybackActivityTracker.setPlaybackActive(isPlaying)
             syncLocalListeningStatsFromPlayer(player)
-            
+
             if (isPlaying) {
                 reportNavidromePlayback("playing")
                 startNavidromePlaybackReporting()
@@ -1671,6 +1687,7 @@ class MusicService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onDestroy() {
+        PlaybackActivityTracker.setPlaybackActive(false)
         listeningStatsTracker.finalizeCurrentSession(forceSynchronousPersistence = true)
         reportNavidromePlayback("stopped")
         stopNavidromePlaybackReporting()
@@ -1687,6 +1704,7 @@ class MusicService : MediaLibraryService() {
         engine.removePlayerSwapListener(playerSwapListener)
         engine.removeTransitionDisplayPlayerListener(transitionDisplayPlayerListener)
         engine.removeTransitionFinishedListener(transitionFinishedListener)
+        engine.setOnPlayerAboutToBeReleasedListener {}
         mediaSession?.player?.removeListener(playerListener)
         engine.masterPlayer.removeListener(playerListener)
 

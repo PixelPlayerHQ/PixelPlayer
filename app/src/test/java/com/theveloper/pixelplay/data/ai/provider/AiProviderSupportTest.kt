@@ -29,10 +29,10 @@ class AiProviderSupportTest {
         val recovered = AiProviderSupport.selectRecoveryModel(
             currentModel = "removed-model",
             defaultModel = "missing-default",
-            availableModels = listOf("gemini-2.5-flash", "gemini-2.5-pro")
+            availableModels = listOf("gemini-2.5-flash-lite", "gemini-2.5-flash")
         )
 
-        assertThat(recovered).isEqualTo("gemini-2.5-flash")
+        assertThat(recovered).isEqualTo("gemini-2.5-flash-lite")
     }
 
     @Test
@@ -54,5 +54,26 @@ class AiProviderSupportTest {
 
         assertThat(notFound.isModelUnavailable()).isTrue()
         assertThat(billing.isBillingIssue()).isTrue()
+    }
+
+    @Test
+    fun `provider exception distinguishes invalid key from provider permission denied`() {
+        val invalidKey = AiProviderSupport.createException(
+            providerName = "Gemini",
+            statusCode = 400,
+            transportMessage = "Bad Request",
+            responseBody = """{"error":{"message":"API key not valid. Please pass a valid API key."}}""",
+            requestedModel = "gemini-2.5-flash"
+        )
+        val permissionDenied = AiProviderSupport.createException(
+            providerName = "Gemini",
+            statusCode = 403,
+            transportMessage = "Forbidden",
+            responseBody = """{"error":{"message":"Generative Language API has not been used in this project."}}""",
+            requestedModel = "gemini-2.5-flash"
+        )
+
+        assertThat(invalidKey.isApiKeyIssue()).isTrue()
+        assertThat(permissionDenied.isApiKeyIssue()).isFalse()
     }
 }

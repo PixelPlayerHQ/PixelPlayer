@@ -184,7 +184,7 @@
     <string name="presentation_batch_g_artist_info_title">关于多艺术家解析</string>
     <string name="presentation_batch_g_artist_info_body">PixelPlayer 会使用字符分隔符（/、;、&amp;）和单词分隔符（feat.、ft.、vs.、x）拆分艺术家标签。单词分隔符匹配时不区分大小写。
 
-“从标题提取艺术家”会检测歌曲标题中类似（feat. Artist）的模式。
+「从标题提取艺术家」会检测歌曲标题中类似（feat. Artist）的模式。
 
 反斜杠（\）可用于转义字符分隔符。</string>
     <string name="presentation_batch_g_artist_example_arrow"> → </string>
@@ -300,6 +300,7 @@
     <string name="presentation_batch_g_beta_sheet_github_body">请先搜索，查看是否已有特定话题的崩溃、请求和问题报告。</string>
     <string name="presentation_batch_g_beta_sheet_open_issues">查看 GitHub 议题</string>
     <string name="presentation_batch_g_beta_sheet_report_bug">报告问题或崩溃</string>
+    <string name="presentation_batch_g_beta_sheet_report_body">分享复现步骤、预期结果、实际结果，以及你的设备、系统信息。</string>
     <string name="presentation_batch_g_beta_sheet_report_title">提交方法</string>
     <string name="presentation_batch_g_beta_sheet_report_summary">开启新议题前的快速检查清单。</string>
     <string name="presentation_batch_g_beta_sheet_before_title">开启一个新的议题前</string>
@@ -464,10 +465,113 @@
     <string name="presentation_batch_g_changelog_sec_highlights">亮点</string>
     <string name="presentation_batch_g_changelog_sec_improvements">改进</string>
     <string name="presentation_batch_g_changelog_sec_fixes">修复</string>
-    <string name="presentation_batch_g_changelog_sec_whats_new_lower">新内容</string>
+    <string name="presentation_batch_g_changelog_sec_whats_new">更新日志</string>
+    <string name="presentation_batch_g_changelog_sec_whats_new_lower">更新日志</string>
     <string name="presentation_batch_g_changelog_sec_added">新增</string>
     <string name="presentation_batch_g_changelog_sec_changed">变更</string>
     <string name="presentation_batch_g_changelog_sec_fixed">修复</string>
+    <string-array name="presentation_batch_g_changelog_060_whats_new">
+        <item>新增 Android Auto 支持，可用于车载播放。</item>
+        <item>Wear OS 支持已上线，包括更好的手表到手机播放控制。</item>
+        <item>云端集成进一步扩展，带来 Telegram、NetEase、QQ Music 和 Google Drive 改进。</item>
+        <item>最近播放与持久化队列恢复，让你的聆听会话随时可继续。</item>
+        <item>现已包含备份与恢复 v3 以及账户管理工具。</item>
+        <item>歌词功能更加智能，支持手动搜索兜底并改进了存储处理。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_060_improvements">
+        <item>对启动、媒体库、队列和播放器交互进行了大规模性能优化。</item>
+        <item>播放器、投放、歌词、艺术家和流派界面经过重新设计，使用更顺滑。</item>
+        <item>导航和搜索流程更可靠，路由处理更安全。</item>
+        <item>改进了更多设备和格式的音频播放兼容性。</item>
+        <item>歌曲、专辑和播放列表等多选工作流进一步扩展。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_060_fixes">
+        <item>队列和随机播放行为现在更加稳定、可预测。</item>
+        <item>修复了多个后台播放和投放场景下的边缘问题。</item>
+        <item>修复了睡眠定时器、文件标签页导航和专辑艺术家崩溃等问题。</item>
+        <item>改进了小组件加载和服务稳定性，以减少过热和内存问题。</item>
+        <item>全应用范围内的一般性 Bug 修复与界面打磨。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_050_highlights">
+        <item>Material 3 Expressive 界面更新</item>
+        <item>10 段均衡器与音效</item>
+        <item>全新媒体库同步流程</item>
+        <item>AI 集成（Gemini 模型）</item>
+        <item>M3U 播放列表导入/导出</item>
+        <item>Deezer 艺术家插图集成</item>
+        <item>自定义播放列表封面</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_050_improvements">
+        <item>设置架构重构</item>
+        <item>队列与播放器动画</item>
+        <item>Baseline Profiles 与性能优化</item>
+        <item>更完善的歌词系统，支持同步偏移</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_050_fixes">
+        <item>投放稳定性改进</item>
+        <item>播放器面板稳定性改进</item>
+        <item>常规 Bug 修复与清理</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_040_highlights">
+        <item>导航大幅重设计</item>
+        <item>新增用于选择源目录的文件浏览器</item>
+        <item>新增连接性与投放功能</item>
+        <item>远程设备间的无缝连续体验</item>
+        <item>歌曲之间无缝衔接</item>
+        <item>淡入淡出控制</item>
+        <item>新增自定义过渡功能（仅限播放列表）</item>
+        <item>关闭应用后继续播放</item>
+        <item>界面优化</item>
+        <item>统计功能改进</item>
+        <item>重新设计的队列控制，功能更多</item>
+        <item>改进了不同文件类型的播放和元数据编辑支持</item>
+        <item>改进权限控制器</item>
+        <item>小型 Bug 修复</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_030_whats_new">
+        <item>引入更丰富的收听统计中心，让你更深入了解自己的播放会话。</item>
+        <item>推出浮动快捷播放器，可立即打开并预览本地文件。</item>
+        <item>新增文件夹标签页，提供树状导航和适合播放列表的视图。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_030_improvements">
+        <item>全面优化 Material 3 界面，带来更整洁、更统一的体验。</item>
+        <item>元数据编辑现已支持更换封面。</item>
+        <item>优化了全应用的动画与过渡效果，使导航更流畅。</item>
+        <item>增强了艺术家页面布局，细节更丰富、观感更佳。</item>
+        <item>升级了 DailyMix 和 YourMix 的生成逻辑，选择更智能、更多样。</item>
+        <item>增强了 AI 播放列表生成能力。</item>
+        <item>改进搜索相关性和展示方式，以便更快发现内容。</item>
+        <item>扩展了对更多音频文件格式的支持。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_030_fixes">
+        <item>解决了元数据异常问题，让歌曲详情在各处都能保持准确。</item>
+        <item>恢复了通知快捷方式，使其能够可靠地返回播放界面。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_020_added">
+        <item>支持 Chromecast，可将音频从你的设备投放出去。</item>
+        <item>内置更新日志，让你及时了解最新功能。</item>
+        <item>支持 .LRC 文件，包括内嵌和外部两种形式。</item>
+        <item>支持离线歌词。</item>
+        <item>支持同步歌词（与歌曲同步）。</item>
+        <item>新增查看完整队列的界面。</item>
+        <item>可对队列中的歌曲重新排序和移除。</item>
+        <item>迷你播放器手势（下滑关闭）。</item>
+        <item>增加了更多 Material 动画。</item>
+        <item>新增可自定义外观与体验的设置。</item>
+        <item>新增清除缓存的设置。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_020_changed">
+        <item>用户界面全面重设计。</item>
+        <item>播放器全面重设计。</item>
+        <item>提升媒体库性能。</item>
+        <item>提升应用启动速度。</item>
+        <item>AI 现在可提供更好的结果。</item>
+    </string-array>
+    <string-array name="presentation_batch_g_changelog_020_fixed">
+        <item>修复了标签编辑器中的多个问题。</item>
+        <item>修复了播放通知未能清除的问题。</item>
+        <item>修复了多个导致应用崩溃的问题。</item>
+    </string-array>
     <string-array name="presentation_batch_g_changelog_070_whats_new">
         <item>Wear OS：音乐传输、本地播放、队列同步和手表远程控制。</item>
         <item>AI：集成 Groq AI 和 OpenRouter（实验性）并优化令牌使用。</item>

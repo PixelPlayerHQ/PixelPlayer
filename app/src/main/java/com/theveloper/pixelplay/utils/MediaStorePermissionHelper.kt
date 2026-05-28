@@ -1,11 +1,11 @@
 package com.theveloper.pixelplay.utils
 
-import android.app.Activity
 import android.content.ContentUris
 import android.content.Context
 import android.content.IntentSender
 import android.net.Uri
 import android.os.Build
+import android.provider.BaseColumns
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 
@@ -17,6 +17,7 @@ import androidx.annotation.RequiresApi
  * raw file-path operations are allowed (thanks to the FUSE virtual filesystem).
  */
 object MediaStorePermissionHelper {
+    private const val MEDIASTORE_AUTHORITY = "media"
 
     /**
      * Returns the MediaStore content URI for a given audio song ID.
@@ -24,7 +25,55 @@ object MediaStorePermissionHelper {
      */
     fun getMediaStoreUri(songId: Long): Uri? {
         if (songId <= 0) return null
-        return ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL, songId)
+        } else {
+            ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
+        }
+    }
+
+    fun isMediaStoreItemUriString(contentUriString: String): Boolean {
+        val normalized = contentUriString.trim().lowercase()
+        if (!normalized.startsWith("content://$MEDIASTORE_AUTHORITY/")) return false
+        return normalized.substringAfterLast('/').toLongOrNull()?.let { it > 0 } == true
+    }
+
+    fun canUseSongIdForMediaStoreRequest(contentUriString: String): Boolean {
+        val normalized = contentUriString.trim().lowercase()
+        return normalized.isBlank() ||
+            normalized.startsWith("/") ||
+            normalized.startsWith("file://") ||
+            isMediaStoreItemUriString(normalized)
+    }
+
+    fun resolveDeleteRequestUri(
+        context: Context,
+        songId: Long?,
+        contentUriString: String,
+        filePath: String
+    ): Uri? {
+        val candidates = buildList {
+            parseMediaStoreItemUri(contentUriString)?.let(::add)
+            if (filePath.isNotBlank()) {
+                getMediaStoreUri(context, filePath)?.let(::add)
+            }
+            if (songId != null && canUseSongIdForMediaStoreRequest(contentUriString)) {
+                getMediaStoreUri(songId)?.let(::add)
+            }
+        }.distinctBy { it.toString() }
+
+        return candidates.firstOrNull { uri ->
+            runCatching {
+                context.contentResolver.query(uri, arrayOf(BaseColumns._ID), null, null, null)?.use { cursor ->
+                    cursor.moveToFirst()
+                } == true
+            }.getOrDefault(false)
+        }
+    }
+
+    private fun parseMediaStoreItemUri(contentUriString: String): Uri? {
+        if (!isMediaStoreItemUriString(contentUriString)) return null
+        return runCatching { Uri.parse(contentUriString.trim()) }.getOrNull()
     }
 
     /**
@@ -74,7 +123,13 @@ object MediaStorePermissionHelper {
         uris: Collection<Uri>
     ): IntentSender? {
         if (uris.isEmpty()) return null
-        return MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
+        return try {
+            MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
+        } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: SecurityException) {
+            null
+        }
     }
 
     /**

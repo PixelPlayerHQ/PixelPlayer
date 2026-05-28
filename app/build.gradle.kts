@@ -74,9 +74,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val telegramApiId = localProperties.getProperty("TELEGRAM_API_ID") ?: ""
-        val telegramApiHash = localProperties.getProperty("TELEGRAM_API_HASH") ?: ""
-        buildConfigField("int", "TELEGRAM_API_ID", telegramApiId.ifEmpty { "0" })
+        val telegramApiId = localProperties.getProperty("TELEGRAM_API_ID")?.ifEmpty { null }
+            ?: "2040"
+        val telegramApiHash = localProperties.getProperty("TELEGRAM_API_HASH")?.ifEmpty { null }
+            ?: "b18441a1ff607e10a989891a5462e627"
+        buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
     }
 

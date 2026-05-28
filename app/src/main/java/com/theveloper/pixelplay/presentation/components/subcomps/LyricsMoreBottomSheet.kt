@@ -2,6 +2,8 @@ package com.theveloper.pixelplay.presentation.components.subcomps
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,9 +13,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
@@ -66,6 +70,7 @@ fun LyricsMoreBottomSheet(
     isSyncControlsVisible: Boolean,
     onSaveLyricsAsLrc: () -> Unit,
     onResetImportedLyrics: () -> Unit,
+    onTranslateViaAi: () -> Unit,
     onToggleSyncControls: () -> Unit,
     isImmersiveTemporarilyDisabled: Boolean,
     onSetImmersiveTemporarilyDisabled: (Boolean) -> Unit,
@@ -103,13 +108,17 @@ fun LyricsMoreBottomSheet(
         sheetState = sheetState,
         containerColor = containerColor,
         contentColor = contentColor,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        contentWindowInsets = { WindowInsets(top = 0, bottom = 0) }
     ) {
+        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                //.heightIn(max = screenHeight * 0.85f)
                 .padding(horizontal = 16.dp)
-                .padding(bottom = navigationBarsPadding + 10.dp),
+                .padding(bottom = 24.dp + navigationBarsPadding)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // No Title - "Expressive" relies on visual grouping
@@ -145,6 +154,32 @@ fun LyricsMoreBottomSheet(
                             .clickable {
                                 onDismissRequest()
                                 onSaveLyricsAsLrc()
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                            headlineColor = contentColor,
+                            leadingIconColor = contentColor
+                        )
+                    )
+                }
+
+                // Translate via AI
+                if (lyrics != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.ai_translate_via_ai)) },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Rounded.Translate,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(itemBackgroundColor)
+                            .clickable {
+                                onDismissRequest()
+                                onTranslateViaAi()
                             },
                         colors = ListItemDefaults.colors(
                             containerColor = Color.Transparent,

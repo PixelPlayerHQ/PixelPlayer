@@ -30,7 +30,7 @@
     <string name="presentation_batch_b_reorder_song">重新排序歌曲</string>
     <string name="presentation_batch_b_playlist_empty_title">这个播放列表为空。</string>
     <string name="presentation_batch_b_playlist_empty_folder_body">这个文件夹中没有歌曲。</string>
-    <string name="presentation_batch_b_playlist_empty_add_hint">点击“添加歌曲”即可开始。</string>
+    <string name="presentation_batch_b_playlist_empty_add_hint">点击「添加歌曲」即可开始。</string>
     <string name="presentation_batch_b_playlist_options_title">播放列表选项</string>
     <string name="presentation_batch_b_edit_playlist">编辑播放列表</string>
     <string name="presentation_batch_b_delete_playlist">删除播放列表</string>

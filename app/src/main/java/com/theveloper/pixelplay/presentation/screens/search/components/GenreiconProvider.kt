@@ -36,7 +36,7 @@ private fun splitGenreParts(normalized: String): List<String> {
 private fun keywordFallback(key: String): Int? {
     // Orden: específico -> general
     return when {
-        // --- “Catch-all” / colecciones / charts ---
+        // --- 「Catch-all」 / colecciones / charts ---
         "international" in key && ("hit" in key || "top" in key) -> R.drawable.pop_mic
         "hit" in key || "hits" in key || "top " in key || "charts" in key || "chart" in key || "top50" in key || "top 50" in key ->
             R.drawable.pop_mic
@@ -111,7 +111,7 @@ private fun normalizeGenreKey(input: String): String {
         .replace("—", "-")
 
     s = s.replace("[()\\[\\]{}]".toRegex(), " ")
-        .replace("[.:!؟?\"“”]".toRegex(), " ")
+        .replace("[.:!؟?\"\u201C\u201D\u300C\u300D]".toRegex(), " ")
         .replace("\\s+".toRegex(), " ")
         .trim()
 
@@ -247,7 +247,7 @@ private object GenreMapBuilder {
         putAll(R.drawable.harmonica, "blues", "delta blues", "chicago blues", "electric blues")
         putAll(R.drawable.maracas, "reggae", "ska", "dancehall", "dub")
 
-        // --------- LATIN / WORLD / “INTERNATIONAL” ---------
+        // --------- LATIN / WORLD / 「INTERNATIONAL」 ---------
         putAll(R.drawable.star_angle,
             "latin", "latino", "latin pop", "urbano latino", "latin urban",
             "world", "world music", "international", "international music",

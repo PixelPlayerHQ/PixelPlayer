@@ -843,14 +843,14 @@ private fun CoverArtEditorCard(
     }
 }
 
-private data class CoverArtCropResult(
+data class CoverArtCropResult(
     val preview: ImageBitmap,
     val update: CoverArtUpdate,
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-private fun CoverArtCropperDialog(
+fun CoverArtCropperDialog(
     sourceUri: Uri,
     onDismiss: () -> Unit,
     onConfirm: (CoverArtCropResult) -> Unit,

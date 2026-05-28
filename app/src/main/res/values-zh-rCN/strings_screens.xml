@@ -48,12 +48,12 @@
     <string name="setup_checking_backup">正在检查备份包……</string>
     <string name="setup_theme_title">应用主题</string>
     <string name="setup_theme_subtitle">在开始浏览媒体库前，先选择你喜欢的外观。</string>
-    <string name="setup_theme_footer">稍后可在“设置 &gt; 外观 &gt; 应用主题”中更改。</string>
+    <string name="setup_theme_footer">稍后可在「设置 &gt; 外观 &gt; 应用主题」中更改。</string>
     <string name="setup_recommended">推荐</string>
     <string name="setup_library_layout_title">媒体库布局</string>
     <string name="setup_library_layout_subtitle">选择你偏好的媒体库浏览方式。</string>
     <string name="setup_compact_mode">紧凑模式</string>
-    <string name="setup_library_layout_footer">稍后可在“设置 &gt; 外观 &gt; 媒体库导航”中更改。</string>
+    <string name="setup_library_layout_footer">稍后可在「设置 &gt; 外观 &gt; 媒体库导航」中更改。</string>
     <string name="tab_library">媒体库</string>
     <string name="tab_songs">歌曲</string>
     <string name="tab_albums">专辑</string>
@@ -71,7 +71,7 @@
     <string name="setup_app_navigation_title">应用导航</string>
     <string name="setup_app_navigation_subtitle">选择底部导航栏的样式。</string>
     <string name="setup_navbar_default_style">默认样式</string>
-    <string name="setup_navbar_footer">稍后可在“设置 &gt; 外观 &gt; 导航栏样式”中更改。</string>
+    <string name="setup_navbar_footer">稍后可在「设置 &gt; 外观 &gt; 导航栏样式」中更改。</string>
     <string name="skip_for_now">暂时跳过</string>
     <string name="skip_not_now">跳过 / 稍后再说</string>
     <string name="restoring">恢复中</string>
@@ -130,7 +130,10 @@
     <string name="dialog_delete_song_message">\"%1$s\" - %2$s\n\n这首歌曲将从你的设备中被永久删除，且无法恢复。</string>
 
     <!-- Home / detail shared -->
-    <string name="home_your_mix_title">你的\nMix</string>
+    <string name="home_your_mix_title">你的\n精选辑</string>
+    <string name="home_empty_placeholder_title">尚无可展示的数据</string>
+    <string name="home_empty_placeholder_subtitle">PixelPlayer 找到曲目或从某个来源同步后，此处就将生成你的精选辑。</string>
+    <string name="home_empty_placeholder_refresh">刷新</string>
     <string name="cd_shuffle_play">随机播放</string>
     <string name="cd_album_art_for_title">%1$s 的专辑封面</string>
     <string name="cd_options">选项</string>
@@ -165,7 +168,7 @@
     <string name="cd_search_history_icon">历史记录</string>
     <string name="cd_delete_search_history_item">删除搜索历史条目</string>
     <string name="cd_no_search_results">无结果</string>
-    <string name="search_no_results_for_query">没有找到“%1$s”的结果</string>
+    <string name="search_no_results_for_query">没有找到「%1$s」的结果</string>
     <string name="search_nothing_found">未找到任何内容</string>
     <string name="search_try_different_or_filters">试试其他搜索词，或检查筛选条件。</string>
     <string name="search_no_results_found">未找到结果。</string>

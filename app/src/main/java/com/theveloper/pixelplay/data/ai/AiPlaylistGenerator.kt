@@ -123,12 +123,14 @@ class AiPlaylistGenerator @Inject constructor(
                 "Airplane mode is active. Please turn it off to use AI."
 
             combinedMessages.contains("401", ignoreCase = true) ||
+            combinedMessages.contains("unauthorized", ignoreCase = true) ->
+                "Permission Denied. Your API key might be invalid or restricted."
+
             combinedMessages.contains("403", ignoreCase = true) ||
             combinedMessages.contains("permission", ignoreCase = true) ||
             combinedMessages.contains("denied", ignoreCase = true) ||
-            combinedMessages.contains("forbidden", ignoreCase = true) ||
-            combinedMessages.contains("unauthorized", ignoreCase = true) ->
-                "Permission Denied. Your API key might be invalid or restricted."
+            combinedMessages.contains("forbidden", ignoreCase = true) ->
+                "Permission denied by the AI provider. Check that this API key has access to the selected model and that the provider API is enabled."
             
             combinedMessages.contains("safety", ignoreCase = true) ||
             combinedMessages.contains("blocked", ignoreCase = true) ->

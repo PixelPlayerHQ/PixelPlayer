@@ -209,8 +209,7 @@ object GenreTypography {
         return when {
             isGridView && profile.wordCount >= 3 -> 0.56f
             isGridView -> 0.52f
-            profile.wordCount >= 3 -> 0.66f
-            else -> 0.62f
+            else -> 1.0f
         }
     }
 

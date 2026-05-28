@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0-beta] - 2026-05-25
+
+### Added
+- **Wear OS:** Music transfer, local playback, queue synchronization, and remote control from the watch.
+- **AI:** Groq AI and OpenRouter (experimental) with token optimization and AI-powered playlist generation.
+- **Cloud & Streaming:** Jellyfin support.
+- Direct song synchronization from server albums in Navidrome.
+- Standardized branding for NetEase Music.
+- **Lyrics:** Synchronized translation with a dedicated toggle and Kugou LRC format support.
+- Text alignment customization and improvements to TTML parsing.
+- Advanced romanization for Japanese characters.
+- **UI/UX:** Redesigned queue sheet and "Recently Played" pills with a dynamic palette.
+- Marquee support for long titles and a compact mode for the navigation bar.
+- New horizontal timeline for monthly statistics and multi-artist support.
+- **Telegram:** Native support for topics, playlist display, and reactive updates.
+
+### Changed
+- **Audio Engine:** Complete overhaul with support for MIDI, improvements to ALAC/M4A/Opus, and decoder optimization (including Samsung-specific decoders).
+- **Energy Efficiency:** Drastically reduced battery consumption and thermal optimization through UI task gates.
+- **Database and Cache:** Massive optimizations to queries, cover art cache controller v3, and support for Scoped Storage.
+- **Startup:** Improved load times through optimized generation of Baseline Profiles.
+- Project license changed from MIT to Proprietary License.
+
+### Fixed
+- **Playback:** Fixed stuttering in Opus/MP3, errors in ReplayGain during crossfades, and flickering during album art changes.
+- **Navigation:** Fixed navigation loops in Telegram and improved screen entry/exit animations.
+- **Stability:** Eliminated crashes on Android 12+, fixed memory leaks (ANRs), and improved exception handling in background services.
+- **Security:** CI hardening, encryption of cloud storage credentials, and media server access control.
+
+### Localization
+- 🇪🇸 **Spanish** | 🇫🇷 **French** | 🇷🇺 **Russian**
+- 🇨🇳 **Simplified Chinese** | 🇮🇩 **Indonesian** | 🇮🇹 **Italian** | 🇩🇪 **German**
+
 ## [0.6.0-beta] - 2026-03-05
 
 ### Added

@@ -1022,19 +1022,23 @@ private fun ToneTargetPickerDialog(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                ToneDialogIcon(target = null)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ToneDialogIcon(target = null)
                     Text(
                         text = stringResource(R.string.song_info_tone_picker_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        text = stringResource(R.string.song_info_tone_picker_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
+                Text(
+                    text = stringResource(R.string.song_info_tone_picker_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Column(
                     modifier = Modifier.clip(RoundedCornerShape(22.dp)),
@@ -1069,6 +1073,7 @@ private fun ToneTargetOption(
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(shape = RoundedCornerShape(4.dp))
             .clickable(onClick = onClick),
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -1119,23 +1124,27 @@ private fun ToneConfirmationDialog(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                ToneDialogIcon(target = target)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ToneDialogIcon(target = target)
                     Text(
                         text = stringResource(R.string.song_info_tone_confirm_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        text = stringResource(
-                            R.string.song_info_tone_confirm_body,
-                            song.title,
-                            stringResource(target.confirmLabelResId),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
+                Text(
+                    text = stringResource(
+                        R.string.song_info_tone_confirm_body,
+                        song.title,
+                        stringResource(target.confirmLabelResId),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

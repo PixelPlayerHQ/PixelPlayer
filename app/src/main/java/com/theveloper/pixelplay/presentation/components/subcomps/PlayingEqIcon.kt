@@ -86,7 +86,7 @@ fun PlayingEqIcon(
         val corner = CornerRadius(barW / 2f, barW / 2f)
 
         repeat(bars) { i ->
-            // “Respiración” lenta para que el patrón dure más
+            // 「Respiración」 lenta para que el patrón dure más
             val slowShift = 0.6f * sin(wander + i * 0.4f)
             val slowAmp   = 0.85f + 0.15f * sin(wander * 0.5f + 1.1f + i * 0.3f)
 
@@ -96,11 +96,11 @@ fun PlayingEqIcon(
             // Suavizado tipo smoothstep
             val eased = v * v * (3 - 2 * v)
 
-            // Altura “viva” (modo barras)
+            // Altura 「viva」 (modo barras)
             val fracBars = minHeightFraction + (maxHeightFraction - minHeightFraction) * eased
             val barH = h * fracBars
 
-            // Altura “punto” (círculo → alto = ancho)
+            // Altura 「punto」 (círculo → alto = ancho)
             val dotH = barW
 
             // Morph: puntito ⇄ barra (sin importar el frame)

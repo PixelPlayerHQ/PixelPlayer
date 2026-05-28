@@ -239,6 +239,30 @@ constructor(
         // ReplayGain
         val REPLAYGAIN_ENABLED = booleanPreferencesKey("replaygain_enabled")
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
+
+        // AI Developer Options
+        val AI_DEVELOPER_MODE = booleanPreferencesKey("ai_developer_mode")
+        val AI_TEMPERATURE = intPreferencesKey("ai_temperature")
+        val AI_MAX_TOKENS = intPreferencesKey("ai_max_tokens")
+        val AI_STREAMING_ENABLED = booleanPreferencesKey("ai_streaming_enabled")
+        val AI_CONTEXT_ENABLED = booleanPreferencesKey("ai_context_enabled")
+        val AI_CACHE_ENABLED = booleanPreferencesKey("ai_cache_enabled")
+        val AI_CACHE_SIZE_MB = intPreferencesKey("ai_cache_size_mb")
+        val AI_CACHE_TTL_HOURS = intPreferencesKey("ai_cache_ttl_hours")
+        val AI_DEBUG_LOGGING = booleanPreferencesKey("ai_debug_logging")
+        val AI_SHOW_TOKEN_ESTIMATES = booleanPreferencesKey("ai_show_token_estimates")
+        val AI_CUSTOM_SYSTEM_PROMPT = stringPreferencesKey("ai_custom_system_prompt")
+        val AI_PROVIDER_FALLBACK_CHAIN = stringPreferencesKey("ai_provider_fallback_chain")
+        val AI_TIMEOUT_SECONDS = intPreferencesKey("ai_timeout_seconds")
+        val AI_RETRY_COUNT = intPreferencesKey("ai_retry_count")
+        val AI_COOLDOWN_MINUTES = intPreferencesKey("ai_cooldown_minutes")
+        val AI_TELEMETRY_ENABLED = booleanPreferencesKey("ai_telemetry_enabled")
+        val AI_TELEMETRY_SKIP_RATE = booleanPreferencesKey("ai_telemetry_skip_rate")
+        val AI_TELEMETRY_COMPLETION_RATE = booleanPreferencesKey("ai_telemetry_completion_rate")
+        val AI_TELEMETRY_SESSION_DURATION = booleanPreferencesKey("ai_telemetry_session_duration")
+        val AI_TELEMETRY_TIME_OF_DAY = booleanPreferencesKey("ai_telemetry_time_of_day")
+        val AI_TELEMETRY_GENRE_AFFINITY = booleanPreferencesKey("ai_telemetry_genre_affinity")
+        val AI_TELEMETRY_ARTIST_AFFINITY = booleanPreferencesKey("ai_telemetry_artist_affinity")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -792,6 +816,252 @@ constructor(
     }
 
     // ===== End ReplayGain =====
+
+    // ===== AI Developer Options =====
+
+    val aiDeveloperModeFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_DEVELOPER_MODE] ?: false
+        }
+
+    val aiTemperatureFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TEMPERATURE] ?: 70
+        }
+
+    val aiMaxTokensFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_MAX_TOKENS] ?: 2048
+        }
+
+    val aiStreamingEnabledFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_STREAMING_ENABLED] ?: true
+        }
+
+    val aiContextEnabledFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_CONTEXT_ENABLED] ?: true
+        }
+
+    val aiCacheEnabledFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_ENABLED] ?: true
+        }
+
+    val aiCacheSizeMbFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_SIZE_MB] ?: 50
+        }
+
+    val aiCacheTtlHoursFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_TTL_HOURS] ?: 24
+        }
+
+    val aiDebugLoggingFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_DEBUG_LOGGING] ?: false
+        }
+
+    val aiShowTokenEstimatesFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_SHOW_TOKEN_ESTIMATES] ?: false
+        }
+
+    val aiCustomSystemPromptFlow: Flow<String> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_CUSTOM_SYSTEM_PROMPT] ?: ""
+        }
+
+    val aiProviderFallbackChainFlow: Flow<String> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_PROVIDER_FALLBACK_CHAIN] ?: "GEMINI,OPENAI,ANTHROPIC"
+        }
+
+    val aiTimeoutSecondsFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TIMEOUT_SECONDS] ?: 60
+        }
+
+    val aiRetryCountFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_RETRY_COUNT] ?: 2
+        }
+
+    val aiCooldownMinutesFlow: Flow<Int> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_COOLDOWN_MINUTES] ?: 5
+        }
+
+    val aiTelemetryEnabledFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_ENABLED] ?: true
+        }
+
+    val aiTelemetrySkipRateFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_SKIP_RATE] ?: true
+        }
+
+    val aiTelemetryCompletionRateFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_COMPLETION_RATE] ?: true
+        }
+
+    val aiTelemetrySessionDurationFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_SESSION_DURATION] ?: true
+        }
+
+    val aiTelemetryTimeOfDayFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_TIME_OF_DAY] ?: true
+        }
+
+    val aiTelemetryGenreAffinityFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_GENRE_AFFINITY] ?: true
+        }
+
+    val aiTelemetryArtistAffinityFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_ARTIST_AFFINITY] ?: true
+        }
+
+    suspend fun setAiDeveloperMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_DEVELOPER_MODE] = enabled
+        }
+    }
+
+    suspend fun setAiTemperature(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TEMPERATURE] = value.coerceIn(1, 200)
+        }
+    }
+
+    suspend fun setAiMaxTokens(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_MAX_TOKENS] = value.coerceIn(128, 16000)
+        }
+    }
+
+    suspend fun setAiStreamingEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_STREAMING_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setAiContextEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CONTEXT_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setAiCacheEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setAiCacheSizeMb(sizeMb: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_SIZE_MB] = sizeMb.coerceIn(10, 500)
+        }
+    }
+
+    suspend fun setAiCacheTtlHours(hours: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CACHE_TTL_HOURS] = hours.coerceIn(1, 168)
+        }
+    }
+
+    suspend fun setAiDebugLogging(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_DEBUG_LOGGING] = enabled
+        }
+    }
+
+    suspend fun setAiShowTokenEstimates(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_SHOW_TOKEN_ESTIMATES] = enabled
+        }
+    }
+
+    suspend fun setAiCustomSystemPrompt(prompt: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CUSTOM_SYSTEM_PROMPT] = prompt
+        }
+    }
+
+    suspend fun setAiProviderFallbackChain(chain: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_PROVIDER_FALLBACK_CHAIN] = chain
+        }
+    }
+
+    suspend fun setAiTimeoutSeconds(seconds: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TIMEOUT_SECONDS] = seconds.coerceIn(10, 300)
+        }
+    }
+
+    suspend fun setAiRetryCount(count: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_RETRY_COUNT] = count.coerceIn(0, 5)
+        }
+    }
+
+    suspend fun setAiCooldownMinutes(minutes: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_COOLDOWN_MINUTES] = minutes.coerceIn(1, 30)
+        }
+    }
+
+    suspend fun setAiTelemetryEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetrySkipRate(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_SKIP_RATE] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetryCompletionRate(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_COMPLETION_RATE] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetrySessionDuration(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_SESSION_DURATION] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetryTimeOfDay(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_TIME_OF_DAY] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetryGenreAffinity(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_GENRE_AFFINITY] = enabled
+        }
+    }
+
+    suspend fun setAiTelemetryArtistAffinity(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TELEMETRY_ARTIST_AFFINITY] = enabled
+        }
+    }
+
+    // ===== End AI Developer Options =====
 
     val allowedDirectoriesFlow: Flow<Set<String>> =
             dataStore.data.map { preferences ->

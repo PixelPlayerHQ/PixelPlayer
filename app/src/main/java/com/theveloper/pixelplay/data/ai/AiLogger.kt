@@ -1,10 +1,8 @@
 package com.theveloper.pixelplay.data.ai
 
 import android.content.Context
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -20,9 +18,18 @@ import javax.inject.Singleton
  */
 @Singleton
 class AiLogger @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val userPreferencesRepository: UserPreferencesRepository
+    @ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val LOG_DIR = "ai_logs"
+        private const val LOG_FILE = "ai_operations.log"
+        private const val MAX_LOG_SIZE_MB = 10
+        private const val MAX_LOG_FILES = 5
+        private const val PREFS_NAME = "ai_logger_settings"
+        private const val KEY_DEBUG_MODE = "ai_debug_mode"
+    }
+
+    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     companion object {
         private const val LOG_DIR = "ai_logs"
         private const val LOG_FILE = "ai_operations.log"
@@ -202,19 +209,11 @@ class AiLogger @Inject constructor(
         if (cachedDebugMode != null && (now - lastCacheTime) < cacheValidDuration) {
             return cachedDebugMode == true
         }
-        
-        // Refresh cache
-        cachedDebugMode = try {
-            // Use runBlocking to call suspend function - OK for logging since it's not performance critical
-            runBlocking {
-                val prefs = userPreferencesRepository.getPreferences.first()
-                prefs.debugModeEnabled
-            }
-        } catch (e: Exception) {
-            false
-        }
+
+        // Refresh cache using local SharedPreferences
+        cachedDebugMode = prefs.getBoolean(KEY_DEBUG_MODE, false)
         lastCacheTime = now
-        
+
         return cachedDebugMode == true
     }
 
@@ -222,12 +221,7 @@ class AiLogger @Inject constructor(
      * Asynchronous version for coroutine contexts.
      */
     private suspend fun shouldLog(): Boolean {
-        return try {
-            val prefs = userPreferencesRepository.getPreferences.first()
-            prefs.debugModeEnabled
-        } catch (e: Exception) {
-            false
-        }
+        return prefs.getBoolean(KEY_DEBUG_MODE, false)
     }
 
     private fun writeToLog(line: String) {

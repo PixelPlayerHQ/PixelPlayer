@@ -63,7 +63,7 @@ class AiSettingsManager @Inject constructor(
             _settingsState.value = AiSettingsState(
                 activeProvider = provider,
                 activeModel = model,
-                temperature = aiPreferencesRepository.aiTemperature.first(),
+                temperature = aiPreferencesRepository.aiTemperature.first() / 100f,
                 maxTokens = aiPreferencesRepository.aiMaxTokens.first(),
                 enableStreaming = aiPreferencesRepository.aiEnableStreaming.first(),
                 includeContext = aiPreferencesRepository.aiIncludeContext.first(),
@@ -123,8 +123,8 @@ class AiSettingsManager @Inject constructor(
 
         // Persist to preferences
         aiPreferencesRepository.setAiProvider(newState.activeProvider)
-        aiPreferencesRepository.setAiModel(newState.activeModel)
-        aiPreferencesRepository.setAiTemperature(newState.temperature)
+        aiPreferencesRepository.setModel(AiProvider.fromString(newState.activeProvider), newState.activeModel)
+        aiPreferencesRepository.setAiTemperature((newState.temperature * 100).toInt())
         aiPreferencesRepository.setAiMaxTokens(newState.maxTokens)
         aiPreferencesRepository.setAiEnableStreaming(newState.enableStreaming)
         aiPreferencesRepository.setAiIncludeContext(newState.includeContext)
@@ -280,7 +280,7 @@ class AiSettingsManager @Inject constructor(
             "OPENAI" -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo")
             "ANTHROPIC" -> listOf("claude-sonnet-4-20250514", "claude-haiku-4-20250307")
             "OLLAMA" -> listOf("llama3", "mistral", "phi3", "tinyllama", "llama2")
-            "LOCAL" -> _availableModels.value.map { it.modelId }
+            "LOCAL" -> _availableModels.value.map { it.id }
             else -> emptyList()
         }
     }

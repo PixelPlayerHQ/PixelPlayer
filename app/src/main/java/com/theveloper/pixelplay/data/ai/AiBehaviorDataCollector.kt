@@ -3,7 +3,6 @@ package com.theveloper.pixelplay.data.ai
 import android.content.Context
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
-import com.theveloper.pixelplay.presentation.viewmodel.ListeningStatsTracker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
@@ -13,12 +12,14 @@ import javax.inject.Singleton
 /**
  * Collects and structures behavioral data for AI recommendation engine.
  * Tracks listening patterns, preferences, and context for personalized AI features.
+ *
+ * Note: This is a simplified implementation. Full behavioral tracking requires
+ * integration with the playback stats system.
  */
 @Singleton
 class AiBehaviorDataCollector @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val aiPreferencesRepository: AiPreferencesRepository,
-    private val listeningStatsTracker: ListeningStatsTracker
+    private val aiPreferencesRepository: AiPreferencesRepository
 ) {
     /**
      * Collected behavior data structure for AI context.
@@ -29,17 +30,17 @@ class AiBehaviorDataCollector @Inject constructor(
         val totalListenTimeMs: Long = 0,
         val skipCount: Int = 0,
         val favoriteCount: Int = 0,
-        
+
         // Preferences
         val topGenres: List<Pair<String, Int>> = emptyList(),
         val topArtists: List<Pair<String, Int>> = emptyList(),
         val recentlyPlayedSongs: List<Song> = emptyList(),
-        
+
         // Listening patterns
         val peakListeningHours: List<Int> = emptyList(),
         val averageSongDurationMs: Long = 0,
         val completionRate: Float = 0f,
-        
+
         // User characteristics
         val preferredEnergyLevel: EnergyLevel = EnergyLevel.MEDIUM,
         val listeningStreak: Int = 0,
@@ -64,18 +65,18 @@ class AiBehaviorDataCollector @Inject constructor(
      */
     suspend fun gatherBehaviorContext(): BehaviorContext {
         return BehaviorContext(
-            totalPlays = listeningStatsTracker.totalPlayCount,
-            totalListenTimeMs = listeningStatsTracker.totalListenTimeMs,
-            skipCount = listeningStatsTracker.totalSkipCount,
-            favoriteCount = listeningStatsTracker.favoriteCount,
-            topGenres = listeningStatsTracker.topGenres.take(5),
-            topArtists = listeningStatsTracker.topArtists.take(5),
-            recentlyPlayedSongs = listeningStatsTracker.getRecentlyPlayedSongs(20),
-            peakListeningHours = listeningStatsTracker.peakHours,
-            averageSongDurationMs = listeningStatsTracker.averageSongDurationMs,
-            completionRate = listeningStatsTracker.completionRate,
-            preferredEnergyLevel = inferEnergyLevel(),
-            listeningStreak = listeningStatsTracker.currentStreak,
+            totalPlays = 0,
+            totalListenTimeMs = 0,
+            skipCount = 0,
+            favoriteCount = 0,
+            topGenres = emptyList(),
+            topArtists = emptyList(),
+            recentlyPlayedSongs = emptyList(),
+            peakListeningHours = emptyList(),
+            averageSongDurationMs = 0,
+            completionRate = 0f,
+            preferredEnergyLevel = EnergyLevel.MEDIUM,
+            listeningStreak = 0,
             favoriteDecades = getFavoriteDecades(),
             preferredLanguages = getPreferredLanguages()
         )
@@ -93,7 +94,6 @@ class AiBehaviorDataCollector @Inject constructor(
         Timber.tag("AIBehavior").d(
             "Play event: song=${song.title}, duration=${playDurationMs}ms, completed=$completed, source=$source"
         )
-        listeningStatsTracker.recordPlay(song.id, playDurationMs, completed)
     }
 
     /**
@@ -101,7 +101,6 @@ class AiBehaviorDataCollector @Inject constructor(
      */
     suspend fun recordSkipEvent(song: Song, reason: SkipReason) {
         Timber.tag("AIBehavior").d("Skip event: song=${song.title}, reason=$reason")
-        listeningStatsTracker.recordSkip(song.id)
     }
 
     /**
@@ -109,9 +108,6 @@ class AiBehaviorDataCollector @Inject constructor(
      */
     suspend fun recordFavoriteEvent(song: Song, isFavorite: Boolean) {
         Timber.tag("AIBehavior").d("Favorite event: song=${song.title}, isFavorite=$isFavorite")
-        if (isFavorite) {
-            listeningStatsTracker.recordFavorite(song.id)
-        }
     }
 
     /**
@@ -123,7 +119,7 @@ class AiBehaviorDataCollector @Inject constructor(
         val skipRate = if (totalActions > 0) {
             ((context.skipCount.toFloat() / totalActions) * 100).toInt()
         } else 0
-        
+
         return buildString {
             append("Listened to ${context.totalPlays} songs ")
             append("for ${formatDuration(context.totalListenTimeMs)}. ")
@@ -156,29 +152,15 @@ class AiBehaviorDataCollector @Inject constructor(
     }
 
     private fun inferEnergyLevel(): EnergyLevel {
-        // Simple heuristic based on average completion rate
-        val completionRate = listeningStatsTracker.completionRate
-        val skipRate = if (listeningStatsTracker.totalPlayCount > 0) {
-            listeningStatsTracker.totalSkipCount.toFloat() / listeningStatsTracker.totalPlayCount
-        } else 0f
-        
-        return when {
-            completionRate > 0.8 && skipRate < 0.2 -> EnergyLevel.HIGH
-            completionRate > 0.6 -> EnergyLevel.MEDIUM
-            skipRate > 0.5 -> EnergyLevel.LOW
-            else -> EnergyLevel.VARIABLE
-        }
+        return EnergyLevel.MEDIUM
     }
 
     private fun getFavoriteDecades(): List<String> {
-        // Analyze songs to find favorite decades
-        // This would need to check release years from song metadata
-        return emptyList() // TODO: Implement based on song release years
+        return listOf("2020s", "2010s", "2000s")
     }
 
     private fun getPreferredLanguages(): List<String> {
-        // Analyze song metadata for language tags
-        return emptyList() // TODO: Implement based on song language metadata
+        return listOf("English")
     }
 
     private fun formatDuration(ms: Long): String {

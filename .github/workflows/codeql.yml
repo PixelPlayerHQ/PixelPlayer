@@ -31,6 +31,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -39,7 +41,7 @@ jobs:
           build-mode: manual
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug -x :app:validateSigningBenchmark -x :app:validateSigningRelease
+        run: ./gradlew clean assembleDebug -x :app:validateSigningBenchmark -x :app:validateSigningRelease
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

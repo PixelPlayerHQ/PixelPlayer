@@ -298,7 +298,11 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
     implementation(libs.tensorflow.lite.gpu)
-    implementation(libs.tensorflow.lite.task.text)
+    implementation(libs.tensorflow.lite.task.text) {
+        // Prevent duplicate runtime classes from mixing LiteRT and tensorflow-lite-api artifacts.
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-support-api")
+    }
 
     // Local AI: ML Kit
     implementation(libs.mlkit.translate)

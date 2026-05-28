@@ -55,12 +55,15 @@ class AiDeviceCapabilities @Inject constructor(
             else -> 50
         }
 
+        val supportsTfliteRuntime = isTfliteRuntimeAvailable()
+        val supportsGpu = supportsTfliteRuntime && checkGpuSupport()
+        val supportsNnapiRuntime = supportsTfliteRuntime && checkNnapiSupport()
+
         val recommendedProviders = buildList {
-            // Everyone can use local models
-            add("LOCAL")
-            // Everyone can use Ollama if installed
+            if (supportsTfliteRuntime) {
+                add("LOCAL")
+            }
             add("OLLAMA")
-            // Add cloud providers based on API availability
             if (hasNetwork()) {
                 add("GEMINI")
                 add("OPENAI")
@@ -74,9 +77,9 @@ class AiDeviceCapabilities @Inject constructor(
             cpuCores = cpuCores,
             cpuArchitecture = cpuArch,
             is64Bit = is64Bit,
-            supportsTflite = true, // Check at runtime with try-catch
-            supportsGpuInference = checkGpuSupport(),
-            supportsNnapi = checkNnapiSupport(),
+            supportsTflite = supportsTfliteRuntime,
+            supportsGpuInference = supportsGpu,
+            supportsNnapi = supportsNnapiRuntime,
             gpuRenderer = getGpuRenderer(),
             recommendedModelSizeMb = recommendedSizeMb,
             supportsStreaming = availableRamMb > 512,
@@ -141,6 +144,17 @@ class AiDeviceCapabilities @Inject constructor(
             config?.glEsVersion
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun isTfliteRuntimeAvailable(): Boolean {
+        return try {
+            Class.forName("org.tensorflow.lite.Interpreter")
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: Exception) {
+            false
         }
     }
 

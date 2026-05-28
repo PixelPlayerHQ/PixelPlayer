@@ -296,7 +296,9 @@ dependencies {
 
     // Local AI: TensorFlow Lite
     implementation(libs.tensorflow.lite)
-    implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.support) {
+        exclude(group = "com.google.ai.edge.litert", module = "litert-support-api")
+    }
     implementation(libs.tensorflow.lite.gpu)
     implementation(libs.tensorflow.lite.task.text) {
         // Prevent duplicate runtime classes from mixing LiteRT and tensorflow-lite-api artifacts.

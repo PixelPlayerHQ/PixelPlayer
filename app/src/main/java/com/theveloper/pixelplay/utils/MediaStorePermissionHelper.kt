@@ -19,6 +19,12 @@ import androidx.annotation.RequiresApi
 object MediaStorePermissionHelper {
     private const val MEDIASTORE_AUTHORITY = "media"
 
+    data class DeleteRequest(
+        val intentSender: IntentSender,
+        val acceptedUris: List<Uri>,
+        val rejectedUris: List<Uri>
+    )
+
     /**
      * Returns the MediaStore content URI for a given audio song ID.
      * Returns null for cloud songs (negative IDs).
@@ -30,6 +36,27 @@ object MediaStorePermissionHelper {
         } else {
             ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
         }
+    }
+
+    fun getAudioMediaStoreUris(context: Context, songId: Long): List<Uri> {
+        if (songId <= 0) return emptyList()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return listOf(ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId))
+        }
+
+        val specificVolumes = runCatching {
+            MediaStore.getExternalVolumeNames(context)
+        }.getOrDefault(emptySet())
+            .filterNot { it == MediaStore.VOLUME_EXTERNAL }
+            .sortedWith(compareBy<String> { it != MediaStore.VOLUME_EXTERNAL_PRIMARY }.thenBy { it })
+
+        return buildList {
+            specificVolumes.forEach { volumeName ->
+                add(MediaStore.Audio.Media.getContentUri(volumeName, songId))
+            }
+            add(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, songId))
+            add(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL, songId))
+        }.distinctBy { it.toString() }
     }
 
     fun isMediaStoreItemUriString(contentUriString: String): Boolean {
@@ -52,13 +79,18 @@ object MediaStorePermissionHelper {
         contentUriString: String,
         filePath: String
     ): Uri? {
+        val parsedMediaStoreUri = parseMediaStoreItemUri(contentUriString)
+        val parsedSongId = parsedMediaStoreUri?.lastPathSegment?.toLongOrNull()
         val candidates = buildList {
-            parseMediaStoreItemUri(contentUriString)?.let(::add)
+            if (songId != null && canUseSongIdForMediaStoreRequest(contentUriString)) {
+                addAll(getAudioMediaStoreUris(context, songId))
+            }
+            if (parsedSongId != null) {
+                addAll(getAudioMediaStoreUris(context, parsedSongId))
+            }
+            parsedMediaStoreUri?.let(::add)
             if (filePath.isNotBlank()) {
                 getMediaStoreUri(context, filePath)?.let(::add)
-            }
-            if (songId != null && canUseSongIdForMediaStoreRequest(contentUriString)) {
-                getMediaStoreUri(songId)?.let(::add)
             }
         }.distinctBy { it.toString() }
 
@@ -122,12 +154,47 @@ object MediaStorePermissionHelper {
         context: Context,
         uris: Collection<Uri>
     ): IntentSender? {
-        if (uris.isEmpty()) return null
+        return createDeleteRequest(context, uris)?.intentSender
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createDeleteRequest(
+        context: Context,
+        uris: Collection<Uri>
+    ): DeleteRequest? {
+        val distinctUris = uris.distinctBy { it.toString() }
+        if (distinctUris.isEmpty()) return null
+
+        createPlatformDeleteRequest(context, distinctUris)?.let { intentSender ->
+            return DeleteRequest(
+                intentSender = intentSender,
+                acceptedUris = distinctUris,
+                rejectedUris = emptyList()
+            )
+        }
+
+        val acceptedUris = distinctUris.filter { uri ->
+            createPlatformDeleteRequest(context, listOf(uri)) != null
+        }
+        if (acceptedUris.isEmpty()) return null
+
+        val intentSender = createPlatformDeleteRequest(context, acceptedUris) ?: return null
+        val acceptedUriStrings = acceptedUris.mapTo(mutableSetOf()) { it.toString() }
+        return DeleteRequest(
+            intentSender = intentSender,
+            acceptedUris = acceptedUris,
+            rejectedUris = distinctUris.filterNot { it.toString() in acceptedUriStrings }
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun createPlatformDeleteRequest(
+        context: Context,
+        uris: Collection<Uri>
+    ): IntentSender? {
         return try {
             MediaStore.createDeleteRequest(context.contentResolver, uris).intentSender
-        } catch (_: IllegalArgumentException) {
-            null
-        } catch (_: SecurityException) {
+        } catch (_: Exception) {
             null
         }
     }

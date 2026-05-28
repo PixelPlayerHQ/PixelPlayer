@@ -19,7 +19,18 @@ enum class AppLanguage(val tag: String, @StringRes val labelRes: Int) {
         val supportedLanguageTags: Set<String> = values().map { it.tag }.toSet()
 
         fun getLanguageOptions(context: Context): Map<String, String> {
-            return values().associate { it.tag to context.getString(it.labelRes) }
+            val systemOption = SYSTEM.tag to context.getString(SYSTEM.labelRes)
+            val otherOptions = values()
+                .filter { it != SYSTEM }
+                .map { it.tag to context.getString(it.labelRes) }
+                .sortedBy { it.second.lowercase() }
+
+            val result = LinkedHashMap<String, String>()
+            result[systemOption.first] = systemOption.second
+            for (option in otherOptions) {
+                result[option.first] = option.second
+            }
+            return result
         }
 
         fun normalize(languageTag: String?): String {

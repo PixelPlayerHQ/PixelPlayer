@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Renommer le préréglage</string>
     <string name="error_name_empty">Le nom ne peut pas être vide</string>
     <string name="action_save">Enregistrer</string>
+    <string name="equalizer_action_save_new">Enregistrer nouveau</string>
     <string name="action_rename">Renommer</string>
 
     <!-- AI metadata sheet -->

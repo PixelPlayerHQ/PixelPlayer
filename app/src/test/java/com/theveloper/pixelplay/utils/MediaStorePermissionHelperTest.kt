@@ -12,6 +12,11 @@ class MediaStorePermissionHelperTest {
                 "content://media/external/audio/media/9317"
             )
         ).isTrue()
+        assertThat(
+            MediaStorePermissionHelper.isMediaStoreItemUriString(
+                "content://media/external_primary/audio/media/9317"
+            )
+        ).isTrue()
     }
 
     @Test
@@ -19,6 +24,11 @@ class MediaStorePermissionHelperTest {
         assertThat(
             MediaStorePermissionHelper.isMediaStoreItemUriString(
                 "content://media/external/audio/media"
+            )
+        ).isFalse()
+        assertThat(
+            MediaStorePermissionHelper.isMediaStoreItemUriString(
+                "content://media/external/audio/media/not-a-number"
             )
         ).isFalse()
     }

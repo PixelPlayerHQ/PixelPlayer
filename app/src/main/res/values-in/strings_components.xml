@@ -41,6 +41,7 @@
     <string name="equalizer_rename_preset_title">Ubah nama preset</string>
     <string name="error_name_empty">Nama tidak boleh kosong</string>
     <string name="action_save">Simpan</string>
+    <string name="equalizer_action_save_new">Simpan baru</string>
     <string name="action_rename">Ubah Nama</string>
 
     <!-- AI metadata sheet -->

@@ -43,13 +43,14 @@ import javax.inject.Inject
 
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
-import com.theveloper.pixelplay.data.ai.GeminiModel
-import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
+import com.theveloper.pixelplay.data.ai.AiModel
+import com.theveloper.pixelplay.data.ai.AiHandler
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.player.HiFiCapabilityChecker
 import com.theveloper.pixelplay.utils.AppLocaleManager
+import com.theveloper.pixelplay.utils.ColorSchemePair
 import java.io.File
 
 data class SettingsUiState(
@@ -79,7 +80,7 @@ data class SettingsUiState(
     val lyricsSourcePreference: LyricsSourcePreference = LyricsSourcePreference.EMBEDDED_FIRST,
     val autoScanLrcFiles: Boolean = false,
     val blockedDirectories: Set<String> = emptySet(),
-    val availableModels: List<GeminiModel> = emptyList(),
+    val availableModels: List<AiModel> = emptyList(),
     val isLoadingModels: Boolean = false,
     val modelsFetchError: String? = null,
     val appRebrandDialogShown: Boolean = false,
@@ -176,10 +177,9 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val aiPreferencesRepository: AiPreferencesRepository,
     private val themePreferencesRepository: ThemePreferencesRepository,
-    private val colorSchemeProcessor: ColorSchemeProcessor,
+    private val colorSchemeProcessor: com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor,
     private val syncManager: SyncManager,
-    private val aiClientFactory: AiClientFactory,
-    private val geminiModelService: com.theveloper.pixelplay.data.ai.GeminiModelService,
+    private val aiHandler: AiHandler,
     private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
@@ -1159,16 +1159,8 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
             try {
                 val provider = AiProvider.fromString(providerName)
-                val models = if (provider == AiProvider.GEMINI) {
-                    geminiModelService.fetchAvailableModels(apiKey).getOrThrow()
-                } else {
-                    val aiClient = aiClientFactory.createClient(provider, apiKey)
-                    aiClient.getAvailableModels(apiKey)
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
-                        .distinct()
-                        .map { com.theveloper.pixelplay.data.ai.GeminiModel(it, formatModelDisplayName(it)) }
-                }
+                val modelsResult = aiHandler.fetchAvailableModels(provider, apiKey)
+                val models = modelsResult.getOrThrow()
                 
                 _uiState.update { 
                     it.copy(
@@ -1195,18 +1187,6 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-
-    private fun formatModelDisplayName(modelName: String): String {
-        return modelName
-            .removePrefix("models/")
-            .replace('-', ' ')
-            .replace('_', ' ')
-            .split(' ')
-            .joinToString(" ") { token ->
-                token.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-            }
-    }
-
 
     fun setNavBarCornerRadius(radius: Int) {
         viewModelScope.launch { userPreferencesRepository.setNavBarCornerRadius(radius) }

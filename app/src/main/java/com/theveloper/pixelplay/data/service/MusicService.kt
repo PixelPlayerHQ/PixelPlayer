@@ -765,7 +765,7 @@ class MusicService : MediaLibraryService() {
                 mediaItems: MutableList<MediaItem>
             ): ListenableFuture<MutableList<MediaItem>> {
                 return serviceScope.future {
-                    if (mediaItems.size == 1) {
+                    if (mediaItems.size == 1 && !controller.packageName.startsWith(APP_PACKAGE_PREFIX)) {
                         resolveContextQueueForRequestedItem(mediaItems.first(), controller)?.let { queue ->
                             grantArtworkUriPermissions(controller.packageName, queue.mediaItems)
                             return@future queue.mediaItems
@@ -791,8 +791,10 @@ class MusicService : MediaLibraryService() {
                     val requestedIndex = startIndex.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0))
                     val requestedItem = mediaItems.getOrNull(requestedIndex)
 
-                    val contextQueue = requestedItem?.let {
-                        resolveContextQueueForRequestedItem(it, controller)
+                    val contextQueue = if (requestedItem != null && !controller.packageName.startsWith(APP_PACKAGE_PREFIX)) {
+                        resolveContextQueueForRequestedItem(requestedItem, controller)
+                    } else {
+                        null
                     }
                     if (contextQueue != null) {
                         grantArtworkUriPermissions(controller.packageName, contextQueue.mediaItems)

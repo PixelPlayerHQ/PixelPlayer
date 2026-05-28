@@ -41,7 +41,7 @@ fun AlbumCarouselSection(
     expansionFraction: Float,
     currentMediaItemIndex: Int = -1,
     requestedScrollIndex: Int? = null,
-    onSongSelected: (Song) -> Unit,
+    onSongSelected: (Song, Int) -> Unit,
     onAlbumClick: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
     carouselStyle: String = CarouselStyle.NO_PEEK,
@@ -140,7 +140,7 @@ fun AlbumCarouselSection(
                 }
                 if (settled != currentSongIndex) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    queue.getOrNull(settled)?.let(onSongSelected)
+                    queue.getOrNull(settled)?.let { onSongSelected(it, settled) }
                 }
             }
     }

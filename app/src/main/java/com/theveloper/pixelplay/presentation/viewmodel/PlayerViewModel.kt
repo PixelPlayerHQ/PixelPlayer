@@ -41,7 +41,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.EotStateHolder
-import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.database.AlbumArtThemeDao
 import com.theveloper.pixelplay.data.media.CoverArtUpdate
 import com.theveloper.pixelplay.data.model.Album
@@ -204,7 +203,6 @@ private data class AiUiSnapshot(
     val isGeneratingAiPlaylist: Boolean,
     val aiStatus: String?,
     val aiError: String?,
-    val isGeneratingAiMetadata: Boolean,
 )
 
 private data class PreparedPlaybackQueueSegments(
@@ -525,9 +523,7 @@ class PlayerViewModel @Inject constructor(
     val aiStatus: StateFlow<String?> = aiStateHolder.aiStatus
     val aiError: StateFlow<String?> = aiStateHolder.aiError
 
-    // AI Metadata Generation States
-    val isGeneratingAiMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
-    val aiMetadataSuccess: StateFlow<Boolean> = aiStateHolder.aiMetadataSuccess
+
 
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()
@@ -1971,19 +1967,15 @@ class PlayerViewModel @Inject constructor(
                 aiStateHolder.isGeneratingAiPlaylist,
                 aiStateHolder.aiStatus,
                 aiStateHolder.aiError,
-                aiStateHolder.isGeneratingMetadata,
-            ) { show, generating, status, error, generatingMetadata ->
+            ) { show, generating, status, error ->
                 AiUiSnapshot(
                     showAiPlaylistSheet = show,
                     isGeneratingAiPlaylist = generating,
                     aiStatus = status,
                     aiError = error,
-                    isGeneratingAiMetadata = generatingMetadata
                 )
             }.collect { snapshot ->
-                _playerUiState.update {
-                    it.copy(isGeneratingAiMetadata = snapshot.isGeneratingAiMetadata)
-                }
+                // No-op or update other UI state elements if needed.
             }
         }
 
@@ -4624,10 +4616,6 @@ class PlayerViewModel @Inject constructor(
         aiStateHolder.retryLastPlaylistGeneration()
     }
 
-    fun retryLastMetadataGeneration() {
-        aiStateHolder.retryLastMetadataGeneration()
-    }
-
     fun clearQueueExceptCurrent() {
         mediaController?.let { controller ->
             val currentSongIndex = controller.currentMediaItemIndex
@@ -5348,9 +5336,6 @@ class PlayerViewModel @Inject constructor(
         }.getOrDefault(false)
     }
 
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        return aiStateHolder.generateAiMetadata(song, fields)
-    }
 
     private fun updateSongInStates(
         updatedSong: Song,

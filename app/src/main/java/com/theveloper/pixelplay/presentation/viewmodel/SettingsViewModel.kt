@@ -50,7 +50,7 @@ import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.player.HiFiCapabilityChecker
 import com.theveloper.pixelplay.utils.AppLocaleManager
-import com.theveloper.pixelplay.utils.ColorSchemePair
+import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import java.io.File
 
 data class SettingsUiState(

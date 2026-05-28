@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -31,7 +33,7 @@ fun AiPreferencesScreen(
                 title = { Text(stringResource(R.string.settings_category_ai_preferences_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigationIconClick) {
-                        Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, null)
                     }
                 }
             )

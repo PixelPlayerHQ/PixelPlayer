@@ -1227,6 +1227,9 @@ fun SettingsCategoryScreen(
                         SettingsCategory.DEVICE_CAPABILITIES -> {
                              // Device Capabilities has its own screen
                         }
+                        SettingsCategory.AI_PREFERENCES -> {
+                            // AI Preferences has its own screen
+                        }
 
                     }
                }

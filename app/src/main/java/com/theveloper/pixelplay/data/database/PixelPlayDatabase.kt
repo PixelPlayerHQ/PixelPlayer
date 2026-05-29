@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.theveloper.pixelplay.data.ai.ApiCallRecord
 
 @Database(
     entities = [
@@ -34,9 +35,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         JellyfinSongEntity::class,
         JellyfinPlaylistEntity::class,
         AiCacheEntity::class,
-        AiUsageEntity::class
+        AiUsageEntity::class,
+        ApiCallRecord::class
     ],
-    version = 42,
+    version = 43,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -653,6 +655,26 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE song_engagements ADD COLUMN skip_count INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE song_engagements ADD COLUMN completed_count INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS api_call_records (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        timestamp INTEGER NOT NULL,
+                        provider TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        input_tokens INTEGER NOT NULL,
+                        output_tokens INTEGER NOT NULL,
+                        latency_ms INTEGER NOT NULL,
+                        success INTEGER NOT NULL,
+                        request_type TEXT NOT NULL DEFAULT 'unknown'
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_api_call_records_timestamp ON api_call_records(timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_api_call_records_provider ON api_call_records(provider)")
             }
         }
 

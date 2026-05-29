@@ -1054,7 +1054,7 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(availableLocalModels = localModels) }
 
             // Collect local model status changes
-            localMlManager.statusMap.collect { statuses ->
+            localMlManager.statusMap.collect { statuses: Map<String, ModelStatus> ->
                 _uiState.update { it.copy(localModelStatuses = statuses) }
             }
         }

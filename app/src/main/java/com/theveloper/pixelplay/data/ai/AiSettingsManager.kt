@@ -94,7 +94,7 @@ class AiSettingsManager @Inject constructor(
 
         // Filter by device capabilities - only show models that fit in device RAM
         val filteredModels = catalogModels.filter { model: LocalModelInfo ->
-            capabilities.maxModelSizeMb >= (model.fileSizeBytes / (1024 * 1024))
+            capabilities.recommendedModelSizeMb >= (model.fileSizeBytes / (1024 * 1024))
         }
 
         _availableModels.value = filteredModels

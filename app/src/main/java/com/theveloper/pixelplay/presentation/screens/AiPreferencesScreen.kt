@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.foundation.clickable
@@ -24,7 +26,6 @@ import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
 import com.theveloper.pixelplay.data.ai.local.ModelStatus
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiPreferencesScreen(
     navController: NavController,

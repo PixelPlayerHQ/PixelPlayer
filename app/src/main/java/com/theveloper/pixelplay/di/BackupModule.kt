@@ -17,6 +17,7 @@ import com.theveloper.pixelplay.data.backup.module.QuickFillModuleHandler
 import com.theveloper.pixelplay.data.backup.module.SearchHistoryModuleHandler
 import com.theveloper.pixelplay.data.backup.module.TransitionsModuleHandler
 import com.theveloper.pixelplay.data.backup.module.AiUsageBackupHandler
+import com.theveloper.pixelplay.data.backup.module.AiContextBackupHandler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -57,7 +58,8 @@ object BackupModule {
         quickFillHandler: QuickFillModuleHandler,
         artistImagesHandler: ArtistImagesModuleHandler,
         equalizerHandler: EqualizerModuleHandler,
-        aiUsageHandler: AiUsageBackupHandler
+        aiUsageHandler: AiUsageBackupHandler,
+        aiContextHandler: AiContextBackupHandler
     ): Map<BackupSection, BackupModuleHandler> {
         return mapOf(
             BackupSection.PLAYLISTS to playlistsHandler,
@@ -71,7 +73,8 @@ object BackupModule {
             BackupSection.QUICK_FILL to quickFillHandler,
             BackupSection.ARTIST_IMAGES to artistImagesHandler,
             BackupSection.EQUALIZER to equalizerHandler,
-            BackupSection.AI_USAGE_LOGS to aiUsageHandler
+            BackupSection.AI_USAGE_LOGS to aiUsageHandler,
+            BackupSection.AI_CONTEXT to aiContextHandler
         )
     }
 }

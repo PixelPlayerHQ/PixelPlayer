@@ -280,6 +280,7 @@ class GenreDetailViewModel @Inject constructor(
             SortOption.ARTIST -> {
                 val sorted = songs.sortedBy { it.artist }
                 val grouped = sorted.groupBy { it.artist }
+                grouped.map { (artist, artistSongs) ->
                     val albums = artistSongs.groupBy { it.album }.map { (albumName, albumSongs) ->
                         val sortedAlbumSongs = albumSongs.sortedWith(
                             compareBy<Song> { it.discNumber ?: 1 }

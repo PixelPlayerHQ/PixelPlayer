@@ -47,6 +47,11 @@ class AiBehaviorDataCollector @Inject constructor(
     enum class PlaySource { DAILY_MIX, AI_PLAYLIST, SEARCH, LIBRARY, RECOMMENDED, ALBUM, ARTIST, PLAYLIST, QUEUE, UNKNOWN }
     enum class SkipReason { NOT_ENJOYING, SKIP_NEXT, PLAYBACK_ISSUE, WRONG_MOOD, TOO_FAMILIAR, EXPLICIT_FILTERED, UNKNOWN }
 
+    private val songPlayCounts = mutableMapOf<String, Int>()
+    private val songSkipCounts = mutableMapOf<String, Int>()
+    private val songLastPlayed = mutableMapOf<String, Long>()
+    private val songCompletions = mutableMapOf<String, Int>()
+
     suspend fun gatherBehaviorContext(allSongs: List<Song> = emptyList()): BehaviorContext {
         return try {
             val summary = statsRepository.loadSummary(StatsTimeRange.ALL, allSongs)

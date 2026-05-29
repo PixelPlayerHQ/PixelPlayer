@@ -158,32 +158,14 @@ class LocalModelManager @Inject constructor(
         _activeModelId.value = modelId
     }
 
-    // ======== Inference ========
+    // ======== Inference (placeholder – engine integration pending) ========
 
     suspend fun runInference(modelId: String, prompt: String): String? = withContext(Dispatchers.IO) {
         val file = modelFile(modelId)
         if (!file.exists()) { Timber.w("Model not installed: $modelId"); return@withContext null }
-
-        val info = LocalModelCatalog.byId(modelId)
-        if (info == null) { Timber.w("Unknown model: $modelId"); return@withContext null }
-
-        val sizeMb = file.length() / (1024 * 1024)
-        Timber.d("Inference: $modelId ($sizeMb MB, ${info.format.extension})")
-
-        when (info.format) {
-            ModelFormat.GGUF -> runCatching {
-                exec(listOf("llama.cpp", "--model", file.absolutePath, "--prompt", prompt, "--n-predict", "128"))
-            }.getOrNull()
-            ModelFormat.TFLITE -> runCatching { exec(listOf("tflite", "--model", file.absolutePath, "--input", prompt)) }.getOrNull()
-            ModelFormat.ONNX -> runCatching { exec(listOf("onnxruntime", "--model", file.absolutePath, "--input", prompt)) }.getOrNull()
-            ModelFormat.BIN -> "Custom model loaded: $modelId ($sizeMb MB). Use dedicated inference engine."
-        } ?: "Model $modelId loaded ($sizeMb MB). On-device inference via external runtime."
+        Timber.d("Inference requested: $modelId (${file.length() / (1024 * 1024)} MB)")
+        null
     }
-
-    private fun exec(cmd: List<String>): String? = runCatching {
-        Runtime.getRuntime().exec(cmd.toTypedArray()).apply { waitFor() }
-            .inputStream.bufferedReader().readText()
-    }.getOrNull()
 
     // ======== Private Helpers ========
 

@@ -17,7 +17,7 @@ object AiProviderEndpoints {
     const val OPENAI_BASE_URL = "https://api.openai.com/v1"
     const val OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     const val ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1"
-    const val OLLAMA_BASE_URL = "https://ollama.ai/api/v1"
+    const val OLLAMA_BASE_URL = "http://localhost:11434"
 
     const val GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
     const val DEEPSEEK_DEFAULT_MODEL = "deepseek-chat"

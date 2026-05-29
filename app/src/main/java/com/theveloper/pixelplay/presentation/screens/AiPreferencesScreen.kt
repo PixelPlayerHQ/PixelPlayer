@@ -2,14 +2,10 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -44,17 +40,9 @@ fun AiPreferencesScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val localModels by settingsViewModel.availableLocalModels.collectAsStateWithLifecycle(initialValue = emptyList())
-    val modelStatuses by settingsViewModel.localModelStatuses.collectAsStateWithLifecycle(initialValue = emptyMap())
     val currentAiModel by settingsViewModel.currentAiModel.collectAsStateWithLifecycle(initialValue = "")
     val currentApiKey by settingsViewModel.currentAiApiKey.collectAsStateWithLifecycle(initialValue = "")
     val currentAiSystemPrompt by settingsViewModel.currentAiSystemPrompt.collectAsStateWithLifecycle(initialValue = "")
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { settingsViewModel.importLocalModel(it) }
-    }
 
     val isOnlineProvider = uiState.aiProvider != "LOCAL" && uiState.aiProvider != "OLLAMA"
     val isLocalProvider = uiState.aiProvider == "LOCAL"
@@ -191,128 +179,25 @@ fun AiPreferencesScreen(
                 }
             }
 
-            // ===== LOCAL MODELS (always visible, greyed out if not local provider) =====
+            // ===== LOCAL MODELS (locked – on-device inference under development) =====
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = "Local Models",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                            .copy(alpha = if (isLocalProvider) 1f else 0.4f)
-                    )
-                    TextButton(
-                        onClick = { importLauncher.launch(arrayOf("*/*")) },
-                        enabled = isLocalProvider
-                    ) {
-                        Icon(
-                            Icons.Default.Upload,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Import")
-                    }
-                }
-            }
-
-            if (!isLocalProvider) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Local Models", style = MaterialTheme.typography.titleSmall)
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Switch provider to \"Local Model (Device)\" to configure local model settings.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            items(localModels) { model ->
-                val status = modelStatuses[model.id] ?: ModelStatus.NotDownloaded
-                LocalModelCard(
-                    model = model,
-                    status = status,
-                    isSelected = uiState.localMlActiveModelId == model.id,
-                    onDownload = { settingsViewModel.downloadLocalModel(model) },
-                    onDelete = { settingsViewModel.deleteLocalModel(model.id) },
-                    onSelect = { settingsViewModel.selectLocalModel(model.id) },
-                    enabled = isLocalProvider
-                )
-            }
-
-            if (localModels.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    .copy(alpha = if (isLocalProvider) 1f else 0.4f)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "No models available for your device. Your device may not meet the minimum requirements.",
+                                "On-device inference is under development. Models will be available for download once the engine is integrated.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    .copy(alpha = if (isLocalProvider) 1f else 0.4f)
                             )
                         }
                     }
-                }
-            }
-
-            item {
-                SwitchPreference(
-                    title = "Use GPU Acceleration",
-                    subtitle = "Use hardware GPU for faster local model inference",
-                    checked = uiState.localMlUseGpu,
-                    onCheckedChange = { settingsViewModel.onLocalMlUseGpuChange(it) },
-                    enabled = isLocalProvider
-                )
-            }
-
-            if (isLocalProvider) {
-                item {
-                    OllamaConnectionCard(
-                        ollamaUrl = uiState.localMlOllamaUrl,
-                        onOllamaUrlChange = { settingsViewModel.setLocalMlOllamaUrl(it) }
-                    )
                 }
             }
 

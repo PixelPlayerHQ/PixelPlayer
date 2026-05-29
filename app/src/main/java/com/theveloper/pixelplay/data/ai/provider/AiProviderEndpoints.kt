@@ -7,7 +7,6 @@ package com.theveloper.pixelplay.data.ai.provider
  */
 object AiProviderEndpoints {
 
-    // ─── Base URLs ────────────────────────────────────────────────────────────
     const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
     const val DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
     const val GROQ_BASE_URL = "https://api.groq.com/openai/v1"
@@ -18,10 +17,8 @@ object AiProviderEndpoints {
     const val OPENAI_BASE_URL = "https://api.openai.com/v1"
     const val OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     const val ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1"
-    // Ollama: Remote server API (requires API key) - not for local Android development
     const val OLLAMA_BASE_URL = "https://ollama.ai/api/v1"
 
-    // ─── Default Models ───────────────────────────────────────────────────────
     const val GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
     const val DEEPSEEK_DEFAULT_MODEL = "deepseek-chat"
     const val GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile"
@@ -34,7 +31,6 @@ object AiProviderEndpoints {
     const val ANTHROPIC_DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
     const val OLLAMA_DEFAULT_MODEL = "llama3"
 
-    // ─── Provider-Specific Headers ────────────────────────────────────────────
     const val ANTHROPIC_API_VERSION = "2023-06-01"
     const val OPENROUTER_SITE_URL = "https://github.com/theovilardo/PixelPlayer"
     const val OPENROUTER_SITE_NAME = "PixelPlayer"

@@ -42,7 +42,7 @@ class AiSettingsManager @Inject constructor(
         val includeUserHabits: Boolean = true,
         val localModelEnabled: Boolean = false,
         val localModelId: String? = null,
-        val ollamaEndpoint: String = "http://localhost:11434",
+        val ollamaEndpoint: String = "https://ollama.ai/api",
         val huggingFaceToken: String? = null
     )
 

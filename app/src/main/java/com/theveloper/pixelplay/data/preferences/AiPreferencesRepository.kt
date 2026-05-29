@@ -230,7 +230,7 @@ class AiPreferencesRepository @Inject constructor(
         dataStore.data.map { it[Keys.LOCAL_ML_CONTEXT_SIZE] ?: DEFAULT_LOCAL_MODEL_CONTEXT_SIZE }
 
     val localMlOllamaUrl: Flow<String> =
-        dataStore.data.map { it[Keys.LOCAL_ML_OLLAMA_URL] ?: "http://localhost:11434" }
+        dataStore.data.map { it[Keys.LOCAL_ML_OLLAMA_URL] ?: "https://ollama.ai/api" }
 
     val localMlHfToken: Flow<String> =
         dataStore.data.map { it[Keys.LOCAL_ML_HF_TOKEN] ?: "" }

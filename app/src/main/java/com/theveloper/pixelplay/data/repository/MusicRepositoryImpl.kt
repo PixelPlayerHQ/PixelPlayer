@@ -95,7 +95,7 @@ class MusicRepositoryImpl @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val telegramDao: TelegramDao,
     private val telegramCacheManagerProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>,
-    private val telegramRepositoryProvider: Lazy<com.theveloper.pixelplay.data.telegram.TelegramRepository>,
+    private val telegramRepositoryProvider: Lazy<com.theveloper.pixelplay.data.cloud.TelegramRepository>,
     private val songRepository: SongRepository,
     private val favoritesDao: FavoritesDao,
     private val artistImageRepository: ArtistImageRepository,
@@ -123,7 +123,7 @@ class MusicRepositoryImpl @Inject constructor(
     @Volatile private var telegramDownloadSyncObserverStarted = false
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager
         get() = telegramCacheManagerProvider.get()
-    override val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository
+    override val telegramRepository: com.theveloper.pixelplay.data.cloud.TelegramRepository
         get() = telegramRepositoryProvider.get()
 
     private fun normalizePath(path: String): String =

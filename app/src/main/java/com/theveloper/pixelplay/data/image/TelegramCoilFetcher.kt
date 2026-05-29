@@ -12,7 +12,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.cloud.TelegramRepository
 import okio.Path.Companion.toPath
 import org.drinkless.tdlib.TdApi
 import timber.log.Timber

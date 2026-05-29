@@ -33,7 +33,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp4.Mp4Extractor
 import com.theveloper.pixelplay.data.model.TransitionSettings
-import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.cloud.TelegramRepository
 import com.theveloper.pixelplay.utils.envelope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -53,9 +53,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
-import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
-import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
-import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
+import com.theveloper.pixelplay.data.cloud.NeteaseStreamProxy
+import com.theveloper.pixelplay.data.cloud.NavidromeStreamProxy
+import com.theveloper.pixelplay.data.cloud.QqMusicStreamProxy
 
 data class ActiveDecoderInfo(
     val name: String,
@@ -139,11 +139,11 @@ internal fun shouldTriggerAudioOffloadStallFallback(
 class DualPlayerEngine @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val telegramRepository: TelegramRepository,
-    private val telegramStreamProxy: com.theveloper.pixelplay.data.telegram.TelegramStreamProxy,
+    private val telegramStreamProxy: com.theveloper.pixelplay.data.cloud.TelegramStreamProxy,
     private val neteaseStreamProxy: NeteaseStreamProxy,
     private val qqMusicStreamProxy: QqMusicStreamProxy,
     private val navidromeStreamProxy: NavidromeStreamProxy,
-    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy,
+    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.cloud.JellyfinStreamProxy,
     private val gdriveStreamProxy: com.theveloper.pixelplay.data.gdrive.GDriveStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder

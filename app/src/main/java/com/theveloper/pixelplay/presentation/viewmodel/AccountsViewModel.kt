@@ -3,12 +3,12 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.gdrive.GDriveRepository
-import com.theveloper.pixelplay.data.jellyfin.JellyfinRepository
-import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
-import com.theveloper.pixelplay.data.netease.NeteaseRepository
-import com.theveloper.pixelplay.data.qqmusic.QqMusicRepository
+import com.theveloper.pixelplay.data.cloud.JellyfinRepository
+import com.theveloper.pixelplay.data.cloud.NavidromeRepository
+import com.theveloper.pixelplay.data.cloud.NeteaseRepository
+import com.theveloper.pixelplay.data.cloud.QqMusicRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
-import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.cloud.TelegramRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -2,7 +2,7 @@ package com.theveloper.pixelplay.presentation.jellyfin.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.theveloper.pixelplay.data.jellyfin.JellyfinRepository
+import com.theveloper.pixelplay.data.cloud.JellyfinRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

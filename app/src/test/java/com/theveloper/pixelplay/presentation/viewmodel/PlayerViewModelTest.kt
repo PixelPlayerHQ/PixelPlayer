@@ -75,7 +75,7 @@ class PlayerViewModelTest {
     private val mockAppShortcutManager: AppShortcutManager = mockk(relaxed = true)
     private val mockTelegramCacheManager: TelegramCacheManager = mockk(relaxed = true)
     private val mockTelegramCacheManagerProvider: Lazy<TelegramCacheManager> = mockk()
-    private val mockTelegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository = mockk(relaxed = true)
+    private val mockTelegramRepository: com.theveloper.pixelplay.data.cloud.TelegramRepository = mockk(relaxed = true)
     private val mockListeningStatsTracker: ListeningStatsTracker = mockk(relaxed = true)
     private val mockDailyMixStateHolder: DailyMixStateHolder = mockk(relaxed = true)
     private val mockLyricsStateHolder: LyricsStateHolder = mockk(relaxed = true)

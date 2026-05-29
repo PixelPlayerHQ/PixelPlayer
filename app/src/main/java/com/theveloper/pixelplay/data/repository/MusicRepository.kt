@@ -345,7 +345,7 @@ interface MusicRepository {
     fun getAllTelegramTopics(): Flow<List<com.theveloper.pixelplay.data.database.TelegramTopicEntity>>
     suspend fun replaceTelegramSongsForTopic(chatId: Long, threadId: Long, topicName: String, songs: List<Song>)
 
-    val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository
+    val telegramRepository: com.theveloper.pixelplay.data.cloud.TelegramRepository
 
     suspend fun getSongIdsSorted(
         sortOption: com.theveloper.pixelplay.data.model.SortOption,

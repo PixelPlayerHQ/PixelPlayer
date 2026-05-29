@@ -8,7 +8,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import com.theveloper.pixelplay.data.jellyfin.JellyfinRepository
+import com.theveloper.pixelplay.data.cloud.JellyfinRepository
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.FileSystem

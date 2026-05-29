@@ -3,7 +3,7 @@ package com.theveloper.pixelplay.presentation.qqmusic.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.database.QqMusicPlaylistEntity
-import com.theveloper.pixelplay.data.qqmusic.QqMusicRepository
+import com.theveloper.pixelplay.data.cloud.QqMusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

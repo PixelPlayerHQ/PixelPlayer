@@ -6,7 +6,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
+import com.theveloper.pixelplay.data.cloud.NavidromeRepository
 import com.theveloper.pixelplay.data.network.navidrome.NavidromeApiService
 import okhttp3.OkHttpClient
 import okhttp3.Request

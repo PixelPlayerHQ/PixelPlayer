@@ -7,7 +7,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.theveloper.pixelplay.data.database.NavidromePlaylistEntity
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
+import com.theveloper.pixelplay.data.cloud.NavidromeRepository
 import com.theveloper.pixelplay.data.worker.NavidromeSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

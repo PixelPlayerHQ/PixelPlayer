@@ -377,7 +377,7 @@ object AppModule {
         lyricsRepository: LyricsRepository,
         telegramDao: com.theveloper.pixelplay.data.database.TelegramDao,
         telegramCacheManager: Lazy<com.theveloper.pixelplay.data.telegram.TelegramCacheManager>,
-        telegramRepository: Lazy<com.theveloper.pixelplay.data.telegram.TelegramRepository>,
+        telegramRepository: Lazy<com.theveloper.pixelplay.data.cloud.TelegramRepository>,
         songRepository: SongRepository,
         favoritesDao: FavoritesDao,
         artistImageRepository: ArtistImageRepository,

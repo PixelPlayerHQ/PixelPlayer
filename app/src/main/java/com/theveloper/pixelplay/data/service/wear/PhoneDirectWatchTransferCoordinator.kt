@@ -12,16 +12,16 @@ import androidx.core.net.toUri
 import com.theveloper.pixelplay.data.gdrive.GDriveStreamProxy
 import com.google.android.gms.wearable.Wearable
 import com.theveloper.pixelplay.data.model.Song
-import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
-import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
+import com.theveloper.pixelplay.data.cloud.NavidromeStreamProxy
+import com.theveloper.pixelplay.data.cloud.NeteaseStreamProxy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.ThemePreference
-import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
+import com.theveloper.pixelplay.data.cloud.QqMusicStreamProxy
 import com.theveloper.pixelplay.data.repository.MusicRepository
-import com.theveloper.pixelplay.data.telegram.TelegramRepository
-import com.theveloper.pixelplay.data.telegram.TelegramStreamProxy
+import com.theveloper.pixelplay.data.cloud.TelegramRepository
+import com.theveloper.pixelplay.data.cloud.TelegramStreamProxy
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor
 import com.theveloper.pixelplay.shared.WearDataPaths
 import com.theveloper.pixelplay.shared.WearThemePalette
@@ -65,7 +65,7 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
     private val neteaseStreamProxy: NeteaseStreamProxy,
     private val qqMusicStreamProxy: QqMusicStreamProxy,
     private val navidromeStreamProxy: NavidromeStreamProxy,
-    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy,
+    private val jellyfinStreamProxy: com.theveloper.pixelplay.data.cloud.JellyfinStreamProxy,
     private val gDriveStreamProxy: GDriveStreamProxy,
     private val okHttpClient: OkHttpClient,
 ) {
@@ -452,7 +452,7 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
             is NeteaseStreamProxy -> proxy.ensureReady(5_000L)
             is QqMusicStreamProxy -> proxy.ensureReady(5_000L)
             is NavidromeStreamProxy -> proxy.ensureReady(5_000L)
-            is com.theveloper.pixelplay.data.jellyfin.JellyfinStreamProxy -> proxy.ensureReady(5_000L)
+            is com.theveloper.pixelplay.data.cloud.JellyfinStreamProxy -> proxy.ensureReady(5_000L)
             else -> false
         }
     }

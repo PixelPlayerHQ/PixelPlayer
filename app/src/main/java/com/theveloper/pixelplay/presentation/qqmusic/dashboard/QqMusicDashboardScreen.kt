@@ -345,7 +345,7 @@ fun QqMusicDashboardScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.qqmusic.QqMusicRepository.PlaylistSyncType.ALL) },
+                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.cloud.QqMusicRepository.PlaylistSyncType.ALL) },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -385,7 +385,7 @@ fun QqMusicDashboardScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.qqmusic.QqMusicRepository.PlaylistSyncType.CREATED) },
+                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.cloud.QqMusicRepository.PlaylistSyncType.CREATED) },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -417,7 +417,7 @@ fun QqMusicDashboardScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.qqmusic.QqMusicRepository.PlaylistSyncType.COLLECTED) },
+                            .clickable { viewModel.syncAll(com.theveloper.pixelplay.data.cloud.QqMusicRepository.PlaylistSyncType.COLLECTED) },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh

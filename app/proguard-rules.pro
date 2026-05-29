@@ -169,7 +169,7 @@
 -dontwarn io.netty.**
 
 # Ensure internal server can start
--keep class com.theveloper.pixelplay.data.telegram.TelegramStreamProxy { *; }
+-keep class com.theveloper.pixelplay.data.cloud.TelegramStreamProxy { *; }
 
 # Keep Kotlin reflection if needed by Ktor/Serialization in Release
 -keep class kotlin.reflect.** { *; }

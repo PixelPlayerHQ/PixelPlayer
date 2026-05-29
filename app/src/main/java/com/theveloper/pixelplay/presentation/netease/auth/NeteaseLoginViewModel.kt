@@ -2,7 +2,7 @@ package com.theveloper.pixelplay.presentation.netease.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.theveloper.pixelplay.data.netease.NeteaseRepository
+import com.theveloper.pixelplay.data.cloud.NeteaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
@@ -28,6 +29,8 @@ import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
+
+class HttpDownloadException(val responseCode: Int, message: String) : IOException(message)
 
 private const val TAG = "LocalModelManager"
 private const val MODELS_DIR = "local_ai_models"
@@ -153,47 +156,95 @@ class LocalModelManager @Inject constructor(
     private suspend fun performDownload(info: LocalModelInfo) {
         val file = modelFile(info.id)
         val tmp = File(modelsDir, "${info.id}.tmp")
-        val resumeFrom = if (tmp.exists()) tmp.length() else 0L
+        var resumeFrom = if (tmp.exists()) tmp.length() else 0L
         var downloaded = resumeFrom
-        val startTime = System.nanoTime()
+        var currentSpeed = 0L
+        var lastSpeedTime = System.nanoTime()
+        var lastSpeedBytes = resumeFrom
+        var usedDownloadParam = false
 
-        val conn = URL(info.downloadUrl).openConnection() as HttpURLConnection
-        activeConnections[info.id] = conn
-        conn.connectTimeout = TIMEOUT_CONNECT
-        conn.readTimeout = TIMEOUT_READ
-        conn.setRequestProperty("User-Agent", "PixelPlayer/1.0")
-        conn.instanceFollowRedirects = true
-        if (resumeFrom > 0) conn.setRequestProperty("Range", "bytes=$resumeFrom-")
-        conn.connect()
+        while (true) {
+            val downloadUrl = if (usedDownloadParam) "${info.downloadUrl}?download=1" else info.downloadUrl
+            val conn = URL(downloadUrl).openConnection() as HttpURLConnection
+            activeConnections[info.id] = conn
+            conn.connectTimeout = TIMEOUT_CONNECT
+            conn.readTimeout = TIMEOUT_READ
+            conn.setRequestProperty("User-Agent", "PixelPlayer/1.0")
+            conn.instanceFollowRedirects = true
+            if (resumeFrom > 0) conn.setRequestProperty("Range", "bytes=$resumeFrom-")
+            conn.connect()
 
-        val total = conn.contentLengthLong.let { if (it <= 0) -1L else it + resumeFrom }
-        val actualTotal = if (total > 0) total else info.fileSizeBytes
+            val responseCode = try {
+                conn.responseCode
+            } catch (e: IOException) {
+                conn.disconnect()
+                throw e
+            }
 
-        conn.inputStream.use { input ->
-            FileOutputStream(tmp, resumeFrom > 0).use { output ->
-                val buf = ByteArray(BUFFER_SIZE)
-                var read: Int
-                while (input.read(buf).also { read = it } != -1) {
-                    yield()
-                    output.write(buf, 0, read)
-                    downloaded += read
-                    val elapsed = (System.nanoTime() - startTime) / 1_000_000_000L
-                    val speed = if (elapsed > 0) downloaded / elapsed else 0L
-                    val progress = if (actualTotal > 0) ((downloaded * 100) / actualTotal).toInt().coerceIn(0, 100) else 0
-                    _statusMap.update {
-                        it + (info.id to ModelStatus.Downloading(progress, downloaded, actualTotal, speed))
+            if (responseCode !in 200..299) {
+                conn.disconnect()
+                if (!usedDownloadParam && info.huggingFaceRepo != null) {
+                    usedDownloadParam = true
+                    cleanupTmp(info.id)
+                    downloaded = 0L
+                    resumeFrom = 0L
+                    lastSpeedBytes = 0L
+                    Timber.d("Retrying ${info.id} with ?download=1")
+                    continue
+                }
+                throw HttpDownloadException(responseCode, conn.responseMessage ?: "HTTP $responseCode")
+            }
+
+            val total = conn.contentLengthLong.let { if (it <= 0) -1L else it + resumeFrom }
+            val actualTotal = if (total > 0) total else info.fileSizeBytes
+
+            try {
+                conn.inputStream.use { input ->
+                    FileOutputStream(tmp, resumeFrom > 0).use { output ->
+                        val buf = ByteArray(BUFFER_SIZE)
+                        var read: Int
+                        while (input.read(buf).also { read = it } != -1) {
+                            yield()
+                            output.write(buf, 0, read)
+                            downloaded += read
+                            val now = System.nanoTime()
+                            val dt = now - lastSpeedTime
+                            if (dt >= 1_000_000_000L) {
+                                val elapsedSec = dt / 1_000_000_000.0
+                                currentSpeed = ((downloaded - lastSpeedBytes) / elapsedSec).toLong()
+                                lastSpeedTime = now
+                                lastSpeedBytes = downloaded
+                            }
+                            val progress = if (actualTotal > 0) ((downloaded * 100) / actualTotal).toInt().coerceIn(0, 100) else 0
+                            _statusMap.update {
+                                it + (info.id to ModelStatus.Downloading(progress, downloaded, actualTotal, currentSpeed))
+                            }
+                        }
                     }
                 }
+            } catch (e: FileNotFoundException) {
+                conn.disconnect()
+                if (!usedDownloadParam && info.huggingFaceRepo != null) {
+                    usedDownloadParam = true
+                    cleanupTmp(info.id)
+                    downloaded = 0L
+                    resumeFrom = 0L
+                    lastSpeedBytes = 0L
+                    Timber.d("Retrying ${info.id} with ?download=1 after FileNotFoundException")
+                    continue
+                }
+                throw HttpDownloadException(404, e.message ?: "File not found")
             }
-        }
 
-        if (!tmp.renameTo(file)) {
-            file.delete()
-            tmp.copyTo(file, overwrite = true)
-            tmp.delete()
+            if (!tmp.renameTo(file)) {
+                file.delete()
+                tmp.copyTo(file, overwrite = true)
+                tmp.delete()
+            }
+            _statusMap.update { it + (info.id to ModelStatus.Ready) }
+            Timber.i("Downloaded model: ${info.id} (${downloaded / (1024 * 1024)} MB)")
+            return
         }
-        _statusMap.update { it + (info.id to ModelStatus.Ready) }
-        Timber.i("Downloaded model: ${info.id} (${downloaded / (1024 * 1024)} MB)")
     }
 
     suspend fun downloadAndWait(info: LocalModelInfo): ModelStatus {
@@ -285,6 +336,7 @@ class LocalModelManager @Inject constructor(
 
     private fun isRetryable(e: Exception): Boolean = when (e) {
         is SocketTimeoutException, is UnknownHostException -> true
+        is HttpDownloadException -> e.responseCode in 429..599
         is IOException -> e.message?.contains("timed out", ignoreCase = true) == true
             || e.message?.contains("reset", ignoreCase = true) == true
             || e.message?.contains("refused", ignoreCase = true) == true
@@ -294,6 +346,14 @@ class LocalModelManager @Inject constructor(
     private fun classifyError(e: Exception, attempt: Int): String = when (e) {
         is SocketTimeoutException -> "Connection timed out. Check your network."
         is UnknownHostException -> "Cannot reach server. Check your internet connection."
+        is HttpDownloadException -> when (e.responseCode) {
+            404 -> "Model file not found (404). The download URL may be outdated."
+            403 -> "Access denied (403). The model may require authentication."
+            401 -> "Authentication required (401)."
+            429 -> "Rate limited (429). Please try again later."
+            in 500..599 -> "Server error (${e.responseCode}). Try again later."
+            else -> "HTTP error ${e.responseCode}: ${e.message}"
+        }
         is IOException -> {
             when {
                 e.message?.contains("Unable to resolve host") == true -> "DNS resolution failed. Check network."

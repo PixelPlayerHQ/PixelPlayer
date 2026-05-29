@@ -101,10 +101,10 @@ object LocalModelCatalog {
             id = "smollm2_1.7b", displayName = "SmolLM2 1.7B (Q4)",
             description = "HuggingFace SmolLM2 ~1GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/SmolLM2-1.7B-Instruct-GGUF", "smollm2-1.7b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/SmolLM2-1.7B-Instruct-GGUF", "smollm2-1.7b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 1_000_000_000, ramRequiredMb = 512,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "smollm", "huggingface"), huggingFaceRepo = "TheBloke/SmolLM2-1.7B-Instruct-GGUF"
+            tags = listOf("chat", "smollm", "huggingface"), huggingFaceRepo = "bartowski/SmolLM2-1.7B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "qwen2.5_1.5b", displayName = "Qwen 2.5 1.5B (Q4)",
@@ -126,37 +126,37 @@ object LocalModelCatalog {
             id = "tinyllama_1b", displayName = "TinyLlama 1.1B",
             description = "Compact Llama-based ~700MB. Great for mobile.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF", "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/TinyLlama-1.1B-Chat-v1.0-GGUF", "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"),
             fileSizeBytes = 700_000_000, ramRequiredMb = 512,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "tiny", "llama"), huggingFaceRepo = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF"
+            tags = listOf("chat", "tiny", "llama"), huggingFaceRepo = "bartowski/TinyLlama-1.1B-Chat-v1.0-GGUF"
         ),
         LocalModelInfo(
             id = "deepseek_coder_1.3b", displayName = "DeepSeek Coder 1.3B (Q4)",
             description = "Compact code model ~800MB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/DeepSeek-Coder-1.3B-Instruct-GGUF", "deepseek-coder-1.3b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/DeepSeek-Coder-1.3B-Instruct-GGUF", "deepseek-coder-1.3b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 800_000_000, ramRequiredMb = 512,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("code", "deepseek"), huggingFaceRepo = "TheBloke/DeepSeek-Coder-1.3B-Instruct-GGUF"
+            tags = listOf("code", "deepseek"), huggingFaceRepo = "bartowski/DeepSeek-Coder-1.3B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "stablelm2_1.6b", displayName = "StableLM 2 1.6B (Q4)",
             description = "Stability AI's efficient model ~1GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/stablelm-2-1_6b-zephyr-GGUF", "stablelm-2-1_6b-zephyr.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/stablelm-2-1_6b-zephyr-GGUF", "stablelm-2-1_6b-zephyr.Q4_K_M.gguf"),
             fileSizeBytes = 1_000_000_000, ramRequiredMb = 768,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "stable", "stability"), huggingFaceRepo = "TheBloke/stablelm-2-1_6b-zephyr-GGUF"
+            tags = listOf("chat", "stable", "stability"), huggingFaceRepo = "bartowski/stablelm-2-1_6b-zephyr-GGUF"
         ),
         LocalModelInfo(
             id = "deepseek_r1_distill_1.5b", displayName = "DeepSeek R1 Distill 1.5B (Q4)",
             description = "DeepSeek R1 reasoning distilled to Qwen 1.5B ~900MB. MIT.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/DeepSeek-R1-Distill-Qwen-1.5B-GGUF", "deepseek-r1-distill-qwen-1.5b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF", "deepseek-r1-distill-qwen-1.5b.Q4_K_M.gguf"),
             fileSizeBytes = 900_000_000, ramRequiredMb = 768,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "deepseek", "reasoning"), huggingFaceRepo = "TheBloke/DeepSeek-R1-Distill-Qwen-1.5B-GGUF"
+            tags = listOf("chat", "deepseek", "reasoning"), huggingFaceRepo = "bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF"
         ),
 
         // ======================================================================
@@ -175,19 +175,19 @@ object LocalModelCatalog {
             id = "phi2_q4", displayName = "Phi-2 (Q4)",
             description = "Microsoft Phi-2 2.7B ~1.6GB. Great reasoning.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/phi-2-GGUF", "phi-2.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/phi-2-GGUF", "phi-2.Q4_K_M.gguf"),
             fileSizeBytes = 1_600_000_000, ramRequiredMb = 1024,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "phi2"), huggingFaceRepo = "TheBloke/phi-2-GGUF"
+            tags = listOf("chat", "phi2"), huggingFaceRepo = "bartowski/phi-2-GGUF"
         ),
         LocalModelInfo(
             id = "gemma_1.1_2b_q4", displayName = "Gemma 1.1 2B (Q4)",
             description = "Google Gemma 1.1 2B ~1.2GB.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Gemma-1.1-2B-it-GGUF", "gemma-1.1-2b-it.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Gemma-1.1-2B-it-GGUF", "gemma-1.1-2b-it.Q4_K_M.gguf"),
             fileSizeBytes = 1_200_000_000, ramRequiredMb = 1024,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "gemma"), huggingFaceRepo = "TheBloke/Gemma-1.1-2B-it-GGUF"
+            tags = listOf("chat", "gemma"), huggingFaceRepo = "bartowski/Gemma-1.1-2B-it-GGUF"
         ),
         LocalModelInfo(
             id = "qwen2.5_3b", displayName = "Qwen 2.5 3B (Q4)",
@@ -201,55 +201,55 @@ object LocalModelCatalog {
             id = "llama3.2_3b", displayName = "Llama 3.2 3B (Q4)",
             description = "Meta Llama 3.2 3B ~1.8GB. Llama 3.2 license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Llama-3.2-3B-Instruct-GGUF", "llama-3.2-3b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Llama-3.2-3B-Instruct-GGUF", "llama-3.2-3b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 1_800_000_000, ramRequiredMb = 1024,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "llama"), huggingFaceRepo = "TheBloke/Llama-3.2-3B-Instruct-GGUF"
+            tags = listOf("chat", "llama"), huggingFaceRepo = "bartowski/Llama-3.2-3B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "starcoder2_3b", displayName = "StarCoder2 3B (Q4)",
             description = "Code gen 3B ~1.8GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/StarCoder2-3B-GGUF", "starcoder2-3b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/StarCoder2-3B-GGUF", "starcoder2-3b.Q4_K_M.gguf"),
             fileSizeBytes = 1_800_000_000, ramRequiredMb = 1024,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("code", "starcoder"), huggingFaceRepo = "TheBloke/StarCoder2-3B-GGUF"
+            tags = listOf("code", "starcoder"), huggingFaceRepo = "bartowski/StarCoder2-3B-GGUF"
         ),
         LocalModelInfo(
             id = "phi3_mini_q4", displayName = "Phi-3 Mini 3.8B (Q4)",
-            description = "Microsoft Phi-3 Mini 3.8B ~2.3GB. MIT via TheBloke.",
+            description = "Microsoft Phi-3 Mini 3.8B ~2.3GB. MIT via bartowski.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Phi-3-mini-4k-instruct-GGUF", "phi-3-mini-4k-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Phi-3-mini-4k-instruct-GGUF", "phi-3-mini-4k-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 2_300_000_000, ramRequiredMb = 1536,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "phi3"), huggingFaceRepo = "TheBloke/Phi-3-mini-4k-instruct-GGUF"
+            tags = listOf("chat", "phi3"), huggingFaceRepo = "bartowski/Phi-3-mini-4k-instruct-GGUF"
         ),
         LocalModelInfo(
             id = "phi3.5_mini", displayName = "Phi-3.5 Mini 3.8B (Q4)",
-            description = "Microsoft Phi-3.5 Mini ~2.3GB. MIT via TheBloke.",
+            description = "Microsoft Phi-3.5 Mini ~2.3GB. MIT via bartowski.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Phi-3.5-mini-instruct-GGUF", "phi-3.5-mini-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Phi-3.5-mini-instruct-GGUF", "phi-3.5-mini-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 2_300_000_000, ramRequiredMb = 1536,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "phi3"), huggingFaceRepo = "TheBloke/Phi-3.5-mini-instruct-GGUF"
+            tags = listOf("chat", "phi3"), huggingFaceRepo = "bartowski/Phi-3.5-mini-instruct-GGUF"
         ),
         LocalModelInfo(
             id = "granite3_2b", displayName = "Granite 3.0 2B (Q4)",
             description = "IBM Granite 3.0 2B ~1.3GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Granite-3.0-2B-Instruct-GGUF", "granite-3.0-2b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Granite-3.0-2B-Instruct-GGUF", "granite-3.0-2b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 1_300_000_000, ramRequiredMb = 1024,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "granite", "ibm"), huggingFaceRepo = "TheBloke/Granite-3.0-2B-Instruct-GGUF"
+            tags = listOf("chat", "granite", "ibm"), huggingFaceRepo = "bartowski/Granite-3.0-2B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "zephyr_3b", displayName = "Zephyr 3B (Q4)",
             description = "HuggingFace Zephyr 3B ~1.8GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Zephyr-3B-GGUF", "zephyr-3b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Zephyr-3B-GGUF", "zephyr-3b.Q4_K_M.gguf"),
             fileSizeBytes = 1_800_000_000, ramRequiredMb = 1536,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "zephyr", "huggingface"), huggingFaceRepo = "TheBloke/Zephyr-3B-GGUF"
+            tags = listOf("chat", "zephyr", "huggingface"), huggingFaceRepo = "bartowski/Zephyr-3B-GGUF"
         ),
 
         // ======================================================================
@@ -281,46 +281,46 @@ object LocalModelCatalog {
             id = "mistral_7b_v0.2", displayName = "Mistral 7B v0.2 (Q4)",
             description = "Mistral 7B v0.2 Instruct ~4.1GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Mistral-7B-Instruct-v0.2-GGUF", "mistral-7b-instruct-v0.2.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Mistral-7B-Instruct-v0.2-GGUF", "mistral-7b-instruct-v0.2.Q4_K_M.gguf"),
             fileSizeBytes = 4_100_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "mistral", "recommended"), huggingFaceRepo = "TheBloke/Mistral-7B-Instruct-v0.2-GGUF"
+            tags = listOf("chat", "mistral", "recommended"), huggingFaceRepo = "bartowski/Mistral-7B-Instruct-v0.2-GGUF"
         ),
         LocalModelInfo(
             id = "mistral_7b_v0.3", displayName = "Mistral 7B v0.3 (Q4)",
             description = "Mistral 7B v0.3 Instruct ~4.1GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Mistral-7B-Instruct-v0.3-GGUF", "mistral-7b-instruct-v0.3.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Mistral-7B-Instruct-v0.3-GGUF", "mistral-7b-instruct-v0.3.Q4_K_M.gguf"),
             fileSizeBytes = 4_100_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "mistral"), huggingFaceRepo = "TheBloke/Mistral-7B-Instruct-v0.3-GGUF"
+            tags = listOf("chat", "mistral"), huggingFaceRepo = "bartowski/Mistral-7B-Instruct-v0.3-GGUF"
         ),
         LocalModelInfo(
             id = "openhermes_7b", displayName = "OpenHermes 2.5 7B (Q4)",
             description = "Fine-tuned Mistral 7B ~4.1GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/OpenHermes-2.5-Mistral-7B-GGUF", "openhermes-2.5-mistral-7b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/OpenHermes-2.5-Mistral-7B-GGUF", "openhermes-2.5-mistral-7b.Q4_K_M.gguf"),
             fileSizeBytes = 4_100_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "mistral", "openhermes"), huggingFaceRepo = "TheBloke/OpenHermes-2.5-Mistral-7B-GGUF"
+            tags = listOf("chat", "mistral", "openhermes"), huggingFaceRepo = "bartowski/OpenHermes-2.5-Mistral-7B-GGUF"
         ),
         LocalModelInfo(
             id = "openchat_7b", displayName = "OpenChat 3.5 7B (Q4)",
             description = "OpenChat 3.5 ~4.1GB. Apache 2.0 license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/OpenChat-3.5-0106-GGUF", "openchat-3.5-0106.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/OpenChat-3.5-0106-GGUF", "openchat-3.5-0106.Q4_K_M.gguf"),
             fileSizeBytes = 4_100_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "openchat"), huggingFaceRepo = "TheBloke/OpenChat-3.5-0106-GGUF"
+            tags = listOf("chat", "openchat"), huggingFaceRepo = "bartowski/OpenChat-3.5-0106-GGUF"
         ),
         LocalModelInfo(
             id = "dolphin_llama3_8b", displayName = "Dolphin 2.9 Llama 3 8B (Q4)",
             description = "Dolphin 2.9 ~4.5GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/dolphin-2.9-llama3-8b-GGUF", "dolphin-2.9-llama3-8b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/dolphin-2.9-llama3-8b-GGUF", "dolphin-2.9-llama3-8b.Q4_K_M.gguf"),
             fileSizeBytes = 4_500_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "dolphin"), huggingFaceRepo = "TheBloke/dolphin-2.9-llama3-8b-GGUF"
+            tags = listOf("chat", "dolphin"), huggingFaceRepo = "bartowski/dolphin-2.9-llama3-8b-GGUF"
         ),
         LocalModelInfo(
             id = "qwen2.5_7b", displayName = "Qwen 2.5 7B (Q4)",
@@ -334,19 +334,19 @@ object LocalModelCatalog {
             id = "deepseek_r1_distill_7b", displayName = "DeepSeek R1 Distill 7B (Q4)",
             description = "DeepSeek R1 reasoning distilled to Qwen 7B ~4.4GB. MIT.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/DeepSeek-R1-Distill-Qwen-7B-GGUF", "deepseek-r1-distill-qwen-7b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF", "deepseek-r1-distill-qwen-7b.Q4_K_M.gguf"),
             fileSizeBytes = 4_400_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "deepseek", "reasoning"), huggingFaceRepo = "TheBloke/DeepSeek-R1-Distill-Qwen-7B-GGUF"
+            tags = listOf("chat", "deepseek", "reasoning"), huggingFaceRepo = "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF"
         ),
         LocalModelInfo(
             id = "deepseek_coder_6.7b", displayName = "DeepSeek Coder 6.7B (Q4)",
             description = "DeepSeek Coder 6.7B ~3.9GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/DeepSeek-Coder-6.7B-Instruct-GGUF", "deepseek-coder-6.7b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/DeepSeek-Coder-6.7B-Instruct-GGUF", "deepseek-coder-6.7b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 3_900_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("code", "deepseek"), huggingFaceRepo = "TheBloke/DeepSeek-Coder-6.7B-Instruct-GGUF"
+            tags = listOf("code", "deepseek"), huggingFaceRepo = "bartowski/DeepSeek-Coder-6.7B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "qwen2.5_coder_7b", displayName = "Qwen 2.5 Coder 7B (Q4)",
@@ -360,82 +360,82 @@ object LocalModelCatalog {
             id = "yi_1.5_6b", displayName = "Yi 1.5 6B (Q4)",
             description = "Yi 1.5 6B Chat ~3.5GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Yi-1.5-6B-Chat-GGUF", "yi-1.5-6b-chat.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Yi-1.5-6B-Chat-GGUF", "yi-1.5-6b-chat.Q4_K_M.gguf"),
             fileSizeBytes = 3_500_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "yi"), huggingFaceRepo = "TheBloke/Yi-1.5-6B-Chat-GGUF"
+            tags = listOf("chat", "yi"), huggingFaceRepo = "bartowski/Yi-1.5-6B-Chat-GGUF"
         ),
         LocalModelInfo(
             id = "yi_1.5_9b", displayName = "Yi 1.5 9B (Q4)",
             description = "Yi 1.5 9B Chat ~5.2GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Yi-1.5-9B-Chat-GGUF", "yi-1.5-9b-chat.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Yi-1.5-9B-Chat-GGUF", "yi-1.5-9b-chat.Q4_K_M.gguf"),
             fileSizeBytes = 5_200_000_000, ramRequiredMb = 4096,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "yi"), huggingFaceRepo = "TheBloke/Yi-1.5-9B-Chat-GGUF"
+            tags = listOf("chat", "yi"), huggingFaceRepo = "bartowski/Yi-1.5-9B-Chat-GGUF"
         ),
         LocalModelInfo(
             id = "falcon2_11b", displayName = "Falcon 2 11B (Q4)",
             description = "TII Falcon 2 11B ~6.1GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Falcon2-11B-GGUF", "falcon2-11b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Falcon2-11B-GGUF", "falcon2-11b.Q4_K_M.gguf"),
             fileSizeBytes = 6_100_000_000, ramRequiredMb = 4096,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "falcon"), huggingFaceRepo = "TheBloke/Falcon2-11B-GGUF"
+            tags = listOf("chat", "falcon"), huggingFaceRepo = "bartowski/Falcon2-11B-GGUF"
         ),
         LocalModelInfo(
             id = "stablelm2_12b", displayName = "StableLM 2 12B (Q4)",
             description = "Stability AI's 12B model ~7GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/stablelm-2-12b-chat-GGUF", "stablelm-2-12b-chat.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/stablelm-2-12b-chat-GGUF", "stablelm-2-12b-chat.Q4_K_M.gguf"),
             fileSizeBytes = 7_000_000_000, ramRequiredMb = 4096,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "stable", "stability"), huggingFaceRepo = "TheBloke/stablelm-2-12b-chat-GGUF"
+            tags = listOf("chat", "stable", "stability"), huggingFaceRepo = "bartowski/stablelm-2-12b-chat-GGUF"
         ),
         LocalModelInfo(
             id = "starcoder2_7b", displayName = "StarCoder2 7B (Q4)",
             description = "Code gen 7B ~4.1GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/StarCoder2-7B-GGUF", "starcoder2-7b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/StarCoder2-7B-GGUF", "starcoder2-7b.Q4_K_M.gguf"),
             fileSizeBytes = 4_100_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("code", "starcoder"), huggingFaceRepo = "TheBloke/StarCoder2-7B-GGUF"
+            tags = listOf("code", "starcoder"), huggingFaceRepo = "bartowski/StarCoder2-7B-GGUF"
         ),
         LocalModelInfo(
             id = "phi3_small_7b", displayName = "Phi-3 Small 7B (Q4)",
-            description = "Microsoft Phi-3 Small 7B ~4.2GB. MIT via TheBloke.",
+            description = "Microsoft Phi-3 Small 7B ~4.2GB. MIT via bartowski.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Phi-3-small-8k-instruct-GGUF", "phi-3-small-8k-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Phi-3-small-8k-instruct-GGUF", "phi-3-small-8k-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 4_200_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "phi3"), huggingFaceRepo = "TheBloke/Phi-3-small-8k-instruct-GGUF"
+            tags = listOf("chat", "phi3"), huggingFaceRepo = "bartowski/Phi-3-small-8k-instruct-GGUF"
         ),
         LocalModelInfo(
             id = "gemma_1.1_7b_q4", displayName = "Gemma 1.1 7B (Q4)",
             description = "Google Gemma 1.1 7B ~4.3GB.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Gemma-1.1-7B-it-GGUF", "gemma-1.1-7b-it.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Gemma-1.1-7B-it-GGUF", "gemma-1.1-7b-it.Q4_K_M.gguf"),
             fileSizeBytes = 4_300_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "gemma"), huggingFaceRepo = "TheBloke/Gemma-1.1-7B-it-GGUF"
+            tags = listOf("chat", "gemma"), huggingFaceRepo = "bartowski/Gemma-1.1-7B-it-GGUF"
         ),
         LocalModelInfo(
             id = "granite3_8b", displayName = "Granite 3.0 8B (Q4)",
             description = "IBM Granite 3.0 8B ~4.5GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Granite-3.0-8B-Instruct-GGUF", "granite-3.0-8b-instruct.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Granite-3.0-8B-Instruct-GGUF", "granite-3.0-8b-instruct.Q4_K_M.gguf"),
             fileSizeBytes = 4_500_000_000, ramRequiredMb = 3072,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "granite", "ibm"), huggingFaceRepo = "TheBloke/Granite-3.0-8B-Instruct-GGUF"
+            tags = listOf("chat", "granite", "ibm"), huggingFaceRepo = "bartowski/Granite-3.0-8B-Instruct-GGUF"
         ),
         LocalModelInfo(
             id = "mistral_nemo_12b", displayName = "Mistral Nemo 12B (Q4)",
             description = "Mistral AI & NVIDIA Nemo 12B ~7GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Mistral-Nemo-Instruct-2407-GGUF", "mistral-nemo-instruct-2407.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Mistral-Nemo-Instruct-2407-GGUF", "mistral-nemo-instruct-2407.Q4_K_M.gguf"),
             fileSizeBytes = 7_000_000_000, ramRequiredMb = 4096,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF, isRecommended = true,
-            tags = listOf("chat", "mistral", "nemo"), huggingFaceRepo = "TheBloke/Mistral-Nemo-Instruct-2407-GGUF"
+            tags = listOf("chat", "mistral", "nemo"), huggingFaceRepo = "bartowski/Mistral-Nemo-Instruct-2407-GGUF"
         ),
 
         // ======================================================================
@@ -471,28 +471,28 @@ object LocalModelCatalog {
             id = "nous_solar_10.7b", displayName = "Nous Hermes 2 SOLAR 10.7B (Q4)",
             description = "SOLAR 10.7B finetune ~6.1GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Nous-Hermes-2-SOLAR-10.7B-GGUF", "nous-hermes-2-solar-10.7b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/Nous-Hermes-2-SOLAR-10.7B-GGUF", "nous-hermes-2-solar-10.7b.Q4_K_M.gguf"),
             fileSizeBytes = 6_100_000_000, ramRequiredMb = 6144,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "nous"), huggingFaceRepo = "TheBloke/Nous-Hermes-2-SOLAR-10.7B-GGUF"
+            tags = listOf("chat", "nous"), huggingFaceRepo = "bartowski/Nous-Hermes-2-SOLAR-10.7B-GGUF"
         ),
         LocalModelInfo(
             id = "deepseek_v2_lite", displayName = "DeepSeek V2 Lite (Q4)",
             description = "DeepSeek V2 Lite 16B ~12GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/DeepSeek-V2-Lite-Chat-GGUF", "deepseek-v2-lite-chat.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/DeepSeek-V2-Lite-Chat-GGUF", "deepseek-v2-lite-chat.Q4_K_M.gguf"),
             fileSizeBytes = 12_000_000_000, ramRequiredMb = 6144,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "deepseek", "v2"), huggingFaceRepo = "TheBloke/DeepSeek-V2-Lite-Chat-GGUF"
+            tags = listOf("chat", "deepseek", "v2"), huggingFaceRepo = "bartowski/DeepSeek-V2-Lite-Chat-GGUF"
         ),
         LocalModelInfo(
             id = "starcoder2_15b", displayName = "StarCoder2 15B (Q4)",
             description = "Code gen 15B ~8.7GB. MIT license.",
             source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/StarCoder2-15B-GGUF", "starcoder2-15b.Q4_K_M.gguf"),
+            downloadUrl = hfBlake("bartowski/StarCoder2-15B-GGUF", "starcoder2-15b.Q4_K_M.gguf"),
             fileSizeBytes = 8_700_000_000, ramRequiredMb = 6144,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("code", "starcoder", "large"), huggingFaceRepo = "TheBloke/StarCoder2-15B-GGUF"
+            tags = listOf("code", "starcoder", "large"), huggingFaceRepo = "bartowski/StarCoder2-15B-GGUF"
         ),
 
         // ======================================================================

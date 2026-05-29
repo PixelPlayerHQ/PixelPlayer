@@ -865,15 +865,23 @@ fun LocalModelCard(
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(32.dp)
                             )
-                            Text(
-                                text = status.message,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                maxLines = 2
-                            )
                             Spacer(modifier = Modifier.height(4.dp))
-                            FilledTonalButton(onClick = onDownload, enabled = enabled) {
-                                Text("Retry")
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            ) {
+                                Text(
+                                    text = status.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilledTonalButton(onClick = onDownload, enabled = enabled) {
+                                    Text("Retry Download")
+                                }
                             }
                         }
                     }

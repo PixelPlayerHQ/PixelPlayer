@@ -691,7 +691,6 @@ fun AdvancedSettingsCard(
 
 // ===== ADVANCED GENERATION PARAMETERS =====
 
-@Composable
 private data class ParamSliderDef(
     val label: String,
     val value: Int,
@@ -717,6 +716,7 @@ private fun ParamSlider(param: ParamSliderDef) {
     }
 }
 
+@Composable
 fun AdvancedGenerationCard(
     topK: Int, topP: Int, repetitionPenalty: Int,
     frequencyPenalty: Int, presencePenalty: Int,

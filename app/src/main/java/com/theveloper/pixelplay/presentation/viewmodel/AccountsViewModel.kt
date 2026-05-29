@@ -114,12 +114,12 @@ class AccountsViewModel @Inject constructor(
         ) { it.toList() },
         loggingOutServices
     ) { states, activeLogouts ->
-        val (telegramConnected, telegramChannelCount) = states[0] as Pair<Boolean, Int>
-        val (gDriveConnected, gDriveFolderCount) = states[1] as Pair<Boolean, Int>
-        val (neteaseConnected, neteasePlaylistCount) = states[2] as Pair<Boolean, Int>
-        val (qqConnected, qqPlaylistCount) = states[3] as Pair<Boolean, Int>
-        val (navidromeConnected, navidromePlaylistCount) = states[4] as Pair<Boolean, Int>
-        val (jellyfinConnected, jellyfinPlaylistCount) = states[5] as Pair<Boolean, Int>
+        val (telegramConnected, telegramChannelCount) = states[0]
+        val (gDriveConnected, gDriveFolderCount) = states[1]
+        val (neteaseConnected, neteasePlaylistCount) = states[2]
+        val (qqConnected, qqPlaylistCount) = states[3]
+        val (navidromeConnected, navidromePlaylistCount) = states[4]
+        val (jellyfinConnected, jellyfinPlaylistCount) = states[5]
 
         val connectedAccounts = buildList {
             if (telegramConnected) {

@@ -1033,7 +1033,7 @@ class CastTransferStateHolder @Inject constructor(
                 instanceFollowRedirects = false
                 requestMethod = method
             }
-            val code = connection?.responseCode ?: -1
+            val code = connection.responseCode
             code in 200..299
         }.getOrDefault(false).also {
             connection?.disconnect()

@@ -331,7 +331,7 @@ class ConnectivityStateHolder @Inject constructor(
             ) {
                 val name = device.productName?.toString()?.trim().orEmpty()
                 if (name.isNotEmpty() && !isOwnBluetoothDeviceName(name, localDeviceNames)) {
-                    val address = device.address?.trim().orEmpty().takeIf { it.isNotEmpty() }
+                    val address = device.address.trim().orEmpty().takeIf { it.isNotEmpty() }
                     val key = bluetoothDeviceKey(address, name)
                     connectedDevices[key] = BluetoothAudioDeviceState(
                         name = name,

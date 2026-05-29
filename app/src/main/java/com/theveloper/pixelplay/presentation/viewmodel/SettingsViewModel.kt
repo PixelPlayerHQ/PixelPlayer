@@ -315,74 +315,74 @@ class SettingsViewModel @Inject constructor(
 
 
 
-    val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
+    val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.DEEPSEEK)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
+    val deepseekModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.DEEPSEEK)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val deepseekSystemPrompt: StateFlow<String> = aiPreferencesRepository.deepseekSystemPrompt
+    val deepseekSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.DEEPSEEK)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT)
 
-    val groqApiKey: StateFlow<String> = aiPreferencesRepository.groqApiKey
+    val groqApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.GROQ)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val groqModel: StateFlow<String> = aiPreferencesRepository.groqModel
+    val groqModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.GROQ)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val groqSystemPrompt: StateFlow<String> = aiPreferencesRepository.groqSystemPrompt
+    val groqSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.GROQ)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_GROQ_SYSTEM_PROMPT)
 
-    val mistralApiKey: StateFlow<String> = aiPreferencesRepository.mistralApiKey
+    val mistralApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.MISTRAL)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val mistralModel: StateFlow<String> = aiPreferencesRepository.mistralModel
+    val mistralModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.MISTRAL)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val mistralSystemPrompt: StateFlow<String> = aiPreferencesRepository.mistralSystemPrompt
+    val mistralSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.MISTRAL)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_MISTRAL_SYSTEM_PROMPT)
 
-    val nvidiaApiKey: StateFlow<String> = aiPreferencesRepository.nvidiaApiKey
+    val nvidiaApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.NVIDIA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val nvidiaModel: StateFlow<String> = aiPreferencesRepository.nvidiaModel
+    val nvidiaModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.NVIDIA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val nvidiaSystemPrompt: StateFlow<String> = aiPreferencesRepository.nvidiaSystemPrompt
+    val nvidiaSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.NVIDIA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_NVIDIA_SYSTEM_PROMPT)
 
-    val kimiApiKey: StateFlow<String> = aiPreferencesRepository.kimiApiKey
+    val kimiApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.KIMI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val kimiModel: StateFlow<String> = aiPreferencesRepository.kimiModel
+    val kimiModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.KIMI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val kimiSystemPrompt: StateFlow<String> = aiPreferencesRepository.kimiSystemPrompt
+    val kimiSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.KIMI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_KIMI_SYSTEM_PROMPT)
 
-    val glmApiKey: StateFlow<String> = aiPreferencesRepository.glmApiKey
+    val glmApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.GLM)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val glmModel: StateFlow<String> = aiPreferencesRepository.glmModel
+    val glmModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.GLM)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val glmSystemPrompt: StateFlow<String> = aiPreferencesRepository.glmSystemPrompt
+    val glmSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.GLM)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_GLM_SYSTEM_PROMPT)
 
-    val openaiApiKey: StateFlow<String> = aiPreferencesRepository.openaiApiKey
+    val openaiApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.OPENAI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val openaiModel: StateFlow<String> = aiPreferencesRepository.openaiModel
+    val openaiModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.OPENAI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val openaiSystemPrompt: StateFlow<String> = aiPreferencesRepository.openaiSystemPrompt
+    val openaiSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.OPENAI)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OPENAI_SYSTEM_PROMPT)
 
-    val openrouterApiKey: StateFlow<String> = aiPreferencesRepository.openrouterApiKey
+    val openrouterApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.OPENROUTER)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val openrouterModel: StateFlow<String> = aiPreferencesRepository.openrouterModel
+    val openrouterModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.OPENROUTER)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val openrouterSystemPrompt: StateFlow<String> = aiPreferencesRepository.openrouterSystemPrompt
+    val openrouterSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.OPENROUTER)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OPENROUTER_SYSTEM_PROMPT)
 
-    val anthropicApiKey: StateFlow<String> = aiPreferencesRepository.anthropicApiKey
+    val anthropicApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.ANTHROPIC)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val anthropicModel: StateFlow<String> = aiPreferencesRepository.anthropicModel
+    val anthropicModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.ANTHROPIC)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val anthropicSystemPrompt: StateFlow<String> = aiPreferencesRepository.anthropicSystemPrompt
+    val anthropicSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.ANTHROPIC)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_ANTHROPIC_SYSTEM_PROMPT)
 
-    val ollamaApiKey: StateFlow<String> = aiPreferencesRepository.ollamaApiKey
+    val ollamaApiKey: StateFlow<String> = aiPreferencesRepository.getApiKey(AiProvider.OLLAMA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val ollamaModel: StateFlow<String> = aiPreferencesRepository.ollamaModel
+    val ollamaModel: StateFlow<String> = aiPreferencesRepository.getModel(AiProvider.OLLAMA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.ollamaSystemPrompt
+    val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.getSystemPrompt(AiProvider.OLLAMA)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OLLAMA_SYSTEM_PROMPT)
 
     // Local Model StateFlows

@@ -62,6 +62,7 @@ class AiClientFactory @Inject constructor() {
                 val endpoint = customEndpoint.ifBlank { provider.defaultEndpoint }
                 OllamaAiClient(endpoint, apiKey)
             }
+            AiProvider.LOCAL -> throw IllegalArgumentException("LOCAL provider does not use AiClient - use LocalModelManager for on-device inference")
         }
     }
 }

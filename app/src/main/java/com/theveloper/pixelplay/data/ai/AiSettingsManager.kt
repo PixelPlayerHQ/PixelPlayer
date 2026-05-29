@@ -90,11 +90,11 @@ class AiSettingsManager @Inject constructor(
      */
     fun refreshAvailableModels() {
         val capabilities = aiDeviceCapabilities.getCapabilities()
-        val catalogModels = LocalModelCatalog.forDevice()
+        val catalogModels = LocalModelCatalog.all
 
-        // Filter by device capabilities
-        val filteredModels = catalogModels.filter { model ->
-            capabilities.recommendedModelSizeMb >= (model.fileSizeBytes / (1024 * 1024))
+        // Filter by device capabilities - only show models that fit in device RAM
+        val filteredModels = catalogModels.filter { model: LocalModelInfo ->
+            capabilities.maxModelSizeMb >= (model.fileSizeBytes / (1024 * 1024))
         }
 
         _availableModels.value = filteredModels
@@ -331,8 +331,8 @@ class AiSettingsManager @Inject constructor(
     /**
      * Gets the status of a specific local model.
      */
-    suspend fun getModelStatus(modelId: String): ModelStatus {
-        return localMlManager.getStatus(modelId)
+    fun getModelStatus(modelId: String): ModelStatus {
+        return localMlManager.getModelStatus(modelId)
     }
 
     /**

@@ -35,7 +35,7 @@ enum class ModelType {
     CLASSIFICATION  // For genre classification
 }
 
-enum class ModelFormat {
+enum class ModelFormat(val extension: String) {
     TFLITE("tflite"),
     ONNX("onnx"),
     GGUF("gguf"),

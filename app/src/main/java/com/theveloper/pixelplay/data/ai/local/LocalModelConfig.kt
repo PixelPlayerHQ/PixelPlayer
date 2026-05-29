@@ -1,12 +1,8 @@
 package com.theveloper.pixelplay.data.ai.local
 
-import android.os.Build
-
 /**
- * Represents a downloadable / importable local AI model.
- *
- * Size tiers are chosen dynamically based on available RAM so that
- * the user is only offered models the device can comfortably run.
+ * Configuration for local AI models that can run on-device.
+ * Organized by device capability tiers.
  */
 data class LocalModelInfo(
     val id: String,
@@ -22,233 +18,238 @@ data class LocalModelInfo(
     val isRecommended: Boolean = false,
     val huggingFaceRepo: String? = null,
     val ollamaTag: String? = null,
+    val minAndroidVersion: Int = 24  // Minimum Android version required
 )
 
-enum class ModelSource(val displayName: String) {
-    TFLITE("TensorFlow Lite"),
-    LITERT("Google AI Edge (LiteRT)"),
-    MLKIT("ML Kit"),
-    HUGGING_FACE("Hugging Face Hub"),
-    OLLAMA("Ollama Local"),
-    ONNX("ONNX Runtime"),
-    USER_IMPORTED("User Imported"),
+enum class ModelSource {
+    TFLITE,      // TensorFlow Lite models
+    HUGGINGFACE, // Hugging Face models (ONNX format)
+    ONNX,        // ONNX Runtime models
+    USER_IMPORTED // User imported custom models
 }
 
-enum class ModelType(val displayName: String) {
-    MUSIC_RECOMMENDATION("Music Recommendation"),
-    SENTIMENT("Mood & Sentiment"),
-    GENRE_CLASSIFICATION("Genre Classification"),
-    EMBEDDING("Audio Embedding"),
-    GENERAL_CHAT("General Chat / Q&A"),
-    TRANSLATION("Translation"),
+enum class ModelType {
+    EMBEDDING,      // For song similarity/recommendations
+    TEXT_GENERATION, // For chat/playlist generation
+    SENTIMENT,      // For mood analysis
+    CLASSIFICATION  // For genre classification
 }
 
-enum class ModelFormat(val extension: String) {
+enum class ModelFormat {
     TFLITE("tflite"),
     ONNX("onnx"),
-    BIN("bin"),
     GGUF("gguf"),
-    LITERT("litert"),
+    BIN("bin")
 }
 
-/** Current download / readiness state for a model. */
 sealed class ModelStatus {
     object NotDownloaded : ModelStatus()
-    data class Downloading(val progressPercent: Int, val bytesDownloaded: Long) : ModelStatus()
-    object Verifying : ModelStatus()
+    data class Downloading(val progress: Int, val downloaded: Long) : ModelStatus()
     object Ready : ModelStatus()
     data class Error(val message: String) : ModelStatus()
-    object Imported : ModelStatus()
+    object Importing : ModelStatus()
 }
 
-/** Checks device RAM and returns appropriate model size tier (MB). */
-fun recommendedModelSizeMb(): Int {
-    val totalRamMb = Runtime.getRuntime().maxMemory() / (1024 * 1024)
-    return when {
-        totalRamMb >= 3072 -> 500   // 3 GB+ → up to 500 MB model
-        totalRamMb >= 1536 -> 150   // 1.5 GB → up to 150 MB
-        else               -> 50    // low-end → up to 50 MB
-    }
+/**
+ * Device RAM tiers for model recommendations
+ */
+enum class DeviceTier(val minRamMb: Int, val maxRamMb: Int, val displayName: String) {
+    LOW_END(512, 2048, "Low End (2GB RAM)"),
+    MID_RANGE(2048, 4096, "Mid Range (2-4GB RAM)"),
+    HIGH_END(4096, 8192, "High End (4-8GB RAM)"),
+    FLAGSHIP(8192, Int.MAX_VALUE, "Flagship (8GB+ RAM)")
 }
 
-/** Curated catalogue of small, music-focused models suitable for on-device use. */
+/**
+ * Local model catalog with models for all device types
+ */
 object LocalModelCatalog {
 
+    private fun deviceTier(): DeviceTier {
+        val totalRam = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        return when {
+            totalRam >= 8192 -> DeviceTier.FLAGSHIP
+            totalRam >= 4096 -> DeviceTier.HIGH_END
+            totalRam >= 2048 -> DeviceTier.MID_RANGE
+            else -> DeviceTier.LOW_END
+        }
+    }
+
     val all: List<LocalModelInfo> = listOf(
-        // Tiny models for low-end devices (< 50MB)
-        // Note: These are placeholder URLs - in production, replace with actual downloadable model URLs
+        // ===== LOW END DEVICES (512MB - 2GB RAM) =====
         LocalModelInfo(
-            id = "music_recommender_mobilenet_tflite",
-            displayName = "MusicNet Recommender (TFLite)",
-            description = "Lightweight music taste model based on MobileNet embeddings. Works fully offline.",
-            source = ModelSource.TFLITE,
-            downloadUrl = "",  // Placeholder - requires actual model hosting
-            fileSizeBytes = 6_432_000L,
-            ramRequiredMb = 64,
-            type = ModelType.MUSIC_RECOMMENDATION,
-            format = ModelFormat.TFLITE,
-            tags = listOf("fast", "offline", "recommendation"),
-            isRecommended = true,
-        ),
-        LocalModelInfo(
-            id = "tiny_genre_tflite",
-            displayName = "Tiny Genre Classifier",
-            description = "Ultra-light genre classification. ~4 MB, works on any device.",
-            source = ModelSource.TFLITE,
-            downloadUrl = "",  // Placeholder - requires actual model hosting
-            fileSizeBytes = 4_200_000L,
-            ramRequiredMb = 32,
-            type = ModelType.GENRE_CLASSIFICATION,
-            format = ModelFormat.TFLITE,
-            tags = listOf("genre", "tiny", "fast"),
-            isRecommended = true,
-        ),
-        LocalModelInfo(
-            id = "mood_tiny_tflite",
-            displayName = "Mood Analyzer Tiny",
-            description = "Compact mood detection model. ~8 MB.",
-            source = ModelSource.TFLITE,
-            downloadUrl = "",  // Placeholder - requires actual model hosting
-            fileSizeBytes = 8_000_000L,
-            ramRequiredMb = 48,
-            type = ModelType.SENTIMENT,
-            format = ModelFormat.TFLITE,
-            tags = listOf("mood", "tiny", "text"),
-            isRecommended = true,
-        ),
-
-        // Small models (50-150MB)
-        LocalModelInfo(
-            id = "genre_classifier_tflite",
-            displayName = "Genre Classifier Lite",
-            description = "Classifies audio fingerprints into genre tags. ~12 MB, runs on any device.",
-            source = ModelSource.TFLITE,
-            downloadUrl = "",  // Placeholder
-            fileSizeBytes = 12_300_000L,
-            ramRequiredMb = 128,
-            type = ModelType.GENRE_CLASSIFICATION,
-            format = ModelFormat.TFLITE,
-            tags = listOf("genre", "audio", "classification"),
-        ),
-        LocalModelInfo(
-            id = "sentiment_mobileBERT_tflite",
-            displayName = "Mood Analyzer (MobileBERT)",
-            description = "Analyzes listening context and mood based on song metadata. ~25 MB.",
-            source = ModelSource.TFLITE,
-            downloadUrl = "",  // Placeholder
-            fileSizeBytes = 25_600_000L,
-            ramRequiredMb = 256,
-            type = ModelType.SENTIMENT,
-            format = ModelFormat.TFLITE,
-            tags = listOf("mood", "bert", "text"),
-        ),
-        LocalModelInfo(
-            id = "mini_lm_huggingface",
-            displayName = "MiniLM (Hugging Face)",
-            description = "Small but powerful embedding model for music recommendations. ~45 MB.",
-            source = ModelSource.HUGGING_FACE,
+            id = "allminilm_tiny",
+            displayName = "Tiny Embeddings",
+            description = "Ultra-light embedding model for basic similarity. ~25MB.",
+            source = ModelSource.HUGGINGFACE,
             downloadUrl = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx",
-            fileSizeBytes = 45_000_000L,
+            fileSizeBytes = 25_000_000,
             ramRequiredMb = 128,
             type = ModelType.EMBEDDING,
             format = ModelFormat.ONNX,
-            huggingFaceRepo = "sentence-transformers/all-MiniLM-L6-v2",
-            tags = listOf("embedding", "huggingface", "mini"),
+            tags = listOf("embedding", "tiny", "fast"),
             isRecommended = true,
+            huggingFaceRepo = "sentence-transformers/all-MiniLM-L6-v2"
+        ),
+        LocalModelInfo(
+            id = "bge_tiny",
+            displayName = "BGE Tiny",
+            description = "Small but powerful embeddings. ~40MB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/onnx/model_quantized.onnx",
+            fileSizeBytes = 40_000_000,
+            ramRequiredMb = 256,
+            type = ModelType.EMBEDDING,
+            format = ModelFormat.ONNX,
+            tags = listOf("embedding", "bge", "small"),
+            isRecommended = true,
+            huggingFaceRepo = "BAAI/bge-small-en-v1.5"
+        ),
+        LocalModelInfo(
+            id = "phi3_quantized",
+            displayName = "Phi-3 Mini (Quantized)",
+            description = "Microsoft's efficient Phi-3, quantized for mobile. ~400MB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf",
+            fileSizeBytes = 400_000_000,
+            ramRequiredMb = 512,
+            type = ModelType.TEXT_GENERATION,
+            format = ModelFormat.GGUF,
+            tags = listOf("chat", "phi3", "microsoft"),
+            isRecommended = true,
+            huggingFaceRepo = "microsoft/Phi-3-mini-4k-instruct-gguf"
         ),
 
-        // Medium models (150-500MB)
+        // ===== MID RANGE DEVICES (2GB - 4GB RAM) =====
         LocalModelInfo(
-            id = "music_embedding_litert",
-            displayName = "Music Embedding (Google LiteRT)",
-            description = "Google AI Edge model for rich music embeddings. Requires 512 MB+ RAM.",
-            source = ModelSource.LITERT,
-            downloadUrl = "",  // Placeholder - LiteRT models need proper hosting
-            fileSizeBytes = 148_000_000L,
+            id = "allminilm",
+            displayName = "MiniLM Embeddings",
+            description = "Balanced embedding model. ~45MB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx",
+            fileSizeBytes = 45_000_000,
+            ramRequiredMb = 256,
+            type = ModelType.EMBEDDING,
+            format = ModelFormat.ONNX,
+            tags = listOf("embedding", "balanced"),
+            huggingFaceRepo = "sentence-transformers/all-MiniLM-L6-v2"
+        ),
+        LocalModelInfo(
+            id = "bge_base",
+            displayName = "BGE Base",
+            description = "Better quality embeddings. ~170MB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/onnx/model.onnx",
+            fileSizeBytes = 170_000_000,
             ramRequiredMb = 512,
             type = ModelType.EMBEDDING,
-            format = ModelFormat.LITERT,
-            tags = listOf("embedding", "google", "ai-edge"),
-        ),
-        LocalModelInfo(
-            id = "distilbert_huggingface",
-            displayName = "DistilBERT Base",
-            description = "Distilled BERT for better text understanding. ~250 MB.",
-            source = ModelSource.HUGGING_FACE,
-            downloadUrl = "",  // Placeholder - ONNX model needs proper URL
-            fileSizeBytes = 250_000_000L,
-            ramRequiredMb = 512,
-            type = ModelType.SENTIMENT,
             format = ModelFormat.ONNX,
-            huggingFaceRepo = "distilbert/distilbert-base-uncased",
-            tags = listOf("bert", "text", "sentiment"),
+            tags = listOf("embedding", "bge", "quality"),
+            huggingFaceRepo = "BAAI/bge-base-en-v1.5"
         ),
-
-        // Larger models for powerful devices (500MB+)
-        // Ollama models - these are downloaded via Ollama app, not direct URLs
         LocalModelInfo(
-            id = "tinyllama_ollama",
-            displayName = "TinyLlama Chat (Ollama)",
-            description = "Small 1.1B parameter chat model via local Ollama server. Excellent for playlists Q&A.",
-            source = ModelSource.OLLAMA,
-            downloadUrl = "",  // Ollama manages its own downloads
-            fileSizeBytes = 640_000_000L,
-            ramRequiredMb = 1536,
-            type = ModelType.GENERAL_CHAT,
+            id = "gemma_2b",
+            displayName = "Gemma 2B",
+            description = "Google's Gemma 2B instruction model. ~1.5GB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/google/gemma-2b-it/resolve/main/gemma-2b-it-q4.gguf",
+            fileSizeBytes = 1_500_000_000,
+            ramRequiredMb = 2048,
+            type = ModelType.TEXT_GENERATION,
             format = ModelFormat.GGUF,
-            ollamaTag = "tinyllama",
-            tags = listOf("chat", "ollama", "llm"),
+            tags = listOf("chat", "gemma", "google"),
+            huggingFaceRepo = "google/gemma-2b-it"
         ),
         LocalModelInfo(
-            id = "phi3_mini_huggingface",
-            displayName = "Phi-3 Mini (Hugging Face)",
-            description = "Microsoft Phi-3 Mini — tiny but capable chat model.",
-            source = ModelSource.HUGGING_FACE,
-            downloadUrl = "",  // Placeholder - GGUF model needs proper URL
-            fileSizeBytes = 2_300_000_000L,
+            id = "llama3_8b_quantized",
+            displayName = "Llama 3 8B (Quantized)",
+            description = "Meta's Llama 3 8B, quantized. ~4.5GB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/meta-llama/Llama-3-8B-Instruct-Q4_K_M/resolve/main/Llama-3-8B-Instruct-Q4_K_M.gguf",
+            fileSizeBytes = 4_500_000_000,
             ramRequiredMb = 3072,
-            type = ModelType.GENERAL_CHAT,
+            type = ModelType.TEXT_GENERATION,
             format = ModelFormat.GGUF,
-            huggingFaceRepo = "microsoft/Phi-3-mini-4k-instruct-gguf",
-            tags = listOf("phi3", "huggingface", "llm"),
+            tags = listOf("chat", "llama", "meta"),
+            huggingFaceRepo = "meta-llama/Llama-3-8B-Instruct-Q4_K_M"
         ),
 
-        // User-imported model placeholder
+        // ===== HIGH END DEVICES (4GB - 8GB RAM) =====
+        LocalModelInfo(
+            id = "bge_large",
+            displayName = "BGE Large",
+            description = "High quality embeddings. ~560MB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/BAAI/bge-large-en-v1.5/resolve/main/onnx/model.onnx",
+            fileSizeBytes = 560_000_000,
+            ramRequiredMb = 1024,
+            type = ModelType.EMBEDDING,
+            format = ModelFormat.ONNX,
+            tags = listOf("embedding", "bge", "large", "quality"),
+            huggingFaceRepo = "BAAI/bge-large-en-v1.5"
+        ),
+        LocalModelInfo(
+            id = "qwen2_72b",
+            displayName = "Qwen 2 7B",
+            description = "Alibaba's Qwen 2 7B. ~4GB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/Qwen/Qwen2-7B-Instruct-GGUF/Qwen2-7B-Instruct-Q4_K_M.gguf",
+            fileSizeBytes = 4_000_000_000,
+            ramRequiredMb = 4096,
+            type = ModelType.TEXT_GENERATION,
+            format = ModelFormat.GGUF,
+            tags = listOf("chat", "qwen", "alibaba"),
+            huggingFaceRepo = "Qwen/Qwen2-7B-Instruct-GGUF"
+        ),
+
+        // ===== FLAGSHIP DEVICES (8GB+ RAM) =====
+        LocalModelInfo(
+            id = "llama3_70b",
+            displayName = "Llama 3 70B (Quantized)",
+            description = "Meta's Llama 3 70B. ~40GB.",
+            source = ModelSource.HUGGINGFACE,
+            downloadUrl = "https://huggingface.co/meta-llama/Llama-3-70B-Instruct-Q5_K_M/resolve/main/Llama-3-70B-Instruct-Q5_K_M.gguf",
+            fileSizeBytes = 40_000_000_000,
+            ramRequiredMb = 8192,
+            type = ModelType.TEXT_GENERATION,
+            format = ModelFormat.GGUF,
+            tags = listOf("chat", "llama", "large", "meta"),
+            huggingFaceRepo = "meta-llama/Llama-3-70B-Instruct-Q5_K_M"
+        ),
+
+        // ===== USER IMPORT =====
         LocalModelInfo(
             id = "user_imported",
-            displayName = "Custom Model (Import)",
-            description = "Import your own model file (.tflite, .onnx, .gguf)",
+            displayName = "Import Custom Model",
+            description = "Import your own .onnx, .tflite, or .gguf model file.",
             source = ModelSource.USER_IMPORTED,
             downloadUrl = "",
             fileSizeBytes = 0,
             ramRequiredMb = 0,
-            type = ModelType.GENERAL_CHAT,
+            type = ModelType.TEXT_GENERATION,
             format = ModelFormat.BIN,
-            tags = listOf("custom", "import"),
-        ),
+            tags = listOf("custom", "import")
+        )
     )
 
-    /** Filter to models the device can likely run based on recommended size tier. */
-    fun forDevice(): List<LocalModelInfo> {
-        val maxMb = recommendedModelSizeMb()
-        return all.filter { it.fileSizeBytes / (1024 * 1024) <= maxMb }
+    /** Get models suitable for current device */
+    fun forCurrentDevice(): List<LocalModelInfo> {
+        val tier = deviceTier()
+        return all.filter { it.ramRequiredMb <= tier.maxRamMb }
     }
 
-    /** Get models sorted by size (smallest first) */
-    fun sortedBySize(): List<LocalModelInfo> = all.sortedBy { it.fileSizeBytes }
+    /** Get recommended models for current device */
+    fun recommended(): List<LocalModelInfo> = forCurrentDevice().filter { it.isRecommended }
 
-    /** Get recommended models for the current device */
-    fun recommended(): List<LocalModelInfo> = all.filter { it.isRecommended }
+    /** Get embedding models only */
+    fun embeddingModels(): List<LocalModelInfo> = all.filter { it.type == ModelType.EMBEDDING }
 
-    /** Get models by source */
-    fun bySource(source: ModelSource): List<LocalModelInfo> = all.filter { it.source == source }
+    /** Get text generation models only */
+    fun textModels(): List<LocalModelInfo> = all.filter { it.type == ModelType.TEXT_GENERATION }
 
-    /** Get models by type */
-    fun byType(type: ModelType): List<LocalModelInfo> = all.filter { it.type == type }
+    /** Get downloadable models (not user imported) */
+    fun downloadable(): List<LocalModelInfo> = all.filter { it.source != ModelSource.USER_IMPORTED && it.downloadUrl.isNotBlank() }
 
-    /** Get models that have valid download URLs */
-    fun downloadable(): List<LocalModelInfo> = all.filter { it.downloadUrl.isNotBlank() }
-
-    /** Get Ollama-compatible models */
-    fun ollamaModels(): List<LocalModelInfo> = all.filter { it.source == ModelSource.OLLAMA }
+    /** Get model by ID */
+    fun byId(id: String): LocalModelInfo? = all.find { it.id == id }
 }

@@ -920,6 +920,7 @@ fun SettingsCategoryScreen(
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENROUTER -> "OpenRouter (openrouter.ai)"
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.ANTHROPIC -> "Anthropic Claude (anthropic.com)"
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OLLAMA -> "Ollama (localhost:11434)"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.LOCAL -> "Local Model (Device)"
                                 }
                                 
                                 AiApiKeyItem(

@@ -1047,10 +1047,9 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadLocalModels() {
         viewModelScope.launch {
-            val capabilities = aiDeviceCapabilities.getCapabilities()
             val localModels = LocalModelCatalog.all.filter { model ->
                 val modelSizeMb = (model.fileSizeBytes / (1024 * 1024)).toInt()
-                capabilities.canRunModel(modelSizeMb) || modelSizeMb <= 50 // Always allow very small models
+                aiDeviceCapabilities.canRunModel(modelSizeMb) || modelSizeMb <= 50 // Always allow very small models
             }
             _uiState.update { it.copy(availableLocalModels = localModels) }
 
@@ -1425,12 +1424,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setMaxSongsForContext(maxSongs: Int) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setMaxSongsForContext(maxSongs.coerceIn(AiPreferencesRepository.MIN_SONGS_FOR_CONTEXT, AiPreferencesRepository.MAX_SONGS_FOR_CONTEXT))
-        }
-    }
-
     fun setLocalMlSelectedModelId(modelId: String) {
         viewModelScope.launch {
             aiPreferencesRepository.setLocalMlSelectedModelId(modelId)
@@ -1504,6 +1497,8 @@ class SettingsViewModel @Inject constructor(
     fun getLocalModelDownloadUrl(modelId: String): String? {
         return availableLocalModels.value.find { it.id == modelId }?.downloadUrl
     }
+
+    /**
      * Performs a full library rescan - rescans all files from scratch.
      * Use when songs are missing or metadata is incorrect.
      */

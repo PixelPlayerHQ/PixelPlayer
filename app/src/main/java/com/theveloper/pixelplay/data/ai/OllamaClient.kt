@@ -1,12 +1,8 @@
 package com.theveloper.pixelplay.data.ai
 
 import android.content.Context
-import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -20,256 +16,199 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Client for local Ollama server integration.
- * Supports running local LLMs for playlist generation and chat.
+ * Client for Ollama server integration.
+ * Supports connecting to local or remote Ollama servers.
+ * Can optionally use API key for protected servers.
  */
 @Singleton
 class OllamaClient @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiLogger: AiLogger
 ) {
-    private var baseUrl: String = "http://localhost:11434"
+    companion object {
+        const val DEFAULT_BASE_URL = "http://localhost:11434"
+    }
+
+    // User-configurable settings (loaded from preferences)
+    private var baseUrl: String = DEFAULT_BASE_URL
+    private var apiKey: String = ""
+    private var model: String = "llama3"
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(180, TimeUnit.SECONDS) // Higher timeout for model generation
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     /**
-     * Sets the Ollama server endpoint.
+     * Configure the Ollama server URL
      */
-    fun setEndpoint(url: String) {
-        baseUrl = url.trimEnd('/')
+    fun configure(endpoint: String, apiKey: String = "", defaultModel: String = "llama3") {
+        this.baseUrl = endpoint.trimEnd('/')
+        this.apiKey = apiKey
+        this.model = defaultModel
+        Timber.d("Ollama configured: $baseUrl, model: $model")
     }
 
     /**
-     * Checks if Ollama server is available.
+     * Gets current configuration
      */
-    fun checkConnection(): Boolean {
-        return try {
+    fun getConfiguration(): OllamaConfig = OllamaConfig(baseUrl, apiKey, model)
+
+    /**
+     * Gets available models from the configured server
+     */
+    suspend fun fetchModels(): List<String> = withContext(Dispatchers.IO) {
+        try {
             val request = Request.Builder()
                 .url("$baseUrl/api/tags")
+                .apply { addAuthHeader() }
                 .get()
                 .build()
 
             client.newCall(request).execute().use { response ->
-                response.isSuccessful
+                if (!response.isSuccessful) {
+                    Timber.w("Failed to fetch models: ${response.code}")
+                    return@withContext listOf(model)
+                }
+
+                val body = response.body?.string() ?: return@withContext listOf(model)
+                val json = JSONObject(body)
+                val models = json.getJSONArray("models")
+
+                val modelNames = mutableListOf<String>()
+                for (i in 0 until models.length()) {
+                    modelNames.add(models.getJSONObject(i).getString("name"))
+                }
+                modelNames.ifEmpty { listOf(model) }
             }
         } catch (e: Exception) {
-            Timber.tag("OllamaClient").w(e, "Connection check failed")
+            Timber.e(e, "Failed to fetch Ollama models")
+            listOf(model)
+        }
+    }
+
+    /**
+     * Check if server is reachable
+     */
+    fun isServerAvailable(): Boolean {
+        return try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/tags")
+                .apply { addAuthHeader() }
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            Timber.w(e, "Ollama server not available")
             false
         }
     }
 
     /**
-     * Gets available models from Ollama server.
+     * Generate content using Ollama
      */
-    fun getAvailableModels(): Flow<Result<List<String>>> = flow {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/tags")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                emit(Result.failure(Exception("Failed to get models: ${response.code}")))
-                return@flow
-            }
-
-            val body = response.body?.string() ?: ""
-            val json = JSONObject(body)
-            val models = json.getJSONArray("models")
-            val modelNames = mutableListOf<String>()
-
-            for (i in 0 until models.length()) {
-                val model = models.getJSONObject(i)
-                modelNames.add(model.getString("name"))
-            }
-
-            emit(Result.success(modelNames))
-        } catch (e: Exception) {
-            Timber.tag("OllamaClient").e(e, "Failed to get models")
-            emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO)
-
-    /**
-     * Generates content using Ollama with streaming support.
-     */
-    fun generate(
-        model: String,
+    suspend fun generateContent(
         prompt: String,
-        systemPrompt: String? = null,
+        systemPrompt: String = "",
         temperature: Float = 0.7f,
-        stream: Boolean = true
-    ): Flow<Result<String>> = flow {
-        try {
-            val requestBody = JSONObject().apply {
-                put("model", model)
-                put("prompt", prompt)
-                put("stream", stream)
-                put("temperature", temperature)
-                systemPrompt?.let { put("system", it) }
-                put("options", JSONObject().apply {
-                    put("num_predict", 2048)
-                    put("top_p", 0.9)
-                })
-            }
+        modelName: String = model
+    ): String = withContext(Dispatchers.IO) {
+        val messages = buildMessages(systemPrompt, prompt)
 
-            val request = Request.Builder()
-                .url("$baseUrl/api/generate")
-                .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                emit(Result.failure(Exception("Generation failed: ${response.code}")))
-                return@flow
-            }
-
-            val body = response.body?.string() ?: ""
-            val json = JSONObject(body)
-            val content = json.getString("response")
-
-            aiLogger.logOperation(
-                operation = "OLLAMA_GENERATE",
-                provider = "OLLAMA",
-                model = model,
-                prompt = prompt,
-                response = content,
-                success = true,
-                durationMs = 0,
-                tokensUsed = json.optInt("eval_count", 0)
-            )
-
-            emit(Result.success(content))
-        } catch (e: Exception) {
-            Timber.tag("OllamaClient").e(e, "Generation failed")
-
-            aiLogger.logOperation(
-                operation = "OLLAMA_GENERATE",
-                provider = "OLLAMA",
-                model = model,
-                prompt = prompt,
-                response = null,
-                success = false,
-                durationMs = 0,
-                error = e.message
-            )
-
-            emit(Result.failure(e))
+        val requestBody = JSONObject().apply {
+            put("model", modelName)
+            put("messages", JSONArray(messages))
+            put("temperature", temperature.toDouble())
+            put("stream", false)
         }
-    }.flowOn(Dispatchers.IO)
 
-    /**
-     * Chat completion using Ollama.
-     */
-    fun chat(
-        model: String,
-        messages: List<ChatMessage>,
-        temperature: Float = 0.7f
-    ): Flow<Result<String>> = flow {
+        val request = Request.Builder()
+            .url("$baseUrl/chat/completions")
+            .apply { addAuthHeader() }
+            .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
         try {
-            val messagesJson = JSONArray()
-            messages.forEach { msg ->
-                messagesJson.put(JSONObject().apply {
-                    put("role", msg.role)
-                    put("content", msg.content)
-                })
-            }
-
-            val requestBody = JSONObject().apply {
-                put("model", model)
-                put("messages", messagesJson)
-                put("temperature", temperature)
-                put("stream", false)
-            }
-
-            val request = Request.Builder()
-                .url("$baseUrl/api/chat")
-                .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                emit(Result.failure(Exception("Chat failed: ${response.code}")))
-                return@flow
-            }
-
-            val body = response.body?.string() ?: ""
-            val json = JSONObject(body)
-            val content = json.getJSONObject("message").getString("content")
-
-            aiLogger.logOperation(
-                operation = "OLLAMA_CHAT",
-                provider = "OLLAMA",
-                model = model,
-                prompt = messages.joinToString("\n") { "${it.role}: ${it.content}" },
-                response = content,
-                success = true,
-                durationMs = 0,
-                tokensUsed = json.optInt("eval_count", 0)
-            )
-
-            emit(Result.success(content))
-        } catch (e: Exception) {
-            Timber.tag("OllamaClient").e(e, "Chat failed")
-
-            aiLogger.logOperation(
-                operation = "OLLAMA_CHAT",
-                provider = "OLLAMA",
-                model = model,
-                prompt = messages.joinToString("\n") { "${it.role}: ${it.content}" },
-                response = null,
-                success = false,
-                durationMs = 0,
-                error = e.message
-            )
-
-            emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO)
-
-    /**
-     * Generates embedding for a given text.
-     */
-    suspend fun generateEmbedding(model: String, text: String): Result<List<Float>> =
-        withContext(Dispatchers.IO) {
-            try {
-                val requestBody = JSONObject().apply {
-                    put("model", model)
-                    put("prompt", text)
-                }
-
-                val request = Request.Builder()
-                    .url("$baseUrl/api/embeddings")
-                    .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-
-                val response = client.newCall(request).execute()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string()
                 if (!response.isSuccessful) {
-                    return@withContext Result.failure(Exception("Embedding failed: ${response.code}"))
+                    throw Exception("Ollama error ${response.code}: ${response.message}")
                 }
 
-                val body = response.body?.string() ?: ""
-                val json = JSONObject(body)
-                val embeddingArray = json.getJSONArray("embedding")
-
-                val embedding = mutableListOf<Float>()
-                for (i in 0 until embeddingArray.length()) {
-                    embedding.add(embeddingArray.getDouble(i).toFloat())
-                }
-
-                Result.success(embedding)
-            } catch (e: Exception) {
-                Timber.tag("OllamaClient").e(e, "Embedding failed")
-                Result.failure(e)
+                parseResponse(body ?: throw Exception("Empty response"))
             }
+        } catch (e: Exception) {
+            Timber.e(e, "Ollama generation failed")
+            throw e
+        }
+    }
+
+    /**
+     * Generate embedding using Ollama (for local recommendations)
+     */
+    suspend fun generateEmbedding(text: String, modelName: String = model): List<Float> = withContext(Dispatchers.IO) {
+        val requestBody = JSONObject().apply {
+            put("model", modelName)
+            put("prompt", text)
         }
 
-    data class ChatMessage(
-        val role: String, // "system", "user", "assistant"
-        val content: String
+        val request = Request.Builder()
+            .url("$baseUrl/embeddings")
+            .apply { addAuthHeader() }
+            .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                throw Exception("Embedding error: ${response.code}")
+            }
+
+            val json = JSONObject(body ?: throw Exception("Empty response"))
+            val embedding = json.getJSONArray("embedding")
+            val result = mutableListOf<Float>()
+            for (i in 0 until embedding.length()) {
+                result.add(embedding.getDouble(i).toFloat())
+            }
+            result
+        }
+    }
+
+    private fun buildMessages(systemPrompt: String, userPrompt: String): List<JSONObject> {
+        val messages = mutableListOf<JSONObject>()
+        if (systemPrompt.isNotBlank()) {
+            messages.add(JSONObject().apply {
+                put("role", "system")
+                put("content", systemPrompt)
+            })
+        }
+        messages.add(JSONObject().apply {
+            put("role", "user")
+            put("content", userPrompt)
+        })
+        return messages
+    }
+
+    private fun parseResponse(body: String): String {
+        val json = JSONObject(body)
+        val choices = json.getJSONArray("choices")
+        if (choices.length() > 0) {
+            return choices.getJSONObject(0).getJSONObject("message").getString("content")
+        }
+        throw Exception("No response content")
+    }
+
+    private fun Request.Builder.addAuthHeader(): Request.Builder {
+        return if (apiKey.isNotBlank()) {
+            addHeader("Authorization", "Bearer $apiKey")
+        } else this
+    }
+
+    data class OllamaConfig(
+        val endpoint: String,
+        val apiKey: String,
+        val defaultModel: String
     )
 }

@@ -492,7 +492,7 @@ fun ApiKeyInputCard(
         label = { Text(stringResource(R.string.settings_ai_api_key_title)) },
         placeholder = { Text("Enter your $provider API key") },
         singleLine = true,
-        visualTransformation = { if (hidden) it else it },
+        visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = {
             IconButton(onClick = { hidden = !hidden }) {
                 Text(if (hidden) "Show" else "Hide")
@@ -649,8 +649,12 @@ fun SwitchPreference(
     enabled: Boolean = true
 ) {
     Card(
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier),
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Row(
             modifier = Modifier

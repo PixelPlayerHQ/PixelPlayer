@@ -79,24 +79,25 @@ object AiProviderSupport {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun buildProviderChain(primary: AiProvider): List<AiProvider> {
+        // Fallback order: Gemini first (usually reliable), then others
         val preferredFallbacks = listOf(
-            AiProvider.GROQ,
             AiProvider.GEMINI,
-            AiProvider.DEEPSEEK,
-            AiProvider.MISTRAL,
             AiProvider.OPENAI,
-            AiProvider.OPENROUTER,
+            AiProvider.DEEPSEEK,
             AiProvider.ANTHROPIC,
+            AiProvider.MISTRAL,
+            AiProvider.OPENROUTER,
+            AiProvider.GROQ,
             AiProvider.NVIDIA,
             AiProvider.KIMI,
             AiProvider.GLM,
-            AiProvider.OLLAMA
+            AiProvider.OLLAMA,
+            AiProvider.LOCAL
         )
 
         return buildList {
             add(primary)
             addAll(preferredFallbacks.filter { it != primary })
-            addAll(AiProvider.entries.filter { it != primary && it !in preferredFallbacks })
         }.distinct()
     }
 

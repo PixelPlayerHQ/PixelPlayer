@@ -9,13 +9,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
@@ -174,7 +174,7 @@ class LocalModelManager @Inject constructor(
                 val buf = ByteArray(BUFFER_SIZE)
                 var read: Int
                 while (input.read(buf).also { read = it } != -1) {
-                    ensureActive()
+                    yield()
                     output.write(buf, 0, read)
                     downloaded += read
                     val elapsed = (System.nanoTime() - startTime) / 1_000_000_000L
@@ -194,6 +194,15 @@ class LocalModelManager @Inject constructor(
         }
         _statusMap.update { it + (info.id to ModelStatus.Ready) }
         Timber.i("Downloaded model: ${info.id} (${downloaded / (1024 * 1024)} MB)")
+    }
+
+    suspend fun downloadAndWait(info: LocalModelInfo): ModelStatus {
+        downloadModel(info)
+        while (true) {
+            val status = getModelStatus(info.id)
+            if (status !is ModelStatus.Downloading && status !is ModelStatus.Pending) return status
+            delay(500)
+        }
     }
 
     fun cancelDownload(modelId: String) {

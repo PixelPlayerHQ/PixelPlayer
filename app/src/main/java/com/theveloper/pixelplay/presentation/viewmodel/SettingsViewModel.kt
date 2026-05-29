@@ -31,6 +31,7 @@ import com.theveloper.pixelplay.data.repository.LyricsRepository
 import com.theveloper.pixelplay.data.ai.AiDeviceCapabilities
 import com.theveloper.pixelplay.data.ai.local.LocalModelCatalog
 import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
+import com.theveloper.pixelplay.data.ai.local.LocalModelManager
 import com.theveloper.pixelplay.data.ai.local.ModelStatus
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference

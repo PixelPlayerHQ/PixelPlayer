@@ -62,19 +62,5 @@ enum class AiProvider(
         fun fromString(value: String): AiProvider {
             return entries.find { it.name == value } ?: GEMINI
         }
-
-        fun cloudProviders(): List<AiProvider> = entries.filter { it != LOCAL }
-
-        fun localProviders(): List<AiProvider> = listOf(LOCAL)
-
-        fun providersRequiringApiKey(): List<AiProvider> = entries.filter { it.requiresApiKey }
-
-        fun providersWithCustomEndpoint(): List<AiProvider> = entries.filter { it.supportsCustomEndpoint }
-
-        fun isLocalProvider(provider: AiProvider): Boolean = provider == LOCAL
-
-        fun isOnlineProvider(provider: AiProvider): Boolean = provider != LOCAL
-
-        fun defaultModelFor(provider: AiProvider): String = provider.models.firstOrNull() ?: ""
     }
 }

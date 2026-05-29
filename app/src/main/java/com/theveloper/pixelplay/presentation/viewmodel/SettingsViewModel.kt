@@ -1687,22 +1687,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val provider = AiProvider.fromString(aiProvider.value)
             aiPreferencesRepository.setModel(provider, model)
-            _uiState.update { it.copy(currentAiModel = model) }
-        }
-    }
-
-    fun onAiApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            val provider = AiProvider.fromString(aiProvider.value)
-            aiPreferencesRepository.setApiKey(provider, apiKey)
-            _uiState.update { it.copy(currentApiKey = apiKey) }
+            _uiState.update { it.copy(currentModel = model) }
         }
     }
 
     fun onAiTemperatureChange(temperature: Int) {
         viewModelScope.launch {
             aiPreferencesRepository.setAiTemperature(temperature)
-            _uiState.update { it.copy(aiTemperature = temperature) }
+            _uiState.update { it.copy(aiTemperature = temperature / 100f) }
         }
     }
 
@@ -1731,6 +1723,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             aiPreferencesRepository.setIncludeDailyMixHistory(include)
             _uiState.update { it.copy(includeDailyMixHistory = include) }
+        }
+    }
+
+    fun onIncludeUserHabitsChange(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeUserHabits(include)
+            _uiState.update { it.copy(includeUserHabits = include) }
         }
     }
 

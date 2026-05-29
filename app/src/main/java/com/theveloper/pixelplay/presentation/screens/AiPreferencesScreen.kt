@@ -6,8 +6,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -652,7 +650,7 @@ fun AdvancedSettingsCard(
             ) {
                 Text("Advanced Settings", style = MaterialTheme.typography.titleSmall)
                 Icon(
-                    if (showAdvanced) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }
@@ -728,7 +726,7 @@ fun SystemPromptCard(
             ) {
                 Text("System Prompt", style = MaterialTheme.typography.titleSmall)
                 Icon(
-                    if (showPrompt) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showPrompt) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }
@@ -1025,7 +1023,7 @@ fun ContextSettingsCard(
                     )
                 }
                 Icon(
-                    if (showContextSettings) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showContextSettings) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }
@@ -1130,7 +1128,7 @@ fun DataCollectionCard(
                     )
                 }
                 Icon(
-                    if (showDataCollection) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showDataCollection) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }
@@ -1191,7 +1189,7 @@ fun CacheSettingsCard(
             ) {
                 Text("Cache Settings", style = MaterialTheme.typography.titleSmall)
                 Icon(
-                    if (showCache) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showCache) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }
@@ -1258,7 +1256,7 @@ fun NotificationSettingsCard(
             ) {
                 Text("Notification & Behavior", style = MaterialTheme.typography.titleSmall)
                 Icon(
-                    if (showNotifications) Icons.Default.expand_less else Icons.Default.expand_more,
+                    if (showNotifications) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null
                 )
             }

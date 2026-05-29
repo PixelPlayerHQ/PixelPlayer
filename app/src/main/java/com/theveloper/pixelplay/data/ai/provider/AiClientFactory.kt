@@ -13,13 +13,14 @@ class AiClientFactory @Inject constructor() {
      * Create an AI client for the specified provider
      * @param provider The AI provider type
      * @param apiKey The API key for the provider
+     * @param customEndpoint Optional custom endpoint override
      * @return AiClient instance
      */
-    fun createClient(provider: AiProvider, apiKey: String): AiClient {
+    fun createClient(provider: AiProvider, apiKey: String, customEndpoint: String = ""): AiClient {
         if (apiKey.isBlank() && provider.requiresApiKey) {
             throw IllegalArgumentException("API Key cannot be blank for ${provider.displayName}")
         }
-        
+
         return when (provider) {
             AiProvider.GEMINI -> GeminiAiClient(apiKey)
             AiProvider.DEEPSEEK -> DeepSeekAiClient(apiKey)
@@ -56,7 +57,11 @@ class AiClientFactory @Inject constructor() {
                 providerName = "OpenRouter"
             )
             AiProvider.ANTHROPIC -> AnthropicAiClient(apiKey)
-            AiProvider.OLLAMA -> OllamaAiClient()
+            AiProvider.OLLAMA -> {
+                // Use custom endpoint if provided, otherwise use provider default
+                val endpoint = customEndpoint.ifBlank { provider.defaultEndpoint }
+                OllamaAiClient(endpoint, apiKey)
+            }
         }
     }
 }

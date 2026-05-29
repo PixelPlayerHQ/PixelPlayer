@@ -863,17 +863,11 @@ fun LocalModelCard(
                         }
                     }
                     is ModelStatus.Downloading -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                progress = { status.progress / 100f },
-                                modifier = Modifier.size(48.dp),
-                                strokeWidth = 4.dp
-                            )
-                            Text(
-                                text = "${status.progress}%",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+                        Text(
+                            text = "${status.progress}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     is ModelStatus.Ready -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -931,13 +925,14 @@ fun LocalModelCard(
 
             if (status is ModelStatus.Downloading) {
                 Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { status.progress / 100f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                )
+                Box(modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = status.progress / 100f)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
                 Text(
                     text = "Downloaded ${formatSize(status.downloaded)} / ${formatSize(model.fileSizeBytes)}",
                     style = MaterialTheme.typography.bodySmall,

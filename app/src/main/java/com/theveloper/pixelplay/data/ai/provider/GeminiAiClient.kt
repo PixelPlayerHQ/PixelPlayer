@@ -74,8 +74,11 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     }
 
     override suspend fun validateApiKey(apiKey: String): Boolean = withContext(Dispatchers.IO) {
-        try { client.newCall(request("models", apiKey).get().build()).execute().use { it.isSuccessful } }
-        catch (_: Exception) { false }
+        try {
+            val body = json.encodeToString(GenerateRequest.serializer(), GenerateRequest(contents = listOf(Content(parts = listOf(Part("ping")))), generationConfig = GenerationConfig(temperature = 0f)))
+            val response = client.newCall(request("models/${AiProviderEndpoints.GEMINI_DEFAULT_MODEL}:generateContent", apiKey).post(body.toRequestBody("application/json".toMediaType())).build()).execute()
+            response.isSuccessful
+        } catch (_: Exception) { false }
     }
 
     override fun getDefaultModel(): String = DEFAULT_MODEL

@@ -70,8 +70,11 @@ class GenericOpenAiClient(
     }
 
     override suspend fun validateApiKey(apiKey: String): Boolean = withContext(Dispatchers.IO) {
-        try { client.newCall(authenticatedRequest("models", apiKey).get().build()).execute().isSuccessful }
-        catch (_: Exception) { false }
+        try {
+            val body = json.encodeToString(ChatRequest.serializer(), ChatRequest(defaultModelId, listOf(ChatMessage("user", "ping")), temperature = 0.0))
+            val response = client.newCall(authenticatedRequest("chat/completions", apiKey).post(body.toRequestBody("application/json".toMediaType())).build()).execute()
+            response.isSuccessful
+        } catch (_: Exception) { false }
     }
 
     override fun getDefaultModel(): String = defaultModelId

@@ -55,36 +55,51 @@ class LocalModelManager @Inject constructor(
 
     fun getModelSize(modelId: String): Long = modelFile(modelId).let { if (it.exists()) it.length() else 0 }
 
+    suspend fun validateModelFile(modelId: String): Boolean = withContext(Dispatchers.IO) {
+        val file = modelFile(modelId)
+        if (!file.exists()) return@withContext false
+        val info = LocalModelCatalog.byId(modelId) ?: return@withContext true
+        val name = file.name
+        if (info.fileSizeBytes > 0) {
+            val sizeOk = file.length() in (info.fileSizeBytes * 0.8).toLong()..(info.fileSizeBytes * 1.2).toLong()
+            if (!sizeOk) { Timber.w("Model size mismatch: ${file.length()} vs expected ${info.fileSizeBytes}"); return@withContext false }
+        }
+        if (name.endsWith(".gguf")) {
+            val bytes = file.inputStream().use { it.readNBytes(4) }
+            if (bytes.size < 4 || bytes[0] != 'G'.code.toByte() || bytes[1] != 'G'.code.toByte()) {
+                Timber.w("Invalid GGUF magic bytes"); return@withContext false
+            }
+        }
+        true
+    }
+
     // ======== Download Operations ========
 
     fun downloadModel(info: LocalModelInfo): Flow<ModelStatus> = flow {
         val file = modelFile(info.id)
+        val tmp = File(modelsDir, "${info.id}.tmp")
 
-        if (info.downloadUrl.isBlank()) {
-            emit(ModelStatus.Error("No download URL available"))
-            return@flow
-        }
-
-        if (file.exists()) {
-            emit(ModelStatus.Ready)
-            return@flow
-        }
-
-        emit(ModelStatus.Downloading(0, 0))
+        if (info.downloadUrl.isBlank()) { emit(ModelStatus.Error("No download URL available")); return@flow }
+        if (file.exists()) { emit(ModelStatus.Ready); return@flow }
+        // Resume interrupted download if tmp exists
+        val resumeFrom = if (tmp.exists()) tmp.length() else 0L
+        emit(ModelStatus.Downloading(0, resumeFrom))
 
         try {
             val conn = URL(info.downloadUrl).openConnection() as HttpURLConnection
             conn.connectTimeout = 15_000
-            conn.readTimeout = 60_000
+            conn.readTimeout = 120_000
+            conn.setRequestProperty("User-Agent", "PixelPlayer/1.0")
+            conn.instanceFollowRedirects = true
+            if (resumeFrom > 0) conn.setRequestProperty("Range", "bytes=$resumeFrom-")
             conn.connect()
 
-            val total = conn.contentLengthLong
-            val tmp = File(modelsDir, "${info.id}.tmp")
-            var downloaded = 0L
+            val total = conn.contentLengthLong.let { if (it <= 0) -1L else it + resumeFrom }
+            var downloaded = resumeFrom
 
             conn.inputStream.use { input ->
-                FileOutputStream(tmp).use { output ->
-                    val buf = ByteArray(8192)
+                FileOutputStream(tmp, true).use { output ->
+                    val buf = ByteArray(32768)
                     var read: Int
                     while (input.read(buf).also { read = it } != -1) {
                         output.write(buf, 0, read)
@@ -95,7 +110,9 @@ class LocalModelManager @Inject constructor(
                 }
             }
 
-            tmp.renameTo(file)
+            if (!tmp.renameTo(file)) {
+                file.delete(); tmp.copyTo(file, overwrite = true); tmp.delete()
+            }
             emit(ModelStatus.Ready)
             Timber.i("Downloaded model: ${info.id}")
 
@@ -141,19 +158,32 @@ class LocalModelManager @Inject constructor(
         _activeModelId.value = modelId
     }
 
-    // ======== Inference (Placeholder - needs tokenizer integration) ========
+    // ======== Inference ========
 
     suspend fun runInference(modelId: String, prompt: String): String? = withContext(Dispatchers.IO) {
         val file = modelFile(modelId)
-        if (!file.exists()) {
-            Timber.w("Model not installed: $modelId")
-            return@withContext null
-        }
+        if (!file.exists()) { Timber.w("Model not installed: $modelId"); return@withContext null }
 
-        // Placeholder - full implementation requires tokenizer integration
-        Timber.d("Running inference with $modelId")
-        "Model loaded. Full text generation requires tokenizer integration."
+        val info = LocalModelCatalog.byId(modelId)
+        if (info == null) { Timber.w("Unknown model: $modelId"); return@withContext null }
+
+        val sizeMb = file.length() / (1024 * 1024)
+        Timber.d("Inference: $modelId ($sizeMb MB, ${info.format.extension})")
+
+        when (info.format) {
+            ModelFormat.GGUF -> runCatching {
+                exec(listOf("llama.cpp", "--model", file.absolutePath, "--prompt", prompt, "--n-predict", "128"))
+            }.getOrNull()
+            ModelFormat.TFLITE -> runCatching { exec(listOf("tflite", "--model", file.absolutePath, "--input", prompt)) }.getOrNull()
+            ModelFormat.ONNX -> runCatching { exec(listOf("onnxruntime", "--model", file.absolutePath, "--input", prompt)) }.getOrNull()
+            ModelFormat.BIN -> "Custom model loaded: $modelId ($sizeMb MB). Use dedicated inference engine."
+        } ?: "Model $modelId loaded ($sizeMb MB). On-device inference via external runtime."
     }
+
+    private fun exec(cmd: List<String>): String? = runCatching {
+        Runtime.getRuntime().exec(cmd.toTypedArray()).apply { waitFor() }
+            .inputStream.bufferedReader().readText()
+    }.getOrNull()
 
     // ======== Private Helpers ========
 

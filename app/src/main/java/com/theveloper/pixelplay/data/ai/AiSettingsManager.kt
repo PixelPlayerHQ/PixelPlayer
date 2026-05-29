@@ -273,14 +273,13 @@ class AiSettingsManager @Inject constructor(
      * Gets the current provider's model options.
      */
     fun getProviderModels(provider: String): List<String> {
-        return when (provider) {
-            "GEMINI" -> listOf("gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash")
-            "OPENAI" -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo")
-            "ANTHROPIC" -> listOf("claude-sonnet-4-20250514", "claude-haiku-4-20250307")
-            "OLLAMA" -> listOf("llama3", "mistral", "phi3", "tinyllama", "llama2")
-            "LOCAL" -> _availableModels.value.map { it.id }
-            else -> emptyList()
-        }
+        val aiProvider = try { AiProvider.valueOf(provider) } catch (_: Exception) { null }
+        return aiProvider?.models?.ifEmpty {
+            when (provider) {
+                "LOCAL" -> _availableModels.value.map { it.id }
+                else -> emptyList()
+            }
+        } ?: emptyList()
     }
 
     /**

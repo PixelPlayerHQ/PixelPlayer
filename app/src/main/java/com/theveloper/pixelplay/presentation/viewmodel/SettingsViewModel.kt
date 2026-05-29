@@ -153,7 +153,16 @@ data class SettingsUiState(
     val aiUsageTotalInputTokens: Long = 0L,
     val aiUsageTotalOutputTokens: Long = 0L,
     val aiUsageTotalApiCalls: Long = 0L,
-    val aiUsageEstimatedCost: String = "0.00"
+    val aiUsageEstimatedCost: String = "0.00",
+    // Telemetry / Data collection
+    val telemetryIncludeSkipCount: Boolean = false,
+    val telemetryIncludeCompletionRate: Boolean = false,
+    val telemetryIncludeSessionDuration: Boolean = false,
+    val telemetryIncludeTimeOfDay: Boolean = false,
+    val telemetryIncludeGenreAffinity: Boolean = false,
+    val telemetryIncludeArtistAffinity: Boolean = false,
+    val telemetryIncludeReplayCount: Boolean = false,
+    val telemetryIncludeQueuePatterns: Boolean = false
 )
 
 data class FailedSongInfo(
@@ -367,6 +376,24 @@ class SettingsViewModel @Inject constructor(
 
     val aiUsageEstimatedCost: StateFlow<String> = aiPreferencesRepository.aiUsageEstimatedCost
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "0.00")
+
+    // Telemetry StateFlows (for DataCollectionCard)
+    val telemetryIncludeSkipCount: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeSkipCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeCompletionRate: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeCompletionRate
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeSessionDuration: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeSessionDuration
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeTimeOfDay: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeTimeOfDay
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeGenreAffinity: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeGenreAffinity
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeArtistAffinity: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeArtistAffinity
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeReplayCount: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeReplayCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val telemetryIncludeQueuePatterns: StateFlow<Boolean> = aiPreferencesRepository.telemetryIncludeQueuePatterns
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
@@ -1031,6 +1058,48 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             aiPreferencesRepository.aiUsageEstimatedCost.collect { cost ->
                 _uiState.update { it.copy(aiUsageEstimatedCost = cost) }
+            }
+        }
+
+        // Telemetry collectors
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeSkipCount.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeSkipCount = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeCompletionRate.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeCompletionRate = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeSessionDuration.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeSessionDuration = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeTimeOfDay.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeTimeOfDay = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeGenreAffinity.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeGenreAffinity = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeArtistAffinity.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeArtistAffinity = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeReplayCount.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeReplayCount = v) }
+            }
+        }
+        viewModelScope.launch {
+            aiPreferencesRepository.telemetryIncludeQueuePatterns.collect { v ->
+                _uiState.update { it.copy(telemetryIncludeQueuePatterns = v) }
             }
         }
 
@@ -1900,4 +1969,29 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Telemetry change handlers
+    fun onTelemetrySkipCountChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeSkipCount(v) }
+    }
+    fun onTelemetryCompletionRateChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeCompletionRate(v) }
+    }
+    fun onTelemetrySessionDurationChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeSessionDuration(v) }
+    }
+    fun onTelemetryTimeOfDayChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeTimeOfDay(v) }
+    }
+    fun onTelemetryGenreAffinityChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeGenreAffinity(v) }
+    }
+    fun onTelemetryArtistAffinityChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeArtistAffinity(v) }
+    }
+    fun onTelemetryReplayCountChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeReplayCount(v) }
+    }
+    fun onTelemetryQueuePatternsChange(v: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setTelemetryIncludeQueuePatterns(v) }
+    }
 }

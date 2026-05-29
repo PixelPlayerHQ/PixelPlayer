@@ -8,11 +8,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,21 +23,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
-import com.theveloper.pixelplay.data.ai.local.ModelSource
 import com.theveloper.pixelplay.data.ai.local.ModelStatus
+import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 
 @Composable
@@ -53,13 +48,17 @@ fun AiPreferencesScreen(
     val modelStatuses by settingsViewModel.localModelStatuses.collectAsStateWithLifecycle(initialValue = emptyMap())
     val currentAiModel by settingsViewModel.currentAiModel.collectAsStateWithLifecycle(initialValue = "")
     val currentApiKey by settingsViewModel.currentAiApiKey.collectAsStateWithLifecycle(initialValue = "")
+    val currentAiSystemPrompt by settingsViewModel.currentAiSystemPrompt.collectAsStateWithLifecycle(initialValue = "")
 
-    // Import model launcher
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { settingsViewModel.importLocalModel(it) }
     }
+
+    val isOnlineProvider = uiState.aiProvider != "LOCAL" && uiState.aiProvider != "OLLAMA"
+    val isLocalProvider = uiState.aiProvider == "LOCAL"
+    val isOllamaProvider = uiState.aiProvider == "OLLAMA"
 
     Scaffold(
         topBar = {
@@ -105,25 +104,16 @@ fun AiPreferencesScreen(
                 )
             }
 
-            // ===== API KEY =====
-            if (uiState.aiProvider != "LOCAL" && uiState.aiProvider != "OLLAMA") {
+            // ===== ONLINE PROVIDER SETTINGS =====
+            if (isOnlineProvider) {
                 item {
-                    ApiKeyInputCard(
-                        provider = uiState.aiProvider,
-                        apiKey = currentApiKey,
-                        onApiKeyChange = { settingsViewModel.onAiApiKeyChange(it) }
-                    )
-                }
-            }
-
-            // ===== MODEL SELECTION (Cloud Providers) =====
-            if (uiState.aiProvider != "LOCAL") {
-                item {
-                    Text(
-                        text = "Model",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                    if (AiProvider.valueOf(uiState.aiProvider).requiresApiKey) {
+                        ApiKeyInputCard(
+                            provider = uiState.aiProvider,
+                            apiKey = currentApiKey,
+                            onApiKeyChange = { settingsViewModel.onAiApiKeyChange(it) }
+                        )
+                    }
                 }
 
                 item {
@@ -134,18 +124,59 @@ fun AiPreferencesScreen(
                     )
                 }
 
-                // Temperature & Max Tokens
                 item {
                     AdvancedSettingsCard(
-                        temperature = uiState.aiTemperature,
+                        temperature = (uiState.aiTemperature * 100).toInt(),
                         maxTokens = uiState.aiMaxTokens,
                         onTemperatureChange = { settingsViewModel.onAiTemperatureChange(it) },
                         onMaxTokensChange = { settingsViewModel.onAiMaxTokensChange(it) }
                     )
                 }
+
+                item {
+                    SystemPromptCard(
+                        systemPrompt = currentAiSystemPrompt,
+                        onSystemPromptChange = { settingsViewModel.onAiSystemPromptChange(it) },
+                        onReset = { settingsViewModel.resetAiSystemPrompt() }
+                    )
+                }
             }
 
-            // ===== LOCAL MODELS =====
+            // ===== LOCAL/OLLAMA PROVIDER SETTINGS =====
+            if (!isOnlineProvider) {
+                item {
+                    Text(
+                        text = if (isOllamaProvider) "Ollama Server Settings" else "Local Model Settings",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
+
+                if (isOllamaProvider) {
+                    item {
+                        ApiKeyInputCard(
+                            provider = "OLLAMA",
+                            apiKey = currentApiKey,
+                            onApiKeyChange = { settingsViewModel.onOllamaApiKeyChange(it) }
+                        )
+                    }
+                    item {
+                        ModelSelectionCard(
+                            provider = "OLLAMA",
+                            selectedModel = currentAiModel,
+                            onModelChange = { settingsViewModel.onOllamaModelChange(it) }
+                        )
+                    }
+                    item {
+                        OllamaConnectionCard(
+                            ollamaUrl = uiState.localMlOllamaUrl,
+                            onOllamaUrlChange = { settingsViewModel.setLocalMlOllamaUrl(it) }
+                        )
+                    }
+                }
+            }
+
+            // ===== LOCAL MODELS (always visible, greyed out if not local provider) =====
             item {
                 Row(
                     modifier = Modifier
@@ -156,29 +187,56 @@ fun AiPreferencesScreen(
                 ) {
                     Text(
                         text = "Local Models",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                            .copy(alpha = if (isLocalProvider) 1f else 0.4f)
                     )
                     TextButton(
-                        onClick = {
-                            importLauncher.launch(arrayOf("*/*"))
-                        }
+                        onClick = { importLauncher.launch(arrayOf("*/*")) },
+                        enabled = isLocalProvider
                     ) {
-                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Upload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Import")
                     }
                 }
             }
 
-            item {
-                Text(
-                    text = "Download models to use AI features offline without internet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            if (!isLocalProvider) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Switch provider to \"Local Model (Device)\" to configure local model settings.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
             }
 
-            // Model Cards
             items(localModels) { model ->
                 val status = modelStatuses[model.id] ?: ModelStatus.NotDownloaded
                 LocalModelCard(
@@ -187,7 +245,8 @@ fun AiPreferencesScreen(
                     isSelected = uiState.localMlActiveModelId == model.id,
                     onDownload = { settingsViewModel.downloadLocalModel(model) },
                     onDelete = { settingsViewModel.deleteLocalModel(model.id) },
-                    onSelect = { settingsViewModel.selectLocalModel(model.id) }
+                    onSelect = { settingsViewModel.selectLocalModel(model.id) },
+                    enabled = isLocalProvider
                 )
             }
 
@@ -196,7 +255,7 @@ fun AiPreferencesScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         )
                     ) {
                         Row(
@@ -209,14 +268,36 @@ fun AiPreferencesScreen(
                                 Icons.Default.Warning,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    .copy(alpha = if (isLocalProvider) 1f else 0.4f)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "No models available for your device. Your device may not meet the minimum requirements.",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    .copy(alpha = if (isLocalProvider) 1f else 0.4f)
                             )
                         }
                     }
+                }
+            }
+
+            item {
+                SwitchPreference(
+                    title = "Use GPU Acceleration",
+                    subtitle = "Use hardware GPU for faster local model inference",
+                    checked = uiState.localMlUseGpu,
+                    onCheckedChange = { settingsViewModel.onLocalMlUseGpuChange(it) },
+                    enabled = isLocalProvider
+                )
+            }
+
+            if (isLocalProvider) {
+                item {
+                    OllamaConnectionCard(
+                        ollamaUrl = uiState.localMlOllamaUrl,
+                        onOllamaUrlChange = { settingsViewModel.setLocalMlOllamaUrl(it) }
+                    )
                 }
             }
 
@@ -231,30 +312,109 @@ fun AiPreferencesScreen(
 
             item {
                 ContextSettingsCard(
-                    contextSize = uiState.maxSongsForContext,
+                    maxSongsForContext = uiState.maxSongsForContext,
+                    minValue = uiState.maxSongsForContextMin,
+                    maxValue = uiState.maxSongsForContextMax,
                     includeLikedSongs = uiState.includeLikedSongs,
-                    includeHistory = uiState.includeDailyMixHistory,
-                    onContextSizeChange = { settingsViewModel.onMaxSongsForContextChange(it) },
+                    includeDailyMixHistory = uiState.includeDailyMixHistory,
+                    includeUserHabits = uiState.includeUserHabits,
+                    onMaxSongsForContextChange = { settingsViewModel.onMaxSongsForContextChange(it) },
                     onIncludeLikedSongsChange = { settingsViewModel.onIncludeLikedSongsChange(it) },
-                    onIncludeHistoryChange = { settingsViewModel.onIncludeDailyMixHistoryChange(it) }
+                    onIncludeDailyMixHistoryChange = { settingsViewModel.onIncludeDailyMixHistoryChange(it) },
+                    onIncludeUserHabitsChange = { settingsViewModel.onIncludeUserHabitsChange(it) }
                 )
             }
 
-            // ===== HARDWARE LOCK =====
+            // ===== TELEMETRY / DATA COLLECTION =====
             item {
                 Text(
-                    text = "Hardware",
+                    text = "Data Collection & Privacy",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
             item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_hardware_lock_title),
-                    subtitle = stringResource(R.string.settings_ai_hardware_lock_subtitle),
-                    checked = uiState.localMlUseGpu,
-                    onCheckedChange = { settingsViewModel.onLocalMlUseGpuChange(it) }
+                DataCollectionCard(
+                    telemetryIncludeSkipCount = uiState.telemetryIncludeSkipCount,
+                    telemetryIncludeCompletionRate = uiState.telemetryIncludeCompletionRate,
+                    telemetryIncludeSessionDuration = uiState.telemetryIncludeSessionDuration,
+                    telemetryIncludeTimeOfDay = uiState.telemetryIncludeTimeOfDay,
+                    telemetryIncludeGenreAffinity = uiState.telemetryIncludeGenreAffinity,
+                    telemetryIncludeArtistAffinity = uiState.telemetryIncludeArtistAffinity,
+                    telemetryIncludeReplayCount = uiState.telemetryIncludeReplayCount,
+                    telemetryIncludeQueuePatterns = uiState.telemetryIncludeQueuePatterns,
+                    onSkipCountChange = { settingsViewModel.onTelemetrySkipCountChange(it) },
+                    onCompletionRateChange = { settingsViewModel.onTelemetryCompletionRateChange(it) },
+                    onSessionDurationChange = { settingsViewModel.onTelemetrySessionDurationChange(it) },
+                    onTimeOfDayChange = { settingsViewModel.onTelemetryTimeOfDayChange(it) },
+                    onGenreAffinityChange = { settingsViewModel.onTelemetryGenreAffinityChange(it) },
+                    onArtistAffinityChange = { settingsViewModel.onTelemetryArtistAffinityChange(it) },
+                    onReplayCountChange = { settingsViewModel.onTelemetryReplayCountChange(it) },
+                    onQueuePatternsChange = { settingsViewModel.onTelemetryQueuePatternsChange(it) }
+                )
+            }
+
+            // ===== CACHE SETTINGS =====
+            item {
+                Text(
+                    text = "Cache Settings",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            item {
+                CacheSettingsCard(
+                    aiCacheEnabled = uiState.aiCacheEnabled,
+                    aiCacheMaxEntries = uiState.aiCacheMaxEntries,
+                    aiCacheTtlHours = uiState.aiCacheTtlHours,
+                    aiCacheMaxEntriesMin = uiState.aiCacheMaxEntriesMin,
+                    aiCacheMaxEntriesMax = uiState.aiCacheMaxEntriesMax,
+                    aiCacheTtlHoursMin = uiState.aiCacheTtlHoursMin,
+                    aiCacheTtlHoursMax = uiState.aiCacheTtlHoursMax,
+                    onCacheEnabledChange = { settingsViewModel.setAiCacheEnabled(it) },
+                    onCacheMaxEntriesChange = { settingsViewModel.setAiCacheMaxEntries(it) },
+                    onCacheTtlHoursChange = { settingsViewModel.setAiCacheTtlHours(it) }
+                )
+            }
+
+            // ===== NOTIFICATION & BEHAVIOR =====
+            item {
+                Text(
+                    text = "Behavior",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            item {
+                NotificationSettingsCard(
+                    aiIncludeContext = uiState.aiIncludeContext,
+                    aiEnableStreaming = uiState.aiEnableStreaming,
+                    isSafeTokenLimitEnabled = uiState.isSafeTokenLimitEnabled,
+                    onIncludeContextChange = { settingsViewModel.setAiIncludeContext(it) },
+                    onEnableStreamingChange = { settingsViewModel.setAiEnableStreaming(it) },
+                    onSafeTokenLimitChange = { settingsViewModel.setSafeTokenLimitEnabled(it) }
+                )
+            }
+
+            // ===== USAGE STATISTICS =====
+            item {
+                Text(
+                    text = "Usage Statistics",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            item {
+                UsageStatsCard(
+                    totalInputTokens = uiState.aiUsageTotalInputTokens,
+                    totalOutputTokens = uiState.aiUsageTotalOutputTokens,
+                    totalApiCalls = uiState.aiUsageTotalApiCalls,
+                    estimatedCost = uiState.aiUsageEstimatedCost,
+                    onClearMetrics = { settingsViewModel.clearAiUsageMetrics() }
                 )
             }
 
@@ -265,6 +425,8 @@ fun AiPreferencesScreen(
     }
 }
 
+// ===== PROVIDER SELECTION =====
+
 @Composable
 fun ProviderSelectionCard(
     selectedProvider: String,
@@ -273,12 +435,18 @@ fun ProviderSelectionCard(
     var expanded by remember { mutableStateOf(false) }
 
     val providers = listOf(
-        "GEMINI" to "Google Gemini" to "Fast, capable, good for playlists",
-        "OPENAI" to "OpenAI GPT" to "GPT-4o, high quality",
-        "ANTHROPIC" to "Anthropic Claude" to "Long context, good reasoning",
-        "DEEPSEEK" to "DeepSeek" to "Fast, affordable",
-        "OLLAMA" to "Ollama Server" to "Connect to your Ollama server",
-        "LOCAL" to "Local (Offline)" to "Use downloaded models"
+        "GEMINI" to ("Google Gemini" to "Fast, capable, good for playlists"),
+        "DEEPSEEK" to ("DeepSeek" to "Fast, affordable, strong reasoning"),
+        "GROQ" to ("Groq" to "Fast inference, open models"),
+        "MISTRAL" to ("Mistral" to "High quality, multiple sizes"),
+        "NVIDIA" to ("NVIDIA NIM" to "GPU-accelerated inference"),
+        "KIMI" to ("Kimi (Moonshot)" to "Long context support"),
+        "GLM" to ("Zhipu GLM" to "Chinese + English capable"),
+        "OPENAI" to ("OpenAI" to "GPT-4o, broadest ecosystem"),
+        "OPENROUTER" to ("OpenRouter" to "Multi-provider gateway"),
+        "ANTHROPIC" to ("Anthropic Claude" to "Long context, safe AI"),
+        "OLLAMA" to ("Ollama Server" to "Connect to your own server"),
+        "LOCAL" to ("Local (Offline)" to "Run models on-device")
     )
 
     Card(
@@ -293,7 +461,7 @@ fun ProviderSelectionCard(
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
-                    value = providers.find { it.first.first == selectedProvider }?.first?.second ?: selectedProvider,
+                    value = providers.find { it.first == selectedProvider }?.second?.first ?: selectedProvider,
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -306,23 +474,24 @@ fun ProviderSelectionCard(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    providers.forEach { (provider, description) ->
+                    providers.forEach { (key, pair) ->
+                        val (name, desc) = pair
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text(provider.first, fontWeight = FontWeight.Medium)
+                                    Text(name, fontWeight = FontWeight.Medium)
                                     Text(
-                                        description,
+                                        desc,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
                             onClick = {
-                                onProviderChange(provider.first)
+                                onProviderChange(key)
                                 expanded = false
                             },
-                            leadingIcon = if (selectedProvider == provider.first) {
+                            leadingIcon = if (selectedProvider == key) {
                                 { Icon(Icons.Default.Check, contentDescription = null) }
                             } else null
                         )
@@ -332,6 +501,8 @@ fun ProviderSelectionCard(
         }
     }
 }
+
+// ===== API KEY =====
 
 @Composable
 fun ApiKeyInputCard(
@@ -375,13 +546,15 @@ fun ApiKeyInputCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Get your API key from ${provider.lowercase()}.com/api",
+                text = "Get your API key from the ${provider.lowercase()} provider dashboard.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+// ===== MODEL SELECTION =====
 
 @Composable
 fun ModelSelectionCard(
@@ -390,14 +563,9 @@ fun ModelSelectionCard(
     onModelChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-
-    val models = when (provider) {
-        "GEMINI" -> listOf("gemini-2.0-flash-exp", "gemini-2.5-flash", "gemini-1.5-pro")
-        "OPENAI" -> listOf("gpt-4o-mini", "gpt-4o", "gpt-4-turbo")
-        "ANTHROPIC" -> listOf("claude-3-5-sonnet-20241022", "claude-3-opus-20240229")
-        "DEEPSEEK" -> listOf("deepseek-chat", "deepseek-coder")
-        else -> listOf("default")
-    }
+    val aiProvider = try { AiProvider.valueOf(provider) } catch (_: Exception) { null }
+    val providerModels = aiProvider?.models ?: emptyList()
+    val allModels = if (providerModels.isEmpty()) listOf("default") else providerModels
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -406,6 +574,13 @@ fun ModelSelectionCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Model",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = it }
@@ -424,13 +599,21 @@ fun ModelSelectionCard(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    models.forEach { model ->
+                    allModels.forEach { model ->
+                        val isCompatible = aiProvider == null || aiProvider.models.isEmpty() || model in aiProvider.models
                         DropdownMenuItem(
-                            text = { Text(model) },
+                            text = {
+                                Text(
+                                    model,
+                                    color = if (isCompatible) MaterialTheme.colorScheme.onSurface
+                                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            },
                             onClick = {
                                 onModelChange(model)
                                 expanded = false
                             },
+                            enabled = isCompatible,
                             leadingIcon = if (selectedModel == model) {
                                 { Icon(Icons.Default.Check, contentDescription = null) }
                             } else null
@@ -441,6 +624,8 @@ fun ModelSelectionCard(
         }
     }
 }
+
+// ===== ADVANCED SETTINGS =====
 
 @Composable
 fun AdvancedSettingsCard(
@@ -474,7 +659,6 @@ fun AdvancedSettingsCard(
 
             AnimatedVisibility(visible = showAdvanced) {
                 Column(modifier = Modifier.padding(top = 16.dp)) {
-                    // Temperature
                     Text(
                         text = "Temperature: ${temperature / 100f}",
                         style = MaterialTheme.typography.bodyMedium
@@ -482,13 +666,19 @@ fun AdvancedSettingsCard(
                     Slider(
                         value = temperature.toFloat(),
                         onValueChange = { onTemperatureChange(it.toInt()) },
-                        valueRange = 0f..100f,
-                        steps = 9
+                        valueRange = 1f..200f,
+                        steps = 19
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("0.01", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Max Tokens
                     Text(
                         text = "Max Tokens: $maxTokens",
                         style = MaterialTheme.typography.bodyMedium
@@ -496,14 +686,76 @@ fun AdvancedSettingsCard(
                     Slider(
                         value = maxTokens.toFloat(),
                         onValueChange = { onMaxTokensChange(it.toInt()) },
-                        valueRange = 256f..4096f,
-                        steps = 14
+                        valueRange = 128f..16000f,
+                        steps = 19
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("128", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("16000", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
     }
 }
+
+// ===== SYSTEM PROMPT =====
+
+@Composable
+fun SystemPromptCard(
+    systemPrompt: String,
+    onSystemPromptChange: (String) -> Unit,
+    onReset: () -> Unit
+) {
+    var showPrompt by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showPrompt = !showPrompt },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("System Prompt", style = MaterialTheme.typography.titleSmall)
+                Icon(
+                    if (showPrompt) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showPrompt) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    OutlinedTextField(
+                        value = systemPrompt,
+                        onValueChange = onSystemPromptChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 100.dp, max = 200.dp),
+                        maxLines = 8
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = onReset) {
+                        Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Reset to Default")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ===== LOCAL MODEL CARD =====
 
 @Composable
 fun LocalModelCard(
@@ -512,14 +764,17 @@ fun LocalModelCard(
     isSelected: Boolean,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    enabled: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val containerAlpha = if (enabled) 1f else 0.4f
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when {
+                !enabled -> MaterialTheme.colorScheme.surface
                 isSelected -> MaterialTheme.colorScheme.primaryContainer
                 status is ModelStatus.Ready -> MaterialTheme.colorScheme.secondaryContainer
                 else -> MaterialTheme.colorScheme.surface
@@ -536,13 +791,14 @@ fun LocalModelCard(
                     Text(
                         text = model.displayName,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = containerAlpha)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = model.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = containerAlpha)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -571,10 +827,9 @@ fun LocalModelCard(
                     }
                 }
 
-                // Action buttons based on status
                 when (status) {
                     is ModelStatus.NotDownloaded -> {
-                        FilledTonalButton(onClick = onDownload) {
+                        FilledTonalButton(onClick = onDownload, enabled = enabled) {
                             Icon(Icons.Default.Download, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Download")
@@ -608,16 +863,17 @@ fun LocalModelCard(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             } else {
-                                OutlinedButton(onClick = onSelect) {
+                                OutlinedButton(onClick = onSelect, enabled = enabled) {
                                     Text("Use")
                                 }
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            IconButton(onClick = { showDeleteConfirm = true }) {
+                            IconButton(onClick = { showDeleteConfirm = true }, enabled = enabled) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = if (enabled) MaterialTheme.colorScheme.error
+                                           else MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
                                 )
                             }
                         }
@@ -635,7 +891,7 @@ fun LocalModelCard(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            FilledTonalButton(onClick = onDownload) {
+                            FilledTonalButton(onClick = onDownload, enabled = enabled) {
                                 Text("Retry")
                             }
                         }
@@ -646,7 +902,6 @@ fun LocalModelCard(
                 }
             }
 
-            // Progress bar for downloading
             if (status is ModelStatus.Downloading) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
@@ -665,7 +920,6 @@ fun LocalModelCard(
         }
     }
 
-    // Delete confirmation dialog
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -690,16 +944,60 @@ fun LocalModelCard(
     }
 }
 
+// ===== OLLAMA CONNECTION =====
+
+@Composable
+fun OllamaConnectionCard(
+    ollamaUrl: String,
+    onOllamaUrlChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Ollama Server URL",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = ollamaUrl,
+                onValueChange = onOllamaUrlChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("https://your-server:11434") },
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Enter the URL of your Ollama server (e.g., http://192.168.1.100:11434)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// ===== CONTEXT SETTINGS =====
+
 @Composable
 fun ContextSettingsCard(
-    contextSize: Int,
+    maxSongsForContext: Int,
+    minValue: Int,
+    maxValue: Int,
     includeLikedSongs: Boolean,
-    includeHistory: Boolean,
-    onContextSizeChange: (Int) -> Unit,
+    includeDailyMixHistory: Boolean,
+    includeUserHabits: Boolean,
+    onMaxSongsForContextChange: (Int) -> Unit,
     onIncludeLikedSongsChange: (Boolean) -> Unit,
-    onIncludeHistoryChange: (Boolean) -> Unit
+    onIncludeDailyMixHistoryChange: (Boolean) -> Unit,
+    onIncludeUserHabitsChange: (Boolean) -> Unit
 ) {
     var showContextSettings by remember { mutableStateOf(false) }
+    var contextTextInput by remember { mutableStateOf(maxSongsForContext.toString()) }
 
     Card(
         modifier = Modifier
@@ -715,13 +1013,13 @@ fun ContextSettingsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Context Size: $contextSize songs",
+                        text = "Context Size: $maxSongsForContext songs",
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "How many songs to include as context for AI recommendations",
+                        text = "How many songs to include as context ($minValue-$maxValue)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -734,43 +1032,349 @@ fun ContextSettingsCard(
 
             AnimatedVisibility(visible = showContextSettings) {
                 Column(modifier = Modifier.padding(top = 16.dp)) {
-                    // Context size slider
                     Slider(
-                        value = contextSize.toFloat(),
-                        onValueChange = { onContextSizeChange(it.toInt()) },
-                        valueRange = 10f..100f,
-                        steps = 8
+                        value = maxSongsForContext.toFloat(),
+                        onValueChange = {
+                            onMaxSongsForContextChange(it.toInt())
+                            contextTextInput = it.toInt().toString()
+                        },
+                        valueRange = minValue.toFloat()..maxValue.toFloat(),
+                        steps = 48
                     )
 
+                    OutlinedTextField(
+                        value = contextTextInput,
+                        onValueChange = { value ->
+                            contextTextInput = value
+                            value.toIntOrNull()?.let { num ->
+                                onMaxSongsForContextChange(num.coerceIn(minValue, maxValue))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Exact number of songs") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    ToggleRow(
+                        title = "Include liked songs",
+                        checked = includeLikedSongs,
+                        onCheckedChange = onIncludeLikedSongsChange
+                    )
+
+                    ToggleRow(
+                        title = "Include listening history",
+                        checked = includeDailyMixHistory,
+                        onCheckedChange = onIncludeDailyMixHistoryChange
+                    )
+
+                    ToggleRow(
+                        title = "Include user habits",
+                        checked = includeUserHabits,
+                        onCheckedChange = onIncludeUserHabitsChange
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ===== DATA COLLECTION & PRIVACY =====
+
+@Composable
+fun DataCollectionCard(
+    telemetryIncludeSkipCount: Boolean,
+    telemetryIncludeCompletionRate: Boolean,
+    telemetryIncludeSessionDuration: Boolean,
+    telemetryIncludeTimeOfDay: Boolean,
+    telemetryIncludeGenreAffinity: Boolean,
+    telemetryIncludeArtistAffinity: Boolean,
+    telemetryIncludeReplayCount: Boolean,
+    telemetryIncludeQueuePatterns: Boolean,
+    onSkipCountChange: (Boolean) -> Unit,
+    onCompletionRateChange: (Boolean) -> Unit,
+    onSessionDurationChange: (Boolean) -> Unit,
+    onTimeOfDayChange: (Boolean) -> Unit,
+    onGenreAffinityChange: (Boolean) -> Unit,
+    onArtistAffinityChange: (Boolean) -> Unit,
+    onReplayCountChange: (Boolean) -> Unit,
+    onQueuePatternsChange: (Boolean) -> Unit
+) {
+    var showDataCollection by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDataCollection = !showDataCollection },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Data Collection Preferences",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Control which listening data is included for AI recommendations. All data stays on-device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    if (showDataCollection) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showDataCollection) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    ToggleRow("Skip count tracking", telemetryIncludeSkipCount, onSkipCountChange)
+                    ToggleRow("Completion rate", telemetryIncludeCompletionRate, onCompletionRateChange)
+                    ToggleRow("Session duration", telemetryIncludeSessionDuration, onSessionDurationChange)
+                    ToggleRow("Time of day patterns", telemetryIncludeTimeOfDay, onTimeOfDayChange)
+                    ToggleRow("Genre affinity", telemetryIncludeGenreAffinity, onGenreAffinityChange)
+                    ToggleRow("Artist affinity", telemetryIncludeArtistAffinity, onArtistAffinityChange)
+                    ToggleRow("Replay count", telemetryIncludeReplayCount, onReplayCountChange)
+                    ToggleRow("Queue patterns", telemetryIncludeQueuePatterns, onQueuePatternsChange)
+
                     Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Disabling all options means AI recommendations will not use your listening history.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
 
-                    // Toggle options
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Include liked songs")
-                        Switch(
-                            checked = includeLikedSongs,
-                            onCheckedChange = onIncludeLikedSongsChange
+// ===== CACHE SETTINGS =====
+
+@Composable
+fun CacheSettingsCard(
+    aiCacheEnabled: Boolean,
+    aiCacheMaxEntries: Int,
+    aiCacheTtlHours: Int,
+    aiCacheMaxEntriesMin: Int,
+    aiCacheMaxEntriesMax: Int,
+    aiCacheTtlHoursMin: Int,
+    aiCacheTtlHoursMax: Int,
+    onCacheEnabledChange: (Boolean) -> Unit,
+    onCacheMaxEntriesChange: (Int) -> Unit,
+    onCacheTtlHoursChange: (Int) -> Unit
+) {
+    var showCache by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showCache = !showCache },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Cache Settings", style = MaterialTheme.typography.titleSmall)
+                Icon(
+                    if (showCache) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showCache) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    ToggleRow("Enable AI response cache", aiCacheEnabled, onCacheEnabledChange)
+
+                    if (aiCacheEnabled) {
+                        Text(
+                            text = "Max cache entries: $aiCacheMaxEntries",
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                    }
+                        Slider(
+                            value = aiCacheMaxEntries.toFloat(),
+                            onValueChange = { onCacheMaxEntriesChange(it.toInt()) },
+                            valueRange = aiCacheMaxEntriesMin.toFloat()..aiCacheMaxEntriesMax.toFloat(),
+                            steps = 48
+                        )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Include listening history")
-                        Switch(
-                            checked = includeHistory,
-                            onCheckedChange = onIncludeHistoryChange
+                        Text(
+                            text = "Cache TTL: $aiCacheTtlHours hours",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value = aiCacheTtlHours.toFloat(),
+                            onValueChange = { onCacheTtlHoursChange(it.toInt()) },
+                            valueRange = aiCacheTtlHoursMin.toFloat()..aiCacheTtlHoursMax.toFloat(),
+                            steps = 19
                         )
                     }
                 }
             }
         }
+    }
+}
+
+// ===== NOTIFICATION & BEHAVIOR =====
+
+@Composable
+fun NotificationSettingsCard(
+    aiIncludeContext: Boolean,
+    aiEnableStreaming: Boolean,
+    isSafeTokenLimitEnabled: Boolean,
+    onIncludeContextChange: (Boolean) -> Unit,
+    onEnableStreamingChange: (Boolean) -> Unit,
+    onSafeTokenLimitChange: (Boolean) -> Unit
+) {
+    var showNotifications by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showNotifications = !showNotifications },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Notification & Behavior", style = MaterialTheme.typography.titleSmall)
+                Icon(
+                    if (showNotifications) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showNotifications) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    ToggleRow(
+                        "Include context for AI",
+                        aiIncludeContext,
+                        onIncludeContextChange,
+                        subtitle = "Include listening context in AI prompts"
+                    )
+                    ToggleRow(
+                        "Enable streaming",
+                        aiEnableStreaming,
+                        onEnableStreamingChange,
+                        subtitle = "Stream AI responses in real-time"
+                    )
+                    ToggleRow(
+                        "Safe token limit",
+                        isSafeTokenLimitEnabled,
+                        onSafeTokenLimitChange,
+                        subtitle = "Limit token usage to prevent excessive consumption"
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ===== USAGE STATISTICS =====
+
+@Composable
+fun UsageStatsCard(
+    totalInputTokens: Long,
+    totalOutputTokens: Long,
+    totalApiCalls: Long,
+    estimatedCost: String,
+    onClearMetrics: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("AI Usage Statistics", style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            StatRow("Total API Calls", totalApiCalls.toString())
+            StatRow("Total Input Tokens", totalInputTokens.toString())
+            StatRow("Total Output Tokens", totalOutputTokens.toString())
+            StatRow("Estimated Cost", "$${estimatedCost}")
+
+            if (totalApiCalls > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onClearMetrics,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Clear Metrics")
+                }
+            }
+        }
+    }
+}
+
+// ===== GENERIC COMPONENTS =====
+
+@Composable
+fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun ToggleRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }
 
@@ -787,7 +1391,8 @@ fun SwitchPreference(
             .fillMaxWidth()
             .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier),
         colors = CardDefaults.cardColors(
-            containerColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -799,7 +1404,9 @@ fun SwitchPreference(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
                 Text(
                     text = subtitle,

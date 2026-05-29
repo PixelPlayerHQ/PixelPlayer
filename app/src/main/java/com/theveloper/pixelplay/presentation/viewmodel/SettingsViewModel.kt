@@ -118,9 +118,6 @@ data class SettingsUiState(
     val aiProvider: String = "GEMINI",
     val currentApiKey: String = "",
     val currentModel: String = "",
-    val availableModels: List<AiModel> = emptyList(),
-    val isLoadingModels: Boolean = false,
-    val modelsFetchError: String? = null,
     val aiTemperature: Float = 0.7f,
     val aiMaxTokens: Int = 2048,
     val aiEnableStreaming: Boolean = true,
@@ -131,6 +128,7 @@ data class SettingsUiState(
     val includeUserHabits: Boolean = true,
     val localMlEnabled: Boolean = false,
     val localMlActiveModelId: String = "",
+    val localMlSelectedModelId: String = "",
     val localMlFallbackToRemote: Boolean = true,
     val localMlUseGpu: Boolean = false,
     val localMlContextSize: Int = AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE,
@@ -139,7 +137,23 @@ data class SettingsUiState(
     val localMlSupported: Boolean = true,
     val localMlSupportMessage: String = "",
     val availableLocalModels: List<com.theveloper.pixelplay.data.ai.local.LocalModelInfo> = emptyList(),
-    val localModelStatuses: Map<String, com.theveloper.pixelplay.data.ai.local.ModelStatus> = emptyMap()
+    val localModelStatuses: Map<String, com.theveloper.pixelplay.data.ai.local.ModelStatus> = emptyMap(),
+    // Advanced AI settings
+    val maxSongsForContextMin: Int = AiPreferencesRepository.MIN_SONGS_FOR_CONTEXT,
+    val maxSongsForContextMax: Int = AiPreferencesRepository.MAX_SONGS_FOR_CONTEXT,
+    val aiCacheMaxEntriesMin: Int = AiPreferencesRepository.MIN_CACHE_MAX_ENTRIES,
+    val aiCacheMaxEntriesMax: Int = AiPreferencesRepository.MAX_CACHE_MAX_ENTRIES,
+    val aiCacheTtlHoursMin: Int = AiPreferencesRepository.MIN_CACHE_TTL_HOURS,
+    val aiCacheTtlHoursMax: Int = AiPreferencesRepository.MAX_CACHE_TTL_HOURS,
+    val aiCacheMaxEntries: Int = AiPreferencesRepository.DEFAULT_CACHE_MAX_ENTRIES,
+    val aiCacheTtlHours: Int = AiPreferencesRepository.DEFAULT_CACHE_TTL_HOURS,
+    val aiCacheEnabled: Boolean = true,
+    val localModelDownloadTimeoutMs: Long = AiPreferencesRepository.DEFAULT_LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS.toLong(),
+    // Usage analytics
+    val aiUsageTotalInputTokens: Long = 0L,
+    val aiUsageTotalOutputTokens: Long = 0L,
+    val aiUsageTotalApiCalls: Long = 0L,
+    val aiUsageEstimatedCost: String = "0.00"
 )
 
 data class FailedSongInfo(
@@ -324,6 +338,35 @@ class SettingsViewModel @Inject constructor(
 
     val localModelStatuses: StateFlow<Map<String, ModelStatus>> = localMlManager.statusMap
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val localMlSelectedModelId: StateFlow<String> = aiPreferencesRepository.localMlSelectedModelId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    // Cache configuration StateFlows
+    val aiCacheEnabled: StateFlow<Boolean> = aiPreferencesRepository.aiCacheEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val aiCacheMaxEntries: StateFlow<Int> = aiPreferencesRepository.aiCacheMaxEntries
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_CACHE_MAX_ENTRIES)
+
+    val aiCacheTtlHours: StateFlow<Int> = aiPreferencesRepository.aiCacheTtlHours
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_CACHE_TTL_HOURS)
+
+    val localModelDownloadTimeoutMs: StateFlow<Long> = aiPreferencesRepository.localModelDownloadTimeoutMs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS.toLong())
+
+    // Usage analytics StateFlows
+    val aiUsageTotalInputTokens: StateFlow<Long> = aiPreferencesRepository.aiUsageTotalInputTokens
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val aiUsageTotalOutputTokens: StateFlow<Long> = aiPreferencesRepository.aiUsageTotalOutputTokens
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val aiUsageTotalApiCalls: StateFlow<Long> = aiPreferencesRepository.aiUsageTotalApiCalls
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val aiUsageEstimatedCost: StateFlow<String> = aiPreferencesRepository.aiUsageEstimatedCost
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "0.00")
 
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
@@ -942,6 +985,62 @@ class SettingsViewModel @Inject constructor(
             }
         }
 
+        // Cache and advanced AI settings collectors
+        viewModelScope.launch {
+            aiPreferencesRepository.aiCacheEnabled.collect { enabled ->
+                _uiState.update { it.copy(aiCacheEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiCacheMaxEntries.collect { maxEntries ->
+                _uiState.update { it.copy(aiCacheMaxEntries = maxEntries) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiCacheTtlHours.collect { ttlHours ->
+                _uiState.update { it.copy(aiCacheTtlHours = ttlHours) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localModelDownloadTimeoutMs.collect { timeoutMs ->
+                _uiState.update { it.copy(localModelDownloadTimeoutMs = timeoutMs) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.localMlSelectedModelId.collect { modelId ->
+                _uiState.update { it.copy(localMlSelectedModelId = modelId) }
+            }
+        }
+
+        // Usage analytics collectors
+        viewModelScope.launch {
+            aiPreferencesRepository.aiUsageTotalInputTokens.collect { tokens ->
+                _uiState.update { it.copy(aiUsageTotalInputTokens = tokens) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiUsageTotalOutputTokens.collect { tokens ->
+                _uiState.update { it.copy(aiUsageTotalOutputTokens = tokens) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiUsageTotalApiCalls.collect { calls ->
+                _uiState.update { it.copy(aiUsageTotalApiCalls = calls) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiUsageEstimatedCost.collect { cost ->
+                _uiState.update { it.copy(aiUsageEstimatedCost = cost) }
+            }
+        }
+
         // Load available local models
         loadLocalModels()
     }
@@ -1326,9 +1425,85 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setMaxSongsForContext(maxSongs: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setMaxSongsForContext(maxSongs.coerceIn(AiPreferencesRepository.MIN_SONGS_FOR_CONTEXT, AiPreferencesRepository.MAX_SONGS_FOR_CONTEXT))
+        }
+    }
 
+    fun setLocalMlSelectedModelId(modelId: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setLocalMlSelectedModelId(modelId)
+        }
+    }
 
-    /**
+    fun setLocalModelDownloadTimeoutMs(timeoutMs: Long) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setLocalModelDownloadTimeoutMs(timeoutMs)
+        }
+    }
+
+    fun setAiCacheEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiCacheEnabled(enabled)
+        }
+    }
+
+    fun setAiCacheMaxEntries(maxEntries: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiCacheMaxEntries(maxEntries)
+        }
+    }
+
+    fun setAiCacheTtlHours(ttlHours: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiCacheTtlHours(ttlHours)
+        }
+    }
+
+    fun getAiUsageStats(): Pair<Long, Long> {
+        return Pair(aiUsageTotalInputTokens.value, aiUsageTotalOutputTokens.value)
+    }
+
+    fun clearAiUsageMetrics() {
+        viewModelScope.launch {
+            aiPreferencesRepository.clearAiUsageMetrics()
+        }
+    }
+
+    fun setPerModelTemperature(modelName: String, temperature: Float) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setPerModelTemperature(modelName, (temperature * 100).toInt())
+        }
+    }
+
+    fun clearPerModelTemperature(modelName: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.clearPerModelTemperature(modelName)
+        }
+    }
+
+    fun setPerModelMaxTokens(modelName: String, tokens: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setPerModelMaxTokens(modelName, tokens)
+        }
+    }
+
+    fun clearPerModelMaxTokens(modelName: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.clearPerModelMaxTokens(modelName)
+        }
+    }
+
+    fun setProviderTimeout(provider: AiProvider, timeoutMs: Long) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setProviderTimeout(provider, timeoutMs)
+        }
+    }
+
+    fun getLocalModelDownloadUrl(modelId: String): String? {
+        return availableLocalModels.value.find { it.id == modelId }?.downloadUrl
+    }
      * Performs a full library rescan - rescans all files from scratch.
      * Use when songs are missing or metadata is incorrect.
      */

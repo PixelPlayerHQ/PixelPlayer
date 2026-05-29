@@ -36,7 +36,24 @@ class AiPreferencesRepository @Inject constructor(
         val DEFAULT_OLLAMA_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
 
         const val DEFAULT_MAX_SONGS_FOR_CONTEXT = 50
+        const val MIN_SONGS_FOR_CONTEXT = 5
+        const val MAX_SONGS_FOR_CONTEXT = 500
+
         const val DEFAULT_LOCAL_MODEL_CONTEXT_SIZE = 100
+
+        const val DEFAULT_CACHE_MAX_ENTRIES = 50
+        const val MIN_CACHE_MAX_ENTRIES = 10
+        const val MAX_CACHE_MAX_ENTRIES = 500
+
+        const val DEFAULT_CACHE_TTL_HOURS = 24
+        const val MIN_CACHE_TTL_HOURS = 1
+        const val MAX_CACHE_TTL_HOURS = 720
+
+        const val DEFAULT_LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS = 300000
+        const val DEFAULT_TEMPERATURE_MIN = 1
+        const val DEFAULT_TEMPERATURE_MAX = 200
+        const val DEFAULT_MAX_TOKENS_MIN = 128
+        const val DEFAULT_MAX_TOKENS_MAX = 16000
     }
 
     private object Keys {
@@ -52,11 +69,13 @@ class AiPreferencesRepository @Inject constructor(
         // Local model configuration
         val LOCAL_ML_ENABLED = booleanPreferencesKey("local_ml_enabled")
         val LOCAL_ML_ACTIVE_MODEL_ID = stringPreferencesKey("local_ml_active_model_id")
+        val LOCAL_ML_SELECTED_MODEL_ID = stringPreferencesKey("local_ml_selected_model_id")
         val LOCAL_ML_FALLBACK_TO_REMOTE = booleanPreferencesKey("local_ml_fallback_to_remote")
         val LOCAL_ML_USE_GPU = booleanPreferencesKey("local_ml_use_gpu")
         val LOCAL_ML_CONTEXT_SIZE = intPreferencesKey("local_ml_context_size")
         val LOCAL_ML_OLLAMA_URL = stringPreferencesKey("local_ml_ollama_url")
         val LOCAL_ML_HF_TOKEN = stringPreferencesKey("local_ml_hf_token")
+        val LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS = longPreferencesKey("local_model_download_timeout_ms")
 
         val AI_TEMPERATURE = intPreferencesKey("ai_temperature")
         val AI_MAX_TOKENS = intPreferencesKey("ai_max_tokens")
@@ -85,9 +104,18 @@ class AiPreferencesRepository @Inject constructor(
         val AI_BACKUP_AUTO_EXPORT = booleanPreferencesKey("ai_backup_auto_export")
         val AI_BACKUP_LAST_EXPORT_TS = longPreferencesKey("ai_backup_last_export_ts")
 
+        // Usage analytics
+        val AI_USAGE_TOTAL_INPUT_TOKENS = longPreferencesKey("ai_usage_total_input_tokens")
+        val AI_USAGE_TOTAL_OUTPUT_TOKENS = longPreferencesKey("ai_usage_total_output_tokens")
+        val AI_USAGE_TOTAL_API_CALLS = longPreferencesKey("ai_usage_total_api_calls")
+        val AI_USAGE_ESTIMATED_COST = stringPreferencesKey("ai_usage_estimated_cost")
+
         fun getApiKey(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_api_key")
         fun getModel(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_model")
         fun getSystemPrompt(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_system_prompt")
+        fun getProviderTimeout(provider: AiProvider) = longPreferencesKey("${provider.name.lowercase()}_timeout_ms")
+        fun getPerModelTemperature(modelName: String) = intPreferencesKey("model_temp_${modelName.replace(" ", "_")}")
+        fun getPerModelMaxTokens(modelName: String) = intPreferencesKey("model_tokens_${modelName.replace(" ", "_")}")
     }
 
     // Generic accessors for AiHandler
@@ -251,10 +279,10 @@ class AiPreferencesRepository @Inject constructor(
         dataStore.data.map { it[Keys.AI_CACHE_ENABLED] ?: true }
 
     val aiCacheMaxEntries: Flow<Int> =
-        dataStore.data.map { it[Keys.AI_CACHE_MAX_ENTRIES] ?: 50 }
+        dataStore.data.map { it[Keys.AI_CACHE_MAX_ENTRIES] ?: DEFAULT_CACHE_MAX_ENTRIES }
 
     val aiCacheTtlHours: Flow<Int> =
-        dataStore.data.map { it[Keys.AI_CACHE_TTL_HOURS] ?: 24 }
+        dataStore.data.map { it[Keys.AI_CACHE_TTL_HOURS] ?: DEFAULT_CACHE_TTL_HOURS }
 
     val aiCacheLastClearTs: Flow<Long> =
         dataStore.data.map { it[Keys.AI_CACHE_LAST_CLEAR_TS] ?: 0L }
@@ -273,6 +301,33 @@ class AiPreferencesRepository @Inject constructor(
     val aiBackupLastExportTs: Flow<Long> =
         dataStore.data.map { it[Keys.AI_BACKUP_LAST_EXPORT_TS] ?: 0L }
 
+    val localModelDownloadTimeoutMs: Flow<Long> =
+        dataStore.data.map { it[Keys.LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS] ?: DEFAULT_LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS.toLong() }
+
+    val localMlSelectedModelId: Flow<String> =
+        dataStore.data.map { it[Keys.LOCAL_ML_SELECTED_MODEL_ID] ?: "" }
+
+    val aiUsageTotalInputTokens: Flow<Long> =
+        dataStore.data.map { it[Keys.AI_USAGE_TOTAL_INPUT_TOKENS] ?: 0L }
+
+    val aiUsageTotalOutputTokens: Flow<Long> =
+        dataStore.data.map { it[Keys.AI_USAGE_TOTAL_OUTPUT_TOKENS] ?: 0L }
+
+    val aiUsageTotalApiCalls: Flow<Long> =
+        dataStore.data.map { it[Keys.AI_USAGE_TOTAL_API_CALLS] ?: 0L }
+
+    val aiUsageEstimatedCost: Flow<String> =
+        dataStore.data.map { it[Keys.AI_USAGE_ESTIMATED_COST] ?: "0.00" }
+
+    fun getProviderTimeout(provider: AiProvider): Flow<Long> =
+        dataStore.data.map { it[Keys.getProviderTimeout(provider)] ?: 60000L }
+
+    fun getPerModelTemperature(modelName: String): Flow<Int?> =
+        dataStore.data.map { it[Keys.getPerModelTemperature(modelName)] }
+
+    fun getPerModelMaxTokens(modelName: String): Flow<Int?> =
+        dataStore.data.map { it[Keys.getPerModelMaxTokens(modelName)] }
+
     // ---- Mutators ----
 
     suspend fun setAiProvider(provider: String) {
@@ -284,7 +339,7 @@ class AiPreferencesRepository @Inject constructor(
     }
 
     suspend fun setMaxSongsForContext(maxSongs: Int) {
-        dataStore.edit { it[Keys.MAX_SONGS_FOR_CONTEXT] = maxSongs }
+        dataStore.edit { it[Keys.MAX_SONGS_FOR_CONTEXT] = maxSongs.coerceIn(MIN_SONGS_FOR_CONTEXT, MAX_SONGS_FOR_CONTEXT) }
     }
 
     suspend fun setIncludeLikedSongs(include: Boolean) {
@@ -325,8 +380,8 @@ class AiPreferencesRepository @Inject constructor(
 
     // Cache mutators
     suspend fun setAiCacheEnabled(v: Boolean) { dataStore.edit { it[Keys.AI_CACHE_ENABLED] = v } }
-    suspend fun setAiCacheMaxEntries(v: Int) { dataStore.edit { it[Keys.AI_CACHE_MAX_ENTRIES] = v } }
-    suspend fun setAiCacheTtlHours(v: Int) { dataStore.edit { it[Keys.AI_CACHE_TTL_HOURS] = v } }
+    suspend fun setAiCacheMaxEntries(v: Int) { dataStore.edit { it[Keys.AI_CACHE_MAX_ENTRIES] = v.coerceIn(MIN_CACHE_MAX_ENTRIES, MAX_CACHE_MAX_ENTRIES) } }
+    suspend fun setAiCacheTtlHours(v: Int) { dataStore.edit { it[Keys.AI_CACHE_TTL_HOURS] = v.coerceIn(MIN_CACHE_TTL_HOURS, MAX_CACHE_TTL_HOURS) } }
     suspend fun recordAiCacheCleared() { dataStore.edit { it[Keys.AI_CACHE_LAST_CLEAR_TS] = System.currentTimeMillis() } }
 
     // Backup mutators
@@ -334,5 +389,69 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun setAiBackupIncludeCache(v: Boolean) { dataStore.edit { it[Keys.AI_BACKUP_INCLUDE_CACHE] = v } }
     suspend fun setAiBackupAutoExport(v: Boolean) { dataStore.edit { it[Keys.AI_BACKUP_AUTO_EXPORT] = v } }
     suspend fun recordAiBackupExport() { dataStore.edit { it[Keys.AI_BACKUP_LAST_EXPORT_TS] = System.currentTimeMillis() } }
+
+    suspend fun setLocalModelDownloadTimeoutMs(timeoutMs: Long) {
+        dataStore.edit { it[Keys.LOCAL_MODEL_DOWNLOAD_TIMEOUT_MS] = timeoutMs.coerceIn(10000, 3600000) }
+    }
+
+    suspend fun setLocalMlSelectedModelId(modelId: String) {
+        dataStore.edit { it[Keys.LOCAL_ML_SELECTED_MODEL_ID] = modelId }
+    }
+
+    suspend fun setAiUsageTotalInputTokens(tokens: Long) {
+        dataStore.edit { it[Keys.AI_USAGE_TOTAL_INPUT_TOKENS] = tokens }
+    }
+
+    suspend fun setAiUsageTotalOutputTokens(tokens: Long) {
+        dataStore.edit { it[Keys.AI_USAGE_TOTAL_OUTPUT_TOKENS] = tokens }
+    }
+
+    suspend fun setAiUsageTotalApiCalls(calls: Long) {
+        dataStore.edit { it[Keys.AI_USAGE_TOTAL_API_CALLS] = calls }
+    }
+
+    suspend fun incrementAiUsageMetrics(inputTokens: Int, outputTokens: Int) {
+        dataStore.edit { prefs ->
+            val currentInput = prefs[Keys.AI_USAGE_TOTAL_INPUT_TOKENS] ?: 0L
+            val currentOutput = prefs[Keys.AI_USAGE_TOTAL_OUTPUT_TOKENS] ?: 0L
+            val currentCalls = prefs[Keys.AI_USAGE_TOTAL_API_CALLS] ?: 0L
+            prefs[Keys.AI_USAGE_TOTAL_INPUT_TOKENS] = currentInput + inputTokens
+            prefs[Keys.AI_USAGE_TOTAL_OUTPUT_TOKENS] = currentOutput + outputTokens
+            prefs[Keys.AI_USAGE_TOTAL_API_CALLS] = currentCalls + 1
+        }
+    }
+
+    suspend fun setAiUsageEstimatedCost(cost: String) {
+        dataStore.edit { it[Keys.AI_USAGE_ESTIMATED_COST] = cost }
+    }
+
+    suspend fun clearAiUsageMetrics() {
+        dataStore.edit { prefs ->
+            prefs[Keys.AI_USAGE_TOTAL_INPUT_TOKENS] = 0L
+            prefs[Keys.AI_USAGE_TOTAL_OUTPUT_TOKENS] = 0L
+            prefs[Keys.AI_USAGE_TOTAL_API_CALLS] = 0L
+            prefs[Keys.AI_USAGE_ESTIMATED_COST] = "0.00"
+        }
+    }
+
+    suspend fun setProviderTimeout(provider: AiProvider, timeoutMs: Long) {
+        dataStore.edit { it[Keys.getProviderTimeout(provider)] = timeoutMs.coerceIn(5000, 300000) }
+    }
+
+    suspend fun setPerModelTemperature(modelName: String, temperature: Int) {
+        dataStore.edit { it[Keys.getPerModelTemperature(modelName)] = temperature.coerceIn(1, 200) }
+    }
+
+    suspend fun clearPerModelTemperature(modelName: String) {
+        dataStore.edit { it.remove(Keys.getPerModelTemperature(modelName)) }
+    }
+
+    suspend fun setPerModelMaxTokens(modelName: String, maxTokens: Int) {
+        dataStore.edit { it[Keys.getPerModelMaxTokens(modelName)] = maxTokens.coerceIn(128, 16000) }
+    }
+
+    suspend fun clearPerModelMaxTokens(modelName: String) {
+        dataStore.edit { it.remove(Keys.getPerModelMaxTokens(modelName)) }
+    }
 }
 

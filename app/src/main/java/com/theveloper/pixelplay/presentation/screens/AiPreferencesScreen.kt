@@ -133,6 +133,21 @@ fun AiPreferencesScreen(
                 }
 
                 item {
+                    AdvancedGenerationCard(
+                        topK = uiState.aiTopK,
+                        topP = (uiState.aiTopP * 100).toInt(),
+                        repetitionPenalty = (uiState.aiRepetitionPenalty * 100).toInt(),
+                        frequencyPenalty = (uiState.aiFrequencyPenalty * 100).toInt(),
+                        presencePenalty = (uiState.aiPresencePenalty * 100).toInt(),
+                        onTopKChange = { settingsViewModel.onAiTopKChange(it) },
+                        onTopPChange = { settingsViewModel.onAiTopPChange(it) },
+                        onRepetitionPenaltyChange = { settingsViewModel.onAiRepetitionPenaltyChange(it) },
+                        onFrequencyPenaltyChange = { settingsViewModel.onAiFrequencyPenaltyChange(it) },
+                        onPresencePenaltyChange = { settingsViewModel.onAiPresencePenaltyChange(it) }
+                    )
+                }
+
+                item {
                     SystemPromptCard(
                         systemPrompt = currentAiSystemPrompt,
                         onSystemPromptChange = { settingsViewModel.onAiSystemPromptChange(it) },
@@ -669,6 +684,95 @@ fun AdvancedSettingsCard(
         ) {
             Text("128", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("16000", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ===== ADVANCED GENERATION PARAMETERS =====
+
+@Composable
+fun AdvancedGenerationCard(
+    topK: Int,
+    topP: Int,
+    repetitionPenalty: Int,
+    frequencyPenalty: Int,
+    presencePenalty: Int,
+    onTopKChange: (Int) -> Unit,
+    onTopPChange: (Int) -> Unit,
+    onRepetitionPenaltyChange: (Int) -> Unit,
+    onFrequencyPenaltyChange: (Int) -> Unit,
+    onPresencePenaltyChange: (Int) -> Unit
+) {
+    var showAdvanced by remember { mutableStateOf(false) }
+
+    CollapsibleCard(
+        expanded = showAdvanced,
+        onToggle = { showAdvanced = !showAdvanced },
+        contentPadding = 16.dp,
+        title = { Text("Generation Parameters", style = MaterialTheme.typography.titleSmall) }
+    ) {
+        Text(text = "Top-K: $topK", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = topK.toFloat(),
+            onValueChange = { onTopKChange(it.toInt()) },
+            valueRange = 1f..100f,
+            steps = 19
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("1", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("100", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "Top-P: ${topP / 100f}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = topP.toFloat(),
+            onValueChange = { onTopPChange(it.toInt()) },
+            valueRange = 1f..100f,
+            steps = 19
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("0.01", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "Repetition Penalty: ${repetitionPenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = repetitionPenalty.toFloat(),
+            onValueChange = { onRepetitionPenaltyChange(it.toInt()) },
+            valueRange = 100f..200f,
+            steps = 19
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "Frequency Penalty: ${frequencyPenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = frequencyPenalty.toFloat(),
+            onValueChange = { onFrequencyPenaltyChange(it.toInt()) },
+            valueRange = -200f..200f,
+            steps = 19
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("-2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "Presence Penalty: ${presencePenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = presencePenalty.toFloat(),
+            onValueChange = { onPresencePenaltyChange(it.toInt()) },
+            valueRange = -200f..200f,
+            steps = 19
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("-2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

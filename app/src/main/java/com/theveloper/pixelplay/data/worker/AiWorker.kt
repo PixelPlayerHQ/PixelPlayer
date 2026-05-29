@@ -72,7 +72,8 @@ class AiWorker @AssistedInject constructor(
                             type == AiSystemPromptType.PERSONA) {
                 val allSongs = musicRepository.getAllSongsOnce()
                 val isSafe = preferencesRepo.isSafeTokenLimitEnabled.first()
-                digestGenerator.generateDigest(allSongs, isSafe)
+                val maxContext = preferencesRepo.getMaxSongsForContextOnce()
+                digestGenerator.generateDigest(allSongs, isSafe, maxContext)
             } else ""
 
             val result = orchestrator.generateContent(

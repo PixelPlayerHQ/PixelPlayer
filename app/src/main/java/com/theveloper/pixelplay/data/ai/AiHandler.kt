@@ -117,7 +117,8 @@ class AiHandler @Inject constructor(
             val context = if (type == AiSystemPromptType.PLAYLIST || 
                             type == AiSystemPromptType.TAGGING || 
                             type == AiSystemPromptType.PERSONA) {
-                digestGenerator.generateDigest(allSongs)
+                val maxContext = preferencesRepo.getMaxSongsForContextOnce()
+                digestGenerator.generateDigest(allSongs, true, maxContext)
             } else ""
 
             return generateContent(

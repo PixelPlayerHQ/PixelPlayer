@@ -32,11 +32,25 @@ class UserProfileDigestGenerator @Inject constructor(
      *
      * Safe mode aggressively caps all sections to stay under ~1000 tokens.
      * Full mode provides deep context for maximum personalization quality.
+     *
+     * @param maxSongsForContext The user's maxSongsForContext setting, used to scale internal limits.
      */
-    suspend fun generateDigest(allSongs: List<Song>, isSafeLimit: Boolean = true): String {
+    suspend fun generateDigest(
+        allSongs: List<Song>,
+        isSafeLimit: Boolean = true,
+        maxSongsForContext: Int = 50
+    ): String {
         val targetLimit = if (isSafeLimit) SAFE_TARGET_CHAR_LIMIT else MAX_TARGET_CHAR_LIMIT
-        val listenedLimit = if (isSafeLimit) SAFE_LISTENED_LIMIT else FULL_LISTENED_LIMIT
-        val discoveryLimit = if (isSafeLimit) SAFE_DISCOVERY_LIMIT else FULL_DISCOVERY_LIMIT
+        val listenedLimit = if (isSafeLimit) {
+            (maxSongsForContext * 0.3).toInt().coerceIn(SAFE_LISTENED_LIMIT, FULL_LISTENED_LIMIT)
+        } else {
+            (maxSongsForContext * 0.5).toInt().coerceIn(FULL_LISTENED_LIMIT, 200)
+        }
+        val discoveryLimit = if (isSafeLimit) {
+            (maxSongsForContext * 0.6).toInt().coerceIn(SAFE_DISCOVERY_LIMIT, FULL_DISCOVERY_LIMIT)
+        } else {
+            maxSongsForContext.coerceIn(FULL_DISCOVERY_LIMIT, 400)
+        }
 
         val summary = statsRepository.loadSummary(StatsTimeRange.ALL, allSongs)
         val playlists = playlistDao.observePlaylistsWithSongs().first()
@@ -71,8 +85,8 @@ class UserProfileDigestGenerator @Inject constructor(
         }
         
         // --- 2. Listened Tracks (capped) ---
-        // Compact format: ID|plays|mins|fav|title-artist
-        sb.append("\nLISTENED: id|p|d|f|meta\n")
+        // Compact format: ID|p|d|f|alb|dur|g|meta
+        sb.append("\nLISTENED: id|p|d_s|f|alb|dur|g|meta\n")
         
         val songMap = allSongs.associateBy { it.id }
         val playedSongs = summary.songs.take(listenedLimit)
@@ -82,10 +96,13 @@ class UserProfileDigestGenerator @Inject constructor(
             val song = songMap[s.songId]
             val fav = if (song?.isFavorite == true) "1" else "0"
             val mins = s.totalDurationMs / 60000
+            val album = song?.album?.take(20)?.replace("|", "/") ?: "?"
+            val durationSec = if (song != null) song.duration / 1000 else 0
+            val genre = song?.genre?.take(12)?.replace("|", "/") ?: "?"
             // Truncate long titles to save tokens
             val title = s.title.take(30)
             val artist = s.artist.take(20)
-            sb.append("${s.songId}|${s.playCount}|$mins|$fav|$title-$artist\n")
+            sb.append("${s.songId}|${s.playCount}|$mins|$fav|$album|$durationSec|$genre|$title-$artist\n")
         }
         
         // --- 3. Discovery Pool (strictly capped) ---
@@ -96,12 +113,15 @@ class UserProfileDigestGenerator @Inject constructor(
             .take(discoveryLimit)
         
         if (unplayed.isNotEmpty()) {
-            sb.append("\nDISCOVERY_POOL:\n")
+            sb.append("\nDISCOVERY_POOL: id|alb|dur|g|meta\n")
             unplayed.forEach { s ->
                 if (sb.length >= targetLimit) return@forEach
                 val title = s.title.take(30)
                 val artist = s.displayArtist.take(20)
-                sb.append("${s.id}|$title-$artist\n")
+                val album = s.album?.take(20)?.replace("|", "/") ?: "?"
+                val durationSec = s.duration / 1000
+                val genre = s.genre?.take(12)?.replace("|", "/") ?: "?"
+                sb.append("${s.id}|$album|$durationSec|$genre|$title-$artist\n")
             }
         }
         

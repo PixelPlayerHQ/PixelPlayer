@@ -154,6 +154,12 @@ data class SettingsUiState(
     val aiUsageTotalOutputTokens: Long = 0L,
     val aiUsageTotalApiCalls: Long = 0L,
     val aiUsageEstimatedCost: String = "0.00",
+    // Advanced generation parameters
+    val aiTopK: Int = AiPreferencesRepository.DEFAULT_TOP_K,
+    val aiTopP: Float = 0.95f,
+    val aiRepetitionPenalty: Float = 1.0f,
+    val aiFrequencyPenalty: Float = 0.0f,
+    val aiPresencePenalty: Float = 0.0f,
     // Telemetry / Data collection
     val telemetryIncludeSkipCount: Boolean = false,
     val telemetryIncludeCompletionRate: Boolean = false,
@@ -242,7 +248,12 @@ private sealed interface AiSettingsUpdate {
         val aiEnableStreaming: Boolean,
         val aiIncludeContext: Boolean,
         val localModelDownloadTimeoutMs: Long,
-        val localMlSelectedModelId: String
+        val localMlSelectedModelId: String,
+        val aiTopK: Int,
+        val aiTopP: Int,
+        val aiRepetitionPenalty: Int,
+        val aiFrequencyPenalty: Int,
+        val aiPresencePenalty: Int
     ) : AiSettingsUpdate
 
     data class GroupB(
@@ -852,7 +863,12 @@ class SettingsViewModel @Inject constructor(
                 aiPreferencesRepository.aiEnableStreaming,
                 aiPreferencesRepository.aiIncludeContext,
                 aiPreferencesRepository.localModelDownloadTimeoutMs,
-                aiPreferencesRepository.localMlSelectedModelId
+                aiPreferencesRepository.localMlSelectedModelId,
+                aiPreferencesRepository.aiTopK,
+                aiPreferencesRepository.aiTopP,
+                aiPreferencesRepository.aiRepetitionPenalty,
+                aiPreferencesRepository.aiFrequencyPenalty,
+                aiPreferencesRepository.aiPresencePenalty
             ) { values ->
                 AiSettingsUpdate.GroupA(
                     isSafeTokenLimitEnabled = values[0] as Boolean,
@@ -871,7 +887,12 @@ class SettingsViewModel @Inject constructor(
                     aiEnableStreaming = values[13] as Boolean,
                     aiIncludeContext = values[14] as Boolean,
                     localModelDownloadTimeoutMs = values[15] as Long,
-                    localMlSelectedModelId = values[16] as String
+                    localMlSelectedModelId = values[16] as String,
+                    aiTopK = values[17] as Int,
+                    aiTopP = values[18] as Int,
+                    aiRepetitionPenalty = values[19] as Int,
+                    aiFrequencyPenalty = values[20] as Int,
+                    aiPresencePenalty = values[21] as Int
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -892,7 +913,12 @@ class SettingsViewModel @Inject constructor(
                         aiEnableStreaming = update.aiEnableStreaming,
                         aiIncludeContext = update.aiIncludeContext,
                         localModelDownloadTimeoutMs = update.localModelDownloadTimeoutMs,
-                        localMlSelectedModelId = update.localMlSelectedModelId
+                        localMlSelectedModelId = update.localMlSelectedModelId,
+                        aiTopK = update.aiTopK,
+                        aiTopP = update.aiTopP / 100f,
+                        aiRepetitionPenalty = update.aiRepetitionPenalty / 100f,
+                        aiFrequencyPenalty = update.aiFrequencyPenalty / 100f,
+                        aiPresencePenalty = update.aiPresencePenalty / 100f
                     )
                 }
             }
@@ -956,191 +982,7 @@ class SettingsViewModel @Inject constructor(
                 }
             }
         }
-        }
 
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlEnabled.collect { enabled ->
-                _uiState.update { it.copy(localMlEnabled = enabled) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlActiveModelId.collect { modelId ->
-                _uiState.update { it.copy(localMlActiveModelId = modelId) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlFallbackToRemote.collect { fallback ->
-                _uiState.update { it.copy(localMlFallbackToRemote = fallback) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlUseGpu.collect { useGpu ->
-                _uiState.update { it.copy(localMlUseGpu = useGpu) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlContextSize.collect { size ->
-                _uiState.update { it.copy(localMlContextSize = size) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlOllamaUrl.collect { url ->
-                _uiState.update { it.copy(localMlOllamaUrl = url) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlHfToken.collect { token ->
-                _uiState.update { it.copy(localMlHfToken = token) }
-            }
-        }
-
-        // AI Provider and Model State
-        viewModelScope.launch {
-            aiProvider.collect { provider ->
-                _uiState.update { it.copy(aiProvider = provider) }
-            }
-        }
-
-        viewModelScope.launch {
-            currentAiApiKey.collect { apiKey ->
-                _uiState.update { it.copy(currentApiKey = apiKey) }
-            }
-        }
-
-        viewModelScope.launch {
-            currentAiModel.collect { model ->
-                _uiState.update { it.copy(currentModel = model) }
-            }
-        }
-
-        // AI Generation Settings
-        viewModelScope.launch {
-            aiPreferencesRepository.aiTemperature.collect { temp ->
-                _uiState.update { it.copy(aiTemperature = temp / 100f) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiMaxTokens.collect { tokens ->
-                _uiState.update { it.copy(aiMaxTokens = tokens) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiEnableStreaming.collect { enabled ->
-                _uiState.update { it.copy(aiEnableStreaming = enabled) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiIncludeContext.collect { enabled ->
-                _uiState.update { it.copy(aiIncludeContext = enabled) }
-            }
-        }
-
-        // Cache and advanced AI settings collectors
-        viewModelScope.launch {
-            aiPreferencesRepository.aiCacheEnabled.collect { enabled ->
-                _uiState.update { it.copy(aiCacheEnabled = enabled) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiCacheMaxEntries.collect { maxEntries ->
-                _uiState.update { it.copy(aiCacheMaxEntries = maxEntries) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiCacheTtlHours.collect { ttlHours ->
-                _uiState.update { it.copy(aiCacheTtlHours = ttlHours) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localModelDownloadTimeoutMs.collect { timeoutMs ->
-                _uiState.update { it.copy(localModelDownloadTimeoutMs = timeoutMs) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.localMlSelectedModelId.collect { modelId ->
-                _uiState.update { it.copy(localMlSelectedModelId = modelId) }
-            }
-        }
-
-        // Usage analytics collectors
-        viewModelScope.launch {
-            aiPreferencesRepository.aiUsageTotalInputTokens.collect { tokens ->
-                _uiState.update { it.copy(aiUsageTotalInputTokens = tokens) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiUsageTotalOutputTokens.collect { tokens ->
-                _uiState.update { it.copy(aiUsageTotalOutputTokens = tokens) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiUsageTotalApiCalls.collect { calls ->
-                _uiState.update { it.copy(aiUsageTotalApiCalls = calls) }
-            }
-        }
-
-        viewModelScope.launch {
-            aiPreferencesRepository.aiUsageEstimatedCost.collect { cost ->
-                _uiState.update { it.copy(aiUsageEstimatedCost = cost) }
-            }
-        }
-
-        // Telemetry collectors
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeSkipCount.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeSkipCount = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeCompletionRate.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeCompletionRate = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeSessionDuration.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeSessionDuration = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeTimeOfDay.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeTimeOfDay = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeGenreAffinity.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeGenreAffinity = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeArtistAffinity.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeArtistAffinity = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeReplayCount.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeReplayCount = v) }
-            }
-        }
-        viewModelScope.launch {
-            aiPreferencesRepository.telemetryIncludeQueuePatterns.collect { v ->
-                _uiState.update { it.copy(telemetryIncludeQueuePatterns = v) }
-            }
-        }
 
         // Load available local models
         loadLocalModels()
@@ -1731,6 +1573,41 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             aiPreferencesRepository.setAiTemperature(temperature)
             _uiState.update { it.copy(aiTemperature = temperature / 100f) }
+        }
+    }
+
+    fun onAiTopKChange(value: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiTopK(value)
+            _uiState.update { it.copy(aiTopK = value) }
+        }
+    }
+
+    fun onAiTopPChange(value: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiTopP(value)
+            _uiState.update { it.copy(aiTopP = value / 100f) }
+        }
+    }
+
+    fun onAiRepetitionPenaltyChange(value: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiRepetitionPenalty(value)
+            _uiState.update { it.copy(aiRepetitionPenalty = value / 100f) }
+        }
+    }
+
+    fun onAiFrequencyPenaltyChange(value: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiFrequencyPenalty(value)
+            _uiState.update { it.copy(aiFrequencyPenalty = value / 100f) }
+        }
+    }
+
+    fun onAiPresencePenaltyChange(value: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiPresencePenalty(value)
+            _uiState.update { it.copy(aiPresencePenalty = value / 100f) }
         }
     }
 

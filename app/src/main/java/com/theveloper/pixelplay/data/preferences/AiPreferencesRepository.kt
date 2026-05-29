@@ -20,9 +20,48 @@ class AiPreferencesRepository @Inject constructor(
 ) {
     companion object {
         val DEFAULT_SYSTEM_PROMPT = """
-            You are 'Vibe-Engine', a professional music curator.
-            Analyze the user's request and listening profile to provide perfect music recommendations.
-            Always prioritize flow, emotional resonance, and discovery.
+            You are Vibe-Engine, an expert music curator and audio DNA analyst for PixelPlayer.
+            Your purpose is to analyze the user's listening profile, decode their musical DNA, and curate track sequences that resonate emotionally, flow naturally, and reveal new sonic territory.
+
+            ## CORE PERSONA
+            - You are equal parts data scientist and poet — you read numbers and feel the music behind them.
+            - You speak to the listener's tastes through their own data: play counts, skip patterns, genre affinities, listening hours.
+            - Your tone is sophisticated, warm, and deeply empathetic. You understand that music is personal.
+            - You never recommend generically — every choice must be justified by the user's unique fingerprint.
+
+            ## STRATEGY LAYERS
+
+            ### 1. LISTENER SIGNAL DECODING
+            - Parse the USER_PROFILE section to understand the listener's core DNA.
+            - STATS: total plays vs unique songs = exploration depth. Low unique-to-play ratio = creature of habit. High = omnivorous explorer.
+            - GENRES/ARTISTS: surface affinities. The top 3 genres + 5 artists = the listener's comfort zone.
+            - PHASE: morning/afternoon/evening/night = when they listen most. Match energy to time-of-day context.
+            - VAR (variety score): 0.0-1.0. Low (<0.3) = needs gentle discovery. High (>0.7) = ready for deep cuts.
+            - LISTENED tracks: play_count (p), total_duration_mins (d), is_favorite (f). High p + f=1 = treasured. Low p = needs re-evaluation.
+
+            ### 2. CURATION STRATEGY PER REQUEST TYPE
+            For playlist/daily-mix requests, apply these heuristics:
+
+            - "discovery/new/surprise me": prioritize the DISCOVERY_POOL (unplayed tracks). Pull from the user's blind spots — genres they listen to but specific songs/artists they haven't reached.
+            - "favorites/best of/classics": heavily weight the LISTENED pool. Prioritize high-play-count tracks, favorites (f=1), and songs from top genres/artists.
+            - "mood/vibe/energy" (e.g., "chill", "workout", "focus", "party"): cross-reference the user's phase and variety score. Morning commute = energetic but not overwhelming. Late night = atmospheric, introspective.
+            - "genre/artist specific": dive deep into the requested genre/artist within the LIBRARY. If the user has limited material in that genre, blend in adjacent genres from their top affinities.
+            - "mixed/eclectic/surprise": blend LISTENED and DISCOVERY intelligently. Create a journey with natural transitions — place familiar anchors between discovery tracks.
+
+            ### 3. SEQUENCE ARCHITECTURE
+            A great playlist is a journey, not a list:
+            - OPENING (tracks 1-3): Establish the vibe. Familiar, high-energy or highly atmospheric tracks that set the tone.
+            - BODY (tracks 4-~end-3): The narrative arc. Mix of familiar and discovery. Natural energy flow (build, peak, recover).
+            - CLOSING (last 2-3): Resolution. Wind down energy or end on a memorable note. If the mood is "party", end strong. If "chill", fade gently.
+
+            ### 4. OUTPUT RULES
+            - You MUST respond with valid JSON — a flat array of song ID strings representing the playlist sequence.
+            - DO NOT wrap the JSON in markdown code fences (```json).
+            - DO NOT include ANY explanatory text before or after the JSON array.
+            - Example valid response: ["song_abc123","song_def456","song_ghi789"]
+            - If no songs match the request, return an empty array: []
+            - Respect the target_length request. If the user asks for 10-15 tracks, the array should contain 10-15 IDs.
+            - Songs may repeat across multiple playlists, but within a single playlist, each ID should appear at most once.
         """.trimIndent()
 
         const val DEFAULT_MAX_SONGS_FOR_CONTEXT = 50
@@ -44,6 +83,12 @@ class AiPreferencesRepository @Inject constructor(
         const val DEFAULT_TEMPERATURE_MAX = 200
         const val DEFAULT_MAX_TOKENS_MIN = 128
         const val DEFAULT_MAX_TOKENS_MAX = 16000
+
+        const val DEFAULT_TOP_K = 40
+        const val DEFAULT_TOP_P = 95
+        const val DEFAULT_REPETITION_PENALTY = 100
+        const val DEFAULT_FREQUENCY_PENALTY = 0
+        const val DEFAULT_PRESENCE_PENALTY = 0
     }
 
     private object Keys {
@@ -71,6 +116,12 @@ class AiPreferencesRepository @Inject constructor(
         val AI_MAX_TOKENS = intPreferencesKey("ai_max_tokens")
         val AI_ENABLE_STREAMING = booleanPreferencesKey("ai_enable_streaming")
         val AI_INCLUDE_CONTEXT = booleanPreferencesKey("ai_include_context")
+
+        val AI_TOP_K = intPreferencesKey("ai_top_k")
+        val AI_TOP_P = intPreferencesKey("ai_top_p")
+        val AI_REPETITION_PENALTY = intPreferencesKey("ai_repetition_penalty")
+        val AI_FREQUENCY_PENALTY = intPreferencesKey("ai_frequency_penalty")
+        val AI_PRESENCE_PENALTY = intPreferencesKey("ai_presence_penalty")
 
         // Granular behavioral telemetry
         val TELEMETRY_INCLUDE_SKIP_COUNT = booleanPreferencesKey("telemetry_include_skip_count")
@@ -195,6 +246,21 @@ class AiPreferencesRepository @Inject constructor(
     val aiIncludeContext: Flow<Boolean> =
         dataStore.data.map { it[Keys.AI_INCLUDE_CONTEXT] ?: true }
 
+    val aiTopK: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_TOP_K] ?: DEFAULT_TOP_K }
+
+    val aiTopP: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_TOP_P] ?: DEFAULT_TOP_P }
+
+    val aiRepetitionPenalty: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_REPETITION_PENALTY] ?: DEFAULT_REPETITION_PENALTY }
+
+    val aiFrequencyPenalty: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_FREQUENCY_PENALTY] ?: DEFAULT_FREQUENCY_PENALTY }
+
+    val aiPresencePenalty: Flow<Int> =
+        dataStore.data.map { it[Keys.AI_PRESENCE_PENALTY] ?: DEFAULT_PRESENCE_PENALTY }
+
     // ---- Granular behavioral telemetry ----
 
     val telemetryIncludeSkipCount: Flow<Boolean> =
@@ -316,6 +382,12 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun setAiEnableStreaming(enabled: Boolean) { dataStore.edit { it[Keys.AI_ENABLE_STREAMING] = enabled } }
     suspend fun setAiIncludeContext(enabled: Boolean) { dataStore.edit { it[Keys.AI_INCLUDE_CONTEXT] = enabled } }
 
+    suspend fun setAiTopK(value: Int) { dataStore.edit { it[Keys.AI_TOP_K] = value.coerceIn(1, 100) } }
+    suspend fun setAiTopP(value: Int) { dataStore.edit { it[Keys.AI_TOP_P] = value.coerceIn(1, 100) } }
+    suspend fun setAiRepetitionPenalty(value: Int) { dataStore.edit { it[Keys.AI_REPETITION_PENALTY] = value.coerceIn(100, 200) } }
+    suspend fun setAiFrequencyPenalty(value: Int) { dataStore.edit { it[Keys.AI_FREQUENCY_PENALTY] = value.coerceIn(-200, 200) } }
+    suspend fun setAiPresencePenalty(value: Int) { dataStore.edit { it[Keys.AI_PRESENCE_PENALTY] = value.coerceIn(-200, 200) } }
+
     // Telemetry mutators
     suspend fun setTelemetryIncludeSkipCount(v: Boolean) { dataStore.edit { it[Keys.TELEMETRY_INCLUDE_SKIP_COUNT] = v } }
     suspend fun setTelemetryIncludeCompletionRate(v: Boolean) { dataStore.edit { it[Keys.TELEMETRY_INCLUDE_COMPLETION_RATE] = v } }
@@ -378,6 +450,11 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun getAiMaxTokensOnce(): Int = aiMaxTokens.first()
     suspend fun getAiEnableStreamingOnce(): Boolean = aiEnableStreaming.first()
     suspend fun getAiIncludeContextOnce(): Boolean = aiIncludeContext.first()
+    suspend fun getAiTopKOnce(): Int = aiTopK.first()
+    suspend fun getAiTopPOnce(): Int = aiTopP.first()
+    suspend fun getAiRepetitionPenaltyOnce(): Int = aiRepetitionPenalty.first()
+    suspend fun getAiFrequencyPenaltyOnce(): Int = aiFrequencyPenalty.first()
+    suspend fun getAiPresencePenaltyOnce(): Int = aiPresencePenalty.first()
     suspend fun getMaxSongsForContextOnce(): Int = maxSongsForContext.first()
     suspend fun getIncludeLikedSongsOnce(): Boolean = includeLikedSongs.first()
     suspend fun getIncludeDailyMixHistoryOnce(): Boolean = includeDailyMixHistory.first()

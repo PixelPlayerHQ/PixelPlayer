@@ -43,7 +43,12 @@ class AiSettingsManager @Inject constructor(
         val localModelEnabled: Boolean = false,
         val localModelId: String? = null,
         val ollamaEndpoint: String = "https://ollama.ai/api",
-        val huggingFaceToken: String? = null
+        val huggingFaceToken: String? = null,
+        val topK: Int = 40,
+        val topP: Float = 0.95f,
+        val repetitionPenalty: Float = 1.0f,
+        val frequencyPenalty: Float = 0.0f,
+        val presencePenalty: Float = 0.0f
     )
 
     private val _settingsState = MutableStateFlow(AiSettingsState())
@@ -74,7 +79,12 @@ class AiSettingsManager @Inject constructor(
                 localModelEnabled = aiPreferencesRepository.localMlEnabled.first(),
                 localModelId = aiPreferencesRepository.localMlActiveModelId.first().takeIf { it.isNotEmpty() },
                 ollamaEndpoint = aiPreferencesRepository.localMlOllamaUrl.first(),
-                huggingFaceToken = aiPreferencesRepository.localMlHfToken.first().takeIf { it.isNotEmpty() }
+                huggingFaceToken = aiPreferencesRepository.localMlHfToken.first().takeIf { it.isNotEmpty() },
+                topK = aiPreferencesRepository.aiTopK.first(),
+                topP = aiPreferencesRepository.aiTopP.first() / 100f,
+                repetitionPenalty = aiPreferencesRepository.aiRepetitionPenalty.first() / 100f,
+                frequencyPenalty = aiPreferencesRepository.aiFrequencyPenalty.first() / 100f,
+                presencePenalty = aiPreferencesRepository.aiPresencePenalty.first() / 100f
             )
 
             // Load available models based on device capabilities
@@ -137,6 +147,11 @@ class AiSettingsManager @Inject constructor(
         aiPreferencesRepository.setLocalMlActiveModelId(newState.localModelId ?: "")
         aiPreferencesRepository.setLocalMlOllamaUrl(newState.ollamaEndpoint)
         aiPreferencesRepository.setLocalMlHfToken(newState.huggingFaceToken ?: "")
+        aiPreferencesRepository.setAiTopK(newState.topK)
+        aiPreferencesRepository.setAiTopP((newState.topP * 100).toInt())
+        aiPreferencesRepository.setAiRepetitionPenalty((newState.repetitionPenalty * 100).toInt())
+        aiPreferencesRepository.setAiFrequencyPenalty((newState.frequencyPenalty * 100).toInt())
+        aiPreferencesRepository.setAiPresencePenalty((newState.presencePenalty * 100).toInt())
     }
 
     /**
@@ -185,7 +200,7 @@ class AiSettingsManager @Inject constructor(
      * Sets the context window size.
      */
     suspend fun setContextWindowSize(size: Int) {
-        updateSetting { copy(contextWindowSize = size.coerceIn(10, 200)) }
+        updateSetting { copy(contextWindowSize = size.coerceIn(5, 500)) }
     }
 
     /**
@@ -235,6 +250,26 @@ class AiSettingsManager @Inject constructor(
      */
     suspend fun setHuggingFaceToken(token: String?) {
         updateSetting { copy(huggingFaceToken = token) }
+    }
+
+    suspend fun setTopK(value: Int) {
+        updateSetting { copy(topK = value.coerceIn(1, 100)) }
+    }
+
+    suspend fun setTopP(value: Float) {
+        updateSetting { copy(topP = value.coerceIn(0f, 1f)) }
+    }
+
+    suspend fun setRepetitionPenalty(value: Float) {
+        updateSetting { copy(repetitionPenalty = value.coerceIn(1f, 2f)) }
+    }
+
+    suspend fun setFrequencyPenalty(value: Float) {
+        updateSetting { copy(frequencyPenalty = value.coerceIn(-2f, 2f)) }
+    }
+
+    suspend fun setPresencePenalty(value: Float) {
+        updateSetting { copy(presencePenalty = value.coerceIn(-2f, 2f)) }
     }
 
     /**

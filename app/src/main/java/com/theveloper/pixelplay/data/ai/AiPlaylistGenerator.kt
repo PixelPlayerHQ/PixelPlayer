@@ -42,24 +42,29 @@ class AiPlaylistGenerator @Inject constructor(
 
             // Token Optimization: Reduce sample size based on safe mode
             val isSafe = preferencesRepo.isSafeTokenLimitEnabled.first()
+            val maxContext = preferencesRepo.getMaxSongsForContextOnce()
             val sampleCap = if (isSafe) 40 else 80
             val sampleSize = max(minLength, sampleCap).coerceAtMost(sampleCap)
             val songSample = samplingPool.take(sampleSize)
             
-            // Token Optimization: Compact JSON format — only essential fields
+            // Token Optimization: Compact JSON format — rich fields for AI curation
             val availableSongsJson = buildString {
                 songSample.forEachIndexed { index, song ->
                     val score = dailyMixManager.getScore(song.id)
                     val title = song.title.replace("\"", "'").take(40)
                     val artist = song.displayArtist.replace("\"", "'").take(25)
                     val genre = song.genre?.replace("\"", "'")?.take(15) ?: "?"
+                    val album = song.album?.replace("\"", "'")?.take(20) ?: "?"
+                    val durationSec = song.duration / 1000
+                    val year = song.year?.toString() ?: "?"
+                    val fav = if (song.isFavorite) "1" else "0"
                     if (index > 0) append(",\n")
-                    append("""{"id":"${song.id}","t":"$title","a":"$artist","g":"$genre","s":$score}""")
+                    append("""{"id":"${song.id}","t":"$title","a":"$artist","g":"$genre","al":"$album","d":$durationSec,"y":"$year","f":$fav,"s":$score}""")
                 }
             }
 
             // Bring in the telemetry digest
-            val userDigest = digestGenerator.generateDigest(allSongs, isSafe)
+            val userDigest = digestGenerator.generateDigest(allSongs, isSafe, maxContext)
 
             // Token Optimization: Compact prompt structure with XML data boundaries
             val fullPrompt = """

@@ -132,7 +132,7 @@ data class SettingsUiState(
     val localMlFallbackToRemote: Boolean = true,
     val localMlUseGpu: Boolean = false,
     val localMlContextSize: Int = AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE,
-    val localMlOllamaUrl: String = "http://localhost:11434",
+    val localMlOllamaUrl: String = "https://ollama.ai/api",
     val localMlHfToken: String = "",
     val localMlSupported: Boolean = true,
     val localMlSupportMessage: String = "",
@@ -582,7 +582,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_LOCAL_MODEL_CONTEXT_SIZE)
 
     val localMlOllamaUrl: StateFlow<String> = aiPreferencesRepository.localMlOllamaUrl
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "http://localhost:11434")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "https://ollama.ai/api")
 
     val localMlHfToken: StateFlow<String> = aiPreferencesRepository.localMlHfToken
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")

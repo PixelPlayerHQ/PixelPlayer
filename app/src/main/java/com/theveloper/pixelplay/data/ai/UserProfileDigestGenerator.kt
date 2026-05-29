@@ -133,9 +133,9 @@ class UserProfileDigestGenerator @Inject constructor(
                 if (sb.length >= targetLimit) return@forEach
                 val title = s.title.take(30)
                 val artist = s.displayArtist.take(20)
-                val album = s.album?.take(20)?.replace("|", "/") ?: "?"
+                val album = s.album.take(20).replace("|", "/")
                 val durationSec = s.duration / 1000
-                val genre = s.genre?.take(12)?.replace("|", "/") ?: "?"
+                val genre = (s.genre ?: "?").take(12).replace("|", "/")
                 sb.append("${s.id}|$album|$durationSec|$genre|$title-$artist\n")
             }
         }

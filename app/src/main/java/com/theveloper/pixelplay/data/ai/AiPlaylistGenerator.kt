@@ -65,10 +65,10 @@ class AiPlaylistGenerator @Inject constructor(
                     val score = dailyMixManager.getScore(song.id)
                     val title = song.title.replace("\"", "'").take(40)
                     val artist = song.displayArtist.replace("\"", "'").take(25)
-                    val genre = song.genre?.replace("\"", "'")?.take(15) ?: "?"
-                    val album = song.album?.replace("\"", "'")?.take(20) ?: "?"
+                    val genre = (song.genre ?: "?").replace("\"", "'").take(15)
+                    val album = song.album.replace("\"", "'").take(20)
                     val durationSec = song.duration / 1000
-                    val year = song.year?.toString() ?: "?"
+                    val year = song.year.toString()
                     val fav = if (song.isFavorite) "1" else "0"
                     val playStats = songPlayMap[song.id]
                     val pc = playStats?.playCount ?: 0

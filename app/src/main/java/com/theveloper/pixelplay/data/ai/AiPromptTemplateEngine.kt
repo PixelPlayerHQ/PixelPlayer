@@ -74,7 +74,7 @@ class AiPromptTemplateEngine @Inject constructor(
         val limit = maxSongs ?: aiPreferencesRepository.maxSongsForContext.first()
         val userContext = aiBehaviorDataCollector.getUserContext()
         val songList = songs.take(limit).joinToString("\n") { s ->
-            "${s.id}|${s.title}|${s.artist}|${s.album}|${s.genre ?: "Unknown"}|${s.duration / 1000}|${s.year ?: "?"}|${if (s.isFavorite) "1" else "0"}"
+            "${s.id}|${s.title}|${s.artist}|${s.album}|${s.genre ?: "Unknown"}|${s.duration / 1000}|${s.year}|${if (s.isFavorite) "1" else "0"}"
         }
         return buildString {
             appendLine("Create a 'Daily Mix' — balanced selection for the user's day.")
@@ -93,16 +93,16 @@ class AiPromptTemplateEngine @Inject constructor(
 
     fun generateMusicAnalysisPrompt(song: Song): String {
         val dur = "${song.duration / 1000 / 60}:${(song.duration / 1000 % 60).toString().padStart(2, '0')}"
-        return "Analyze: ${song.title} by ${song.artist} (${song.album}, ${song.genre ?: "Unknown"}, $dur${song.year?.let { ", $it" } ?: ""}). Provide 2-3 sentences on musical style, mood, and characteristics."
+        return "Analyze: ${song.title} by ${song.artist} (${song.album}, ${song.genre ?: "Unknown"}, $dur${song.year.let { ", $it" }}). Provide 2-3 sentences on musical style, mood, and characteristics."
     }
 
     fun generateSimilarSongsPrompt(seedSong: Song, candidateSongs: List<Song>): String {
         val candidates = candidateSongs.take(50).joinToString("\n") { s ->
-            "${s.id}|${s.title}|${s.artist}|${s.album}|${s.genre ?: "Unknown"}|${s.duration / 1000}|${s.year ?: "?"}"
+            "${s.id}|${s.title}|${s.artist}|${s.album}|${s.genre ?: "Unknown"}|${s.duration / 1000}|${s.year}"
         }
         return buildString {
             appendLine("Find songs similar to '${seedSong.title}' by ${seedSong.artist}")
-            appendLine("# Seed\nTitle: ${seedSong.title}\nArtist: ${seedSong.artist}\nAlbum: ${seedSong.album}\nGenre: ${seedSong.genre ?: "Unknown"}\nDuration: ${seedSong.duration / 1000}s\nYear: ${seedSong.year ?: "Unknown"}\n")
+            appendLine("# Seed\nTitle: ${seedSong.title}\nArtist: ${seedSong.artist}\nAlbum: ${seedSong.album}\nGenre: ${seedSong.genre ?: "Unknown"}\nDuration: ${seedSong.duration / 1000}s\nYear: ${seedSong.year}\n")
             appendLine("# Candidates\nid|title|artist|album|genre|duration_sec|year\n$candidates\n")
             appendLine("Select up to 10 most similar. Consider: genre > mood/tempo > artist > era > style.")
             appendLine(jsonArrayOutput("[\"id1\",\"id2\",\"id3\"] (up to 10)"))

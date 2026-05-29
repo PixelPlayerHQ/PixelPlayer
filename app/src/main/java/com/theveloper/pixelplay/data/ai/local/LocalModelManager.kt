@@ -32,6 +32,11 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class HttpDownloadException(val responseCode: Int, message: String) : IOException(message)
 
+private fun sanitizeModelId(id: String): String {
+    val clean = id.filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }
+    return clean.ifEmpty { "unnamed" }
+}
+
 private const val TAG = "LocalModelManager"
 private const val MODELS_DIR = "local_ai_models"
 private const val TIMEOUT_CONNECT = 15_000
@@ -67,7 +72,7 @@ class LocalModelManager @Inject constructor(
 
     fun isInstalled(modelId: String): Boolean = modelFile(modelId).exists()
 
-    fun modelFile(modelId: String): File = File(modelsDir, modelId)
+    fun modelFile(modelId: String): File = File(modelsDir, sanitizeModelId(modelId))
 
     fun getModelStatus(modelId: String): ModelStatus = _statusMap.value[modelId]
         ?: if (isInstalled(modelId)) ModelStatus.Ready else ModelStatus.NotDownloaded
@@ -326,11 +331,11 @@ class LocalModelManager @Inject constructor(
     // ======== Private Helpers ========
 
     private fun cleanupTmp(modelId: String) {
-        File(modelsDir, "${modelId}.tmp").delete()
+        File(modelsDir, "${sanitizeModelId(modelId)}.tmp").delete()
     }
 
     private fun getTmpSize(modelId: String): Long {
-        val tmp = File(modelsDir, "${modelId}.tmp")
+        val tmp = File(modelsDir, "${sanitizeModelId(modelId)}.tmp")
         return if (tmp.exists()) tmp.length() else 0L
     }
 

@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.data.preferences
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -7,17 +9,42 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
+import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AiPreferencesRepository @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    @ApplicationContext private val context: Context
 ) {
+    private val encryptedPrefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context, "ai_api_keys", masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "AiPreferencesRepository: Failed to create EncryptedSharedPreferences")
+        context.getSharedPreferences("ai_api_keys_plain", Context.MODE_PRIVATE)
+    }
+
+    private val apiKeyFlows = ConcurrentHashMap<AiProvider, MutableStateFlow<String>>()
     companion object {
         val DEFAULT_SYSTEM_PROMPT = """
             You are Vibe-Engine, an expert music curator and audio DNA analyst for PixelPlayer.
@@ -161,8 +188,23 @@ class AiPreferencesRepository @Inject constructor(
     }
 
     // Generic accessors for AiHandler
-    fun getApiKey(provider: AiProvider): Flow<String> =
-        dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)]?.trim() ?: "" }
+    fun getApiKey(provider: AiProvider): Flow<String> {
+        return apiKeyFlows.getOrPut(provider) {
+            val value = encryptedPrefs.getString(provider.name, "") ?: ""
+            if (value.isEmpty()) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val dsValue = dataStore.data.first()[Keys.getApiKey(provider)]?.trim() ?: ""
+                        if (dsValue.isNotEmpty()) {
+                            encryptedPrefs.edit().putString(provider.name, dsValue).apply()
+                            apiKeyFlows[provider]?.value = dsValue
+                        }
+                    } catch (_: Exception) { }
+                }
+            }
+            MutableStateFlow(value)
+        }
+    }
 
     fun getModel(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getModel(provider)] ?: "" }
@@ -173,7 +215,9 @@ class AiPreferencesRepository @Inject constructor(
         }
 
     suspend fun setApiKey(provider: AiProvider, apiKey: String) {
-        dataStore.edit { preferences -> preferences[Keys.getApiKey(provider)] = apiKey.trim() }
+        val trimmed = apiKey.trim()
+        encryptedPrefs.edit().putString(provider.name, trimmed).apply()
+        apiKeyFlows.getOrPut(provider) { MutableStateFlow("") }.value = trimmed
     }
 
     suspend fun setModel(provider: AiProvider, model: String) {

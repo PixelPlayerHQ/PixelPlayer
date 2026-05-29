@@ -308,7 +308,7 @@ class DailyMixManager @Inject constructor(
     private suspend fun computeRankedSongs(
         allSongs: List<Song>,
         favoriteSongIds: Set<String>,
-        random: java.util.Random
+        random: kotlin.random.Random
     ): List<RankedSong> {
         if (allSongs.isEmpty()) return emptyList()
 
@@ -393,7 +393,7 @@ class DailyMixManager @Inject constructor(
 
         val calendar = Calendar.getInstance()
         val seed = calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR)
-        val random = java.util.Random(seed.toLong())
+        val random = kotlin.random.Random(seed.toLong())
 
         val rankedSongs = computeRankedSongs(allSongs, favoriteSongIds, random)
         if (rankedSongs.isEmpty()) {
@@ -424,7 +424,7 @@ class DailyMixManager @Inject constructor(
 
         val calendar = Calendar.getInstance()
         val seed = calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR) + 17
-        val random = java.util.Random(seed.toLong())
+        val random = kotlin.random.Random(seed.toLong())
         val rankedSongs = computeRankedSongs(allSongs, favoriteSongIds, random)
 
         if (rankedSongs.isEmpty()) {
@@ -492,7 +492,7 @@ class DailyMixManager @Inject constructor(
         // if called multiple times in one day, preserving prompt caching.
         val calendar = Calendar.getInstance()
         val seed = calendar.get(Calendar.YEAR) * 1000 + calendar.get(Calendar.DAY_OF_YEAR) + 42
-        val random = java.util.Random(seed.toLong())
+        val random = kotlin.random.Random(seed.toLong())
 
         val rankedSongs = computeRankedSongs(allSongs, favoriteSongIds, random)
         if (rankedSongs.isEmpty()) {

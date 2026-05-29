@@ -63,7 +63,6 @@ sealed class ModelStatus {
 
 /** Checks device RAM and returns appropriate model size tier (MB). */
 fun recommendedModelSizeMb(): Int {
-    val activityManager = null // resolved at runtime via context
     val totalRamMb = Runtime.getRuntime().maxMemory() / (1024 * 1024)
     return when {
         totalRamMb >= 3072 -> 500   // 3 GB+ → up to 500 MB model

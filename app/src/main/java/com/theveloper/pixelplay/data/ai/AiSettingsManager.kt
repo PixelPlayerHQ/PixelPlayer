@@ -248,12 +248,9 @@ class AiSettingsManager @Inject constructor(
                 return false
             }
 
-            // Download using the model info and wait for completion
-            var finalStatus: ModelStatus = ModelStatus.NotDownloaded
-            localMlManager.downloadModel(modelInfo).collect { status ->
-                Timber.tag("AiSettingsManager").d("Download progress: $status")
-                finalStatus = status
-            }
+            // Download using the model info and wait for completion using first()
+            val finalStatus = localMlManager.downloadModel(modelInfo).first()
+            Timber.tag("AiSettingsManager").d("Download completed with status: $finalStatus")
 
             // Check if download was successful
             val isReady = finalStatus is ModelStatus.Ready || localMlManager.isInstalled(modelId)

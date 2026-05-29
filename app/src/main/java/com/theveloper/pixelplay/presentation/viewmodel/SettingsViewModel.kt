@@ -456,13 +456,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onAiModelChange(model: String) {
-        viewModelScope.launch {
-            val provider = AiProvider.fromString(aiProvider.value)
-            aiPreferencesRepository.setModel(provider, model)
-        }
-    }
-
     fun onGeminiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GEMINI, model) }
     fun onDeepseekModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.DEEPSEEK, model) }
     fun onGroqModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GROQ, model) }

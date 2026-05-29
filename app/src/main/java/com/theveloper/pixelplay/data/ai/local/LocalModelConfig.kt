@@ -76,12 +76,13 @@ object LocalModelCatalog {
 
     val all: List<LocalModelInfo> = listOf(
         // Tiny models for low-end devices (< 50MB)
+        // Note: These are placeholder URLs - in production, replace with actual downloadable model URLs
         LocalModelInfo(
             id = "music_recommender_mobilenet_tflite",
             displayName = "MusicNet Recommender (TFLite)",
             description = "Lightweight music taste model based on MobileNet embeddings. Works fully offline.",
             source = ModelSource.TFLITE,
-            downloadUrl = "https://storage.googleapis.com/tfhub-lite-models/google/lite-model/movenet/singlepose/lightning/tflite/float16/4.tflite",
+            downloadUrl = "",  // Placeholder - requires actual model hosting
             fileSizeBytes = 6_432_000L,
             ramRequiredMb = 64,
             type = ModelType.MUSIC_RECOMMENDATION,
@@ -94,7 +95,7 @@ object LocalModelCatalog {
             displayName = "Tiny Genre Classifier",
             description = "Ultra-light genre classification. ~4 MB, works on any device.",
             source = ModelSource.TFLITE,
-            downloadUrl = "https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1",
+            downloadUrl = "",  // Placeholder - requires actual model hosting
             fileSizeBytes = 4_200_000L,
             ramRequiredMb = 32,
             type = ModelType.GENRE_CLASSIFICATION,
@@ -107,7 +108,7 @@ object LocalModelCatalog {
             displayName = "Mood Analyzer Tiny",
             description = "Compact mood detection model. ~8 MB.",
             source = ModelSource.TFLITE,
-            downloadUrl = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/text_classification/android/lite-model_mobilebert_sentiment_tflite_2.tflite",
+            downloadUrl = "",  // Placeholder - requires actual model hosting
             fileSizeBytes = 8_000_000L,
             ramRequiredMb = 48,
             type = ModelType.SENTIMENT,
@@ -122,7 +123,7 @@ object LocalModelCatalog {
             displayName = "Genre Classifier Lite",
             description = "Classifies audio fingerprints into genre tags. ~12 MB, runs on any device.",
             source = ModelSource.TFLITE,
-            downloadUrl = "https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1",
+            downloadUrl = "",  // Placeholder
             fileSizeBytes = 12_300_000L,
             ramRequiredMb = 128,
             type = ModelType.GENRE_CLASSIFICATION,
@@ -134,7 +135,7 @@ object LocalModelCatalog {
             displayName = "Mood Analyzer (MobileBERT)",
             description = "Analyzes listening context and mood based on song metadata. ~25 MB.",
             source = ModelSource.TFLITE,
-            downloadUrl = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/text_classification/android/lite-model_mobilebert_sentiment_tflite_2.tflite",
+            downloadUrl = "",  // Placeholder
             fileSizeBytes = 25_600_000L,
             ramRequiredMb = 256,
             type = ModelType.SENTIMENT,
@@ -162,7 +163,7 @@ object LocalModelCatalog {
             displayName = "Music Embedding (Google LiteRT)",
             description = "Google AI Edge model for rich music embeddings. Requires 512 MB+ RAM.",
             source = ModelSource.LITERT,
-            downloadUrl = "https://kaggle.com/models/google/gemma/tfLite/gemma-2b-it-cpu-int4",
+            downloadUrl = "",  // Placeholder - LiteRT models need proper hosting
             fileSizeBytes = 148_000_000L,
             ramRequiredMb = 512,
             type = ModelType.EMBEDDING,
@@ -174,7 +175,7 @@ object LocalModelCatalog {
             displayName = "DistilBERT Base",
             description = "Distilled BERT for better text understanding. ~250 MB.",
             source = ModelSource.HUGGING_FACE,
-            downloadUrl = "https://huggingface.co/distilbert/distilbert-base-uncased/resolve/main/distilbert-base-uncased-qa.onnx",
+            downloadUrl = "",  // Placeholder - ONNX model needs proper URL
             fileSizeBytes = 250_000_000L,
             ramRequiredMb = 512,
             type = ModelType.SENTIMENT,
@@ -184,12 +185,13 @@ object LocalModelCatalog {
         ),
 
         // Larger models for powerful devices (500MB+)
+        // Ollama models - these are downloaded via Ollama app, not direct URLs
         LocalModelInfo(
             id = "tinyllama_ollama",
             displayName = "TinyLlama Chat (Ollama)",
             description = "Small 1.1B parameter chat model via local Ollama server. Excellent for playlists Q&A.",
             source = ModelSource.OLLAMA,
-            downloadUrl = "",
+            downloadUrl = "",  // Ollama manages its own downloads
             fileSizeBytes = 640_000_000L,
             ramRequiredMb = 1536,
             type = ModelType.GENERAL_CHAT,
@@ -200,9 +202,9 @@ object LocalModelCatalog {
         LocalModelInfo(
             id = "phi3_mini_huggingface",
             displayName = "Phi-3 Mini (Hugging Face)",
-            description = "Microsoft Phi-3 Mini — tiny but capable chat model. Download via HF Hub.",
+            description = "Microsoft Phi-3 Mini — tiny but capable chat model.",
             source = ModelSource.HUGGING_FACE,
-            downloadUrl = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf",
+            downloadUrl = "",  // Placeholder - GGUF model needs proper URL
             fileSizeBytes = 2_300_000_000L,
             ramRequiredMb = 3072,
             type = ModelType.GENERAL_CHAT,
@@ -243,4 +245,10 @@ object LocalModelCatalog {
 
     /** Get models by type */
     fun byType(type: ModelType): List<LocalModelInfo> = all.filter { it.type == type }
+
+    /** Get models that have valid download URLs */
+    fun downloadable(): List<LocalModelInfo> = all.filter { it.downloadUrl.isNotBlank() }
+
+    /** Get Ollama-compatible models */
+    fun ollamaModels(): List<LocalModelInfo> = all.filter { it.source == ModelSource.OLLAMA }
 }

@@ -5,7 +5,7 @@ package com.theveloper.pixelplay.data.ai.provider
  * Every URL, model ID, and provider-specific header value lives here.
  * Nothing in any AiClient or factory should ever hardcode these strings directly.
  */
-internal object AiProviderEndpoints {
+object AiProviderEndpoints {
 
     // ─── Base URLs ────────────────────────────────────────────────────────────
     const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"

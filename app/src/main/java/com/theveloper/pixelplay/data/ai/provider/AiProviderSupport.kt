@@ -5,7 +5,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-internal class AiProviderException(
+class AiProviderException(
     val providerName: String,
     val statusCode: Int? = null,
     val requestedModel: String? = null,
@@ -75,7 +75,7 @@ internal class AiProviderException(
     }
 }
 
-internal object AiProviderSupport {
+object AiProviderSupport {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun buildProviderChain(primary: AiProvider): List<AiProvider> {

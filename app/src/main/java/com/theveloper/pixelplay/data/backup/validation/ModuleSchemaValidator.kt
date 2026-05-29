@@ -80,6 +80,9 @@ class ModuleSchemaValidator @Inject constructor(
                 // Basic array validation is already done at line 50. 
                 // Any extra specific field validation for AI logs can be added here.
             }
+            BackupSection.AI_CONTEXT -> {
+                // AI context is a single JSON object; basic validation is already done.
+            }
         }
 
         return if (errors.any { it.severity == Severity.ERROR }) {

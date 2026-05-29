@@ -224,6 +224,46 @@ private sealed interface SettingsUiUpdate {
     ) : SettingsUiUpdate
 }
 
+private sealed interface AiSettingsUpdate {
+    data class GroupA(
+        val isSafeTokenLimitEnabled: Boolean,
+        val localMlEnabled: Boolean,
+        val localMlActiveModelId: String,
+        val localMlFallbackToRemote: Boolean,
+        val localMlUseGpu: Boolean,
+        val localMlContextSize: Int,
+        val localMlOllamaUrl: String,
+        val localMlHfToken: String,
+        val aiProvider: String,
+        val currentApiKey: String,
+        val currentModel: String,
+        val aiTemperature: Int,
+        val aiMaxTokens: Int,
+        val aiEnableStreaming: Boolean,
+        val aiIncludeContext: Boolean,
+        val localModelDownloadTimeoutMs: Long,
+        val localMlSelectedModelId: String
+    ) : AiSettingsUpdate
+
+    data class GroupB(
+        val aiCacheEnabled: Boolean,
+        val aiCacheMaxEntries: Int,
+        val aiCacheTtlHours: Int,
+        val aiUsageTotalInputTokens: Long,
+        val aiUsageTotalOutputTokens: Long,
+        val aiUsageTotalApiCalls: Long,
+        val aiUsageEstimatedCost: String,
+        val telemetryIncludeSkipCount: Boolean,
+        val telemetryIncludeCompletionRate: Boolean,
+        val telemetryIncludeSessionDuration: Boolean,
+        val telemetryIncludeTimeOfDay: Boolean,
+        val telemetryIncludeGenreAffinity: Boolean,
+        val telemetryIncludeArtistAffinity: Boolean,
+        val telemetryIncludeReplayCount: Boolean,
+        val telemetryIncludeQueuePatterns: Boolean
+    ) : AiSettingsUpdate
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -262,13 +302,7 @@ class SettingsViewModel @Inject constructor(
         .flatMapLatest { provider -> aiPreferencesRepository.getSystemPrompt(AiProvider.fromString(provider)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT)
 
-    // Specific Provider StateFlows for UI Compatibility
-    val geminiApiKey: StateFlow<String> = aiPreferencesRepository.geminiApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val geminiModel: StateFlow<String> = aiPreferencesRepository.geminiModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    val geminiSystemPrompt: StateFlow<String> = aiPreferencesRepository.geminiSystemPrompt
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT)
+
 
     val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
@@ -405,96 +439,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // Specific on-change methods for UI binding
-    fun onGeminiApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.GEMINI, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GEMINI")
-            else clearModelsState("GEMINI")
-        }
-    }
-    fun onDeepseekApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.DEEPSEEK, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "DEEPSEEK")
-            else clearModelsState("DEEPSEEK")
-        }
-    }
-    fun onGroqApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.GROQ, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GROQ")
-            else clearModelsState("GROQ")
-        }
-    }
-    fun onMistralApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.MISTRAL, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "MISTRAL")
-            else clearModelsState("MISTRAL")
-        }
-    }
-    fun onNvidiaApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.NVIDIA, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "NVIDIA")
-            else clearModelsState("NVIDIA")
-        }
-    }
-    fun onKimiApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.KIMI, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "KIMI")
-            else clearModelsState("KIMI")
-        }
-    }
-    fun onGlmApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.GLM, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GLM")
-            else clearModelsState("GLM")
-        }
-    }
-    fun onOpenAiApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.OPENAI, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "OPENAI")
-            else clearModelsState("OPENAI")
-        }
-    }
-    fun onOpenrouterApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.OPENROUTER, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "OPENROUTER")
-            else clearModelsState("OPENROUTER")
-        }
-    }
-    fun onAnthropicApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.ANTHROPIC, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "ANTHROPIC")
-            else clearModelsState("ANTHROPIC")
-        }
-    }
-    fun onOllamaApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setApiKey(AiProvider.OLLAMA, apiKey)
-            fetchAvailableModels(apiKey, "OLLAMA")
-        }
-    }
-
-    fun onGeminiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GEMINI, model) }
-    fun onDeepseekModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.DEEPSEEK, model) }
-    fun onGroqModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GROQ, model) }
-    fun onMistralModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.MISTRAL, model) }
-    fun onNvidiaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.NVIDIA, model) }
-    fun onKimiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.KIMI, model) }
-    fun onGlmModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GLM, model) }
-    fun onOpenAiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENAI, model) }
-    fun onOpenrouterModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENROUTER, model) }
-    fun onAnthropicModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.ANTHROPIC, model) }
-    fun onOllamaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OLLAMA, model) }
-
     fun onAiSystemPromptChange(prompt: String) {
         viewModelScope.launch {
             val provider = AiProvider.fromString(aiProvider.value)
@@ -502,36 +446,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onGeminiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GEMINI, prompt) }
-    fun onDeepseekSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.DEEPSEEK, prompt) }
-    fun onGroqSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GROQ, prompt) }
-    fun onMistralSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.MISTRAL, prompt) }
-    fun onNvidiaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.NVIDIA, prompt) }
-    fun onKimiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.KIMI, prompt) }
-    fun onGlmSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GLM, prompt) }
-    fun onOpenAiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENAI, prompt) }
-    fun onOpenrouterSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENROUTER, prompt) }
-    fun onAnthropicSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.ANTHROPIC, prompt) }
-    fun onOllamaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OLLAMA, prompt) }
-
     fun resetAiSystemPrompt() {
         viewModelScope.launch {
             val provider = AiProvider.fromString(aiProvider.value)
             aiPreferencesRepository.resetSystemPrompt(provider)
         }
     }
-
-    fun resetGeminiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GEMINI) }
-    fun resetDeepseekSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.DEEPSEEK) }
-    fun resetGroqSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GROQ) }
-    fun resetMistralSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.MISTRAL) }
-    fun resetNvidiaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.NVIDIA) }
-    fun resetKimiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.KIMI) }
-    fun resetGlmSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GLM) }
-    fun resetOpenAiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENAI) }
-    fun resetOpenrouterSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENROUTER) }
-    fun resetAnthropicSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.ANTHROPIC) }
-    fun resetOllamaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OLLAMA) }
 
     fun setLocalMlEnabled(enabled: Boolean) {
         viewModelScope.launch { aiPreferencesRepository.setLocalMlEnabled(enabled) }
@@ -913,10 +833,129 @@ class SettingsViewModel @Inject constructor(
             }
         }
 
+        // Group A: AI Core + Local ML — consolidated into 1 combine() to replace ~17 individual coroutines
         viewModelScope.launch {
-            aiPreferencesRepository.isSafeTokenLimitEnabled.collect { enabled ->
-                _uiState.update { it.copy(isSafeTokenLimitEnabled = enabled) }
+            combine<Any?, AiSettingsUpdate.GroupA>(
+                aiPreferencesRepository.isSafeTokenLimitEnabled,
+                aiPreferencesRepository.localMlEnabled,
+                aiPreferencesRepository.localMlActiveModelId,
+                aiPreferencesRepository.localMlFallbackToRemote,
+                aiPreferencesRepository.localMlUseGpu,
+                aiPreferencesRepository.localMlContextSize,
+                aiPreferencesRepository.localMlOllamaUrl,
+                aiPreferencesRepository.localMlHfToken,
+                aiProvider,
+                currentAiApiKey,
+                currentAiModel,
+                aiPreferencesRepository.aiTemperature,
+                aiPreferencesRepository.aiMaxTokens,
+                aiPreferencesRepository.aiEnableStreaming,
+                aiPreferencesRepository.aiIncludeContext,
+                aiPreferencesRepository.localModelDownloadTimeoutMs,
+                aiPreferencesRepository.localMlSelectedModelId
+            ) { values ->
+                AiSettingsUpdate.GroupA(
+                    isSafeTokenLimitEnabled = values[0] as Boolean,
+                    localMlEnabled = values[1] as Boolean,
+                    localMlActiveModelId = values[2] as String,
+                    localMlFallbackToRemote = values[3] as Boolean,
+                    localMlUseGpu = values[4] as Boolean,
+                    localMlContextSize = values[5] as Int,
+                    localMlOllamaUrl = values[6] as String,
+                    localMlHfToken = values[7] as String,
+                    aiProvider = values[8] as String,
+                    currentApiKey = values[9] as String,
+                    currentModel = values[10] as String,
+                    aiTemperature = values[11] as Int,
+                    aiMaxTokens = values[12] as Int,
+                    aiEnableStreaming = values[13] as Boolean,
+                    aiIncludeContext = values[14] as Boolean,
+                    localModelDownloadTimeoutMs = values[15] as Long,
+                    localMlSelectedModelId = values[16] as String
+                )
+            }.collect { update ->
+                _uiState.update { state ->
+                    state.copy(
+                        isSafeTokenLimitEnabled = update.isSafeTokenLimitEnabled,
+                        localMlEnabled = update.localMlEnabled,
+                        localMlActiveModelId = update.localMlActiveModelId,
+                        localMlFallbackToRemote = update.localMlFallbackToRemote,
+                        localMlUseGpu = update.localMlUseGpu,
+                        localMlContextSize = update.localMlContextSize,
+                        localMlOllamaUrl = update.localMlOllamaUrl,
+                        localMlHfToken = update.localMlHfToken,
+                        aiProvider = update.aiProvider,
+                        currentApiKey = update.currentApiKey,
+                        currentModel = update.currentModel,
+                        aiTemperature = update.aiTemperature / 100f,
+                        aiMaxTokens = update.aiMaxTokens,
+                        aiEnableStreaming = update.aiEnableStreaming,
+                        aiIncludeContext = update.aiIncludeContext,
+                        localModelDownloadTimeoutMs = update.localModelDownloadTimeoutMs,
+                        localMlSelectedModelId = update.localMlSelectedModelId
+                    )
+                }
             }
+        }
+
+        // Group B: Cache + Usage + Telemetry — consolidated into 1 combine() to replace ~15 individual coroutines
+        viewModelScope.launch {
+            combine<Any?, AiSettingsUpdate.GroupB>(
+                aiPreferencesRepository.aiCacheEnabled,
+                aiPreferencesRepository.aiCacheMaxEntries,
+                aiPreferencesRepository.aiCacheTtlHours,
+                aiPreferencesRepository.aiUsageTotalInputTokens,
+                aiPreferencesRepository.aiUsageTotalOutputTokens,
+                aiPreferencesRepository.aiUsageTotalApiCalls,
+                aiPreferencesRepository.aiUsageEstimatedCost,
+                aiPreferencesRepository.telemetryIncludeSkipCount,
+                aiPreferencesRepository.telemetryIncludeCompletionRate,
+                aiPreferencesRepository.telemetryIncludeSessionDuration,
+                aiPreferencesRepository.telemetryIncludeTimeOfDay,
+                aiPreferencesRepository.telemetryIncludeGenreAffinity,
+                aiPreferencesRepository.telemetryIncludeArtistAffinity,
+                aiPreferencesRepository.telemetryIncludeReplayCount,
+                aiPreferencesRepository.telemetryIncludeQueuePatterns
+            ) { values ->
+                AiSettingsUpdate.GroupB(
+                    aiCacheEnabled = values[0] as Boolean,
+                    aiCacheMaxEntries = values[1] as Int,
+                    aiCacheTtlHours = values[2] as Int,
+                    aiUsageTotalInputTokens = values[3] as Long,
+                    aiUsageTotalOutputTokens = values[4] as Long,
+                    aiUsageTotalApiCalls = values[5] as Long,
+                    aiUsageEstimatedCost = values[6] as String,
+                    telemetryIncludeSkipCount = values[7] as Boolean,
+                    telemetryIncludeCompletionRate = values[8] as Boolean,
+                    telemetryIncludeSessionDuration = values[9] as Boolean,
+                    telemetryIncludeTimeOfDay = values[10] as Boolean,
+                    telemetryIncludeGenreAffinity = values[11] as Boolean,
+                    telemetryIncludeArtistAffinity = values[12] as Boolean,
+                    telemetryIncludeReplayCount = values[13] as Boolean,
+                    telemetryIncludeQueuePatterns = values[14] as Boolean
+                )
+            }.collect { update ->
+                _uiState.update { state ->
+                    state.copy(
+                        aiCacheEnabled = update.aiCacheEnabled,
+                        aiCacheMaxEntries = update.aiCacheMaxEntries,
+                        aiCacheTtlHours = update.aiCacheTtlHours,
+                        aiUsageTotalInputTokens = update.aiUsageTotalInputTokens,
+                        aiUsageTotalOutputTokens = update.aiUsageTotalOutputTokens,
+                        aiUsageTotalApiCalls = update.aiUsageTotalApiCalls,
+                        aiUsageEstimatedCost = update.aiUsageEstimatedCost,
+                        telemetryIncludeSkipCount = update.telemetryIncludeSkipCount,
+                        telemetryIncludeCompletionRate = update.telemetryIncludeCompletionRate,
+                        telemetryIncludeSessionDuration = update.telemetryIncludeSessionDuration,
+                        telemetryIncludeTimeOfDay = update.telemetryIncludeTimeOfDay,
+                        telemetryIncludeGenreAffinity = update.telemetryIncludeGenreAffinity,
+                        telemetryIncludeArtistAffinity = update.telemetryIncludeArtistAffinity,
+                        telemetryIncludeReplayCount = update.telemetryIncludeReplayCount,
+                        telemetryIncludeQueuePatterns = update.telemetryIncludeQueuePatterns
+                    )
+                }
+            }
+        }
         }
 
         viewModelScope.launch {

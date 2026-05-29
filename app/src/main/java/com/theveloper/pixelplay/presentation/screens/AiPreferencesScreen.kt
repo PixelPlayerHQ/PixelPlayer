@@ -562,9 +562,9 @@ fun ModelSelectionCard(
     onModelChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val aiProvider = try { AiProvider.valueOf(provider) } catch (_: Exception) { null }
+    val aiProvider = remember(provider) { try { AiProvider.valueOf(provider) } catch (_: Exception) { null } }
     val providerModels = aiProvider?.models ?: emptyList()
-    val allModels = if (providerModels.isEmpty()) listOf("default") else providerModels
+    val allModels = remember(providerModels) { if (providerModels.isEmpty()) listOf("default") else providerModels }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -635,68 +635,40 @@ fun AdvancedSettingsCard(
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showAdvanced = !showAdvanced },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    CollapsibleCard(
+        expanded = showAdvanced,
+        onToggle = { showAdvanced = !showAdvanced },
+        contentPadding = 16.dp,
+        title = { Text("Advanced Settings", style = MaterialTheme.typography.titleSmall) }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Advanced Settings", style = MaterialTheme.typography.titleSmall)
-                Icon(
-                    if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-            }
-
-            AnimatedVisibility(visible = showAdvanced) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
-                    Text(
-                        text = "Temperature: ${temperature / 100f}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Slider(
-                        value = temperature.toFloat(),
-                        onValueChange = { onTemperatureChange(it.toInt()) },
-                        valueRange = 1f..200f,
-                        steps = 19
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("0.01", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "Max Tokens: $maxTokens",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Slider(
-                        value = maxTokens.toFloat(),
-                        onValueChange = { onMaxTokensChange(it.toInt()) },
-                        valueRange = 128f..16000f,
-                        steps = 19
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("128", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("16000", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+        Text(text = "Temperature: ${temperature / 100f}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = temperature.toFloat(),
+            onValueChange = { onTemperatureChange(it.toInt()) },
+            valueRange = 1f..200f,
+            steps = 19
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("0.01", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = "Max Tokens: $maxTokens", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = maxTokens.toFloat(),
+            onValueChange = { onMaxTokensChange(it.toInt()) },
+            valueRange = 128f..16000f,
+            steps = 19
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("128", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("16000", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -711,45 +683,24 @@ fun SystemPromptCard(
 ) {
     var showPrompt by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showPrompt = !showPrompt },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    CollapsibleCard(
+        expanded = showPrompt,
+        onToggle = { showPrompt = !showPrompt },
+        title = { Text("System Prompt", style = MaterialTheme.typography.titleSmall) }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("System Prompt", style = MaterialTheme.typography.titleSmall)
-                Icon(
-                    if (showPrompt) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-            }
-
-            AnimatedVisibility(visible = showPrompt) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    OutlinedTextField(
-                        value = systemPrompt,
-                        onValueChange = onSystemPromptChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 100.dp, max = 200.dp),
-                        maxLines = 8
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = onReset) {
-                        Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Reset to Default")
-                    }
-                }
-            }
+        OutlinedTextField(
+            value = systemPrompt,
+            onValueChange = onSystemPromptChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 100.dp, max = 200.dp),
+            maxLines = 8
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = onReset) {
+            Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Reset to Default")
         }
     }
 }
@@ -996,41 +947,19 @@ fun ContextSettingsCard(
     onIncludeUserHabitsChange: (Boolean) -> Unit
 ) {
     var showContextSettings by remember { mutableStateOf(false) }
-    var contextTextInput by remember { mutableStateOf(maxSongsForContext.toString()) }
+    var contextTextInput by remember(maxSongsForContext) { mutableStateOf(maxSongsForContext.toString()) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showContextSettings = !showContextSettings },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Context Size: $maxSongsForContext songs",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "How many songs to include as context ($minValue-$maxValue)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    if (showContextSettings) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
+    CollapsibleCard(
+        expanded = showContextSettings,
+        onToggle = { showContextSettings = !showContextSettings },
+        contentPadding = 16.dp,
+        title = {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Context Size: $maxSongsForContext songs", style = MaterialTheme.typography.titleSmall)
+                Text(text = "How many songs to include as context ($minValue-$maxValue)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            AnimatedVisibility(visible = showContextSettings) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
+        }
+    ) {
                     Slider(
                         value = maxSongsForContext.toFloat(),
                         onValueChange = {
@@ -1074,9 +1003,6 @@ fun ContextSettingsCard(
                         checked = includeUserHabits,
                         onCheckedChange = onIncludeUserHabitsChange
                     )
-                }
-            }
-        }
     }
 }
 
@@ -1103,57 +1029,26 @@ fun DataCollectionCard(
 ) {
     var showDataCollection by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDataCollection = !showDataCollection },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Data Collection Preferences",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "Control which listening data is included for AI recommendations. All data stays on-device.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    if (showDataCollection) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-            }
-
-            AnimatedVisibility(visible = showDataCollection) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    ToggleRow("Skip count tracking", telemetryIncludeSkipCount, onSkipCountChange)
-                    ToggleRow("Completion rate", telemetryIncludeCompletionRate, onCompletionRateChange)
-                    ToggleRow("Session duration", telemetryIncludeSessionDuration, onSessionDurationChange)
-                    ToggleRow("Time of day patterns", telemetryIncludeTimeOfDay, onTimeOfDayChange)
-                    ToggleRow("Genre affinity", telemetryIncludeGenreAffinity, onGenreAffinityChange)
-                    ToggleRow("Artist affinity", telemetryIncludeArtistAffinity, onArtistAffinityChange)
-                    ToggleRow("Replay count", telemetryIncludeReplayCount, onReplayCountChange)
-                    ToggleRow("Queue patterns", telemetryIncludeQueuePatterns, onQueuePatternsChange)
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Disabling all options means AI recommendations will not use your listening history.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    CollapsibleCard(
+        expanded = showDataCollection,
+        onToggle = { showDataCollection = !showDataCollection },
+        title = {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Data Collection Preferences", style = MaterialTheme.typography.titleSmall)
+                Text("Control which listening data is included for AI recommendations. All data stays on-device.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    ) {
+        ToggleRow("Skip count tracking", telemetryIncludeSkipCount, onSkipCountChange)
+        ToggleRow("Completion rate", telemetryIncludeCompletionRate, onCompletionRateChange)
+        ToggleRow("Session duration", telemetryIncludeSessionDuration, onSessionDurationChange)
+        ToggleRow("Time of day patterns", telemetryIncludeTimeOfDay, onTimeOfDayChange)
+        ToggleRow("Genre affinity", telemetryIncludeGenreAffinity, onGenreAffinityChange)
+        ToggleRow("Artist affinity", telemetryIncludeArtistAffinity, onArtistAffinityChange)
+        ToggleRow("Replay count", telemetryIncludeReplayCount, onReplayCountChange)
+        ToggleRow("Queue patterns", telemetryIncludeQueuePatterns, onQueuePatternsChange)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Disabling all options means AI recommendations will not use your listening history.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -1174,56 +1069,28 @@ fun CacheSettingsCard(
 ) {
     var showCache by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showCache = !showCache },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    CollapsibleCard(
+        expanded = showCache,
+        onToggle = { showCache = !showCache },
+        contentPadding = 12.dp,
+        title = { Text("Cache Settings", style = MaterialTheme.typography.titleSmall) }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Cache Settings", style = MaterialTheme.typography.titleSmall)
-                Icon(
-                    if (showCache) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-            }
-
-            AnimatedVisibility(visible = showCache) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    ToggleRow("Enable AI response cache", aiCacheEnabled, onCacheEnabledChange)
-
-                    if (aiCacheEnabled) {
-                        Text(
-                            text = "Max cache entries: $aiCacheMaxEntries",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value = aiCacheMaxEntries.toFloat(),
-                            onValueChange = { onCacheMaxEntriesChange(it.toInt()) },
-                            valueRange = aiCacheMaxEntriesMin.toFloat()..aiCacheMaxEntriesMax.toFloat(),
-                            steps = 48
-                        )
-
-                        Text(
-                            text = "Cache TTL: $aiCacheTtlHours hours",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value = aiCacheTtlHours.toFloat(),
-                            onValueChange = { onCacheTtlHoursChange(it.toInt()) },
-                            valueRange = aiCacheTtlHoursMin.toFloat()..aiCacheTtlHoursMax.toFloat(),
-                            steps = 19
-                        )
-                    }
-                }
-            }
+        ToggleRow("Enable AI response cache", aiCacheEnabled, onCacheEnabledChange)
+        if (aiCacheEnabled) {
+            Text(text = "Max cache entries: $aiCacheMaxEntries", style = MaterialTheme.typography.bodyMedium)
+            Slider(
+                value = aiCacheMaxEntries.toFloat(),
+                onValueChange = { onCacheMaxEntriesChange(it.toInt()) },
+                valueRange = aiCacheMaxEntriesMin.toFloat()..aiCacheMaxEntriesMax.toFloat(),
+                steps = 48
+            )
+            Text(text = "Cache TTL: $aiCacheTtlHours hours", style = MaterialTheme.typography.bodyMedium)
+            Slider(
+                value = aiCacheTtlHours.toFloat(),
+                onValueChange = { onCacheTtlHoursChange(it.toInt()) },
+                valueRange = aiCacheTtlHoursMin.toFloat()..aiCacheTtlHoursMax.toFloat(),
+                steps = 19
+            )
         }
     }
 }
@@ -1241,50 +1108,14 @@ fun NotificationSettingsCard(
 ) {
     var showNotifications by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showNotifications = !showNotifications },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    CollapsibleCard(
+        expanded = showNotifications,
+        onToggle = { showNotifications = !showNotifications },
+        title = { Text("Notification & Behavior", style = MaterialTheme.typography.titleSmall) }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Notification & Behavior", style = MaterialTheme.typography.titleSmall)
-                Icon(
-                    if (showNotifications) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null
-                )
-            }
-
-            AnimatedVisibility(visible = showNotifications) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    ToggleRow(
-                        "Include context for AI",
-                        aiIncludeContext,
-                        onIncludeContextChange,
-                        subtitle = "Include listening context in AI prompts"
-                    )
-                    ToggleRow(
-                        "Enable streaming",
-                        aiEnableStreaming,
-                        onEnableStreamingChange,
-                        subtitle = "Stream AI responses in real-time"
-                    )
-                    ToggleRow(
-                        "Safe token limit",
-                        isSafeTokenLimitEnabled,
-                        onSafeTokenLimitChange,
-                        subtitle = "Limit token usage to prevent excessive consumption"
-                    )
-                }
-            }
-        }
+        ToggleRow("Include context for AI", aiIncludeContext, onIncludeContextChange, subtitle = "Include listening context in AI prompts")
+        ToggleRow("Enable streaming", aiEnableStreaming, onEnableStreamingChange, subtitle = "Stream AI responses in real-time")
+        ToggleRow("Safe token limit", isSafeTokenLimitEnabled, onSafeTokenLimitChange, subtitle = "Limit token usage to prevent excessive consumption")
     }
 }
 
@@ -1418,6 +1249,45 @@ fun SwitchPreference(
                 onCheckedChange = onCheckedChange,
                 enabled = enabled
             )
+        }
+    }
+}
+
+// ===== GENERIC COLLAPSIBLE CARD =====
+
+@Composable
+private fun CollapsibleCard(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    title: @Composable RowScope.() -> Unit,
+    contentPadding: Dp = 8.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                title()
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = contentPadding)) {
+                    content()
+                }
+            }
         }
     }
 }

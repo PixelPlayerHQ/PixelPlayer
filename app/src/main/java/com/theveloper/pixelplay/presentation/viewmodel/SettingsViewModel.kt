@@ -1710,9 +1710,6 @@ class SettingsViewModel @Inject constructor(
                 )
             }
 
-            // Small delay to let the provider preference propagate to StateFlows
-            delay(100)
-
             // Fetch models for the newly selected provider if we have an API key
             val apiKey = aiPreferencesRepository.getApiKey(AiProvider.fromString(provider)).first()
 

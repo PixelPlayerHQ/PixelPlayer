@@ -160,10 +160,10 @@ class AiBehaviorDataCollector @Inject constructor(
 
     suspend fun getPerSongStats(songId: String): SongStats {
         return SongStats(
-            playCount = songPlayCounts[songId] ?: 0,
-            skipCount = songSkipCounts[songId] ?: 0,
-            lastPlayedMs = songLastPlayed[songId] ?: 0,
-            completionCount = songCompletions[songId] ?: 0
+            playCount = (songPlayCounts[songId] ?: 0),
+            skipCount = (songSkipCounts[songId] ?: 0),
+            lastPlayedMs = (songLastPlayed[songId] ?: 0L),
+            completionCount = (songCompletions[songId] ?: 0)
         )
     }
 
@@ -173,7 +173,7 @@ class AiBehaviorDataCollector @Inject constructor(
         return SongStats(
             playCount = songPlay?.playCount ?: 0,
             skipCount = 0,
-            lastPlayedMs = 0,
+            lastPlayedMs = 0L,
             completionCount = songPlay?.playCount ?: 0
         )
     }

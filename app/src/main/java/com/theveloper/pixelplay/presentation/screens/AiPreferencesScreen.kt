@@ -2,30 +2,43 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
+import com.theveloper.pixelplay.data.ai.local.ModelSource
 import com.theveloper.pixelplay.data.ai.local.ModelStatus
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 
@@ -38,8 +51,15 @@ fun AiPreferencesScreen(
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val localModels by settingsViewModel.availableLocalModels.collectAsStateWithLifecycle(initialValue = emptyList())
     val modelStatuses by settingsViewModel.localModelStatuses.collectAsStateWithLifecycle(initialValue = emptyMap())
-    var showDeveloperOptions by remember { mutableStateOf(false) }
-    var showModelCatalog by remember { mutableStateOf(false) }
+    val currentAiModel by settingsViewModel.currentAiModel.collectAsStateWithLifecycle(initialValue = "")
+    val currentApiKey by settingsViewModel.currentAiApiKey.collectAsStateWithLifecycle(initialValue = "")
+
+    // Import model launcher
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { settingsViewModel.importLocalModel(it) }
+    }
 
     Scaffold(
         topBar = {
@@ -58,23 +78,23 @@ fun AiPreferencesScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Text(
-                    text = stringResource(R.string.settings_category_ai_preferences_subtitle),
+                    text = "Configure AI-powered features like smart playlists and music recommendations.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
 
-            // Provider Selection Section
+            // ===== PROVIDER SELECTION =====
             item {
                 Text(
-                    text = stringResource(R.string.settings_ai_provider_title),
+                    text = "AI Provider",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
@@ -85,343 +105,157 @@ fun AiPreferencesScreen(
                 )
             }
 
-            // API Key Section (for cloud providers)
+            // ===== API KEY =====
             if (uiState.aiProvider != "LOCAL" && uiState.aiProvider != "OLLAMA") {
                 item {
                     ApiKeyInputCard(
                         provider = uiState.aiProvider,
-                        apiKey = uiState.currentApiKey,
+                        apiKey = currentApiKey,
                         onApiKeyChange = { settingsViewModel.onAiApiKeyChange(it) }
                     )
                 }
             }
 
-            // Model Selection Section
+            // ===== MODEL SELECTION (Cloud Providers) =====
             if (uiState.aiProvider != "LOCAL") {
                 item {
                     Text(
-                        text = stringResource(R.string.settings_ai_model_title),
+                        text = "Model",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
                 item {
                     ModelSelectionCard(
                         provider = uiState.aiProvider,
-                        selectedModel = uiState.currentModel,
-                        availableModels = uiState.availableModels,
-                        isLoading = uiState.isLoadingModels,
+                        selectedModel = currentAiModel,
                         onModelChange = { settingsViewModel.onAiModelChange(it) }
+                    )
+                }
+
+                // Temperature & Max Tokens
+                item {
+                    AdvancedSettingsCard(
+                        temperature = uiState.aiTemperature,
+                        maxTokens = uiState.aiMaxTokens,
+                        onTemperatureChange = { settingsViewModel.onAiTemperatureChange(it) },
+                        onMaxTokensChange = { settingsViewModel.onAiMaxTokensChange(it) }
                     )
                 }
             }
 
-            // Generation Settings Section
+            // ===== LOCAL MODELS =====
             item {
-                Text(
-                    text = stringResource(R.string.settings_ai_developer_options_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_streaming_title),
-                    subtitle = stringResource(R.string.settings_ai_streaming_subtitle),
-                    checked = uiState.aiEnableStreaming,
-                    onCheckedChange = { settingsViewModel.setAiEnableStreaming(it) }
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_include_context_title),
-                    subtitle = stringResource(R.string.settings_ai_include_context_subtitle),
-                    checked = uiState.aiIncludeContext,
-                    onCheckedChange = { settingsViewModel.setAiIncludeContext(it) }
-                )
-            }
-
-            // Temperature Slider
-            item {
-                SliderPreference(
-                    title = stringResource(R.string.settings_ai_temperature_title),
-                    subtitle = stringResource(R.string.settings_ai_temperature_subtitle),
-                    value = uiState.aiTemperature,
-                    valueRange = 0f..2f,
-                    onValueChange = { settingsViewModel.setAiTemperature(it) },
-                    valueFormatter = { String.format("%.1f", it) }
-                )
-            }
-
-            // Max Tokens Slider
-            item {
-                SliderPreference(
-                    title = stringResource(R.string.settings_ai_max_tokens_title),
-                    subtitle = stringResource(R.string.settings_ai_max_tokens_subtitle),
-                    value = uiState.aiMaxTokens.toFloat(),
-                    valueRange = 256f..8192f,
-                    onValueChange = { settingsViewModel.setAiMaxTokens(it.toInt()) },
-                    valueFormatter = { "${it.toInt()}" }
-                )
-            }
-
-            // Context Settings Section
-            item {
-                Text(
-                    text = stringResource(R.string.setcat_prompt_behavior),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-                )
-            }
-
-            item {
-                SliderPreference(
-                    title = stringResource(R.string.settings_ai_max_songs_title),
-                    subtitle = stringResource(R.string.settings_ai_max_songs_subtitle),
-                    value = uiState.maxSongsForContext.toFloat(),
-                    valueRange = 10f..200f,
-                    onValueChange = { settingsViewModel.setMaxSongsForContext(it.toInt()) },
-                    valueFormatter = { "${it.toInt()}" }
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_include_liked_title),
-                    subtitle = stringResource(R.string.settings_ai_include_liked_subtitle),
-                    checked = uiState.includeLikedSongs,
-                    onCheckedChange = { settingsViewModel.setIncludeLikedSongs(it) }
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_include_daily_mix_title),
-                    subtitle = stringResource(R.string.settings_ai_include_daily_mix_subtitle),
-                    checked = uiState.includeDailyMixHistory,
-                    onCheckedChange = { settingsViewModel.setIncludeDailyMixHistory(it) }
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_include_habits_title),
-                    subtitle = stringResource(R.string.settings_ai_include_habits_subtitle),
-                    checked = uiState.includeUserHabits,
-                    onCheckedChange = { settingsViewModel.setIncludeUserHabits(it) }
-                )
-            }
-
-            // Local Models Section
-            item {
-                Text(
-                    text = stringResource(R.string.settings_ai_local_models_section),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_ai_local_models_enabled_title),
-                    subtitle = stringResource(R.string.settings_ai_local_models_enabled_subtitle),
-                    checked = uiState.localMlEnabled,
-                    onCheckedChange = { settingsViewModel.setLocalMlEnabled(it) },
-                    enabled = uiState.localMlSupported
-                )
-            }
-
-            if (!uiState.localMlSupported) {
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = uiState.localMlSupportMessage.ifEmpty {
-                                    stringResource(R.string.settings_ai_local_models_unsupported)
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Local Models",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    TextButton(
+                        onClick = {
+                            importLauncher.launch(arrayOf("*/*"))
                         }
+                    ) {
+                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Import")
                     }
                 }
             }
 
-            // Model Selection Dropdown for Local Models
-            if (uiState.localMlSupported) {
-                item {
-                    LocalModelDropdown(
-                        selectedModelId = uiState.localMlActiveModelId,
-                        availableModels = localModels,
-                        modelStatuses = modelStatuses,
-                        onModelSelect = { settingsViewModel.setLocalMlActiveModelId(it) }
-                    )
-                }
+            item {
+                Text(
+                    text = "Download models to use AI features offline without internet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-                item {
-                    SwitchPreference(
-                        title = stringResource(R.string.settings_ai_local_models_fallback_title),
-                        subtitle = stringResource(R.string.settings_ai_local_models_fallback_subtitle),
-                        checked = uiState.localMlFallbackToRemote,
-                        onCheckedChange = { settingsViewModel.setLocalMlFallbackToRemote(it) }
-                    )
-                }
+            // Model Cards
+            items(localModels) { model ->
+                val status = modelStatuses[model.id] ?: ModelStatus.NotDownloaded
+                LocalModelCard(
+                    model = model,
+                    status = status,
+                    isSelected = uiState.localMlActiveModelId == model.id,
+                    onDownload = { settingsViewModel.downloadLocalModel(model) },
+                    onDelete = { settingsViewModel.deleteLocalModel(model.id) },
+                    onSelect = { settingsViewModel.selectLocalModel(model.id) }
+                )
+            }
 
+            if (localModels.isEmpty()) {
                 item {
-                    SwitchPreference(
-                        title = stringResource(R.string.settings_ai_local_models_gpu_title),
-                        subtitle = stringResource(R.string.settings_ai_local_models_gpu_subtitle),
-                        checked = uiState.localMlUseGpu,
-                        onCheckedChange = { settingsViewModel.setLocalMlUseGpu(it) }
-                    )
-                }
-
-                item {
-                    SliderPreference(
-                        title = "Local Model Context Size",
-                        subtitle = "Number of songs to include in local context",
-                        value = uiState.localMlContextSize.toFloat(),
-                        valueRange = 20f..200f,
-                        onValueChange = { settingsViewModel.setLocalMlContextSize(it.toInt()) },
-                        valueFormatter = { "${it.toInt()}" }
-                    )
-                }
-
-                // Model Catalog Button
-                item {
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showModelCatalog = true }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.settings_ai_model_catalog_title),
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = stringResource(R.string.settings_ai_model_catalog_subtitle),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                             Icon(
-                                Icons.Default.ExpandMore,
-                                contentDescription = null
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "No models available for your device. Your device may not meet the minimum requirements.",
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
                 }
+            }
 
-                // Ollama URL
-                item {
-                    OutlinedTextField(
-                        value = uiState.localMlOllamaUrl,
-                        onValueChange = { settingsViewModel.setLocalMlOllamaUrl(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.settings_ai_local_models_ollama_url_title)) },
-                        placeholder = { Text(stringResource(R.string.settings_ai_local_models_ollama_url_placeholder)) },
-                        singleLine = true
-                    )
-                }
+            // ===== CONTEXT SETTINGS =====
+            item {
+                Text(
+                    text = "Context Settings",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
 
-                // HuggingFace Token
-                item {
-                    OutlinedTextField(
-                        value = uiState.localMlHfToken,
-                        onValueChange = { settingsViewModel.setLocalMlHfToken(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.settings_ai_local_models_hf_token_title)) },
-                        placeholder = { Text(stringResource(R.string.settings_ai_local_models_hf_token_placeholder)) },
-                        singleLine = true
-                    )
-                }
+            item {
+                ContextSettingsCard(
+                    contextSize = uiState.maxSongsForContext,
+                    includeLikedSongs = uiState.includeLikedSongs,
+                    includeHistory = uiState.includeDailyMixHistory,
+                    onContextSizeChange = { settingsViewModel.onMaxSongsForContextChange(it) },
+                    onIncludeLikedSongsChange = { settingsViewModel.onIncludeLikedSongsChange(it) },
+                    onIncludeHistoryChange = { settingsViewModel.onIncludeDailyMixHistoryChange(it) }
+                )
+            }
 
-                // Developer Options for Local Models
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = stringResource(R.string.settings_ai_developer_options_title),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_ai_developer_options_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+            // ===== HARDWARE LOCK =====
+            item {
+                Text(
+                    text = "Hardware",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Hardware Lock Toggle with Warning
-                            var showHwWarning by remember { mutableStateOf(false) }
-                            var hwLocked by remember { mutableStateOf(true) }
-
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_ai_hardware_lock_title),
-                                subtitle = stringResource(R.string.settings_ai_hardware_lock_subtitle),
-                                checked = hwLocked,
-                                onCheckedChange = { newValue ->
-                                    if (!newValue) {
-                                        showHwWarning = true
-                                    } else {
-                                        hwLocked = true
-                                    }
-                                }
-                            )
-
-                            if (showHwWarning) {
-                                AlertDialog(
-                                    onDismissRequest = { showHwWarning = false },
-                                    title = { Text("Warning") },
-                                    text = { Text(stringResource(R.string.settings_ai_hardware_lock_warning)) },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                hwLocked = false
-                                                showHwWarning = false
-                                            }
-                                        ) {
-                                            Text("Disable Anyway")
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showHwWarning = false }) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+            item {
+                SwitchPreference(
+                    title = stringResource(R.string.settings_ai_hardware_lock_title),
+                    subtitle = stringResource(R.string.settings_ai_hardware_lock_subtitle),
+                    checked = uiState.localMlUseGpu,
+                    onCheckedChange = { settingsViewModel.onLocalMlUseGpuChange(it) }
+                )
             }
 
             item {
@@ -436,46 +270,64 @@ fun ProviderSelectionCard(
     selectedProvider: String,
     onProviderChange: (String) -> Unit
 ) {
-    val providers = listOf(
-        "GEMINI" to "Google Gemini",
-        "OPENAI" to "OpenAI",
-        "ANTHROPIC" to "Anthropic Claude",
-        "DEEPSEEK" to "DeepSeek",
-        "OLLAMA" to "Ollama (Local)",
-        "LOCAL" to "Local Models"
-    )
-
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = providers.find { it.first == selectedProvider }?.second ?: selectedProvider,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-        )
+    val providers = listOf(
+        "GEMINI" to "Google Gemini" to "Fast, capable, good for playlists",
+        "OPENAI" to "OpenAI GPT" to "GPT-4o, high quality",
+        "ANTHROPIC" to "Anthropic Claude" to "Long context, good reasoning",
+        "DEEPSEEK" to "DeepSeek" to "Fast, affordable",
+        "OLLAMA" to "Ollama Server" to "Connect to your Ollama server",
+        "LOCAL" to "Local (Offline)" to "Use downloaded models"
+    )
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            providers.forEach { (id, name) ->
-                DropdownMenuItem(
-                    text = { Text(name) },
-                    onClick = {
-                        onProviderChange(id)
-                        expanded = false
-                    },
-                    leadingIcon = if (selectedProvider == id) {
-                        { Icon(Icons.Default.Check, contentDescription = null) }
-                    } else null
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = providers.find { it.first.first == selectedProvider }?.first?.second ?: selectedProvider,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
                 )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    providers.forEach { (provider, description) ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(provider.first, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            onClick = {
+                                onProviderChange(provider.first)
+                                expanded = false
+                            },
+                            leadingIcon = if (selectedProvider == provider.first) {
+                                { Icon(Icons.Default.Check, contentDescription = null) }
+                            } else null
+                        )
+                    }
+                }
             }
         }
     }
@@ -489,79 +341,163 @@ fun ApiKeyInputCard(
 ) {
     var hidden by remember { mutableStateOf(true) }
 
-    OutlinedTextField(
-        value = apiKey,
-        onValueChange = onApiKeyChange,
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        label = { Text(stringResource(R.string.settings_ai_api_key_title)) },
-        placeholder = { Text("Enter your $provider API key") },
-        singleLine = true,
-        visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
-        trailingIcon = {
-            IconButton(onClick = { hidden = !hidden }) {
-                Text(if (hidden) "Show" else "Hide")
-            }
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "API Key",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = onApiKeyChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Enter your $provider API key") },
+                singleLine = true,
+                visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
+                trailingIcon = {
+                    IconButton(onClick = { hidden = !hidden }) {
+                        Icon(
+                            if (hidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (hidden) "Show" else "Hide"
+                        )
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Get your API key from ${provider.lowercase()}.com/api",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-    )
+    }
 }
 
 @Composable
 fun ModelSelectionCard(
     provider: String,
     selectedModel: String,
-    availableModels: List<com.theveloper.pixelplay.data.ai.AiModel>,
-    isLoading: Boolean,
     onModelChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    val models = availableModels.map { it.name }
+    val models = when (provider) {
+        "GEMINI" -> listOf("gemini-2.0-flash-exp", "gemini-2.5-flash", "gemini-1.5-pro")
+        "OPENAI" -> listOf("gpt-4o-mini", "gpt-4o", "gpt-4-turbo")
+        "ANTHROPIC" -> listOf("claude-3-5-sonnet-20241022", "claude-3-opus-20240229")
+        "DEEPSEEK" -> listOf("deepseek-chat", "deepseek-coder")
+        else -> listOf("default")
+    }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedModel.ifEmpty { "Select model" },
-            onValueChange = {},
-            readOnly = true,
-            enabled = !isLoading,
-            trailingIcon = {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            if (models.isEmpty()) {
-                DropdownMenuItem(
-                    text = { Text("No models available") },
-                    onClick = { expanded = false },
-                    enabled = false
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedModel.ifEmpty { "Select model" },
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
                 )
-            } else {
-                models.forEach { model ->
-                    DropdownMenuItem(
-                        text = { Text(model) },
-                        onClick = {
-                            onModelChange(model)
-                            expanded = false
-                        },
-                        leadingIcon = if (selectedModel == model) {
-                            { Icon(Icons.Default.Check, contentDescription = null) }
-                        } else null
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    models.forEach { model ->
+                        DropdownMenuItem(
+                            text = { Text(model) },
+                            onClick = {
+                                onModelChange(model)
+                                expanded = false
+                            },
+                            leadingIcon = if (selectedModel == model) {
+                                { Icon(Icons.Default.Check, contentDescription = null) }
+                            } else null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdvancedSettingsCard(
+    temperature: Int,
+    maxTokens: Int,
+    onTemperatureChange: (Int) -> Unit,
+    onMaxTokensChange: (Int) -> Unit
+) {
+    var showAdvanced by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showAdvanced = !showAdvanced },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Advanced Settings", style = MaterialTheme.typography.titleSmall)
+                Icon(
+                    if (showAdvanced) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showAdvanced) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    // Temperature
+                    Text(
+                        text = "Temperature: ${temperature / 100f}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = temperature.toFloat(),
+                        onValueChange = { onTemperatureChange(it.toInt()) },
+                        valueRange = 0f..100f,
+                        steps = 9
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Max Tokens
+                    Text(
+                        text = "Max Tokens: $maxTokens",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = maxTokens.toFloat(),
+                        onValueChange = { onMaxTokensChange(it.toInt()) },
+                        valueRange = 256f..4096f,
+                        steps = 14
                     )
                 }
             }
@@ -570,74 +506,268 @@ fun ModelSelectionCard(
 }
 
 @Composable
-fun LocalModelDropdown(
-    selectedModelId: String,
-    availableModels: List<LocalModelInfo>,
-    modelStatuses: Map<String, ModelStatus>,
-    onModelSelect: (String) -> Unit
+fun LocalModelCard(
+    model: LocalModelInfo,
+    status: ModelStatus,
+    isSelected: Boolean,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    onSelect: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val selectedModel = availableModels.find { it.id == selectedModelId }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedModel?.displayName ?: "Select a local model",
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                status is ModelStatus.Ready -> MaterialTheme.colorScheme.secondaryContainer
+                else -> MaterialTheme.colorScheme.surface
+            }
         )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            if (availableModels.isEmpty()) {
-                DropdownMenuItem(
-                    text = { Text("No models available") },
-                    onClick = { expanded = false },
-                    enabled = false
-                )
-            } else {
-                availableModels.forEach { model ->
-                    val status = modelStatuses[model.id] ?: ModelStatus.NotDownloaded
-                    val statusText = when (status) {
-                        is ModelStatus.Ready -> stringResource(R.string.settings_ai_model_downloaded)
-                        is ModelStatus.Downloading -> stringResource(R.string.settings_ai_model_downloading)
-                        is ModelStatus.Error -> status.message
-                        else -> ""
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = model.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = model.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(formatSize(model.fileSizeBytes)) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Storage,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("${model.ramRequiredMb}MB RAM") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Memory,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
                     }
+                }
 
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(model.displayName)
-                                if (statusText.isNotEmpty()) {
-                                    Text(
-                                        text = statusText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (status is ModelStatus.Error)
-                                            MaterialTheme.colorScheme.error
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                // Action buttons based on status
+                when (status) {
+                    is ModelStatus.NotDownloaded -> {
+                        FilledTonalButton(onClick = onDownload) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Download")
+                        }
+                    }
+                    is ModelStatus.Downloading -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                progress = { status.progress / 100f },
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp
+                            )
+                            Text(
+                                text = "${status.progress}%",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    is ModelStatus.Ready -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = "Selected",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    text = "Active",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                OutlinedButton(onClick = onSelect) {
+                                    Text("Use")
                                 }
                             }
-                        },
-                        onClick = {
-                            onModelSelect(model.id)
-                            expanded = false
-                        },
-                        leadingIcon = if (selectedModelId == model.id) {
-                            { Icon(Icons.Default.Check, contentDescription = null) }
-                        } else null
+                            Spacer(modifier = Modifier.height(4.dp))
+                            IconButton(onClick = { showDeleteConfirm = true }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                    is ModelStatus.Error -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "Error",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            FilledTonalButton(onClick = onDownload) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                    is ModelStatus.Importing -> {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
+
+            // Progress bar for downloading
+            if (status is ModelStatus.Downloading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { status.progress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                )
+                Text(
+                    text = "Downloaded ${formatSize(status.downloaded)} / ${formatSize(model.fileSizeBytes)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Model?") },
+            text = { Text("Are you sure you want to delete ${model.displayName}? You'll need to download it again.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ContextSettingsCard(
+    contextSize: Int,
+    includeLikedSongs: Boolean,
+    includeHistory: Boolean,
+    onContextSizeChange: (Int) -> Unit,
+    onIncludeLikedSongsChange: (Boolean) -> Unit,
+    onIncludeHistoryChange: (Boolean) -> Unit
+) {
+    var showContextSettings by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showContextSettings = !showContextSettings },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Context Size: $contextSize songs",
+                        style = MaterialTheme.typography.titleSmall
                     )
+                    Text(
+                        text = "How many songs to include as context for AI recommendations",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    if (showContextSettings) Icons.Default.expand_less else Icons.Default.expand_more,
+                    contentDescription = null
+                )
+            }
+
+            AnimatedVisibility(visible = showContextSettings) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    // Context size slider
+                    Slider(
+                        value = contextSize.toFloat(),
+                        onValueChange = { onContextSizeChange(it.toInt()) },
+                        valueRange = 10f..100f,
+                        steps = 8
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Toggle options
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Include liked songs")
+                        Switch(
+                            checked = includeLikedSongs,
+                            onCheckedChange = onIncludeLikedSongsChange
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Include listening history")
+                        Switch(
+                            checked = includeHistory,
+                            onCheckedChange = onIncludeHistoryChange
+                        )
+                    }
                 }
             }
         }
@@ -657,7 +787,7 @@ fun SwitchPreference(
             .fillMaxWidth()
             .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier),
         colors = CardDefaults.cardColors(
-            containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (enabled) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -686,46 +816,11 @@ fun SwitchPreference(
     }
 }
 
-@Composable
-fun SliderPreference(
-    title: String,
-    subtitle: String,
-    value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    onValueChange: (Float) -> Unit,
-    valueFormatter: (Float) -> String
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = valueFormatter(value),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Slider(
-                value = value,
-                onValueChange = onValueChange,
-                valueRange = valueRange,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
+private fun formatSize(bytes: Long): String {
+    return when {
+        bytes >= 1_000_000_000 -> "%.1fGB".format(bytes / 1_000_000_000.0)
+        bytes >= 1_000_000 -> "%.1fMB".format(bytes / 1_000_000.0)
+        bytes >= 1_000 -> "%.1fKB".format(bytes / 1_000.0)
+        else -> "$bytes B"
     }
 }

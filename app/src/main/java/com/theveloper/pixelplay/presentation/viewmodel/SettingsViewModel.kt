@@ -1077,6 +1077,42 @@ class SettingsViewModel @Inject constructor(
             val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
             currentStatuses[modelId] = ModelStatus.NotDownloaded
             _uiState.update { it.copy(localModelStatuses = currentStatuses) }
+
+            // Clear active model if deleted
+            if (_uiState.value.localMlActiveModelId == modelId) {
+                aiPreferencesRepository.setLocalMlActiveModelId("")
+                _uiState.update { it.copy(localMlActiveModelId = "") }
+            }
+        }
+    }
+
+    fun selectLocalModel(modelId: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setLocalMlActiveModelId(modelId)
+            localMlManager.setActiveModel(modelId)
+            _uiState.update { it.copy(localMlActiveModelId = modelId) }
+        }
+    }
+
+    fun importLocalModel(uri: Uri) {
+        viewModelScope.launch {
+            val modelId = "user_imported_${System.currentTimeMillis()}"
+            localMlManager.importModel(uri, modelId).onSuccess { file ->
+                val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
+                currentStatuses[modelId] = ModelStatus.Ready
+                _uiState.update { it.copy(localModelStatuses = currentStatuses) }
+            }.onFailure { error ->
+                val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
+                currentStatuses[modelId] = ModelStatus.Error(error.message ?: "Import failed")
+                _uiState.update { it.copy(localModelStatuses = currentStatuses) }
+            }
+        }
+    }
+
+    fun onLocalMlUseGpuChange(enabled: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setLocalMlUseGpu(enabled)
+            _uiState.update { it.copy(localMlUseGpu = enabled) }
         }
     }
 
@@ -1582,6 +1618,57 @@ class SettingsViewModel @Inject constructor(
             if (apiKey.isNotBlank()) {
                 fetchAvailableModels(apiKey, provider)
             }
+        }
+    }
+
+    fun onAiModelChange(model: String) {
+        viewModelScope.launch {
+            val provider = AiProvider.fromString(aiProvider.value)
+            aiPreferencesRepository.setModel(provider, model)
+            _uiState.update { it.copy(currentAiModel = model) }
+        }
+    }
+
+    fun onAiApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            val provider = AiProvider.fromString(aiProvider.value)
+            aiPreferencesRepository.setApiKey(provider, apiKey)
+            _uiState.update { it.copy(currentApiKey = apiKey) }
+        }
+    }
+
+    fun onAiTemperatureChange(temperature: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiTemperature(temperature)
+            _uiState.update { it.copy(aiTemperature = temperature) }
+        }
+    }
+
+    fun onAiMaxTokensChange(maxTokens: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setAiMaxTokens(maxTokens)
+            _uiState.update { it.copy(aiMaxTokens = maxTokens) }
+        }
+    }
+
+    fun onMaxSongsForContextChange(size: Int) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setMaxSongsForContext(size)
+            _uiState.update { it.copy(maxSongsForContext = size) }
+        }
+    }
+
+    fun onIncludeLikedSongsChange(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeLikedSongs(include)
+            _uiState.update { it.copy(includeLikedSongs = include) }
+        }
+    }
+
+    fun onIncludeDailyMixHistoryChange(include: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setIncludeDailyMixHistory(include)
+            _uiState.update { it.copy(includeDailyMixHistory = include) }
         }
     }
 

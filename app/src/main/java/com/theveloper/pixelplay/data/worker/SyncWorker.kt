@@ -284,10 +284,11 @@ constructor(
                         )
                     }
 
-                    // Always update last sync timestamp if we reached this point successfully,
-                    // even if no new songs were found in MediaStore. This prevents the sync
-                    // from being re-triggered on every app launch when the library is already up to date.
-                    userPreferencesRepository.setLastSyncTimestamp(System.currentTimeMillis())
+                    // Persist the timestamp captured at the START of this run (not "now"): any file
+                    // MediaStore indexes while the worker is still running is then re-detected by the
+                    // next incremental query instead of being skipped. Always updated on success, even
+                    // with no new songs, so we don't re-sync on every launch.
+                    userPreferencesRepository.setLastSyncTimestamp(startTime)
 
                     val endTime = System.currentTimeMillis()
                     Timber.tag(TAG)

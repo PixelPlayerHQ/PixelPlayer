@@ -4,21 +4,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
- * Ollama offline/local AI provider implementation
+ * Ollama AI provider implementation.
+ * Supports remote Ollama servers via API key authentication.
+ * Note: This provider is for remote servers only - not for Android localhost connections.
  */
-class OllamaAiClient : AiClient {
+class OllamaAiClient(
+    private var endpoint: String = DEFAULT_ENDPOINT,
+    private var apiKey: String = ""
+) : AiClient {
 
     companion object {
         private const val DEFAULT_MODEL = "llama3"
-        // 10.0.2.2 is the special IP address to access the host loopback interface in Android Emulator
-        private const val BASE_URL = "http://10.0.2.2:11434/v1"
+        private const val DEFAULT_ENDPOINT = "https://ollama.ai/api/v1"
     }
 
     @Serializable
@@ -54,6 +60,43 @@ class OllamaAiClient : AiClient {
         isLenient = true
     }
 
+    /**
+     * Configure the client with a custom endpoint and API key.
+     * Used when user specifies a custom Ollama server URL.
+     */
+    fun configure(customEndpoint: String, customApiKey: String) {
+        endpoint = customEndpoint.removeSuffix("/")
+        apiKey = customApiKey
+    }
+
+    private fun buildRequest(path: String, body: okhttp3.RequestBody): Request {
+        val url = "$endpoint$path"
+        val builder = Request.Builder()
+            .url(url)
+            .post(body)
+
+        // Add API key authentication if provided
+        if (apiKey.isNotBlank()) {
+            builder.addHeader("Authorization", "Bearer $apiKey")
+        }
+
+        return builder.build()
+    }
+
+    private fun buildGetRequest(path: String): Request {
+        val url = "$endpoint$path"
+        val builder = Request.Builder()
+            .url(url)
+            .get()
+
+        // Add API key authentication if provided
+        if (apiKey.isNotBlank()) {
+            builder.addHeader("Authorization", "Bearer $apiKey")
+        }
+
+        return builder.build()
+    }
+
     override suspend fun generateContent(
         model: String,
         systemPrompt: String,
@@ -77,10 +120,7 @@ class OllamaAiClient : AiClient {
             val jsonBody = json.encodeToString(ChatRequest.serializer(), requestBody)
             val body = jsonBody.toRequestBody("application/json".toMediaType())
 
-            val request = Request.Builder()
-                .url("$BASE_URL/chat/completions")
-                .post(body)
-                .build()
+            val request = buildRequest("/chat/completions", body)
 
             try {
                 client.newCall(request).execute().use { response ->
@@ -126,16 +166,24 @@ class OllamaAiClient : AiClient {
     }
 
     override suspend fun getAvailableModels(apiKey: String): List<String> {
+        // Use provided API key for this request if different from stored
+        val effectiveApiKey = apiKey.ifBlank { this.apiKey }
+
         return withContext(Dispatchers.IO) {
             try {
-                val request = Request.Builder()
-                    .url("$BASE_URL/models")
+                val requestBuilder = Request.Builder()
+                    .url("$endpoint/models")
                     .get()
-                    .build()
 
+                if (effectiveApiKey.isNotBlank()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $effectiveApiKey")
+                }
+
+                val request = requestBuilder.build()
                 val response = client.newCall(request).execute()
 
                 if (!response.isSuccessful) {
+                    Timber.w("Ollama getAvailableModels failed: ${response.code}")
                     return@withContext listOf(DEFAULT_MODEL)
                 }
 
@@ -143,14 +191,35 @@ class OllamaAiClient : AiClient {
                 val modelsResponse = json.decodeFromString<ModelsResponse>(responseBody)
                 modelsResponse.data.map { it.id }
             } catch (e: Exception) {
+                Timber.e(e, "Ollama getAvailableModels error")
                 listOf(DEFAULT_MODEL)
             }
         }
     }
 
     override suspend fun validateApiKey(apiKey: String): Boolean {
-        // Ollama is offline/local, so it is always "validated" as it doesn't need API keys
-        return true
+        // Test API key by making a request to the models endpoint
+        val effectiveApiKey = apiKey.ifBlank { this.apiKey }
+
+        if (effectiveApiKey.isBlank()) {
+            return false
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url("$endpoint/models")
+                    .get()
+                    .addHeader("Authorization", "Bearer $effectiveApiKey")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                response.isSuccessful
+            } catch (e: Exception) {
+                Timber.e(e, "Ollama API key validation failed")
+                false
+            }
+        }
     }
 
     override fun getDefaultModel(): String = DEFAULT_MODEL

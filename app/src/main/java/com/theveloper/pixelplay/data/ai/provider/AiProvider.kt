@@ -21,8 +21,8 @@ enum class AiProvider(
     OPENROUTER("OpenRouter", requiresApiKey = true, supportsCustomEndpoint = true, defaultEndpoint = "https://openrouter.ai/api/v1"),
     ANTHROPIC("Anthropic Claude", requiresApiKey = true),
 
-    // Local/Server Providers (optional API key for protected servers)
-    OLLAMA("Ollama Server", requiresApiKey = false, supportsCustomEndpoint = true, defaultEndpoint = "http://localhost:11434"),
+    // Ollama: Remote server API (requires API key, used for model downloads only - not Android-native localhost)
+    OLLAMA("Ollama Server", requiresApiKey = true, supportsCustomEndpoint = true, defaultEndpoint = "https://ollama.ai/api"),
 
     // Local Device Models (offline, no API needed)
     LOCAL("Local Model (Device)", requiresApiKey = false);
@@ -33,13 +33,13 @@ enum class AiProvider(
         }
 
         /** Get all cloud-based providers (require internet) */
-        fun cloudProviders(): List<AiProvider> = entries.filter { it != LOCAL && it != OLLAMA }
+        fun cloudProviders(): List<AiProvider> = entries.filter { it != LOCAL }
 
         /** Get local/offline providers (no internet needed) */
         fun localProviders(): List<AiProvider> = listOf(LOCAL)
 
-        /** Get server-based providers (can connect to remote servers) */
-        fun serverProviders(): List<AiProvider> = listOf(OLLAMA)
+        /** Get server-based providers - none currently (Ollama is cloud-only for model downloads) */
+        fun serverProviders(): List<AiProvider> = emptyList()
 
         /** Get all providers that require API key */
         fun providersRequiringApiKey(): List<AiProvider> = entries.filter { it.requiresApiKey }

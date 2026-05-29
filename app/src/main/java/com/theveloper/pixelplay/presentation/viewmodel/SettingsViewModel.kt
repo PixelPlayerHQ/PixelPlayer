@@ -229,7 +229,7 @@ class SettingsViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
-    private val localMlManager: com.theveloper.pixelplay.data.ai.local.LocalMlManager,
+    private val localMlManager: com.theveloper.pixelplay.data.ai.local.LocalModelManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 

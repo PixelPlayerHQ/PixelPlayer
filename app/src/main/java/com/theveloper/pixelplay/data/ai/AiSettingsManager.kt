@@ -1,7 +1,7 @@
 package com.theveloper.pixelplay.data.ai
 
 import android.content.Context
-import com.theveloper.pixelplay.data.ai.local.LocalMlManager
+import com.theveloper.pixelplay.data.ai.local.LocalModelManager
 import com.theveloper.pixelplay.data.ai.local.LocalModelCatalog
 import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
 import com.theveloper.pixelplay.data.ai.local.ModelSource
@@ -26,7 +26,7 @@ import javax.inject.Singleton
 class AiSettingsManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiPreferencesRepository: AiPreferencesRepository,
-    private val localMlManager: LocalMlManager,
+    private val localMlManager: LocalModelManager,
     private val aiDeviceCapabilities: AiDeviceCapabilities
 ) {
     data class AiSettingsState(

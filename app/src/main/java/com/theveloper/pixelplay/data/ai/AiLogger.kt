@@ -44,111 +44,14 @@ class AiLogger @Inject constructor(
     private var lastCacheTime = 0L
     private val cacheValidDuration = 5000L // 5 seconds
 
-    /**
-     * Logs an AI operation with full context.
-     */
-    fun logOperation(
-        operation: String,
-        provider: String,
-        model: String,
-        prompt: String,
-        response: String?,
-        success: Boolean,
-        durationMs: Long,
-        error: String? = null,
-        tokensUsed: Int = 0,
-        cost: Double = 0.0
-    ) {
+    fun log(vararg fields: Pair<String, Any?>) {
         if (!shouldLogSync()) return
-
-        val timestamp = dateFormat.format(Date())
-        val status = if (success) "SUCCESS" else "FAILED"
-        val promptPreview = prompt.take(200).replace("\n", " ").replace("\"", "'")
-        val responsePreview = response?.take(300)?.replace("\n", " ")?.replace("\"", "'") ?: "null"
-
-        val logLine = buildString {
-            append("[$timestamp] $operation | $provider | $model | ")
-            append("$status | ${durationMs}ms | tokens:$tokensUsed | cost:$$cost | ")
-            append("prompt=\"$promptPreview\" | ")
-            append("response=\"$responsePreview\"")
-            if (error != null) append(" | error=\"$error\"")
+        val line = buildString {
+            append("[${dateFormat.format(Date())}]")
+            fields.forEach { (k, v) -> if (v != null) append(" | $k=$v") }
             append("\n")
         }
-
-        writeToLog(logLine)
-    }
-
-    /**
-     * Logs a playlist generation request.
-     */
-    fun logPlaylistGeneration(
-        provider: String,
-        model: String,
-        prompt: String,
-        songCount: Int,
-        success: Boolean,
-        durationMs: Long,
-        error: String? = null
-    ) {
-        if (!shouldLogSync()) return
-
-        val timestamp = dateFormat.format(Date())
-        val status = if (success) "SUCCESS" else "FAILED"
-        val promptPreview = prompt.take(150).replace("\n", " ")
-
-        val logLine = buildString {
-            append("[$timestamp] PLAYLIST_GEN | $provider | $model | ")
-            append("$status | ${durationMs}ms | songs:$songCount | ")
-            append("prompt=\"$promptPreview\"")
-            if (error != null) append(" | error=\"$error\"")
-            append("\n")
-        }
-
-        writeToLog(logLine)
-    }
-
-    /**
-     * Logs model download events.
-     */
-    fun logModelDownload(
-        modelId: String,
-        source: String,
-        sizeBytes: Long,
-        success: Boolean,
-        error: String? = null
-    ) {
-        if (!shouldLogSync()) return
-
-        val timestamp = dateFormat.format(Date())
-        val status = if (success) "SUCCESS" else "FAILED"
-        val sizeMb = sizeBytes / (1024 * 1024)
-
-        val logLine = buildString {
-            append("[$timestamp] MODEL_DOWNLOAD | $modelId | $source | ")
-            append("$status | size:${sizeMb}MB")
-            if (error != null) append(" | error=\"$error\"")
-            append("\n")
-        }
-
-        writeToLog(logLine)
-    }
-
-    /**
-     * Logs API key validation results.
-     */
-    fun logApiKeyValidation(provider: String, valid: Boolean, error: String? = null) {
-        if (!shouldLogSync()) return
-
-        val timestamp = dateFormat.format(Date())
-        val status = if (valid) "VALID" else "INVALID"
-
-        val logLine = buildString {
-            append("[$timestamp] API_KEY_CHECK | $provider | $status")
-            if (error != null) append(" | error=\"$error\"")
-            append("\n")
-        }
-
-        writeToLog(logLine)
+        writeToLog(line)
     }
 
     /**

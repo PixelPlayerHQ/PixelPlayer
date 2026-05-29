@@ -154,123 +154,7 @@ class AiSettingsManager @Inject constructor(
         aiPreferencesRepository.setAiPresencePenalty((newState.presencePenalty * 100).toInt())
     }
 
-    /**
-     * Sets the active AI provider.
-     */
-    suspend fun setActiveProvider(provider: String) {
-        updateSetting { copy(activeProvider = provider) }
-    }
-
-    /**
-     * Sets the active model for the current provider.
-     */
-    suspend fun setActiveModel(model: String) {
-        updateSetting { copy(activeModel = model) }
-    }
-
-    /**
-     * Sets the temperature for generation.
-     */
-    suspend fun setTemperature(temperature: Float) {
-        updateSetting { copy(temperature = temperature.coerceIn(0f, 2f)) }
-    }
-
-    /**
-     * Sets the max tokens for generation.
-     */
-    suspend fun setMaxTokens(maxTokens: Int) {
-        updateSetting { copy(maxTokens = maxTokens.coerceIn(256, 8192)) }
-    }
-
-    /**
-     * Enables/disables streaming.
-     */
-    suspend fun setStreamingEnabled(enabled: Boolean) {
-        updateSetting { copy(enableStreaming = enabled) }
-    }
-
-    /**
-     * Sets whether to include context.
-     */
-    suspend fun setIncludeContext(include: Boolean) {
-        updateSetting { copy(includeContext = include) }
-    }
-
-    /**
-     * Sets the context window size.
-     */
-    suspend fun setContextWindowSize(size: Int) {
-        updateSetting { copy(contextWindowSize = size.coerceIn(5, 500)) }
-    }
-
-    /**
-     * Sets whether to include liked songs in context.
-     */
-    suspend fun setIncludeLikedSongs(include: Boolean) {
-        updateSetting { copy(includeLikedSongs = include) }
-    }
-
-    /**
-     * Sets whether to include daily mix history in context.
-     */
-    suspend fun setIncludeDailyMixHistory(include: Boolean) {
-        updateSetting { copy(includeDailyMixHistory = include) }
-    }
-
-    /**
-     * Sets whether to include user habits in context.
-     */
-    suspend fun setIncludeUserHabits(include: Boolean) {
-        updateSetting { copy(includeUserHabits = include) }
-    }
-
-    /**
-     * Enables/disables local models.
-     */
-    suspend fun setLocalModelEnabled(enabled: Boolean) {
-        updateSetting { copy(localModelEnabled = enabled) }
-    }
-
-    /**
-     * Sets the active local model.
-     */
-    suspend fun setLocalModelId(modelId: String?) {
-        updateSetting { copy(localModelId = modelId, localModelEnabled = modelId != null) }
-    }
-
-    /**
-     * Sets the Ollama endpoint.
-     */
-    suspend fun setOllamaEndpoint(endpoint: String) {
-        updateSetting { copy(ollamaEndpoint = endpoint) }
-    }
-
-    /**
-     * Sets the HuggingFace token.
-     */
-    suspend fun setHuggingFaceToken(token: String?) {
-        updateSetting { copy(huggingFaceToken = token) }
-    }
-
-    suspend fun setTopK(value: Int) {
-        updateSetting { copy(topK = value.coerceIn(1, 100)) }
-    }
-
-    suspend fun setTopP(value: Float) {
-        updateSetting { copy(topP = value.coerceIn(0f, 1f)) }
-    }
-
-    suspend fun setRepetitionPenalty(value: Float) {
-        updateSetting { copy(repetitionPenalty = value.coerceIn(1f, 2f)) }
-    }
-
-    suspend fun setFrequencyPenalty(value: Float) {
-        updateSetting { copy(frequencyPenalty = value.coerceIn(-2f, 2f)) }
-    }
-
-    suspend fun setPresencePenalty(value: Float) {
-        updateSetting { copy(presencePenalty = value.coerceIn(-2f, 2f)) }
-    }
+    suspend fun set(block: AiSettingsState.() -> AiSettingsState) { updateSetting(block) }
 
     /**
      * Downloads and sets up a local model.
@@ -291,8 +175,7 @@ class AiSettingsManager @Inject constructor(
             // Check if download was successful
             val isReady = finalStatus is ModelStatus.Ready || localMlManager.isInstalled(modelId)
             if (isReady) {
-                setLocalModelId(modelId)
-                setLocalModelEnabled(true)
+                set { copy(localModelId = modelId, localModelEnabled = true) }
                 true
             } else {
                 Timber.tag("AiSettingsManager").e("Download failed: $finalStatus")
@@ -382,8 +265,7 @@ class AiSettingsManager @Inject constructor(
         return try {
             val success = localMlManager.deleteModel(modelId)
             if (success && _settingsState.value.localModelId == modelId) {
-                setLocalModelId(null)
-                setLocalModelEnabled(false)
+                set { copy(localModelId = null, localModelEnabled = false) }
             }
             success
         } catch (e: Exception) {

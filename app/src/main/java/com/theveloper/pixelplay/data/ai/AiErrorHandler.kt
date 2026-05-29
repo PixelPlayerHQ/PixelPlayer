@@ -66,16 +66,7 @@ class AiErrorHandler @Inject constructor(
         val fallback = getFallbackProvider(currentProvider, category)
         val recoveryAction = determineRecoveryAction(category, canRetry, fallback)
 
-        aiLogger.logOperation(
-            operation = "ERROR_ANALYSIS",
-            provider = currentProvider.name,
-            model = "",
-            prompt = "",
-            response = null,
-            success = false,
-            durationMs = 0,
-            error = message
-        )
+        aiLogger.log("op" to "ERROR_ANALYSIS", "provider" to currentProvider.name, "error" to message)
 
         return ErrorAnalysis(
             category = category,
@@ -141,77 +132,34 @@ class AiErrorHandler @Inject constructor(
     }
 
     private fun categorizeError(message: String, error: Throwable): ErrorCategory {
-        val lowerMessage = message.lowercase()
-
-        // Check for AI-specific exceptions first
-        if (error is AiProviderException) {
-            return when {
-                error.isApiKeyIssue() || lowerMessage.contains("api key") -> ErrorCategory.API_KEY_ERROR
-                error.isBillingIssue() || lowerMessage.contains("quota") -> ErrorCategory.RATE_LIMIT_ERROR
-                error.isModelUnavailable() -> ErrorCategory.MODEL_UNAVAILABLE_ERROR
-                else -> ErrorCategory.UNKNOWN_ERROR
-            }
+        val m = message.lowercase()
+        if (error is AiProviderException) return when {
+            error.isApiKeyIssue() || "api key" in m -> ErrorCategory.API_KEY_ERROR
+            error.isBillingIssue() || "quota" in m -> ErrorCategory.RATE_LIMIT_ERROR
+            error.isModelUnavailable() -> ErrorCategory.MODEL_UNAVAILABLE_ERROR
+            else -> ErrorCategory.UNKNOWN_ERROR
         }
-
         return when {
-            lowerMessage.contains("network") ||
-            lowerMessage.contains("connect") ||
-            lowerMessage.contains("no internet") ||
-            lowerMessage.contains("timeout") -> ErrorCategory.NETWORK_ERROR
-
-            lowerMessage.contains("api key") ||
-            lowerMessage.contains("unauthorized") ||
-            lowerMessage.contains("401") ||
-            lowerMessage.contains("403") -> ErrorCategory.API_KEY_ERROR
-
-            lowerMessage.contains("rate limit") ||
-            lowerMessage.contains("429") ||
-            lowerMessage.contains("too many requests") -> ErrorCategory.RATE_LIMIT_ERROR
-
-            lowerMessage.contains("model") &&
-            (lowerMessage.contains("not found") ||
-             lowerMessage.contains("unavailable")) -> ErrorCategory.MODEL_UNAVAILABLE_ERROR
-
-            lowerMessage.contains("timeout") -> ErrorCategory.TIMEOUT_ERROR
-
-            lowerMessage.contains("parse") ||
-            lowerMessage.contains("json") ||
-            lowerMessage.contains("format") -> ErrorCategory.PARSING_ERROR
-
-            lowerMessage.contains("empty") ||
-            lowerMessage.contains("no response") -> ErrorCategory.EMPTY_RESPONSE_ERROR
-
+            "network" in m || "connect" in m || "no internet" in m -> ErrorCategory.NETWORK_ERROR
+            "api key" in m || "unauthorized" in m || "401" in m || "403" in m -> ErrorCategory.API_KEY_ERROR
+            "rate limit" in m || "429" in m || "too many requests" in m -> ErrorCategory.RATE_LIMIT_ERROR
+            "model" in m && ("not found" in m || "unavailable" in m) -> ErrorCategory.MODEL_UNAVAILABLE_ERROR
+            "timeout" in m -> ErrorCategory.TIMEOUT_ERROR
+            "parse" in m || "json" in m || "format" in m -> ErrorCategory.PARSING_ERROR
+            "empty" in m || "no response" in m -> ErrorCategory.EMPTY_RESPONSE_ERROR
             else -> ErrorCategory.UNKNOWN_ERROR
         }
     }
 
-    private fun getUserMessage(category: ErrorCategory, message: String): String {
-        return when (category) {
-            ErrorCategory.NETWORK_ERROR -> {
-                "No internet connection. Please check your WiFi or mobile data and try again."
-            }
-            ErrorCategory.API_KEY_ERROR -> {
-                "API key issue. Please check your AI provider settings in Preferences."
-            }
-            ErrorCategory.RATE_LIMIT_ERROR -> {
-                "Rate limit reached. Please wait a moment and try again."
-            }
-            ErrorCategory.MODEL_UNAVAILABLE_ERROR -> {
-                "The selected AI model is unavailable. Try a different model or provider."
-            }
-            ErrorCategory.TIMEOUT_ERROR -> {
-                "Request timed out. The AI service is taking too long to respond."
-            }
-            ErrorCategory.PARSING_ERROR -> {
-                "Failed to parse AI response. Please try again."
-            }
-            ErrorCategory.EMPTY_RESPONSE_ERROR -> {
-                "The AI returned an empty response. Please try again."
-            }
-            ErrorCategory.UNKNOWN_ERROR -> {
-                "An error occurred: ${message.take(100)}"
-            }
-        }
+    private fun getUserMessage(category: ErrorCategory, message: String): String = when (category) {
+        ErrorCategory.NETWORK_ERROR -> "No internet connection. Check WiFi or mobile data."
+        ErrorCategory.API_KEY_ERROR -> "API key issue. Check AI provider settings."
+        ErrorCategory.RATE_LIMIT_ERROR -> "Rate limit reached. Wait and try again."
+        ErrorCategory.MODEL_UNAVAILABLE_ERROR -> "AI model unavailable. Try a different model."
+        ErrorCategory.TIMEOUT_ERROR -> "Request timed out. The AI service is slow."
+        ErrorCategory.PARSING_ERROR -> "Failed to parse AI response. Try again."
+        ErrorCategory.EMPTY_RESPONSE_ERROR -> "AI returned an empty response. Try again."
+        ErrorCategory.UNKNOWN_ERROR -> "Error: ${message.take(100)}"
     }
 
     private fun canRetryOperation(category: ErrorCategory): Boolean {

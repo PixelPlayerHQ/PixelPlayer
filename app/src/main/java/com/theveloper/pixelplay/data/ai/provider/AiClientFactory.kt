@@ -23,45 +23,16 @@ class AiClientFactory @Inject constructor() {
 
         return when (provider) {
             AiProvider.GEMINI -> GeminiAiClient(apiKey)
-            AiProvider.DEEPSEEK -> DeepSeekAiClient(apiKey)
-            AiProvider.GROQ -> GroqAiClient(apiKey)
-            AiProvider.MISTRAL -> MistralAiClient(apiKey)
-            AiProvider.NVIDIA -> GenericOpenAiClient(
-                apiKey = apiKey,
-                baseUrl = "https://integrate.api.nvidia.com/v1",
-                defaultModelId = "meta/llama-3.1-8b-instruct",
-                providerName = "NVIDIA NIM"
-            )
-            AiProvider.KIMI -> GenericOpenAiClient(
-                apiKey = apiKey,
-                baseUrl = "https://api.moonshot.cn/v1",
-                defaultModelId = "moonshot-v1-8k",
-                providerName = "Moonshot Kimi"
-            )
-            AiProvider.GLM -> GenericOpenAiClient(
-                apiKey = apiKey,
-                baseUrl = "https://open.bigmodel.cn/api/paas/v4",
-                defaultModelId = "glm-4",
-                providerName = "Zhipu GLM"
-            )
-            AiProvider.OPENAI -> GenericOpenAiClient(
-                apiKey = apiKey,
-                baseUrl = "https://api.openai.com/v1",
-                defaultModelId = "gpt-4o-mini",
-                providerName = "OpenAI"
-            )
-            AiProvider.OPENROUTER -> GenericOpenAiClient(
-                apiKey = apiKey,
-                baseUrl = "https://openrouter.ai/api/v1",
-                defaultModelId = "google/gemini-2.0-flash-lite-preview-02-05:free",
-                providerName = "OpenRouter"
-            )
+            AiProvider.DEEPSEEK -> GenericOpenAiClient(apiKey, AiProviderEndpoints.DEEPSEEK_BASE_URL, AiProviderEndpoints.DEEPSEEK_DEFAULT_MODEL, "DeepSeek")
+            AiProvider.GROQ -> GenericOpenAiClient(apiKey, AiProviderEndpoints.GROQ_BASE_URL, AiProviderEndpoints.GROQ_DEFAULT_MODEL, "Groq")
+            AiProvider.MISTRAL -> GenericOpenAiClient(apiKey, AiProviderEndpoints.MISTRAL_BASE_URL, AiProviderEndpoints.MISTRAL_DEFAULT_MODEL, "Mistral")
+            AiProvider.NVIDIA -> GenericOpenAiClient(apiKey, AiProviderEndpoints.NVIDIA_BASE_URL, AiProviderEndpoints.NVIDIA_DEFAULT_MODEL, "NVIDIA NIM")
+            AiProvider.KIMI -> GenericOpenAiClient(apiKey, AiProviderEndpoints.KIMI_BASE_URL, AiProviderEndpoints.KIMI_DEFAULT_MODEL, "Moonshot Kimi")
+            AiProvider.GLM -> GenericOpenAiClient(apiKey, AiProviderEndpoints.GLM_BASE_URL, AiProviderEndpoints.GLM_DEFAULT_MODEL, "Zhipu GLM")
+            AiProvider.OPENAI -> GenericOpenAiClient(apiKey, AiProviderEndpoints.OPENAI_BASE_URL, AiProviderEndpoints.OPENAI_DEFAULT_MODEL, "OpenAI")
+            AiProvider.OPENROUTER -> GenericOpenAiClient(apiKey, AiProviderEndpoints.OPENROUTER_BASE_URL, AiProviderEndpoints.OPENROUTER_DEFAULT_MODEL, "OpenRouter")
             AiProvider.ANTHROPIC -> AnthropicAiClient(apiKey)
-            AiProvider.OLLAMA -> {
-                // Use custom endpoint if provided, otherwise use provider default
-                val endpoint = customEndpoint.ifBlank { provider.defaultEndpoint }
-                OllamaAiClient(endpoint, apiKey)
-            }
+            AiProvider.OLLAMA -> GenericOpenAiClient(apiKey, customEndpoint.ifBlank { AiProviderEndpoints.OLLAMA_BASE_URL }, AiProviderEndpoints.OLLAMA_DEFAULT_MODEL, "Ollama")
             AiProvider.LOCAL -> throw IllegalArgumentException("LOCAL provider does not use AiClient - use LocalModelManager for on-device inference")
         }
     }

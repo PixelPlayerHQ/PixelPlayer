@@ -6,213 +6,66 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class AiProviderException(
-    val providerName: String,
-    val statusCode: Int? = null,
-    val requestedModel: String? = null,
-    val providerCode: String? = null,
-    val providerType: String? = null,
-    val rawBody: String? = null,
-    message: String,
-    cause: Throwable? = null
+    val providerName: String, val statusCode: Int? = null, val requestedModel: String? = null,
+    val providerCode: String? = null, val providerType: String? = null, val rawBody: String? = null,
+    message: String, cause: Throwable? = null
 ) : Exception(message, cause) {
 
-    fun isModelUnavailable(): Boolean {
-        val text = buildSearchText()
-        val mentionsMissingModel = text.contains("model") &&
-            (
-                text.contains("not found") ||
-                    text.contains("does not exist") ||
-                    text.contains("unknown model") ||
-                    text.contains("unsupported model") ||
-                    text.contains("invalid model") ||
-                    text.contains("model_not_found")
-                )
+    private val text get() = listOfNotNull(message, rawBody, providerCode, providerType).joinToString(" ").lowercase()
 
-        return statusCode == 404 || mentionsMissingModel
-    }
+    fun isModelUnavailable() = statusCode == 404 ||
+        (text.contains("model") && listOf("not found", "does not exist", "unknown model", "unsupported model", "invalid model", "model_not_found").any { text.contains(it) })
 
-    fun isBillingIssue(): Boolean {
-        val text = buildSearchText()
-        return statusCode == 402 ||
-            text.contains("insufficient_quota") ||
-            text.contains("quota") ||
-            text.contains("credit") ||
-            text.contains("credits") ||
-            text.contains("billing") ||
-            text.contains("payment required") ||
-            text.contains("balance")
-    }
+    fun isBillingIssue() = statusCode == 402 || listOf("insufficient_quota", "quota", "credit", "credits", "billing", "payment required", "balance").any { text.contains(it) }
 
-    fun isApiKeyIssue(): Boolean {
-        val text = buildSearchText()
-        return statusCode == 401 ||
-            text.contains("api_key_invalid") ||
-            text.contains("api key not valid") ||
-            text.contains("invalid api key") ||
-            text.contains("invalid key") ||
-            text.contains("incorrect api key") ||
-            text.contains("authentication failed") ||
-            text.contains("unauthorized")
-    }
+    fun isApiKeyIssue() = statusCode == 401 || listOf("api_key_invalid", "api key not valid", "invalid api key", "invalid key", "incorrect api key", "authentication failed", "unauthorized").any { text.contains(it) }
 
-    fun shouldCooldown(): Boolean {
-        val text = buildSearchText()
-        return isBillingIssue() ||
-            isApiKeyIssue() ||
-            (statusCode != null && statusCode >= 500) ||
-            text.contains("timeout") ||
-            text.contains("timed out") ||
-            text.contains("unable to resolve host") ||
-            text.contains("failed to connect") ||
-            text.contains("connection reset") ||
-            text.contains("network")
-    }
-
-    private fun buildSearchText(): String {
-        return listOfNotNull(message, rawBody, providerCode, providerType)
-            .joinToString(" ")
-            .lowercase()
-    }
+    fun shouldCooldown() = isBillingIssue() || isApiKeyIssue() ||
+        (statusCode != null && statusCode >= 500) ||
+        listOf("timeout", "timed out", "unable to resolve host", "failed to connect", "connection reset", "network").any { text.contains(it) }
 }
 
 object AiProviderSupport {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun buildProviderChain(primary: AiProvider): List<AiProvider> {
-        // Fallback order: Gemini first (usually reliable), then others
-        val preferredFallbacks = listOf(
-            AiProvider.GEMINI,
-            AiProvider.OPENAI,
-            AiProvider.DEEPSEEK,
-            AiProvider.ANTHROPIC,
-            AiProvider.MISTRAL,
-            AiProvider.OPENROUTER,
-            AiProvider.GROQ,
-            AiProvider.NVIDIA,
-            AiProvider.KIMI,
-            AiProvider.GLM,
-            AiProvider.OLLAMA,
-            AiProvider.LOCAL
-        )
-
-        return buildList {
-            add(primary)
-            addAll(preferredFallbacks.filter { it != primary })
-        }.distinct()
+    fun buildProviderChain(primary: AiProvider) = buildList {
+        add(primary)
+        addAll(AiProvider.entries.filter { it != primary })
     }
 
-    fun selectRecoveryModel(
-        currentModel: String,
-        defaultModel: String,
-        availableModels: List<String>
-    ): String? {
-        val normalizedCurrent = currentModel.trim()
-        val normalizedDefault = defaultModel.trim()
-        val normalizedAvailable = availableModels
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .distinct()
-
-        if (normalizedAvailable.isNotEmpty()) {
-            val preferredDefault = normalizedAvailable.firstOrNull { it == normalizedDefault }
-            if (preferredDefault != null && preferredDefault != normalizedCurrent) {
-                return preferredDefault
-            }
-
-            val firstAlternative = normalizedAvailable.firstOrNull { it != normalizedCurrent }
-            if (firstAlternative != null) {
-                return firstAlternative
-            }
+    fun selectRecoveryModel(currentModel: String, defaultModel: String, availableModels: List<String>): String? {
+        val avail = availableModels.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (avail.isNotEmpty()) {
+            avail.firstOrNull { it == defaultModel }?.takeIf { it != currentModel }?.let { return it }
+            avail.firstOrNull { it != currentModel }?.let { return it }
         }
-
-        return normalizedDefault.takeIf { it.isNotBlank() && it != normalizedCurrent }
+        return defaultModel.takeIf { it.isNotBlank() && it != currentModel }
     }
 
-    fun createException(
-        providerName: String,
-        statusCode: Int?,
-        transportMessage: String?,
-        responseBody: String?,
-        requestedModel: String?,
-        cause: Throwable? = null
-    ): AiProviderException {
+    fun createException(providerName: String, statusCode: Int?, transportMessage: String?, responseBody: String?, requestedModel: String?, cause: Throwable? = null): AiProviderException {
         val parsed = parseError(responseBody)
-        val cleanMessage = parsed.message
-            ?.takeIf { it.isNotBlank() }
-            ?: transportMessage?.takeIf { it.isNotBlank() }
-            ?: "Unknown provider error"
-        val prefix = buildString {
-            append(providerName)
-            append(" API error")
-            if (statusCode != null) {
-                append(" (")
-                append(statusCode)
-                append(")")
-            }
-        }
-        val finalMessage = if (requestedModel.isNullOrBlank()) {
-            "$prefix: $cleanMessage"
-        } else {
-            "$prefix with model '$requestedModel': $cleanMessage"
-        }
-
-        return AiProviderException(
-            providerName = providerName,
-            statusCode = statusCode,
-            requestedModel = requestedModel,
-            providerCode = parsed.code,
-            providerType = parsed.type,
-            rawBody = responseBody,
-            message = finalMessage,
-            cause = cause
-        )
+        val cleanMessage = parsed.message?.takeIf { it.isNotBlank() } ?: transportMessage?.takeIf { it.isNotBlank() } ?: "Unknown provider error"
+        val prefix = "${providerName} API error${if (statusCode != null) " ($statusCode)" else ""}"
+        val finalMessage = if (requestedModel.isNullOrBlank()) "$prefix: $cleanMessage" else "$prefix with model '$requestedModel': $cleanMessage"
+        return AiProviderException(providerName, statusCode, requestedModel, parsed.code, parsed.type, responseBody, finalMessage, cause)
     }
 
-    fun wrapThrowable(
-        providerName: String,
-        throwable: Throwable,
-        requestedModel: String? = null
-    ): AiProviderException {
-        return when (throwable) {
-            is AiProviderException -> throwable
-            else -> {
-                val rawMessage = throwable.message.orEmpty()
-                val inferredStatus = Regex("""\b([1-5]\d{2})\b""")
-                    .find(rawMessage)
-                    ?.groupValues
-                    ?.getOrNull(1)
-                    ?.toIntOrNull()
-
-                createException(
-                    providerName = providerName,
-                    statusCode = inferredStatus,
-                    transportMessage = rawMessage.ifBlank { throwable::class.simpleName ?: "Unknown error" },
-                    responseBody = null,
-                    requestedModel = requestedModel,
-                    cause = throwable
-                )
-            }
+    fun wrapThrowable(providerName: String, throwable: Throwable, requestedModel: String? = null): AiProviderException = when (throwable) {
+        is AiProviderException -> throwable
+        else -> {
+            val rawMessage = throwable.message.orEmpty()
+            val inferredStatus = Regex("""\b([1-5]\d{2})\b""").find(rawMessage)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            createException(providerName, inferredStatus, rawMessage.ifBlank { throwable::class.simpleName ?: "Unknown error" }, null, requestedModel, throwable)
         }
     }
 
     private fun parseError(responseBody: String?): ParsedProviderError {
         if (responseBody.isNullOrBlank()) return ParsedProviderError()
-
         return runCatching {
-            val root = json.parseToJsonElement(responseBody).jsonObject
-            val errorObject = root["error"]?.jsonObject ?: root
-
-            ParsedProviderError(
-                message = errorObject["message"]?.jsonPrimitive?.contentOrNull,
-                code = errorObject["code"]?.jsonPrimitive?.contentOrNull,
-                type = errorObject["type"]?.jsonPrimitive?.contentOrNull
-            )
+            val error = json.parseToJsonElement(responseBody).jsonObject["error"]?.jsonObject ?: json.parseToJsonElement(responseBody).jsonObject
+            ParsedProviderError(error["message"]?.jsonPrimitive?.contentOrNull, error["code"]?.jsonPrimitive?.contentOrNull, error["type"]?.jsonPrimitive?.contentOrNull)
         }.getOrDefault(ParsedProviderError(message = responseBody))
     }
 
-    private data class ParsedProviderError(
-        val message: String? = null,
-        val code: String? = null,
-        val type: String? = null
-    )
+    private data class ParsedProviderError(val message: String? = null, val code: String? = null, val type: String? = null)
 }

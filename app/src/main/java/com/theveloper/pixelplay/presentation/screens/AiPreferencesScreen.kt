@@ -692,19 +692,49 @@ fun AdvancedSettingsCard(
 // ===== ADVANCED GENERATION PARAMETERS =====
 
 @Composable
+private data class ParamSliderDef(
+    val label: String,
+    val value: Int,
+    val range: ClosedFloatingPointRange<Float>,
+    val displayValue: String,
+    val rangeStart: String,
+    val rangeEnd: String,
+    val onChange: (Int) -> Unit
+)
+
+@Composable
+private fun ParamSlider(param: ParamSliderDef) {
+    Text(text = "${param.label}: ${param.displayValue}", style = MaterialTheme.typography.bodyMedium)
+    Slider(
+        value = param.value.toFloat(),
+        onValueChange = { param.onChange(it.toInt()) },
+        valueRange = param.range,
+        steps = 19
+    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(param.rangeStart, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(param.rangeEnd, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 fun AdvancedGenerationCard(
-    topK: Int,
-    topP: Int,
-    repetitionPenalty: Int,
-    frequencyPenalty: Int,
-    presencePenalty: Int,
-    onTopKChange: (Int) -> Unit,
-    onTopPChange: (Int) -> Unit,
+    topK: Int, topP: Int, repetitionPenalty: Int,
+    frequencyPenalty: Int, presencePenalty: Int,
+    onTopKChange: (Int) -> Unit, onTopPChange: (Int) -> Unit,
     onRepetitionPenaltyChange: (Int) -> Unit,
     onFrequencyPenaltyChange: (Int) -> Unit,
     onPresencePenaltyChange: (Int) -> Unit
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
+    val params = remember(topK, topP, repetitionPenalty, frequencyPenalty, presencePenalty) {
+        listOf(
+            ParamSliderDef("Top-K", topK, 1f..100f, "$topK", "1", "100", onTopKChange),
+            ParamSliderDef("Top-P", topP, 1f..100f, "${topP / 100f}", "0.01", "1.0", onTopPChange),
+            ParamSliderDef("Repetition Penalty", repetitionPenalty, 100f..200f, "${repetitionPenalty / 100f}", "1.0", "2.0", onRepetitionPenaltyChange),
+            ParamSliderDef("Frequency Penalty", frequencyPenalty, -200f..200f, "${frequencyPenalty / 100f}", "-2.0", "2.0", onFrequencyPenaltyChange),
+            ParamSliderDef("Presence Penalty", presencePenalty, -200f..200f, "${presencePenalty / 100f}", "-2.0", "2.0", onPresencePenaltyChange)
+        )
+    }
 
     CollapsibleCard(
         expanded = showAdvanced,
@@ -712,68 +742,9 @@ fun AdvancedGenerationCard(
         contentPadding = 16.dp,
         title = { Text("Generation Parameters", style = MaterialTheme.typography.titleSmall) }
     ) {
-        Text(text = "Top-K: $topK", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = topK.toFloat(),
-            onValueChange = { onTopKChange(it.toInt()) },
-            valueRange = 1f..100f,
-            steps = 19
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("1", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("100", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = "Top-P: ${topP / 100f}", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = topP.toFloat(),
-            onValueChange = { onTopPChange(it.toInt()) },
-            valueRange = 1f..100f,
-            steps = 19
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("0.01", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = "Repetition Penalty: ${repetitionPenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = repetitionPenalty.toFloat(),
-            onValueChange = { onRepetitionPenaltyChange(it.toInt()) },
-            valueRange = 100f..200f,
-            steps = 19
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = "Frequency Penalty: ${frequencyPenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = frequencyPenalty.toFloat(),
-            onValueChange = { onFrequencyPenaltyChange(it.toInt()) },
-            valueRange = -200f..200f,
-            steps = 19
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("-2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = "Presence Penalty: ${presencePenalty / 100f}", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = presencePenalty.toFloat(),
-            onValueChange = { onPresencePenaltyChange(it.toInt()) },
-            valueRange = -200f..200f,
-            steps = 19
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("-2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        params.forEachIndexed { i, param ->
+            if (i > 0) Spacer(modifier = Modifier.height(12.dp))
+            ParamSlider(param)
         }
     }
 }

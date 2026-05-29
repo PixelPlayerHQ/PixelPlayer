@@ -124,16 +124,12 @@ class AiBehaviorDataCollector @Inject constructor(
     }
 
     private fun inferEnergyLevel(summary: PlaybackStatsRepository.PlaybackStatsSummary): EnergyLevel {
-        val topGenres = summary.topGenres.take(3).map { it.genre.lowercase() }
-        val highEnergyGenres = listOf("rock", "metal", "punk", "electronic", "dance", "edm", "hip-hop", "rap", "drill", "trap")
-        val lowEnergyGenres = listOf("ambient", "classical", "jazz", "acoustic", "lo-fi", "chill", "folk")
-        val highCount = topGenres.count { g -> highEnergyGenres.any { it in g } }
-        val lowCount = topGenres.count { g -> lowEnergyGenres.any { it in g } }
-        return when {
-            highCount > lowCount -> EnergyLevel.HIGH
-            lowCount > highCount -> EnergyLevel.LOW
-            else -> EnergyLevel.MEDIUM
-        }
+        val g = summary.topGenres.take(3).map { it.genre.lowercase() }
+        val high = listOf("rock", "metal", "punk", "electronic", "dance", "edm", "hip-hop", "rap", "drill", "trap")
+        val low = listOf("ambient", "classical", "jazz", "acoustic", "lo-fi", "chill", "folk")
+        val hc = g.count { gen -> high.any { it in gen } }
+        val lc = g.count { gen -> low.any { it in gen } }
+        return if (hc > lc) EnergyLevel.HIGH else if (lc > hc) EnergyLevel.LOW else EnergyLevel.MEDIUM
     }
 
     private fun estimateListeningStreak(events: List<PlaybackStatsRepository.PlaybackEvent>): Int {
@@ -148,12 +144,7 @@ class AiBehaviorDataCollector @Inject constructor(
         return streak
     }
 
-    private fun estimateFavoriteDecades(summary: PlaybackStatsRepository.PlaybackStatsSummary): List<String> {
-        return summary.songs.mapNotNull { s ->
-            val year = try { s.title.takeLast(4).toIntOrNull() } catch (_: Exception) { null }
-            if (year != null) "${(year / 10) * 10}s" else null
-        }.distinct().sortedDescending().take(3)
-    }
+    private fun estimateFavoriteDecades(summary: PlaybackStatsRepository.PlaybackStatsSummary): List<String> = emptyList()
 
     private fun formatDuration(ms: Long): String {
         val hours = ms / (1000 * 60 * 60)

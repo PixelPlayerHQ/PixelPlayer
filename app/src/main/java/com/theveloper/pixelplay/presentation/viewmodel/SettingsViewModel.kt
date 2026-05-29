@@ -30,6 +30,8 @@ import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.repository.LyricsRepository
 import com.theveloper.pixelplay.data.ai.AiDeviceCapabilities
 import com.theveloper.pixelplay.data.ai.local.LocalModelCatalog
+import com.theveloper.pixelplay.data.ai.local.LocalModelInfo
+import com.theveloper.pixelplay.data.ai.local.ModelStatus
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.worker.SyncManager
@@ -113,6 +115,16 @@ data class SettingsUiState(
     val replayGainUseAlbumGain: Boolean = false,
     val isSafeTokenLimitEnabled: Boolean = true,
     // AI Preferences
+    val aiProvider: String = "GEMINI",
+    val currentApiKey: String = "",
+    val currentModel: String = "",
+    val availableModels: List<AiModel> = emptyList(),
+    val isLoadingModels: Boolean = false,
+    val modelsFetchError: String? = null,
+    val aiTemperature: Float = 0.7f,
+    val aiMaxTokens: Int = 2048,
+    val aiEnableStreaming: Boolean = true,
+    val aiIncludeContext: Boolean = true,
     val maxSongsForContext: Int = AiPreferencesRepository.DEFAULT_MAX_SONGS_FOR_CONTEXT,
     val includeLikedSongs: Boolean = true,
     val includeDailyMixHistory: Boolean = true,
@@ -125,7 +137,9 @@ data class SettingsUiState(
     val localMlOllamaUrl: String = "http://localhost:11434",
     val localMlHfToken: String = "",
     val localMlSupported: Boolean = true,
-    val localMlSupportMessage: String = ""
+    val localMlSupportMessage: String = "",
+    val availableLocalModels: List<com.theveloper.pixelplay.data.ai.local.LocalModelInfo> = emptyList(),
+    val localModelStatuses: Map<String, com.theveloper.pixelplay.data.ai.local.ModelStatus> = emptyMap()
 )
 
 data class FailedSongInfo(
@@ -201,6 +215,7 @@ class SettingsViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
+    private val localMlManager: com.theveloper.pixelplay.data.ai.local.LocalMlManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -301,6 +316,14 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
     val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.ollamaSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OLLAMA_SYSTEM_PROMPT)
+
+    // Local Model StateFlows
+    val availableLocalModels: StateFlow<List<LocalModelInfo>> = _uiState
+        .map { it.availableLocalModels }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val localModelStatuses: StateFlow<Map<String, ModelStatus>> = localMlManager.statusMap
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
@@ -473,6 +496,22 @@ class SettingsViewModel @Inject constructor(
 
     fun setLocalMlHfToken(token: String) {
         viewModelScope.launch { aiPreferencesRepository.setLocalMlHfToken(token.trim()) }
+    }
+
+    fun setAiTemperature(temperature: Float) {
+        viewModelScope.launch { aiPreferencesRepository.setAiTemperature((temperature * 100).toInt()) }
+    }
+
+    fun setAiMaxTokens(maxTokens: Int) {
+        viewModelScope.launch { aiPreferencesRepository.setAiMaxTokens(maxTokens) }
+    }
+
+    fun setAiEnableStreaming(enabled: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setAiEnableStreaming(enabled) }
+    }
+
+    fun setAiIncludeContext(enabled: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setAiIncludeContext(enabled) }
     }
 
     fun clearAiUsageData() {
@@ -857,6 +896,89 @@ class SettingsViewModel @Inject constructor(
             aiPreferencesRepository.localMlHfToken.collect { token ->
                 _uiState.update { it.copy(localMlHfToken = token) }
             }
+        }
+
+        // AI Provider and Model State
+        viewModelScope.launch {
+            aiProvider.collect { provider ->
+                _uiState.update { it.copy(aiProvider = provider) }
+            }
+        }
+
+        viewModelScope.launch {
+            currentAiApiKey.collect { apiKey ->
+                _uiState.update { it.copy(currentApiKey = apiKey) }
+            }
+        }
+
+        viewModelScope.launch {
+            currentAiModel.collect { model ->
+                _uiState.update { it.copy(currentModel = model) }
+            }
+        }
+
+        // AI Generation Settings
+        viewModelScope.launch {
+            aiPreferencesRepository.aiTemperature.collect { temp ->
+                _uiState.update { it.copy(aiTemperature = temp / 100f) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiMaxTokens.collect { tokens ->
+                _uiState.update { it.copy(aiMaxTokens = tokens) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiEnableStreaming.collect { enabled ->
+                _uiState.update { it.copy(aiEnableStreaming = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.aiIncludeContext.collect { enabled ->
+                _uiState.update { it.copy(aiIncludeContext = enabled) }
+            }
+        }
+
+        // Load available local models
+        loadLocalModels()
+    }
+
+    private fun loadLocalModels() {
+        viewModelScope.launch {
+            val capabilities = aiDeviceCapabilities.getCapabilities()
+            val localModels = LocalModelCatalog.all.filter { model ->
+                val modelSizeMb = (model.fileSizeBytes / (1024 * 1024)).toInt()
+                capabilities.canRunModel(modelSizeMb) || modelSizeMb <= 50 // Always allow very small models
+            }
+            _uiState.update { it.copy(availableLocalModels = localModels) }
+
+            // Collect local model status changes
+            localMlManager.statusMap.collect { statuses ->
+                _uiState.update { it.copy(localModelStatuses = statuses) }
+            }
+        }
+    }
+
+    // Local model download/delete functions
+    fun downloadLocalModel(modelInfo: LocalModelInfo) {
+        viewModelScope.launch {
+            localMlManager.downloadModel(modelInfo).collect { status ->
+                val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
+                currentStatuses[modelInfo.id] = status
+                _uiState.update { it.copy(localModelStatuses = currentStatuses) }
+            }
+        }
+    }
+
+    fun deleteLocalModel(modelId: String) {
+        viewModelScope.launch {
+            localMlManager.deleteModel(modelId)
+            val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
+            currentStatuses[modelId] = ModelStatus.NotDownloaded
+            _uiState.update { it.copy(localModelStatuses = currentStatuses) }
         }
     }
 

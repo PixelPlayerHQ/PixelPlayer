@@ -76,6 +76,7 @@ fun recommendedModelSizeMb(): Int {
 object LocalModelCatalog {
 
     val all: List<LocalModelInfo> = listOf(
+        // Tiny models for low-end devices (< 50MB)
         LocalModelInfo(
             id = "music_recommender_mobilenet_tflite",
             displayName = "MusicNet Recommender (TFLite)",
@@ -89,6 +90,34 @@ object LocalModelCatalog {
             tags = listOf("fast", "offline", "recommendation"),
             isRecommended = true,
         ),
+        LocalModelInfo(
+            id = "tiny_genre_tflite",
+            displayName = "Tiny Genre Classifier",
+            description = "Ultra-light genre classification. ~4 MB, works on any device.",
+            source = ModelSource.TFLITE,
+            downloadUrl = "https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1",
+            fileSizeBytes = 4_200_000L,
+            ramRequiredMb = 32,
+            type = ModelType.GENRE_CLASSIFICATION,
+            format = ModelFormat.TFLITE,
+            tags = listOf("genre", "tiny", "fast"),
+            isRecommended = true,
+        ),
+        LocalModelInfo(
+            id = "mood_tiny_tflite",
+            displayName = "Mood Analyzer Tiny",
+            description = "Compact mood detection model. ~8 MB.",
+            source = ModelSource.TFLITE,
+            downloadUrl = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/text_classification/android/lite-model_mobilebert_sentiment_tflite_2.tflite",
+            fileSizeBytes = 8_000_000L,
+            ramRequiredMb = 48,
+            type = ModelType.SENTIMENT,
+            format = ModelFormat.TFLITE,
+            tags = listOf("mood", "tiny", "text"),
+            isRecommended = true,
+        ),
+
+        // Small models (50-150MB)
         LocalModelInfo(
             id = "genre_classifier_tflite",
             displayName = "Genre Classifier Lite",
@@ -114,6 +143,22 @@ object LocalModelCatalog {
             tags = listOf("mood", "bert", "text"),
         ),
         LocalModelInfo(
+            id = "mini_lm_huggingface",
+            displayName = "MiniLM (Hugging Face)",
+            description = "Small but powerful embedding model for music recommendations. ~45 MB.",
+            source = ModelSource.HUGGING_FACE,
+            downloadUrl = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx",
+            fileSizeBytes = 45_000_000L,
+            ramRequiredMb = 128,
+            type = ModelType.EMBEDDING,
+            format = ModelFormat.ONNX,
+            huggingFaceRepo = "sentence-transformers/all-MiniLM-L6-v2",
+            tags = listOf("embedding", "huggingface", "mini"),
+            isRecommended = true,
+        ),
+
+        // Medium models (150-500MB)
+        LocalModelInfo(
             id = "music_embedding_litert",
             displayName = "Music Embedding (Google LiteRT)",
             description = "Google AI Edge model for rich music embeddings. Requires 512 MB+ RAM.",
@@ -125,6 +170,21 @@ object LocalModelCatalog {
             format = ModelFormat.LITERT,
             tags = listOf("embedding", "google", "ai-edge"),
         ),
+        LocalModelInfo(
+            id = "distilbert_huggingface",
+            displayName = "DistilBERT Base",
+            description = "Distilled BERT for better text understanding. ~250 MB.",
+            source = ModelSource.HUGGING_FACE,
+            downloadUrl = "https://huggingface.co/distilbert/distilbert-base-uncased/resolve/main/distilbert-base-uncased-qa.onnx",
+            fileSizeBytes = 250_000_000L,
+            ramRequiredMb = 512,
+            type = ModelType.SENTIMENT,
+            format = ModelFormat.ONNX,
+            huggingFaceRepo = "distilbert/distilbert-base-uncased",
+            tags = listOf("bert", "text", "sentiment"),
+        ),
+
+        // Larger models for powerful devices (500MB+)
         LocalModelInfo(
             id = "tinyllama_ollama",
             displayName = "TinyLlama Chat (Ollama)",
@@ -151,6 +211,20 @@ object LocalModelCatalog {
             huggingFaceRepo = "microsoft/Phi-3-mini-4k-instruct-gguf",
             tags = listOf("phi3", "huggingface", "llm"),
         ),
+
+        // User-imported model placeholder
+        LocalModelInfo(
+            id = "user_imported",
+            displayName = "Custom Model (Import)",
+            description = "Import your own model file (.tflite, .onnx, .gguf)",
+            source = ModelSource.USER_IMPORTED,
+            downloadUrl = "",
+            fileSizeBytes = 0,
+            ramRequiredMb = 0,
+            type = ModelType.GENERAL_CHAT,
+            format = ModelFormat.BIN,
+            tags = listOf("custom", "import"),
+        ),
     )
 
     /** Filter to models the device can likely run based on recommended size tier. */
@@ -158,4 +232,16 @@ object LocalModelCatalog {
         val maxMb = recommendedModelSizeMb()
         return all.filter { it.fileSizeBytes / (1024 * 1024) <= maxMb }
     }
+
+    /** Get models sorted by size (smallest first) */
+    fun sortedBySize(): List<LocalModelInfo> = all.sortedBy { it.fileSizeBytes }
+
+    /** Get recommended models for the current device */
+    fun recommended(): List<LocalModelInfo> = all.filter { it.isRecommended }
+
+    /** Get models by source */
+    fun bySource(source: ModelSource): List<LocalModelInfo> = all.filter { it.source == source }
+
+    /** Get models by type */
+    fun byType(type: ModelType): List<LocalModelInfo> = all.filter { it.type == type }
 }

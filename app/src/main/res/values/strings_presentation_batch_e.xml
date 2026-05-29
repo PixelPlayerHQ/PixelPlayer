@@ -67,6 +67,10 @@
     <string name="presentation_batch_e_ai_section_curation">Curation engine</string>
     <string name="presentation_batch_e_ai_energy_label">Energy</string>
     <string name="presentation_batch_e_ai_energy_description">Controls the intensity and tempo of songs. 1 = calm/slow, 5 = high-energy/fast.</string>
+    <string name="presentation_batch_e_ai_tempo_label">Tempo</string>
+    <string name="presentation_batch_e_ai_tempo_description">Preferred song pace. 1 = slow ballads, 5 = fast/high BPM.</string>
+    <string name="presentation_batch_e_ai_focus_recent">Focus on recent listening</string>
+    <string name="presentation_batch_e_ai_focus_recent_description">Prefer songs you\'ve played recently for a familiar blend.</string>
     <string name="presentation_batch_e_ai_discovery_label">Discovery</string>
     <string name="presentation_batch_e_ai_discovery_description">Controls how familiar the selections are. 1 = your most played favorites, 5 = rarely played deep cuts.</string>
     <string name="presentation_batch_e_ai_min_songs">Min songs</string>
@@ -104,7 +108,9 @@
     <string name="presentation_batch_e_ai_prompt_energy">Energy level target: %1$d/5.</string>
     <string name="presentation_batch_e_ai_prompt_discovery">Discovery target: %1$d/5 where 1 is familiar and 5 is deep cuts.</string>
     <string name="presentation_batch_e_ai_prompt_prioritize_favorites">Prioritize songs closer to listener favorites when possible.</string>
+    <string name="presentation_batch_e_ai_prompt_focus_recent">Prefer songs the listener has played recently (last 24h).</string>
     <string name="presentation_batch_e_ai_prompt_avoid_explicit">Avoid explicit lyrics whenever alternatives exist.</string>
+    <string name="presentation_batch_e_ai_prompt_tempo">Tempo target: %1$d/5 where 1 is slow/ballad and 5 is fast/high BPM.</string>
     <string name="presentation_batch_e_ai_prompt_smooth_transitions">Keep transitions smooth and avoid repetitive artist clustering.</string>
 
     <string-array name="presentation_batch_e_ai_mood_options">

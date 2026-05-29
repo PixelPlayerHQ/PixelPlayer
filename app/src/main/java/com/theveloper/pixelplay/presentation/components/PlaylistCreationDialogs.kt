@@ -353,8 +353,10 @@ private fun CreateAiPlaylistContent(
     var selectedMood by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedActivity by rememberSaveable { mutableStateOf<String?>(null) }
     var energyLevel by rememberSaveable { mutableIntStateOf(3) }
+    var tempoLevel by rememberSaveable { mutableIntStateOf(3) }
     var discoveryLevel by rememberSaveable { mutableIntStateOf(3) }
     var prioritizeFavorites by rememberSaveable { mutableStateOf(true) }
+    var focusRecent by rememberSaveable { mutableStateOf(false) }
     var avoidExplicit by rememberSaveable { mutableStateOf(false) }
     var localError by rememberSaveable { mutableStateOf<String?>(null) }
     val controlsEnabled = !isGenerating
@@ -375,8 +377,10 @@ private fun CreateAiPlaylistContent(
         excludeGenres = excludeGenres,
         preferredLanguage = preferredLanguage,
         energyLevel = energyLevel,
+        tempoLevel = tempoLevel,
         discoveryLevel = discoveryLevel,
         prioritizeFavorites = prioritizeFavorites,
+        focusRecent = focusRecent,
         avoidExplicit = avoidExplicit
     )
 
@@ -464,8 +468,10 @@ private fun CreateAiPlaylistContent(
                             selectedActivity = null
                             selectedEra = eraOptionsList.first()
                             energyLevel = 3
+                            tempoLevel = 3
                             discoveryLevel = 3
                             prioritizeFavorites = true
+                            focusRecent = false
                             avoidExplicit = false
                             localError = null
                         },
@@ -590,6 +596,14 @@ private fun CreateAiPlaylistContent(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 LevelSelector(
+                    label = stringResource(R.string.presentation_batch_e_ai_tempo_label),
+                    selectedLevel = tempoLevel,
+                    enabled = controlsEnabled,
+                    description = stringResource(R.string.presentation_batch_e_ai_tempo_description),
+                    onLevelSelected = { tempoLevel = it }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LevelSelector(
                     label = stringResource(R.string.presentation_batch_e_ai_discovery_label),
                     selectedLevel = discoveryLevel,
                     enabled = controlsEnabled,
@@ -664,6 +678,12 @@ private fun CreateAiPlaylistContent(
                     checked = prioritizeFavorites,
                     enabled = controlsEnabled,
                     onCheckedChange = { prioritizeFavorites = it }
+                )
+                ToggleRow(
+                    title = stringResource(R.string.presentation_batch_e_ai_focus_recent),
+                    checked = focusRecent,
+                    enabled = controlsEnabled,
+                    onCheckedChange = { focusRecent = it }
                 )
                 ToggleRow(
                     title = stringResource(R.string.presentation_batch_e_ai_avoid_explicit),
@@ -1077,8 +1097,10 @@ private fun buildAiPlaylistPrompt(
     excludeGenres: String,
     preferredLanguage: String,
     energyLevel: Int,
+    tempoLevel: Int,
     discoveryLevel: Int,
     prioritizeFavorites: Boolean,
+    focusRecent: Boolean,
     avoidExplicit: Boolean
 ): String {
     val anyEraText = res.getString(R.string.presentation_batch_e_ai_era_any)
@@ -1119,12 +1141,17 @@ private fun buildAiPlaylistPrompt(
     }
 
     val e = energyLevel.coerceIn(1, 5)
+    val t = tempoLevel.coerceIn(1, 5)
     val d = discoveryLevel.coerceIn(1, 5)
     promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_energy, e)
+    promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_tempo, t)
     promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_discovery, d)
 
     if (prioritizeFavorites) {
         promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_prioritize_favorites)
+    }
+    if (focusRecent) {
+        promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_focus_recent)
     }
     if (avoidExplicit) {
         promptParts += res.getString(R.string.presentation_batch_e_ai_prompt_avoid_explicit)

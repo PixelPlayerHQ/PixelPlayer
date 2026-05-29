@@ -4,6 +4,8 @@ package com.theveloper.pixelplay.data.ai
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
+import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
+import com.theveloper.pixelplay.data.stats.StatsTimeRange
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -14,6 +16,7 @@ class AiPlaylistGenerator @Inject constructor(
     private val aiHandler: AiHandler,
     private val digestGenerator: UserProfileDigestGenerator,
     private val preferencesRepo: AiPreferencesRepository,
+    private val statsRepository: PlaybackStatsRepository,
     private val json: Json
 ) {
 
@@ -47,6 +50,15 @@ class AiPlaylistGenerator @Inject constructor(
             val sampleSize = max(minLength, sampleCap).coerceAtMost(sampleCap)
             val songSample = samplingPool.take(sampleSize)
             
+            // Enrich with play stats from repository
+            val summary = statsRepository.loadSummary(StatsTimeRange.ALL, allSongs)
+            val events = statsRepository.exportEventsForBackup()
+            val nowMs = System.currentTimeMillis()
+            val songPlayMap = summary.songs.associateBy { it.songId }
+            val lastPlayedMap = events
+                .groupBy { it.songId }
+                .mapValues { (_, evts) -> evts.maxOf { it.timestamp } }
+
             // Token Optimization: Compact JSON format — rich fields for AI curation
             val availableSongsJson = buildString {
                 songSample.forEachIndexed { index, song ->
@@ -58,8 +70,12 @@ class AiPlaylistGenerator @Inject constructor(
                     val durationSec = song.duration / 1000
                     val year = song.year?.toString() ?: "?"
                     val fav = if (song.isFavorite) "1" else "0"
+                    val playStats = songPlayMap[song.id]
+                    val pc = playStats?.playCount ?: 0
+                    val lastPlayed = lastPlayedMap[song.id]
+                    val lh = if (lastPlayed != null) ((nowMs - lastPlayed) / 3600000).toInt().coerceAtMost(9999) else -1
                     if (index > 0) append(",\n")
-                    append("""{"id":"${song.id}","t":"$title","a":"$artist","g":"$genre","al":"$album","d":$durationSec,"y":"$year","f":$fav,"s":$score}""")
+                    append("""{"id":"${song.id}","t":"$title","a":"$artist","g":"$genre","al":"$album","d":$durationSec,"y":"$year","f":$fav,"s":$score,"pc":$pc,"lh":$lh}""")
                 }
             }
 

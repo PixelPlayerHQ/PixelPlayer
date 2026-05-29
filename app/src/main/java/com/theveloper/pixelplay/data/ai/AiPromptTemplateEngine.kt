@@ -44,16 +44,19 @@ class AiPromptTemplateEngine @Inject constructor(
         context: TemplateContext
     ): String {
         val behaviorSummary = aiBehaviorDataCollector.generateBehaviorSummary()
+        val userContext = aiBehaviorDataCollector.getUserContext()
         return buildString {
             appendLine("You are Vibe-Engine, an expert music curator. Create a personalized playlist.")
             appendLine("# User Request\n$userPrompt\n# Listening Behavior\n$behaviorSummary\n")
+            appendLine("# User Context\n$userContext\n")
             if (context.topGenres.isNotEmpty()) appendLine("# Top Genres\n${context.topGenres}\n")
             if (context.topArtists.isNotEmpty()) appendLine("# Favorite Artists\n${context.topArtists}\n")
             if (context.recentlyPlayed.isNotEmpty()) appendLine("# Recently Played\n${context.recentlyPlayed}\n")
-            appendLine("# Available Songs\nid|title|artist|album|genre|duration_sec|year|play_count|favorite\n${context.availableSongs}\n")
+            appendLine("# Available Songs\nid|title|artist|album|genre|duration_sec|year|play_count|favorite|skip_est\n${context.availableSongs}\n")
             appendLine("# Curation Strategy")
             appendLine("- Journey: opening (set vibe) -> body (narrative arc) -> closing (resolve)")
             appendLine("- Mix familiar (high play count) with discovery (low play count)")
+            appendLine("- Avoid songs with high skip rates unless user explicitly requests them")
             appendLine("- Respect mood, genre, energy, era request. Avoid jarring transitions.\n")
             appendLine(jsonArrayOutput())
         }
@@ -69,6 +72,7 @@ class AiPromptTemplateEngine @Inject constructor(
 
     suspend fun generateDailyMixPrompt(songs: List<Song>, context: TemplateContext, maxSongs: Int? = null): String {
         val limit = maxSongs ?: aiPreferencesRepository.maxSongsForContext.first()
+        val userContext = aiBehaviorDataCollector.getUserContext()
         val songList = songs.take(limit).joinToString("\n") { s ->
             "${s.id}|${s.title}|${s.artist}|${s.album}|${s.genre ?: "Unknown"}|${s.duration / 1000}|${s.year ?: "?"}|${if (s.isFavorite) "1" else "0"}"
         }
@@ -77,8 +81,10 @@ class AiPromptTemplateEngine @Inject constructor(
             appendLine("# Criteria")
             appendLine("- Match energy to listening phase (Morning/Afternoon/Evening/Night)")
             appendLine("- Mix genres from top affinities; include familiar favorites + discoveries")
+            appendLine("- Avoid songs user tends to skip")
             appendLine("- Journey: start strong, build, peak, recover, resolve. 20-30 tracks, no dupes.\n")
             appendLine("# Top Genres\n${context.topGenres}\n# Top Artists\n${context.topArtists}\n")
+            appendLine("# User Context\n$userContext\n")
             appendLine("# Context\nTime: ${context.timeOfDay}  Mood: ${context.currentMood}\n")
             appendLine("# Candidates\nid|title|artist|album|genre|duration_sec|year|favorite\n$songList\n")
             appendLine(jsonArrayOutput("[\"id1\",\"id2\",\"id3\"] (20-30 items)"))

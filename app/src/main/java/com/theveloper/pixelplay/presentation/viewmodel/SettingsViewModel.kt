@@ -44,6 +44,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import timber.log.Timber
 
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
@@ -297,6 +298,8 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private var previousModelStatuses: Map<String, ModelStatus> = emptyMap()
 
     // AI Provider State
     val aiProvider: StateFlow<String> = aiPreferencesRepository.aiProvider
@@ -580,6 +583,41 @@ class SettingsViewModel @Inject constructor(
         }
 
         refreshLocalMlSupport()
+
+        viewModelScope.launch {
+            localMlManager.statusMap.collect { statuses ->
+                statuses.forEach { (id, status) ->
+                    val prev = previousModelStatuses[id]
+                    val info = LocalModelCatalog.byId(id)
+                    val name = info?.displayName ?: id
+                    when {
+                        status is ModelStatus.Downloading && prev !is ModelStatus.Downloading -> {
+                            notificationManager.showProgress(
+                                "Downloading $name",
+                                "${status.progress}% - ${formatBytes(status.bytesDownloaded)} / ${formatBytes(status.totalBytes)}",
+                                status.progress
+                            )
+                        }
+                        status is ModelStatus.Downloading && prev is ModelStatus.Downloading -> {
+                            val speed = if (status.speedBytesPerSec > 0) " ${formatBytes(status.speedBytesPerSec)}/s" else ""
+                            val eta = if (status.etaSeconds > 0 && status.etaSeconds < 600) " ${formatDuration(status.etaSeconds)} left" else ""
+                            notificationManager.showProgress(
+                                "Downloading $name",
+                                "${status.progress}%${speed}${eta}",
+                                status.progress
+                            )
+                        }
+                        status is ModelStatus.Ready && prev !is ModelStatus.Ready -> {
+                            notificationManager.showCompletion("$name downloaded", "Model ready to use")
+                        }
+                        status is ModelStatus.Error && prev !is ModelStatus.Error -> {
+                            notificationManager.showError("Download failed", "$name: ${status.message}")
+                        }
+                    }
+                }
+                previousModelStatuses = statuses
+            }
+        }
 
         // Consolidated collectors using combine() to reduce coroutine overhead
         // Instead of 20 separate coroutines, we use 2 combined flows
@@ -924,9 +962,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val localModels = LocalModelCatalog.all.filter { model ->
                 val modelSizeMb = (model.fileSizeBytes / (1024 * 1024)).toInt()
-                aiDeviceCapabilities.canRunModel(modelSizeMb) || modelSizeMb <= 50 // Always allow very small models
+                aiDeviceCapabilities.canRunModel(modelSizeMb) || modelSizeMb <= 50
             }
             _uiState.update { it.copy(availableLocalModels = localModels) }
+
+            // Seed statusMap with already-installed models
+            localModels.filter { localMlManager.isInstalled(it.id) }.forEach { model ->
+                val validated = localMlManager.validateModelFile(model.id)
+                if (validated is LocalModelManager.ValidationResult.Ok) {
+                    localMlManager.seedStatus(model.id, ModelStatus.Ready)
+                } else if (validated is LocalModelManager.ValidationResult.SizeMismatch) {
+                    Timber.w("Model size mismatch: ${model.id} (${validated.actual} vs ${validated.expected})")
+                    localMlManager.deleteModel(model.id)
+                }
+            }
 
             // Collect local model status changes
             localMlManager.statusMap.collect { statuses: Map<String, ModelStatus> ->
@@ -936,29 +985,20 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun downloadLocalModel(modelInfo: LocalModelInfo) {
-        notificationManager.showProgress("Downloading ${modelInfo.displayName}", "Starting download...", 0)
-        viewModelScope.launch {
-            localMlManager.downloadModel(modelInfo).collect { status ->
-                val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
-                currentStatuses[modelInfo.id] = status
-                _uiState.update { it.copy(localModelStatuses = currentStatuses) }
-                when (status) {
-                    is ModelStatus.Downloading -> {
-                        notificationManager.showProgress(
-                            "Downloading ${modelInfo.displayName}",
-                            "${status.progress}% - ${status.downloaded / 1024}KB / ${modelInfo.fileSizeBytes / 1024}KB",
-                            status.progress
-                        )
-                    }
-                    is ModelStatus.Ready -> {
-                        notificationManager.showCompletion("${modelInfo.displayName} downloaded", "Model ready to use")
-                    }
-                    is ModelStatus.Error -> {
-                        notificationManager.showError("Download failed", status.message ?: "Unknown error")
-                    }
-                    else -> {}
-                }
-            }
+        val mb = modelInfo.fileSizeBytes / (1024 * 1024)
+        notificationManager.showProgress(
+            "Downloading ${modelInfo.displayName}",
+            "Starting download... ($mb MB)",
+            0
+        )
+        localMlManager.downloadModel(modelInfo)
+    }
+
+    fun cancelDownloadModel(modelId: String) {
+        localMlManager.cancelDownload(modelId)
+        val info = LocalModelCatalog.byId(modelId)
+        if (info != null) {
+            notificationManager.showInfo("Download cancelled", "${info.displayName} download cancelled")
         }
     }
 
@@ -1606,6 +1646,19 @@ class SettingsViewModel @Inject constructor(
                 fetchAvailableModels(apiKey, provider)
             }
         }
+    }
+
+    private fun formatBytes(bytes: Long): String = when {
+        bytes >= 1_000_000_000 -> "%.1fGB".format(bytes / 1_000_000_000.0)
+        bytes >= 1_000_000 -> "%.1fMB".format(bytes / 1_000_000.0)
+        bytes >= 1_000 -> "%.1fKB".format(bytes / 1_000.0)
+        else -> "$bytes B"
+    }
+
+    private fun formatDuration(seconds: Long): String = when {
+        seconds < 60 -> "${seconds}s"
+        seconds < 3600 -> "${seconds / 60}m ${seconds % 60}s"
+        else -> "${seconds / 3600}h ${(seconds % 3600) / 60}m"
     }
 
     private fun clearModelsState(provider: String) {

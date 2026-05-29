@@ -3,6 +3,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -214,7 +215,8 @@ fun AiPreferencesScreen(
                     model = model, status = status,
                     isSelected = uiState.localMlActiveModelId == model.id,
                     onDownload = {}, onDelete = { settingsViewModel.deleteLocalModel(model.id) },
-                    onSelect = { settingsViewModel.selectLocalModel(model.id) }, enabled = true
+                    onSelect = { settingsViewModel.selectLocalModel(model.id) },
+                    onCancel = { settingsViewModel.cancelDownloadModel(model.id) }, enabled = true
                 )
             }
 
@@ -236,6 +238,7 @@ fun AiPreferencesScreen(
                             onDownload = { settingsViewModel.downloadLocalModel(model) },
                             onDelete = { settingsViewModel.deleteLocalModel(model.id) },
                             onSelect = { settingsViewModel.selectLocalModel(model.id) },
+                            onCancel = { settingsViewModel.cancelDownloadModel(model.id) },
                             enabled = true
                         )
                     }
@@ -717,6 +720,7 @@ fun LocalModelCard(
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onSelect: () -> Unit,
+    onCancel: () -> Unit = {},
     enabled: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -789,11 +793,39 @@ fun LocalModelCard(
                         }
                     }
                     is ModelStatus.Downloading -> {
-                        Text(
-                            text = "${status.progress}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${status.progress}%",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            if (status.speedBytesPerSec > 0) {
+                                Text(
+                                    text = formatSpeed(status.speedBytesPerSec),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (status.etaSeconds > 0 && status.etaSeconds < Long.MAX_VALUE) {
+                                Text(
+                                    text = formatEta(status.etaSeconds),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    is ModelStatus.Pending -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Waiting...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     is ModelStatus.Ready -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -834,10 +866,12 @@ fun LocalModelCard(
                                 modifier = Modifier.size(32.dp)
                             )
                             Text(
-                                text = "Error",
+                                text = status.message,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 2
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             FilledTonalButton(onClick = onDownload, enabled = enabled) {
                                 Text("Retry")
                             }
@@ -859,11 +893,32 @@ fun LocalModelCard(
                             .background(MaterialTheme.colorScheme.primary)
                     )
                 }
-                Text(
-                    text = "Downloaded ${formatSize(status.downloaded)} / ${formatSize(model.fileSizeBytes)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${formatSize(status.bytesDownloaded)} / ${formatSize(status.totalBytes)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (status.progress > 0 && status.progress < 100) {
+                        IconButton(
+                            onClick = onCancel,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Cancel download",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1311,5 +1366,22 @@ private fun formatSize(bytes: Long): String {
         bytes >= 1_000_000 -> "%.1fMB".format(bytes / 1_000_000.0)
         bytes >= 1_000 -> "%.1fKB".format(bytes / 1_000.0)
         else -> "$bytes B"
+    }
+}
+
+private fun formatSpeed(bytesPerSec: Long): String {
+    return when {
+        bytesPerSec >= 1_000_000 -> "%.1f MB/s".format(bytesPerSec / 1_000_000.0)
+        bytesPerSec >= 1_000 -> "%.1f KB/s".format(bytesPerSec / 1_000.0)
+        else -> "$bytesPerSec B/s"
+    }
+}
+
+private fun formatEta(seconds: Long): String {
+    return when {
+        seconds <= 0 -> "Almost done"
+        seconds < 60 -> "${seconds}s remaining"
+        seconds < 3600 -> "${seconds / 60}m ${seconds % 60}s remaining"
+        else -> "${seconds / 3600}h ${(seconds % 3600) / 60}m remaining"
     }
 }

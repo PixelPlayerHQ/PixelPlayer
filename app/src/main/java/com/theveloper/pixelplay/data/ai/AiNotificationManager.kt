@@ -60,16 +60,17 @@ class AiNotificationManager @Inject constructor(
         }
     }
 
-    fun showProgress(title: String, message: String, progress: Int, max: Int = 100) {
+    fun showProgress(title: String, message: String, progress: Int, max: Int = 100, showIndeterminate: Boolean = false) {
         val builder = NotificationCompat.Builder(context, CHANNEL_PROGRESS)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
-            .setProgress(max, progress, progress == 0)
+            .setProgress(max, progress, showIndeterminate)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
 
         notificationManager.notify(PROGRESS_NOTIFICATION_ID, builder.build())
     }

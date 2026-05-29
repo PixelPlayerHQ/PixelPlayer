@@ -235,15 +235,6 @@ object LocalModelCatalog {
             tags = listOf("embedding", "bge", "large", "quality"), huggingFaceRepo = "BAAI/bge-large-en-v1.5"
         ),
         LocalModelInfo(
-            id = "mixtral_8x7b_q4", displayName = "Mixtral 8x7B (Q4)",
-            description = "Mistral's Mixtral 8x7B MoE, Q4 ~25GB. Apache 2.0.",
-            source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF", "mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"),
-            fileSizeBytes = 25_000_000_000, ramRequiredMb = 6144,
-            type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "mixtral", "mistral", "large"), huggingFaceRepo = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF"
-        ),
-        LocalModelInfo(
             id = "qwen2.5_14b", displayName = "Qwen 2.5 14B (Q4)",
             description = "Alibaba's Qwen 2.5 14B, Q4 ~8.5GB. Apache 2.0.",
             source = ModelSource.HUGGINGFACE,
@@ -263,53 +254,12 @@ object LocalModelCatalog {
         ),
         LocalModelInfo(
             id = "deepseek_v2_lite", displayName = "DeepSeek V2 Lite (Q4)",
-            description = "DeepSeek-V2-Lite-Chat, Q4 ~12GB. MIT license.",
+            description = "DeepSeek-V2-Lite-Chat, Q4 ~12GB. ≤16B params. MIT license.",
             source = ModelSource.HUGGINGFACE,
             downloadUrl = hfBlake("TheBloke/DeepSeek-V2-Lite-Chat-GGUF", "deepseek-v2-lite-chat.Q4_K_M.gguf"),
             fileSizeBytes = 12_000_000_000, ramRequiredMb = 6144,
             type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
             tags = listOf("chat", "deepseek", "v2"), huggingFaceRepo = "TheBloke/DeepSeek-V2-Lite-Chat-GGUF"
-        ),
-
-        // ======================================================================
-        // FLAGSHIP DEVICES (8GB+ RAM)
-        // ======================================================================
-
-        LocalModelInfo(
-            id = "qwen2.5_32b", displayName = "Qwen 2.5 32B (Q4)",
-            description = "Alibaba's Qwen 2.5 32B, Q4 ~19GB. Apache 2.0.",
-            source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("Qwen/Qwen2.5-32B-Instruct-GGUF", "qwen2.5-32b-instruct-q4_k_m.gguf"),
-            fileSizeBytes = 19_000_000_000, ramRequiredMb = 12288,
-            type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "qwen", "alibaba", "large"), huggingFaceRepo = "Qwen/Qwen2.5-32B-Instruct-GGUF"
-        ),
-        LocalModelInfo(
-            id = "qwen2.5_72b", displayName = "Qwen 2.5 72B (Q4)",
-            description = "Alibaba's Qwen 2.5 72B, Q4 ~42GB. Apache 2.0.",
-            source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("Qwen/Qwen2.5-72B-Instruct-GGUF", "qwen2.5-72b-instruct-q4_k_m.gguf"),
-            fileSizeBytes = 42_000_000_000, ramRequiredMb = 16384,
-            type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "qwen", "alibaba", "large"), huggingFaceRepo = "Qwen/Qwen2.5-72B-Instruct-GGUF"
-        ),
-        LocalModelInfo(
-            id = "mixtral_8x22b_q4", displayName = "Mixtral 8x22B (Q4)",
-            description = "Mistral's Mixtral 8x22B MoE, Q4 ~45GB. Apache 2.0.",
-            source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Mixtral-8x22B-Instruct-v0.1-GGUF", "mixtral-8x22b-instruct-v0.1.Q4_K_M.gguf"),
-            fileSizeBytes = 45_000_000_000, ramRequiredMb = 16384,
-            type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "mixtral", "mistral", "large"), huggingFaceRepo = "TheBloke/Mixtral-8x22B-Instruct-v0.1-GGUF"
-        ),
-        LocalModelInfo(
-            id = "command_r_plus", displayName = "Command R+ (Q4)",
-            description = "Cohere's Command R+ 104B, Q4 ~60GB. CC-BY-NC.",
-            source = ModelSource.HUGGINGFACE,
-            downloadUrl = hfBlake("TheBloke/Command-R-Plus-GGUF", "command-r-plus.Q4_K_M.gguf"),
-            fileSizeBytes = 60_000_000_000, ramRequiredMb = 24576,
-            type = ModelType.TEXT_GENERATION, format = ModelFormat.GGUF,
-            tags = listOf("chat", "cohere", "command", "large"), huggingFaceRepo = "TheBloke/Command-R-Plus-GGUF"
         ),
 
         // ======================================================================

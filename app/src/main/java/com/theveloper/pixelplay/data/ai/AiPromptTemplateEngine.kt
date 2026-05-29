@@ -2,8 +2,10 @@ package com.theveloper.pixelplay.data.ai
 
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
 
 /**
  * Enhanced prompt template engine for AI music features.
@@ -11,7 +13,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class AiPromptTemplateEngine @Inject constructor(
-    private val aiBehaviorDataCollector: AiBehaviorDataCollector
+    private val aiBehaviorDataCollector: AiBehaviorDataCollector,
+    private val aiPreferencesRepository: AiPreferencesRepository
 ) {
     /**
      * Template variables that can be substituted.
@@ -104,11 +107,13 @@ class AiPromptTemplateEngine @Inject constructor(
     /**
      * Generates a daily mix generation prompt.
      */
-    fun generateDailyMixPrompt(
+    suspend fun generateDailyMixPrompt(
         songs: List<Song>,
-        context: TemplateContext
+        context: TemplateContext,
+        maxSongs: Int? = null
     ): String {
-        val songList = songs.take(100).joinToString("\n") { song ->
+        val limit = maxSongs ?: aiPreferencesRepository.maxSongsForContext.first()
+        val songList = songs.take(limit).joinToString("\n") { song ->
             "${song.id}|${song.title}|${song.artist}|${song.album}|${song.genre ?: "Unknown"}|${song.duration}"
         }
 

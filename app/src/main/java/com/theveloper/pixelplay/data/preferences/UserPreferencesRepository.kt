@@ -896,37 +896,37 @@ constructor(
 
     val aiTelemetryEnabledFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_ENABLED] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_ENABLED] ?: false
         }
 
     val aiTelemetrySkipRateFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_SKIP_RATE] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_SKIP_RATE] ?: false
         }
 
     val aiTelemetryCompletionRateFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_COMPLETION_RATE] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_COMPLETION_RATE] ?: false
         }
 
     val aiTelemetrySessionDurationFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_SESSION_DURATION] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_SESSION_DURATION] ?: false
         }
 
     val aiTelemetryTimeOfDayFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_TIME_OF_DAY] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_TIME_OF_DAY] ?: false
         }
 
     val aiTelemetryGenreAffinityFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_GENRE_AFFINITY] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_GENRE_AFFINITY] ?: false
         }
 
     val aiTelemetryArtistAffinityFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.AI_TELEMETRY_ARTIST_AFFINITY] ?: true
+            preferences[PreferencesKeys.AI_TELEMETRY_ARTIST_AFFINITY] ?: false
         }
 
     suspend fun setAiDeveloperMode(enabled: Boolean) {

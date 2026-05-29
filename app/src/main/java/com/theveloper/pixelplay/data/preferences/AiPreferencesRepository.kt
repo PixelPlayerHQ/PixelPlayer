@@ -250,25 +250,25 @@ class AiPreferencesRepository @Inject constructor(
     // ---- Granular behavioral telemetry ----
 
     val telemetryIncludeSkipCount: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_SKIP_COUNT] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_SKIP_COUNT] ?: false }
 
     val telemetryIncludeCompletionRate: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_COMPLETION_RATE] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_COMPLETION_RATE] ?: false }
 
     val telemetryIncludeSessionDuration: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_SESSION_DURATION] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_SESSION_DURATION] ?: false }
 
     val telemetryIncludeTimeOfDay: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_TIME_OF_DAY] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_TIME_OF_DAY] ?: false }
 
     val telemetryIncludeGenreAffinity: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_GENRE_AFFINITY] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_GENRE_AFFINITY] ?: false }
 
     val telemetryIncludeArtistAffinity: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_ARTIST_AFFINITY] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_ARTIST_AFFINITY] ?: false }
 
     val telemetryIncludeReplayCount: Flow<Boolean> =
-        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_REPLAY_COUNT] ?: true }
+        dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_REPLAY_COUNT] ?: false }
 
     val telemetryIncludeQueuePatterns: Flow<Boolean> =
         dataStore.data.map { it[Keys.TELEMETRY_INCLUDE_QUEUE_PATTERNS] ?: false }
@@ -424,6 +424,24 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun setAiUsageEstimatedCost(cost: String) {
         dataStore.edit { it[Keys.AI_USAGE_ESTIMATED_COST] = cost }
     }
+
+    suspend fun getAiProviderOnce(): String = aiProvider.first()
+    suspend fun getAiTemperatureOnce(): Int = aiTemperature.first()
+    suspend fun getAiMaxTokensOnce(): Int = aiMaxTokens.first()
+    suspend fun getAiEnableStreamingOnce(): Boolean = aiEnableStreaming.first()
+    suspend fun getAiIncludeContextOnce(): Boolean = aiIncludeContext.first()
+    suspend fun getMaxSongsForContextOnce(): Int = maxSongsForContext.first()
+    suspend fun getIncludeLikedSongsOnce(): Boolean = includeLikedSongs.first()
+    suspend fun getIncludeDailyMixHistoryOnce(): Boolean = includeDailyMixHistory.first()
+    suspend fun getIncludeUserHabitsOnce(): Boolean = includeUserHabits.first()
+    suspend fun getAiCacheEnabledOnce(): Boolean = aiCacheEnabled.first()
+    suspend fun getAiCacheMaxEntriesOnce(): Int = aiCacheMaxEntries.first()
+    suspend fun getAiCacheTtlHoursOnce(): Int = aiCacheTtlHours.first()
+    suspend fun getLocalMlEnabledOnce(): Boolean = localMlEnabled.first()
+    suspend fun getLocalMlUseGpuOnce(): Boolean = localMlUseGpu.first()
+    suspend fun getLocalMlFallbackToRemoteOnce(): Boolean = localMlFallbackToRemote.first()
+    suspend fun getLocalMlContextSizeOnce(): Int = localMlContextSize.first()
+    suspend fun getSafeTokenLimitOnce(): Boolean = isSafeTokenLimitEnabled.first()
 
     suspend fun clearAiUsageMetrics() {
         dataStore.edit { prefs ->

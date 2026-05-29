@@ -49,6 +49,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.ai.AiModel
 import com.theveloper.pixelplay.data.ai.AiHandler
+import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
@@ -290,6 +291,7 @@ class SettingsViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
     private val localMlManager: com.theveloper.pixelplay.data.ai.local.LocalModelManager,
+    private val notificationManager: AiNotificationManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -933,13 +935,29 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // Local model download/delete functions
     fun downloadLocalModel(modelInfo: LocalModelInfo) {
+        notificationManager.showProgress("Downloading ${modelInfo.displayName}", "Starting download...", 0)
         viewModelScope.launch {
             localMlManager.downloadModel(modelInfo).collect { status ->
                 val currentStatuses = _uiState.value.localModelStatuses.toMutableMap()
                 currentStatuses[modelInfo.id] = status
                 _uiState.update { it.copy(localModelStatuses = currentStatuses) }
+                when (status) {
+                    is ModelStatus.Downloading -> {
+                        notificationManager.showProgress(
+                            "Downloading ${modelInfo.displayName}",
+                            "${status.progress}% - ${status.downloaded / 1024}KB / ${modelInfo.fileSizeBytes / 1024}KB",
+                            status.progress
+                        )
+                    }
+                    is ModelStatus.Ready -> {
+                        notificationManager.showCompletion("${modelInfo.displayName} downloaded", "Model ready to use")
+                    }
+                    is ModelStatus.Error -> {
+                        notificationManager.showError("Download failed", status.message ?: "Unknown error")
+                    }
+                    else -> {}
+                }
             }
         }
     }

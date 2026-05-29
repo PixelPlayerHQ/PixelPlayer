@@ -434,7 +434,7 @@ fun AiPreferencesScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp).navigationBarsPadding())
             }
         }
     }
@@ -794,6 +794,7 @@ fun LocalModelCard(
     enabled: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showDownloadConfirm by remember { mutableStateOf(false) }
     val containerAlpha = if (enabled) 1f else 0.4f
 
     Card(
@@ -855,7 +856,7 @@ fun LocalModelCard(
 
                 when (status) {
                     is ModelStatus.NotDownloaded -> {
-                        FilledTonalButton(onClick = onDownload, enabled = enabled) {
+                        FilledTonalButton(onClick = { showDownloadConfirm = true }, enabled = enabled) {
                             Icon(Icons.Default.Download, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Download")
@@ -946,25 +947,40 @@ fun LocalModelCard(
         }
     }
 
+    if (showDownloadConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDownloadConfirm = false },
+            title = { Text("Download Model?") },
+            text = {
+                Text("This will download ${model.displayName} (${formatSize(model.fileSizeBytes)}). " +
+                     "The model will be stored locally and may use significant storage space. " +
+                     "A stable internet connection is recommended.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDownloadConfirm = false
+                    onDownload()
+                }) { Text("Download") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDownloadConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete Model?") },
             text = { Text("Are you sure you want to delete ${model.displayName}? You'll need to download it again.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete()
-                        showDeleteConfirm = false
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
+                TextButton(onClick = {
+                    onDelete()
+                    showDeleteConfirm = false
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
             }
         )
     }

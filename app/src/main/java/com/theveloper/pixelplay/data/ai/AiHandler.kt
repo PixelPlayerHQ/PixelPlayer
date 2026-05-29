@@ -49,6 +49,12 @@ class AiHandler @Inject constructor(
     // Request timeout: 60 seconds max per provider attempt
     private val REQUEST_TIMEOUT_MS = 60_000L
 
+    // Clean up expired cooldowns periodically to prevent memory growth
+    private fun cleanupCooldowns() {
+        val now = System.currentTimeMillis()
+        providerCooldowns.entries.removeIf { (_, expiry) -> now > expiry }
+    }
+
     private fun String.sha256(): String {
         return MessageDigest.getInstance("SHA-256")
             .digest(this.toByteArray())
@@ -309,6 +315,7 @@ class AiHandler @Inject constructor(
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
                 // Trigger cooldown only on provider-level outages and account problems.
                 if (failure.shouldCooldown()) {
+                    cleanupCooldowns() // Clean up old entries before adding new one
                     providerCooldowns[provider] = now + COOLDOWN_DURATION_MS
                 }
             }

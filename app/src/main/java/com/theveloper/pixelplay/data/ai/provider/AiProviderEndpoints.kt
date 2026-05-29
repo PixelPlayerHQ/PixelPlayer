@@ -18,8 +18,8 @@ object AiProviderEndpoints {
     const val OPENAI_BASE_URL = "https://api.openai.com/v1"
     const val OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     const val ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1"
-    // 10.0.2.2 is Android emulator's loopback alias for the host machine
-    const val OLLAMA_BASE_URL = "http://10.0.2.2:11434/v1"
+    // Ollama: Remote server API (requires API key) - not for local Android development
+    const val OLLAMA_BASE_URL = "https://ollama.ai/api/v1"
 
     // ─── Default Models ───────────────────────────────────────────────────────
     const val GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"

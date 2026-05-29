@@ -3,7 +3,9 @@ package com.theveloper.pixelplay.data.ai
 import android.content.Context
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.ai.provider.AiProviderException
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,7 +17,8 @@ import javax.inject.Singleton
 @Singleton
 class AiErrorHandler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val aiLogger: AiLogger
+    private val aiLogger: AiLogger,
+    private val preferencesRepo: AiPreferencesRepository
 ) {
     /**
      * Error categories for AI operations.
@@ -54,7 +57,7 @@ class AiErrorHandler @Inject constructor(
     /**
      * Analyzes an error and returns recovery suggestions.
      */
-    fun analyzeError(error: Throwable, currentProvider: AiProvider): ErrorAnalysis {
+    suspend fun analyzeError(error: Throwable, currentProvider: AiProvider): ErrorAnalysis {
         val cause = findRootCause(error)
         val message = cause.message ?: "Unknown error"
         val category = categorizeError(message, error)
@@ -222,11 +225,36 @@ class AiErrorHandler @Inject constructor(
         }
     }
 
-    private fun getFallbackProvider(currentProvider: AiProvider, category: ErrorCategory): AiProvider? {
-        val allProviders = listOf(AiProvider.GEMINI, AiProvider.OPENAI, AiProvider.ANTHROPIC, AiProvider.OLLAMA)
+    private suspend fun getFallbackProvider(currentProvider: AiProvider, category: ErrorCategory): AiProvider? {
+        // Priority order for fallback: prefer providers with configured API keys
+        val priorityProviders = listOf(
+            AiProvider.GEMINI,
+            AiProvider.OPENAI,
+            AiProvider.ANTHROPIC,
+            AiProvider.OLLAMA
+        )
 
-        // Remove current provider and return first available
-        return allProviders.firstOrNull { it != currentProvider && it != AiProvider.OLLAMA }
+        // Find first provider that has API key configured and isn't the current one
+        for (provider in priorityProviders) {
+            if (provider == currentProvider) continue
+
+            // Skip Ollama in fallback - it's for model downloads only
+            if (provider == AiProvider.OLLAMA) continue
+
+            // Check if this provider has an API key configured
+            val apiKey = try {
+                preferencesRepo.getApiKey(provider).first()
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to check API key for $provider")
+                continue
+            }
+
+            if (apiKey.isNotBlank()) {
+                return provider
+            }
+        }
+
+        return null // No fallback available
     }
 
     private fun determineRecoveryAction(
@@ -259,7 +287,7 @@ class AiErrorHandler @Inject constructor(
     /**
      * Gets a user-friendly error message.
      */
-    fun getUserFriendlyMessage(error: Throwable): String {
+    suspend fun getUserFriendlyMessage(error: Throwable): String {
         val analysis = analyzeError(error, AiProvider.GEMINI)
         return analysis.userMessage
     }

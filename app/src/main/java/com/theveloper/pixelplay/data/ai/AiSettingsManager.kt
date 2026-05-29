@@ -94,7 +94,8 @@ class AiSettingsManager @Inject constructor(
 
         // Filter by device capabilities - only show models that fit in device RAM
         val filteredModels = catalogModels.filter { model: LocalModelInfo ->
-            capabilities.recommendedModelSizeMb >= (model.fileSizeBytes / (1024 * 1024))
+            val sizeMb = if (model.fileSizeBytes > 0) model.fileSizeBytes / (1024 * 1024) else 0
+            capabilities.recommendedModelSizeMb >= sizeMb
         }
 
         _availableModels.value = filteredModels
@@ -288,8 +289,10 @@ class AiSettingsManager @Inject constructor(
     fun isProviderReady(): Boolean {
         val state = _settingsState.value
         return when (state.activeProvider) {
-            "LOCAL" -> state.localModelEnabled && state.localModelId != null && 
-                       localMlManager.isInstalled(state.localModelId)
+            "LOCAL" -> {
+                val modelId = state.localModelId
+                state.localModelEnabled && modelId != null && localMlManager.isInstalled(modelId)
+            }
             "OLLAMA" -> state.ollamaEndpoint.isNotBlank()
             else -> true  // Cloud providers assume API keys are set elsewhere
         }
@@ -305,12 +308,15 @@ class AiSettingsManager @Inject constructor(
             "LOCAL" -> {
                 if (!state.localModelEnabled) {
                     ValidationResult.Error("Local models are disabled")
-                } else if (state.localModelId == null) {
-                    ValidationResult.Error("No local model selected")
-                } else if (!localMlManager.isInstalled(state.localModelId)) {
-                    ValidationResult.Error("Selected model not downloaded")
                 } else {
-                    ValidationResult.Valid
+                    val modelId = state.localModelId
+                    if (modelId == null) {
+                        ValidationResult.Error("No local model selected")
+                    } else if (!localMlManager.isInstalled(modelId)) {
+                        ValidationResult.Error("Selected model not downloaded")
+                    } else {
+                        ValidationResult.Valid
+                    }
                 }
             }
             "OLLAMA" -> {

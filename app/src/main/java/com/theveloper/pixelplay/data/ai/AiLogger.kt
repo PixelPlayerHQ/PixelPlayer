@@ -222,8 +222,10 @@ class AiLogger @Inject constructor(
         try {
             rotateLogsIfNeeded()
 
-            PrintWriter(FileWriter(currentLogFile, true)).use { writer ->
-                writer.write(line)
+            FileWriter(currentLogFile, true).use { fw ->
+                PrintWriter(fw).use { writer ->
+                    writer.write(line)
+                }
             }
         } catch (e: Exception) {
             // Silently fail - logging should never crash the app

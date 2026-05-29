@@ -123,7 +123,7 @@ class AiBehaviorDataCollector @Inject constructor(
         }
     }
 
-    private fun inferEnergyLevel(summary: PlaybackStatsRepository.AggregatedSummary): EnergyLevel {
+    private fun inferEnergyLevel(summary: PlaybackStatsRepository.PlaybackStatsSummary): EnergyLevel {
         val topGenres = summary.topGenres.take(3).map { it.genre.lowercase() }
         val highEnergyGenres = listOf("rock", "metal", "punk", "electronic", "dance", "edm", "hip-hop", "rap", "drill", "trap")
         val lowEnergyGenres = listOf("ambient", "classical", "jazz", "acoustic", "lo-fi", "chill", "folk")
@@ -148,7 +148,7 @@ class AiBehaviorDataCollector @Inject constructor(
         return streak
     }
 
-    private fun estimateFavoriteDecades(summary: PlaybackStatsRepository.AggregatedSummary): List<String> {
+    private fun estimateFavoriteDecades(summary: PlaybackStatsRepository.PlaybackStatsSummary): List<String> {
         return summary.songs.mapNotNull { s ->
             val year = try { s.title.takeLast(4).toIntOrNull() } catch (_: Exception) { null }
             if (year != null) "${(year / 10) * 10}s" else null

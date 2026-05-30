@@ -111,6 +111,42 @@ import androidx.core.net.toUri
 
 // Acciones personalizadas para compatibilidad con el widget existente
 
+suspend fun loadArtworkBytesViaCoil(context: Context, uri: Uri): ByteArray? {
+    val appContext = context.applicationContext
+    val request = ImageRequest.Builder(appContext)
+        .data(uri)
+        .size(
+            ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx,
+            ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx,
+        )
+        .precision(Precision.INEXACT)
+        .allowHardware(false)
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .networkCachePolicy(CachePolicy.ENABLED)
+        .build()
+
+    return runCatching {
+        val drawable = appContext.imageLoader.execute(request).drawable ?: return@runCatching null
+        val fallbackSizePx = ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx
+        val bitmap = drawable.toBitmap(
+            width = drawable.intrinsicWidth.takeIf { it > 0 } ?: fallbackSizePx,
+            height = drawable.intrinsicHeight.takeIf { it > 0 } ?: fallbackSizePx,
+            config = Bitmap.Config.ARGB_8888,
+        )
+        val encodedBytes = ByteArrayOutputStream().use { output ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
+            output.toByteArray()
+        }
+        ArtworkTransportSanitizer.sanitizeEncodedBytes(
+            data = encodedBytes,
+            config = ArtworkTransportSanitizer.WIDGET_CONFIG,
+        )
+    }.getOrElse { error ->
+        Timber.tag("MusicService_PixelPlay").w(error, "Artwork read failed via Coil for uri=%s", uri)
+        null
+    }
+}
+
 
 @UnstableApi
 @AndroidEntryPoint
@@ -2343,7 +2379,6 @@ class MusicService : MediaLibraryService() {
             }
             if (remote.artworkUri != null) {
                 artworkUri = remote.artworkUri
-                artworkData = null
             }
             isPlaying = remote.isPlaying
             currentPosition = remote.currentPositionMs
@@ -2680,7 +2715,7 @@ class MusicService : MediaLibraryService() {
                 }
     }
 
-    private suspend fun loadArtworkBytesForWidget(uri: Uri): ByteArray? {
+    public suspend fun loadArtworkBytesForWidget(uri: Uri): ByteArray? {
         val uriString = uri.toString()
         val scheme = uri.scheme?.lowercase()
         val isLocalArtworkUri = com.theveloper.pixelplay.utils.LocalArtworkUri.isLocalArtworkUri(uriString)
@@ -2726,42 +2761,7 @@ class MusicService : MediaLibraryService() {
                     connection?.disconnect()
                 }
             }
-            else -> loadArtworkBytesViaCoil(uri)
-        }
-    }
-
-    private suspend fun loadArtworkBytesViaCoil(uri: Uri): ByteArray? {
-        val request = ImageRequest.Builder(applicationContext)
-            .data(uri)
-            .size(
-                ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx,
-                ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx,
-            )
-            .precision(Precision.INEXACT)
-            .allowHardware(false)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .networkCachePolicy(CachePolicy.ENABLED)
-            .build()
-
-        return runCatching {
-            val drawable = applicationContext.imageLoader.execute(request).drawable ?: return@runCatching null
-            val fallbackSizePx = ArtworkTransportSanitizer.WIDGET_CONFIG.maxDimensionPx
-            val bitmap = drawable.toBitmap(
-                width = drawable.intrinsicWidth.takeIf { it > 0 } ?: fallbackSizePx,
-                height = drawable.intrinsicHeight.takeIf { it > 0 } ?: fallbackSizePx,
-                config = Bitmap.Config.ARGB_8888,
-            )
-            val encodedBytes = ByteArrayOutputStream().use { output ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
-                output.toByteArray()
-            }
-            ArtworkTransportSanitizer.sanitizeEncodedBytes(
-                data = encodedBytes,
-                config = ArtworkTransportSanitizer.WIDGET_CONFIG,
-            )
-        }.getOrElse { error ->
-            Timber.tag(TAG).w(error, "Widget artwork read failed via Coil for uri=%s", uri)
-            null
+            else -> loadArtworkBytesViaCoil(applicationContext, uri)
         }
     }
 

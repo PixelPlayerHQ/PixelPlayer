@@ -3,13 +3,20 @@ package com.theveloper.pixelplay.utils
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import androidx.annotation.OptIn
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER
+import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.provider.SharedArtworkContentProvider
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.service.loadArtworkBytesViaCoil
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 
 object MediaItemBuilder {
     private const val EXTERNAL_MEDIA_ID_PREFIX = "external:"
@@ -111,6 +118,7 @@ object MediaItemBuilder {
             .setMediaMetadata(
                 buildMediaMetadataForSong(
                     song = song,
+                    context = context,
                     exposedArtworkUri = externalControllerArtworkUri(context, song.albumArtUriString)
                 )
             )
@@ -259,8 +267,10 @@ object MediaItemBuilder {
         }
     }
 
+    @OptIn(UnstableApi::class)
     private fun buildMediaMetadataForSong(
         song: Song,
+        context: Context? = null,
         exposedArtworkUri: Uri? = artworkUri(song.albumArtUriString)
     ): MediaMetadata {
         val metadataBuilder = MediaMetadata.Builder()
@@ -270,6 +280,13 @@ object MediaItemBuilder {
 
         exposedArtworkUri?.let { artworkUri ->
             metadataBuilder.setArtworkUri(artworkUri)
+            context?.let { appContext ->
+                runBlocking(Dispatchers.IO) {
+                    loadArtworkBytesViaCoil(appContext, artworkUri)
+                }?.let { artworkData ->
+                    metadataBuilder.setArtworkData(artworkData, PICTURE_TYPE_FRONT_COVER)
+                }
+            }
         }
 
         val extras = Bundle().apply {

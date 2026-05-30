@@ -2,10 +2,14 @@ package com.theveloper.pixelplay.data.worker
 
 import android.content.Context
 import android.util.Log
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.OneTimeWorkRequest
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +24,8 @@ import kotlinx.coroutines.launch
 import com.theveloper.pixelplay.data.observer.MediaStoreObserver
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 /**
  * Data class representing the progress of the sync operation.
@@ -57,6 +63,11 @@ class SyncManager @Inject constructor(
 ) {
     private val workManager = WorkManager.getInstance(context)
     private val sharingScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var mediaStoreAutoSyncJob: Job? = null
+    private val autoSyncLock = Any()
+    // In-memory only: lives in this @Singleton for the process lifetime, so no leak.
+    @Volatile
+    private var lastForegroundSyncTime = 0L
 
     // EXPONE UN FLOW<BOOLEAN> SIMPLE
     val isSyncing: Flow<Boolean> =
@@ -74,7 +85,22 @@ class SyncManager @Inject constructor(
             )
 
     init {
-        // Ensure worker is not cancelled blindly on startup
+        observeStorageChanges()
+        observeAppForeground()
+        schedulePeriodicMaintenance()
+    }
+
+    /**
+     * Schedules the once-a-day heavy maintenance (LRC/cache/cloud). Uses a dedicated unique
+     * name distinct from [SyncWorker.WORK_NAME], so it never drives the foreground sync
+     * indicator. KEEP preserves the existing schedule across launches.
+     */
+    private fun schedulePeriodicMaintenance() {
+        workManager.enqueueUniquePeriodicWork(
+            SyncWorker.PERIODIC_MAINTENANCE_WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            SyncWorker.periodicMaintenanceWork()
+        )
     }
 
     /**
@@ -192,7 +218,7 @@ class SyncManager @Inject constructor(
     fun incrementalSync() {
         Log.i(TAG, "Incremental sync requested - Scheduling incremental worker")
         enqueueSyncWork(
-            request = SyncWorker.incrementalSyncWork(),
+            request = SyncWorker.incrementalSyncWork(runMaintenance = false),
             policy = ExistingWorkPolicy.REPLACE
         )
     }
@@ -229,8 +255,66 @@ class SyncManager @Inject constructor(
     fun forceRefresh() {
         Log.i(TAG, "Force refresh requested - Scheduling incremental worker")
         enqueueSyncWork(
-            request = SyncWorker.incrementalSyncWork(),
+            request = SyncWorker.incrementalSyncWork(runMaintenance = false),
             policy = ExistingWorkPolicy.REPLACE
+        )
+    }
+
+    private fun observeStorageChanges() {
+        sharingScope.launch {
+            mediaStoreObserver.externalMediaStoreChanges.collect {
+                scheduleLocalAutoSync()
+            }
+        }
+    }
+
+    private fun scheduleLocalAutoSync() {
+        synchronized(autoSyncLock) {
+            mediaStoreAutoSyncJob?.cancel()
+            mediaStoreAutoSyncJob = sharingScope.launch {
+                runLocalAutoSyncAfterDebounce()
+            }
+        }
+    }
+
+    private suspend fun runLocalAutoSyncAfterDebounce() {
+        delay(MEDIASTORE_CHANGE_DEBOUNCE_MS)
+        Log.i(TAG, "Storage change detected - scheduling local incremental sync")
+        enqueueSyncWork(
+            request = SyncWorker.incrementalSyncWork(runMaintenance = false),
+            policy = ExistingWorkPolicy.KEEP,
+            notifyObserver = false
+        )
+    }
+
+    private fun observeAppForeground() {
+        // ProcessLifecycleOwner is application-scoped; the observer and this @Singleton both
+        // live for the whole process, so registering once here cannot leak.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                maybeRunForegroundCatchUpSync()
+            }
+        })
+    }
+
+    /**
+     * Fast, maintenance-free incremental sync triggered when the app returns to the
+     * foreground. Catches files MediaStore indexed while we were backgrounded (the
+     * ContentObserver is only registered in the foreground). Guarded by an in-memory
+     * cooldown so quick minimize/restore cycles don't pile up redundant work.
+     */
+    private fun maybeRunForegroundCatchUpSync() {
+        val now = System.currentTimeMillis()
+        if (now - lastForegroundSyncTime < FOREGROUND_SYNC_COOLDOWN_MS) {
+            Log.d(TAG, "Skipping foreground catch-up sync (cooldown active)")
+            return
+        }
+        lastForegroundSyncTime = now
+        Log.i(TAG, "Foreground catch-up - scheduling local incremental sync")
+        enqueueSyncWork(
+            request = SyncWorker.incrementalSyncWork(runMaintenance = false),
+            policy = ExistingWorkPolicy.KEEP,
+            notifyObserver = false
         )
     }
 
@@ -253,6 +337,8 @@ class SyncManager @Inject constructor(
     companion object {
         private const val TAG = "SyncManager"
         private const val MIN_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000L // 6 hours
+        private const val MEDIASTORE_CHANGE_DEBOUNCE_MS = 1_500L
+        private const val FOREGROUND_SYNC_COOLDOWN_MS = 60_000L
 
         private val CHANGE_PHASES = setOf(
             SyncProgress.SyncPhase.IDLE,

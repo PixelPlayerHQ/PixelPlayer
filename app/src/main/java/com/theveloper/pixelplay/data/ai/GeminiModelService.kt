@@ -21,6 +21,15 @@ class GeminiModelService @Inject constructor(
     private val workerManager: AiWorkerManager
 ) {
 
+    companion object {
+        // Markers for models that cannot perform text chat generation. These are the
+        // only things we filter out — every other model the API returns is selectable.
+        private val NON_CHAT_MARKERS = listOf(
+            "embedding", "aqa", "imagen", "image-generation",
+            "tts", "audio", "veo", "vision-only", "learnlm-embedding"
+        )
+    }
+
     suspend fun fetchAvailableModels(apiKey: String): Result<List<GeminiModel>> {
         return withContext(Dispatchers.IO) {
             try {
@@ -71,21 +80,15 @@ class GeminiModelService @Inject constructor(
             val modelPattern = """"name":\s*"(models/[^"]+)"""".toRegex()
             val matches = modelPattern.findAll(jsonResponse)
 
-            val blacklist = listOf("-2.0", "-2.5", "-preview", "customtools", "search", "tuning", "-001", "-002")
-            val whitelist = listOf("gemini-3.1-pro-preview")
-
             for (match in matches) {
                 val fullName = match.groupValues[1]
                 val modelName = fullName.removePrefix("models/")
 
-                val isWhitelisted = whitelist.any { modelName == it }
-                val hasForbiddenSuffix = blacklist.any { modelName.contains(it) }
-                val isBlacklisted = hasForbiddenSuffix && !isWhitelisted
-
-                if (!isBlacklisted && 
-                    (modelName.startsWith("gemini", ignoreCase = true) || 
+                // Only exclude models that can't do text generation. Never filter by
+                // version — let the user pick any chat-capable model their key supports.
+                if ((modelName.startsWith("gemini", ignoreCase = true) ||
                      modelName.startsWith("gemma", ignoreCase = true)) &&
-                    !modelName.contains("embedding", ignoreCase = true)) {
+                    !isNonChatModel(modelName)) {
                     models.add(GeminiModel(
                         name = modelName,
                         displayName = formatDisplayName(modelName)
@@ -126,6 +129,11 @@ class GeminiModelService @Inject constructor(
                 context = context
             )
         }
+    }
+
+    private fun isNonChatModel(modelName: String): Boolean {
+        val lower = modelName.lowercase()
+        return NON_CHAT_MARKERS.any { lower.contains(it) }
     }
 
     private fun formatDisplayName(modelName: String): String {

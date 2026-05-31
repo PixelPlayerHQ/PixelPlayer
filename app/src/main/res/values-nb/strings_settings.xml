@@ -1,31 +1,59 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Innstillinger</string>
     <string name="settings_accounts_row_title">Kontoer</string>
-    <string name="settings_accounts_row_subtitle">Administrer Telegram, Google Drive, NetEase Music og andre tjenester</string>
+    <string
+        name="settings_accounts_row_subtitle"
+    >Administrer Telegram, Google Drive, NetEase Music og andre tjenester</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Musikkbehandling</string>
-    <string name="settings_category_library_subtitle">Administrer mapper, oppdater bibliotek, alternativer for skanning</string>
+    <string
+        name="settings_category_library_subtitle"
+    >Administrer mapper, oppdater bibliotek, alternativer for skanning</string>
     <string name="settings_category_appearance_title">Utseende</string>
-    <string name="settings_category_appearance_subtitle">Temaer, layout og visuelle stiler</string>
+    <string
+        name="settings_category_appearance_subtitle"
+    >Temaer, layout og visuelle stiler</string>
     <string name="settings_category_playback_title">Avspilling</string>
-    <string name="settings_category_playback_subtitle">Lydatferd, crossfade og bakgrunnsavspilling</string>
+    <string
+        name="settings_category_playback_subtitle"
+    >Lydatferd, crossfade og bakgrunnsavspilling</string>
     <string name="settings_category_behavior_title">Atferd</string>
-    <string name="settings_category_behavior_subtitle">Gester, haptikk og navigasjonsatferd</string>
+    <string
+        name="settings_category_behavior_subtitle"
+    >Gester, haptikk og navigasjonsatferd</string>
     <string name="settings_category_ai_title">AI-integrasjon (β)</string>
-    <string name="settings_category_ai_subtitle">AI-leverandører, API-nøkler og modellinnstillinger</string>
-    <string name="settings_category_backup_title">Sikkerhetskopiering og gjenoppretting</string>
-    <string name="settings_category_backup_subtitle">Eksporter og gjenopprett dine personlige app-data</string>
-    <string name="settings_category_developer_title">Utvikleralternativer</string>
-    <string name="settings_category_developer_subtitle">Eksperimentelle funksjoner og feilsøking</string>
+    <string
+        name="settings_category_ai_subtitle"
+    >AI-leverandører, API-nøkler og modellinnstillinger</string>
+    <string
+        name="settings_category_backup_title"
+    >Sikkerhetskopiering og gjenoppretting</string>
+    <string
+        name="settings_category_backup_subtitle"
+    >Eksporter og gjenopprett dine personlige app-data</string>
+    <string
+        name="settings_category_developer_title"
+    >Utvikleralternativer</string>
+    <string
+        name="settings_category_developer_subtitle"
+    >Eksperimentelle funksjoner og feilsøking</string>
     <string name="settings_category_equalizer_title">Equalizer</string>
-    <string name="settings_category_equalizer_subtitle">Juster lydfrekvenser og forhåndsinnstillinger</string>
-    <string name="settings_category_device_capabilities_title">Enhetsfunksjoner</string>
-    <string name="settings_category_device_capabilities_subtitle">Lydspesifikasjoner, kodeker og dekoderinfo</string>
+    <string
+        name="settings_category_equalizer_subtitle"
+    >Juster lydfrekvenser og forhåndsinnstillinger</string>
+    <string
+        name="settings_category_device_capabilities_title"
+    >Enhetsfunksjoner</string>
+    <string
+        name="settings_category_device_capabilities_subtitle"
+    >Lydspesifikasjoner, kodeker og dekoderinfo</string>
     <string name="settings_category_about_title">Om</string>
-    <string name="settings_category_about_subtitle">App-info, versjon og bidragsytere</string>
+    <string
+        name="settings_category_about_subtitle"
+    >App-info, versjon og bidragsytere</string>
 
     <!-- Common toggles / labels used in ThemeSelectorItem maps -->
     <string name="label_on">På</string>
@@ -40,33 +68,65 @@
     <!-- Library category -->
     <string name="setcat_library_structure">Bibliotekstruktur</string>
     <string name="setcat_excluded_directories_title">Ekskluderte mapper</string>
-    <string name="setcat_excluded_directories_subtitle">Mapper her vil bli hoppet over ved skanning av biblioteket.</string>
+    <string
+        name="setcat_excluded_directories_subtitle"
+    >Mapper her vil bli hoppet over ved skanning av biblioteket.</string>
     <string name="setcat_artists_title">Artister</string>
-    <string name="setcat_artists_subtitle">Alternativer for flere artister og organisering.</string>
+    <string
+        name="setcat_artists_subtitle"
+    >Alternativer for flere artister og organisering.</string>
     <string name="setcat_filtering">Filtrering</string>
     <string name="setcat_min_song_duration">Minimum varighet for sang</string>
-    <string name="setcat_min_tracks_per_album">Minimum antall spor per album</string>
-    <string name="setcat_album_art_cache_limit">Grense for albumkunst-cache</string>
-    <string name="setcat_album_art_cache_limit_desc">Maksimal cache-størrelse før eldste bilder slettes automatisk</string>
+    <string
+        name="setcat_min_tracks_per_album"
+    >Minimum antall spor per album</string>
+    <string
+        name="setcat_album_art_cache_limit"
+    >Grense for albumkunst-cache</string>
+    <string
+        name="setcat_album_art_cache_limit_desc"
+    >Maksimal cache-størrelse før eldste bilder slettes automatisk</string>
     <string name="setcat_sync_scanning">Synkronisering og skanning</string>
-    <string name="setcat_sync_full_rescan_label">Kjører fullstendig reskanning</string>
-    <string name="toast_library_sync_finished">Biblioteksynkronisering fullført</string>
-    <string name="toast_full_rescan_started">Fullstendig reskanning startet…</string>
-    <string name="setcat_auto_scan_lrc_title">Skann .lrc-filer automatisk</string>
-    <string name="setcat_auto_scan_lrc_subtitle">Skann og tildel .lrc-filer i samme mappe automatisk under synkronisering.</string>
-    <string name="setcat_lyrics_management">Administrasjon av sangtekster</string>
-    <string name="setcat_lyrics_source_priority_label">Prioritet for sangtekstkilde</string>
-    <string name="setcat_lyrics_source_priority_desc">Velg hvilken kilde som skal prøves først ved henting av sangtekster.</string>
+    <string
+        name="setcat_sync_full_rescan_label"
+    >Kjører fullstendig reskanning</string>
+    <string
+        name="toast_library_sync_finished"
+    >Biblioteksynkronisering fullført</string>
+    <string
+        name="toast_full_rescan_started"
+    >Fullstendig reskanning startet…</string>
+    <string
+        name="setcat_auto_scan_lrc_title"
+    >Skann .lrc-filer automatisk</string>
+    <string
+        name="setcat_auto_scan_lrc_subtitle"
+    >Skann og tildel .lrc-filer i samme mappe automatisk under synkronisering.</string>
+    <string
+        name="setcat_lyrics_management"
+    >Administrasjon av sangtekster</string>
+    <string
+        name="setcat_lyrics_source_priority_label"
+    >Prioritet for sangtekstkilde</string>
+    <string
+        name="setcat_lyrics_source_priority_desc"
+    >Velg hvilken kilde som skal prøves først ved henting av sangtekster.</string>
     <string name="setcat_lyrics_embedded_first">Innebygd først</string>
     <string name="setcat_lyrics_online_first">Online først</string>
     <string name="setcat_lyrics_local_first">Lokal (.lrc) først</string>
-    <string name="setcat_reset_imported_lyrics_title">Nullstill importerte sangtekster</string>
-    <string name="setcat_reset_imported_lyrics_subtitle">Fjern alle importerte sangtekster fra databasen.</string>
+    <string
+        name="setcat_reset_imported_lyrics_title"
+    >Nullstill importerte sangtekster</string>
+    <string
+        name="setcat_reset_imported_lyrics_subtitle"
+    >Fjern alle importerte sangtekster fra databasen.</string>
 
     <!-- Appearance -->
     <string name="setcat_global_theme">Globalt tema</string>
     <string name="setcat_language_label">App-språk</string>
-    <string name="setcat_language_desc">Velg språket som skal brukes i appen.</string>
+    <string
+        name="setcat_language_desc"
+    >Velg språket som skal brukes i appen.</string>
     <string name="setcat_language_system">Systemstandard</string>
     <string name="setcat_language_english">Engelsk</string>
     <string name="setcat_language_spanish">Spansk</string>
@@ -76,209 +136,391 @@
     <string name="setcat_language_chinese">Kinesisk (forenklet)</string>
     <string name="setcat_language_indonesian">Indonesisk</string>
     <string name="setcat_language_italian">Italiensk</string>
+    <string name="setcat_language_korean">Koreansk</string>
+    <string name="setcat_language_norwegian_bokmal">Norsk bokmål</string>
     <string name="setcat_app_theme_label">App-tema</string>
-    <string name="setcat_app_theme_desc">Bytt mellom lyst, mørkt eller følg systemets utseende.</string>
+    <string
+        name="setcat_app_theme_desc"
+    >Bytt mellom lyst, mørkt eller følg systemets utseende.</string>
     <string name="setcat_theme_light">Lyst tema</string>
     <string name="setcat_theme_dark">Mørkt tema</string>
     <string name="setcat_theme_follow_system">Følg system</string>
     <string name="setcat_smooth_corners_title">Bruk glatte hjørner</string>
-    <string name="setcat_smooth_corners_subtitle">Bruker kompleks formede hjørner for å forbedre estetikken, men kan påvirke ytelsen på eldre enheter</string>
+    <string
+        name="setcat_smooth_corners_subtitle"
+    >Bruker kompleks formede hjørner for å forbedre estetikken, men kan påvirke ytelsen på eldre enheter</string>
     <string name="setcat_now_playing">Spilles nå</string>
     <string name="setcat_player_theme_label">Spiller-tema</string>
-    <string name="setcat_player_theme_desc">Velg utseende for den flytende spilleren.</string>
+    <string
+        name="setcat_player_theme_desc"
+    >Velg utseende for den flytende spilleren.</string>
     <string name="setcat_player_theme_album_art">Albumkunst</string>
     <string name="setcat_player_theme_dynamic">Systemdynamisk</string>
-    <string name="setcat_show_player_file_info_title">Vis filinfo i spiller</string>
-    <string name="setcat_show_player_file_info_subtitle">Vis kodek, bitrate og samplingsfrekvens i spillerens fremdriftsfelt.</string>
-    <string name="setcat_album_art_palette_title">Palettstil for albumkunst</string>
-    <string name="setcat_album_art_palette_subtitle">Gjeldende: %1$s. Åpne forhåndsvisning og velg stil.</string>
+    <string
+        name="setcat_show_player_file_info_title"
+    >Vis filinfo i spiller</string>
+    <string
+        name="setcat_show_player_file_info_subtitle"
+    >Vis kodek, bitrate og samplingsfrekvens i spillerens fremdriftsfelt.</string>
+    <string
+        name="setcat_album_art_palette_title"
+    >Palettstil for albumkunst</string>
+    <string
+        name="setcat_album_art_palette_subtitle"
+    >Gjeldende: %1$s. Åpne forhåndsvisning og velg stil.</string>
     <string name="setcat_carousel_style_label">Karusell-stil</string>
-    <string name="setcat_carousel_style_desc">Velg utseende for albumkarusellen.</string>
+    <string
+        name="setcat_carousel_style_desc"
+    >Velg utseende for albumkarusellen.</string>
     <string name="setcat_carousel_no_peek">Ingen kikk</string>
     <string name="setcat_carousel_one_peek">En kikk</string>
     <string name="setcat_home_collage">Hjem-kollasj</string>
     <string name="setcat_collage_pattern_label">Kollasj-mønster</string>
-    <string name="setcat_collage_pattern_desc">Velg formarrangement for Din Mix-kollasjen.</string>
-    <string name="setcat_auto_rotate_patterns_title">Roter mønstre automatisk</string>
-    <string name="setcat_auto_rotate_patterns_subtitle">Bytt mønster hver gang du besøker Hjem-skjermen.</string>
+    <string
+        name="setcat_collage_pattern_desc"
+    >Velg formarrangement for Din Mix-kollasjen.</string>
+    <string
+        name="setcat_auto_rotate_patterns_title"
+    >Roter mønstre automatisk</string>
+    <string
+        name="setcat_auto_rotate_patterns_subtitle"
+    >Bytt mønster hver gang du besøker Hjem-skjermen.</string>
     <string name="setcat_navigation_bar">Navigasjonslinje</string>
     <string name="setcat_navbar_style_label">NavBar-stil</string>
-    <string name="setcat_navbar_style_desc">Velg utseende for navigasjonslinjen.</string>
+    <string
+        name="setcat_navbar_style_desc"
+    >Velg utseende for navigasjonslinjen.</string>
     <string name="setcat_navbar_style_default">Standard</string>
     <string name="setcat_navbar_style_full_width">Full bredde</string>
     <string name="setcat_compact_mode_title">Kompakt modus</string>
-    <string name="setcat_compact_mode_subtitle">Vis bare ikoner og reduser høyden på NavBar.</string>
+    <string
+        name="setcat_compact_mode_subtitle"
+    >Vis bare ikoner og reduser høyden på NavBar.</string>
     <string name="setcat_navbar_corner_title">NavBar hjørneradius</string>
-    <string name="setcat_navbar_corner_subtitle">Juster hjørneradius for navigasjonslinjen.</string>
+    <string
+        name="setcat_navbar_corner_subtitle"
+    >Juster hjørneradius for navigasjonslinjen.</string>
     <string name="setcat_lyrics_screen">Sangtekst-skjerm</string>
     <string name="setcat_immersive_lyrics_title">Immersiv sangtekst</string>
-    <string name="setcat_immersive_lyrics_subtitle">Skjul kontroller automatisk og forstørr tekst.</string>
-    <string name="setcat_auto_hide_delay_label">Forsinkelse for autoskjuling</string>
-    <string name="setcat_auto_hide_delay_desc">Tid før kontrollene skjules.</string>
+    <string
+        name="setcat_immersive_lyrics_subtitle"
+    >Skjul kontroller automatisk og forstørr tekst.</string>
+    <string
+        name="setcat_auto_hide_delay_label"
+    >Forsinkelse for autoskjuling</string>
+    <string
+        name="setcat_auto_hide_delay_desc"
+    >Tid før kontrollene skjules.</string>
     <string name="setcat_lyrics_delay_3s">3s</string>
     <string name="setcat_lyrics_delay_4s">4s</string>
     <string name="setcat_lyrics_delay_5s">5s</string>
     <string name="setcat_lyrics_delay_6s">6s</string>
     <string name="setcat_app_navigation_section">App-navigasjon</string>
     <string name="setcat_default_tab_label">Standardfane</string>
-    <string name="setcat_default_tab_desc">Velg standardfane ved oppstart.</string>
+    <string
+        name="setcat_default_tab_desc"
+    >Velg standardfane ved oppstart.</string>
     <string name="tab_home">Hjem</string>
     <string name="setcat_library_navigation_label">Biblioteksnavigasjon</string>
-    <string name="setcat_library_navigation_desc">Velg hvordan du flytter mellom biblioteksfanene.</string>
+    <string
+        name="setcat_library_navigation_desc"
+    >Velg hvordan du flytter mellom biblioteksfanene.</string>
     <string name="setcat_library_nav_tab_row">Fanerekke (standard)</string>
-    <string name="setcat_library_nav_compact_pill">Kompakt pille &amp; rutenett</string>
+    <string
+        name="setcat_library_nav_compact_pill"
+    >Kompakt pille &amp; rutenett</string>
 
     <!-- Playback -->
     <string name="setcat_background_playback">Bakgrunnsavspilling</string>
-    <string name="setcat_keep_playing_label">Fortsett avspilling etter lukking</string>
-    <string name="setcat_keep_playing_desc">Hvis av, vil avspillingen stoppe når appen fjernes fra nylige apper.</string>
-    <string name="setcat_battery_optimization_title">Batterioptimalisering</string>
-    <string name="setcat_battery_optimization_subtitle">Deaktiver batterioptimalisering for å unngå avbrudd i avspillingen.</string>
-    <string name="toast_battery_already_disabled">Batterioptimalisering er allerede deaktivert</string>
-    <string name="setcat_replaygain_section">Volumnormalisering (ReplayGain)</string>
+    <string
+        name="setcat_keep_playing_label"
+    >Fortsett avspilling etter lukking</string>
+    <string
+        name="setcat_keep_playing_desc"
+    >Hvis av, vil avspillingen stoppe når appen fjernes fra nylige apper.</string>
+    <string
+        name="setcat_battery_optimization_title"
+    >Batterioptimalisering</string>
+    <string
+        name="setcat_battery_optimization_subtitle"
+    >Deaktiver batterioptimalisering for å unngå avbrudd i avspillingen.</string>
+    <string
+        name="toast_battery_already_disabled"
+    >Batterioptimalisering er allerede deaktivert</string>
+    <string
+        name="setcat_replaygain_section"
+    >Volumnormalisering (ReplayGain)</string>
     <string name="setcat_replaygain_enable_title">Aktiver ReplayGain</string>
-    <string name="setcat_replaygain_enable_subtitle">Normaliser volumnivåer ved bruk av ReplayGain-metadata fra lydfiler.</string>
+    <string
+        name="setcat_replaygain_enable_subtitle"
+    >Normaliser volumnivåer ved bruk av ReplayGain-metadata fra lydfiler.</string>
     <string name="setcat_gain_mode_label">Gain-modus</string>
-    <string name="setcat_gain_mode_desc">Spor: normaliser hver sang. Album: normaliser per album.</string>
+    <string
+        name="setcat_gain_mode_desc"
+    >Spor: normaliser hver sang. Album: normaliser per album.</string>
     <string name="setcat_gain_mode_track">Spor</string>
     <string name="setcat_gain_mode_album">Album</string>
     <string name="setcat_cast">Cast</string>
-    <string name="setcat_cast_autoplay_label">Auto-spill ved cast-tilkobling/-frakobling</string>
-    <string name="setcat_cast_autoplay_desc">Start avspilling umiddelbart etter bytte av cast-tilkoblinger.</string>
+    <string
+        name="setcat_cast_autoplay_label"
+    >Auto-spill ved cast-tilkobling/-frakobling</string>
+    <string
+        name="setcat_cast_autoplay_desc"
+    >Start avspilling umiddelbart etter bytte av cast-tilkoblinger.</string>
     <string name="setcat_headphones">Hodetelefoner</string>
-    <string name="setcat_headphones_resume_title">Gjenoppta når hodetelefoner kobles til</string>
-    <string name="setcat_headphones_resume_subtitle">Hvis avspillingen stoppet fordi hodetelefoner ble fjernet, gjenoppta automatisk når de kobles til igjen.</string>
+    <string
+        name="setcat_headphones_resume_title"
+    >Gjenoppta når hodetelefoner kobles til</string>
+    <string
+        name="setcat_headphones_resume_subtitle"
+    >Hvis avspillingen stoppet fordi hodetelefoner ble fjernet, gjenoppta automatisk når de kobles til igjen.</string>
     <string name="setcat_queue_transitions">Kø og overganger</string>
     <string name="setcat_crossfade_label">Crossfade</string>
-    <string name="setcat_crossfade_desc">Aktiver sømløs overgang mellom sanger.</string>
+    <string
+        name="setcat_crossfade_desc"
+    >Aktiver sømløs overgang mellom sanger.</string>
     <string name="setcat_crossfade_duration">Varighet for crossfade</string>
     <string name="setcat_hifi_mode_title">Hi-Fi-modus</string>
-    <string name="setcat_hifi_mode_subtitle_supported">Float 32-bit lydutgang. Deaktiver hvis avspillingen hakker på enheten din.</string>
-    <string name="setcat_hifi_mode_subtitle_unsupported">Ikke støttet på denne enheten (PCM_FLOAT AudioTrack utilgjengelig).</string>
+    <string
+        name="setcat_hifi_mode_subtitle_supported"
+    >Float 32-bit lydutgang. Deaktiver hvis avspillingen hakker på enheten din.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_unsupported"
+    >Ikke støttet på denne enheten (PCM_FLOAT AudioTrack utilgjengelig).</string>
     <string name="setcat_persistent_shuffle_title">Vedvarende blanding</string>
-    <string name="setcat_persistent_shuffle_subtitle">Husk blandingsinnstilling selv etter at appen er lukket.</string>
+    <string
+        name="setcat_persistent_shuffle_subtitle"
+    >Husk blandingsinnstilling selv etter at appen er lukket.</string>
     <string name="setcat_show_queue_history_title">Vis køhistorikk</string>
-    <string name="setcat_show_queue_history_subtitle">Vis tidligere spilte sanger i køen.</string>
+    <string
+        name="setcat_show_queue_history_subtitle"
+    >Vis tidligere spilte sanger i køen.</string>
 
     <!-- Behavior -->
     <string name="setcat_folders">Mapper</string>
-    <string name="setcat_folder_back_gesture_title">Tilbake-bevegelse styrer mapper</string>
-    <string name="setcat_folder_back_gesture_subtitle">I Mapper-fanen vil systemets tilbake-knapp navigere i mapper før biblioteket forlates.</string>
+    <string
+        name="setcat_folder_back_gesture_title"
+    >Tilbake-bevegelse styrer mapper</string>
+    <string
+        name="setcat_folder_back_gesture_subtitle"
+    >I Mapper-fanen vil systemets tilbake-knapp navigere i mapper før biblioteket forlates.</string>
     <string name="setcat_player_gestures">Spiller-gester</string>
-    <string name="setcat_tap_bg_closes_title">Trykk på bakgrunn lukker spiller</string>
-    <string name="setcat_tap_bg_closes_subtitle">Trykk på den uskarpe bakgrunnen for å lukke spilleren.</string>
+    <string
+        name="setcat_tap_bg_closes_title"
+    >Trykk på bakgrunn lukker spiller</string>
+    <string
+        name="setcat_tap_bg_closes_subtitle"
+    >Trykk på den uskarpe bakgrunnen for å lukke spilleren.</string>
     <string name="setcat_haptics">Haptikk</string>
     <string name="setcat_haptic_feedback_title">Haptisk tilbakemelding</string>
-    <string name="setcat_haptic_feedback_subtitle">Aktiver vibrasjonstilbakemelding i appen.</string>
+    <string
+        name="setcat_haptic_feedback_subtitle"
+    >Aktiver vibrasjonstilbakemelding i appen.</string>
 
     <!-- AI -->
     <string name="setcat_ai_provider_section">AI-leverandør</string>
     <string name="setcat_ai_provider_label">Leverandør</string>
     <string name="setcat_ai_provider_desc">Velg din AI-leverandør</string>
     <string name="setcat_safe_token_title">Sikker token-modus</string>
-    <string name="setcat_safe_token_on">PÅ — Raskt &amp; billig. Sender minimalt med data (~1K tokens) til AI.</string>
-    <string name="setcat_safe_token_off">AV — Dyp kontekst. Sender full lytteprofil (~8K tokens) for rikere resultater.</string>
+    <string
+        name="setcat_safe_token_on"
+    >PÅ — Raskt &amp; billig. Sender minimalt med data (~1K tokens) til AI.</string>
+    <string
+        name="setcat_safe_token_off"
+    >AV — Dyp kontekst. Sender full lytteprofil (~8K tokens) for rikere resultater.</string>
     <string name="setcat_credentials">Innloggingsinformasjon</string>
     <string name="setcat_ai_api_key_title">%1$s API-nøkkel</string>
     <string name="setcat_ai_api_key_subtitle">Hent fra %1$s</string>
-    <string name="setcat_ai_source_gemini">Google AI Studio (aistudio.google.com)</string>
-    <string name="setcat_ai_source_deepseek">DeepSeek Platform (api.deepseek.com)</string>
-    <string name="setcat_ai_source_groq">Groq Console (console.groq.com)</string>
-    <string name="setcat_ai_source_mistral">Mistral AI Platform (console.mistral.ai)</string>
-    <string name="setcat_ai_source_nvidia">NVIDIA Build (build.nvidia.com)</string>
-    <string name="setcat_ai_source_kimi">Moonshot AI Platform (platform.moonshot.cn)</string>
-    <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
-    <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
+    <string
+        name="setcat_ai_source_gemini"
+    >Google AI Studio (aistudio.google.com)</string>
+    <string
+        name="setcat_ai_source_deepseek"
+    >DeepSeek Platform (api.deepseek.com)</string>
+    <string
+        name="setcat_ai_source_groq"
+    >Groq Console (console.groq.com)</string>
+    <string
+        name="setcat_ai_source_mistral"
+    >Mistral AI Platform (console.mistral.ai)</string>
+    <string
+        name="setcat_ai_source_nvidia"
+    >NVIDIA Build (build.nvidia.com)</string>
+    <string
+        name="setcat_ai_source_kimi"
+    >Moonshot AI Platform (platform.moonshot.cn)</string>
+    <string
+        name="setcat_ai_source_glm"
+    >Zhipu AI Open Platform (bigmodel.cn)</string>
+    <string
+        name="setcat_ai_source_openai"
+    >OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">Modellvalg</string>
     <string name="setcat_loading_models">Laster tilgjengelige modeller…</string>
     <string name="setcat_ai_model_label">AI-modell</string>
     <string name="setcat_ai_model_desc">Velg en modell.</string>
     <string name="setcat_prompt_behavior">Prompt-atferd</string>
     <string name="setcat_system_prompt_title">System-prompt</string>
-    <string name="setcat_system_prompt_subtitle">Tilpass hvordan AI-en oppfører seg.</string>
+    <string
+        name="setcat_system_prompt_subtitle"
+    >Tilpass hvordan AI-en oppfører seg.</string>
     <string name="setcat_ai_usage_report">AI-bruksrapport</string>
     <string name="setcat_total_consumption_title">Totalt forbruk</string>
-    <string name="setcat_ai_usage_tokens_subtitle">%1$s tokens sporing\nPrompt: %2$s | Output: %3$s | Tanke: %4$s</string>
+    <string
+        name="setcat_ai_usage_tokens_subtitle"
+    >%1$s tokens sporing\nPrompt: %2$s | Output: %3$s | Tanke: %4$s</string>
 
     <!-- Backup / developer / dialogs -->
     <string name="setcat_create_backup">Opprett sikkerhetskopi</string>
     <string name="setcat_export_backup_title">Eksporter sikkerhetskopi</string>
-    <string name="setcat_export_backup_subtitle">%1$s Oppretter en .pxpl-fil.</string>
-    <string name="setcat_restore_backup_section">Gjenopprett sikkerhetskopi</string>
+    <string
+        name="setcat_export_backup_subtitle"
+    >%1$s Oppretter en .pxpl-fil.</string>
+    <string
+        name="setcat_restore_backup_section"
+    >Gjenopprett sikkerhetskopi</string>
     <string name="setcat_import_backup_title">Importer sikkerhetskopi</string>
-    <string name="setcat_import_backup_subtitle">Bla gjennom eller velg fra nylige sikkerhetskopier. Valgte data vil erstatte gjeldende data.</string>
+    <string
+        name="setcat_import_backup_subtitle"
+    >Bla gjennom eller velg fra nylige sikkerhetskopier. Valgte data vil erstatte gjeldende data.</string>
     <string name="setcat_experiments">Eksperimenter</string>
     <string name="setcat_experimental_title">Eksperimentelt</string>
-    <string name="setcat_experimental_subtitle">Eksperimenter med innlasting av spiller-UI.</string>
+    <string
+        name="setcat_experimental_subtitle"
+    >Eksperimenter med innlasting av spiller-UI.</string>
     <string name="setcat_test_setup_title">Test oppsettsprosess</string>
-    <string name="setcat_test_setup_subtitle">Start onboarding-skjermen for testing.</string>
+    <string
+        name="setcat_test_setup_subtitle"
+    >Start onboarding-skjermen for testing.</string>
     <string name="setcat_maintenance">Vedlikehold</string>
-    <string name="setcat_force_daily_mix_title">Tving regenerering av Daily Mix</string>
-    <string name="setcat_force_daily_mix_subtitle">Gjenskaper Daily Mix-spillelisten umiddelbart.</string>
-    <string name="setcat_force_stats_title">Tving regenerering av statistikk</string>
-    <string name="setcat_force_stats_subtitle">Tømmer cache og beregner statistikk på nytt.</string>
-    <string name="setcat_force_palette_title">Tving regenerering av album-palett</string>
+    <string
+        name="setcat_force_daily_mix_title"
+    >Tving regenerering av Daily Mix</string>
+    <string
+        name="setcat_force_daily_mix_subtitle"
+    >Gjenskaper Daily Mix-spillelisten umiddelbart.</string>
+    <string
+        name="setcat_force_stats_title"
+    >Tving regenerering av statistikk</string>
+    <string
+        name="setcat_force_stats_subtitle"
+    >Tømmer cache og beregner statistikk på nytt.</string>
+    <string
+        name="setcat_force_palette_title"
+    >Tving regenerering av album-palett</string>
     <string name="setcat_diagnostics">Diagnostikk</string>
     <string name="setcat_trigger_crash_title">Utløs test-krasj</string>
-    <string name="setcat_trigger_crash_subtitle">Simuler et krasj for å teste rapporteringssystemet.</string>
+    <string
+        name="setcat_trigger_crash_subtitle"
+    >Simuler et krasj for å teste rapporteringssystemet.</string>
     <string name="setcat_application">Applikasjon</string>
     <string name="setcat_about_pixelplayer_title">Om PixelPlayer</string>
-    <string name="setcat_about_pixelplayer_subtitle">App-versjon, bidragsytere med mer.</string>
+    <string
+        name="setcat_about_pixelplayer_subtitle"
+    >App-versjon, bidragsytere med mer.</string>
 
     <string name="backup_summary_none">Ingen seksjoner valgt.</string>
     <string name="backup_summary_all">Alle seksjoner valgt.</string>
     <string name="backup_summary_partial">Valgt %1$d av %2$d seksjoner.</string>
     <string name="backup_how_title">Hvordan sikkerhetskopi fungerer</string>
-    <string name="backup_how_body">Velg seksjoner, eksporter en .pxpl-fil, og importer den senere. Gjenoppretting erstatter bare de valgte seksjonene.</string>
-    <string name="backup_dialog_supporting_export">Velg nøyaktig hva du vil inkludere i sikkerhetskopien.</string>
+    <string
+        name="backup_how_body"
+    >Velg seksjoner, eksporter en .pxpl-fil, og importer den senere. Gjenoppretting erstatter bare de valgte seksjonene.</string>
+    <string
+        name="backup_dialog_supporting_export"
+    >Velg nøyaktig hva du vil inkludere i sikkerhetskopien.</string>
     <string name="backup_confirm_export_pxpl">Eksporter .pxpl</string>
-    <string name="backup_sections_selected_format">%1$d av %2$d seksjoner valgt</string>
+    <string
+        name="backup_sections_selected_format"
+    >%1$d av %2$d seksjoner valgt</string>
     <string name="backup_transfer_in_progress">Overføring pågår…</string>
     <string name="backup_exporting">Eksporterer</string>
     <string name="backup_importing">Importerer</string>
     <string name="backup_dialog_creating">Oppretter sikkerhetskopi</string>
     <string name="backup_dialog_restoring">Gjenoppretter sikkerhetskopi</string>
     <string name="backup_step_format">Trinn %1$d av %2$d</string>
-    <string name="backup_entries_will_replace">%1$d oppføringer · Vil erstatte gjeldende data</string>
+    <string
+        name="backup_entries_will_replace"
+    >%1$d oppføringer · Vil erstatte gjeldende data</string>
 
-    <string name="dialog_palette_regenerated">Palett regenerert for %1$s</string>
-    <string name="dialog_palette_regenerate_failed">Kunne ikke regenerere palett for %1$s</string>
-    <string name="dialog_regenerating_palettes_title">Regenererer album-paletter…</string>
-    <string name="dialog_regenerate_palettes_title">Regenerer alle album-paletter?</string>
-    <string name="dialog_regenerate_palettes_progress_body">Gjenoppbygger cachede palettvarianter for %1$d unike albumkunst-bilder. Dette kan ta tid for store biblioteker.</string>
-    <string name="dialog_regenerate_palettes_confirm_body">Dette vil tømme cachede temadata og gjenoppbygge alle palettstiler for %1$d unike bilder.</string>
+    <string
+        name="dialog_palette_regenerated"
+    >Palett regenerert for %1$s</string>
+    <string
+        name="dialog_palette_regenerate_failed"
+    >Kunne ikke regenerere palett for %1$s</string>
+    <string
+        name="dialog_regenerating_palettes_title"
+    >Regenererer album-paletter…</string>
+    <string
+        name="dialog_regenerate_palettes_title"
+    >Regenerer alle album-paletter?</string>
+    <string
+        name="dialog_regenerate_palettes_progress_body"
+    >Gjenoppbygger cachede palettvarianter for %1$d unike albumkunst-bilder. Dette kan ta tid for store biblioteker.</string>
+    <string
+        name="dialog_regenerate_palettes_confirm_body"
+    >Dette vil tømme cachede temadata og gjenoppbygge alle palettstiler for %1$d unike bilder.</string>
     <string name="dialog_palette_progress_format">%1$d av %2$d fullført</string>
     <string name="working_ellipsis">Arbeider…</string>
     <string name="dialog_regenerate">Regenerer</string>
-    <string name="toast_regenerated_palettes_all">Regenererte %1$d paletter</string>
-    <string name="toast_regenerated_palettes_partial">Regenererte %1$d av %2$d paletter</string>
+    <string
+        name="toast_regenerated_palettes_all"
+    >Regenererte %1$d paletter</string>
+    <string
+        name="toast_regenerated_palettes_partial"
+    >Regenererte %1$d av %2$d paletter</string>
 
-    <string name="dialog_reset_lyrics_title">Nullstill importerte sangtekster?</string>
+    <string
+        name="dialog_reset_lyrics_title"
+    >Nullstill importerte sangtekster?</string>
     <string name="dialog_cannot_undo">Denne handlingen kan ikke angres.</string>
     <string name="confirm">Bekreft</string>
     <string name="dialog_rebuild_database_title">Gjenoppbygg database?</string>
-    <string name="dialog_rebuild_database_message">Dette vil gjenoppbygge musikkbiblioteket ditt helt fra bunnen av. Alle importerte sangtekster, favoritter og egendefinerte metadata vil gå tapt. Denne handlingen kan ikke angres.</string>
+    <string
+        name="dialog_rebuild_database_message"
+    >Dette vil gjenoppbygge musikkbiblioteket ditt helt fra bunnen av. Alle importerte sangtekster, favoritter og egendefinerte metadata vil gå tapt. Denne handlingen kan ikke angres.</string>
     <string name="rebuild">Gjenoppbygg</string>
     <string name="sync_indicator_rebuilding">Gjenoppbygger database</string>
     <string name="toast_rebuilding_database">Gjenoppbygger database…</string>
-    <string name="dialog_regenerate_daily_mix_title">Regenerer Daily Mix?</string>
-    <string name="dialog_regenerate_daily_mix_body">Dette vil forkaste gjeldende miks og generere en ny basert på lyttevaner.</string>
-    <string name="toast_daily_mix_regeneration_started">Regenerering av Daily Mix startet</string>
+    <string
+        name="dialog_regenerate_daily_mix_title"
+    >Regenerer Daily Mix?</string>
+    <string
+        name="dialog_regenerate_daily_mix_body"
+    >Dette vil forkaste gjeldende miks og generere en ny basert på lyttevaner.</string>
+    <string
+        name="toast_daily_mix_regeneration_started"
+    >Regenerering av Daily Mix startet</string>
     <string name="dialog_regenerate_stats_title">Regenerer statistikk?</string>
-    <string name="dialog_regenerate_stats_body">Dette vil tømme statistikk-cachen og tvinge en ny beregning fra databasen.</string>
-    <string name="toast_stats_regeneration_started">Regenerering av statistikk startet</string>
-    <string name="backup_file_name_format">PixelPlayer_Sikkerhetskopi_%1$d.pxpl</string>
+    <string
+        name="dialog_regenerate_stats_body"
+    >Dette vil tømme statistikk-cachen og tvinge en ny beregning fra databasen.</string>
+    <string
+        name="toast_stats_regeneration_started"
+    >Regenerering av statistikk startet</string>
+    <string
+        name="backup_file_name_format"
+    >PixelPlayer_Sikkerhetskopi_%1$d.pxpl</string>
 
-    <string name="setcat_regenerate_daily_mix_action">Regenerer Daily Mix</string>
+    <string
+        name="setcat_regenerate_daily_mix_action"
+    >Regenerer Daily Mix</string>
     <string name="setcat_regenerate_stats_action">Regenerer statistikk</string>
-    <string name="setcat_force_palette_empty">Ingen sanger med albumkunst ble funnet.</string>
-    <string name="setcat_force_palette_subtitle">Gjenoppbygg alle cachede palettvarianter for hver albumkunst, eller velg en sang for å oppdatere.</string>
+    <string
+        name="setcat_force_palette_empty"
+    >Ingen sanger med albumkunst ble funnet.</string>
+    <string
+        name="setcat_force_palette_subtitle"
+    >Gjenoppbygg alle cachede palettvarianter for hver albumkunst, eller velg en sang for å oppdatere.</string>
     <string name="setcat_regenerate_all">Regenerer alle</string>
     <string name="setcat_regenerating">Regenererer…</string>
     <string name="setcat_choose_song">Velg sang</string>
 
     <string name="setcat_ai_clear_logs">Tøm logger</string>
-    <string name="setcat_ai_activity_log_title">AI-aktivitetslogg (%1$d)</string>
+    <string
+        name="setcat_ai_activity_log_title"
+    >AI-aktivitetslogg (%1$d)</string>
     <string name="cd_show">Vis</string>
     <string name="cd_hide">Skjul</string>
     <string name="setcat_select_export">Velg og eksporter</string>
@@ -288,16 +530,30 @@
     <string name="import_backup_toolbar_title">Importer sikkerhetskopi</string>
     <string name="import_inspecting">Inspiserer…</string>
     <string name="import_browse_file">Bla etter fil</string>
-    <string name="import_backup_hint">Velg en .pxpl-fil for inspeksjon. Du velger hvilke seksjoner som skal gjenopprettes i neste trinn.</string>
+    <string
+        name="import_backup_hint"
+    >Velg en .pxpl-fil for inspeksjon. Du velger hvilke seksjoner som skal gjenopprettes i neste trinn.</string>
     <string name="import_recent_backups">Nylige sikkerhetskopier</string>
     <string name="import_no_recent_title">Ingen nylige sikkerhetskopier</string>
-    <string name="import_no_recent_subtitle">Tidligere importerte sikkerhetskopier vil vises her.</string>
-    <string name="palette_force_regenerate_title">Tving regenerering av album-palett</string>
-    <string name="palette_force_regenerate_subtitle">Velg en sang for å tømme cachede temadata og regenerere alle palettstiler fra albumkunsten.</string>
-    <string name="search_songs_by_title_artist_album">Søk etter tittel, artist eller album</string>
+    <string
+        name="import_no_recent_subtitle"
+    >Tidligere importerte sikkerhetskopier vil vises her.</string>
+    <string
+        name="palette_force_regenerate_title"
+    >Tving regenerering av album-palett</string>
+    <string
+        name="palette_force_regenerate_subtitle"
+    >Velg en sang for å tømme cachede temadata og regenerere alle palettstiler fra albumkunsten.</string>
+    <string
+        name="search_songs_by_title_artist_album"
+    >Søk etter tittel, artist eller album</string>
     <string name="palette_regenerating_progress">Regenererer palett…</string>
-    <string name="search_no_songs_match">Ingen sanger samsvarer med søket ditt.</string>
+    <string
+        name="search_no_songs_match"
+    >Ingen sanger samsvarer med søket ditt.</string>
     <string name="cd_remove_from_history">Fjern fra historikk</string>
     <string name="cd_clear_search">Tøm søk</string>
-    <string name="backup_history_modules_line">%1$d moduler · v%2$s · skjema v%3$d</string>
+    <string
+        name="backup_history_modules_line"
+    >%1$d moduler · v%2$s · skjema v%3$d</string>
 </resources>

@@ -1,31 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Pengaturan</string>
     <string name="settings_accounts_row_title">Akun</string>
-    <string name="settings_accounts_row_subtitle">Kelola Telegram, Google Drive, NetEase, dan layanan lainnya</string>
+    <string
+        name="settings_accounts_row_subtitle"
+    >Kelola Telegram, Google Drive, NetEase, dan layanan lainnya</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Manajemen Musik</string>
-    <string name="settings_category_library_subtitle">Kelola folder, segarkan pustaka, opsi penguraian</string>
+    <string
+        name="settings_category_library_subtitle"
+    >Kelola folder, segarkan pustaka, opsi penguraian</string>
     <string name="settings_category_appearance_title">Tampilan</string>
-    <string name="settings_category_appearance_subtitle">Tema, tata letak, dan gaya visual</string>
+    <string
+        name="settings_category_appearance_subtitle"
+    >Tema, tata letak, dan gaya visual</string>
     <string name="settings_category_playback_title">Pemutaran</string>
-    <string name="settings_category_playback_subtitle">Perilaku audio, crossfade, dan putar latar belakang</string>
+    <string
+        name="settings_category_playback_subtitle"
+    >Perilaku audio, crossfade, dan putar latar belakang</string>
     <string name="settings_category_behavior_title">Perilaku</string>
-    <string name="settings_category_behavior_subtitle">Gerakan, haptik, dan perilaku navigasi</string>
+    <string
+        name="settings_category_behavior_subtitle"
+    >Gerakan, haptik, dan perilaku navigasi</string>
     <string name="settings_category_ai_title">Integrasi AI (β)</string>
-    <string name="settings_category_ai_subtitle">Penyedia AI, kunci API, dan pengaturan model</string>
-    <string name="settings_category_backup_title">Cadangkan &amp; Pulihkan</string>
-    <string name="settings_category_backup_subtitle">Ekspor dan pulihkan data aplikasi pribadi Anda</string>
+    <string
+        name="settings_category_ai_subtitle"
+    >Penyedia AI, kunci API, dan pengaturan model</string>
+    <string
+        name="settings_category_backup_title"
+    >Cadangkan &amp; Pulihkan</string>
+    <string
+        name="settings_category_backup_subtitle"
+    >Ekspor dan pulihkan data aplikasi pribadi Anda</string>
     <string name="settings_category_developer_title">Opsi Pengembang</string>
-    <string name="settings_category_developer_subtitle">Fitur eksperimental dan debugging</string>
+    <string
+        name="settings_category_developer_subtitle"
+    >Fitur eksperimental dan debugging</string>
     <string name="settings_category_equalizer_title">Equalizer</string>
-    <string name="settings_category_equalizer_subtitle">Sesuaikan frekuensi audio dan preset</string>
-    <string name="settings_category_device_capabilities_title">Kemampuan Perangkat</string>
-    <string name="settings_category_device_capabilities_subtitle">Spek audio, codec, dan info dekoder</string>
+    <string
+        name="settings_category_equalizer_subtitle"
+    >Sesuaikan frekuensi audio dan preset</string>
+    <string
+        name="settings_category_device_capabilities_title"
+    >Kemampuan Perangkat</string>
+    <string
+        name="settings_category_device_capabilities_subtitle"
+    >Spek audio, codec, dan info dekoder</string>
     <string name="settings_category_about_title">Tentang</string>
-    <string name="settings_category_about_subtitle">Info aplikasi, versi, dan kredit</string>
+    <string
+        name="settings_category_about_subtitle"
+    >Info aplikasi, versi, dan kredit</string>
 
     <!-- Common toggles / labels used in ThemeSelectorItem maps -->
     <string name="label_on">Nyala</string>
@@ -39,34 +65,68 @@
 
     <!-- Library category -->
     <string name="setcat_library_structure">Struktur Pustaka</string>
-    <string name="setcat_excluded_directories_title">Direktori yang Dikecualikan</string>
-    <string name="setcat_excluded_directories_subtitle">Folder di sini akan dilewati saat memindai pustaka Anda.</string>
+    <string
+        name="setcat_excluded_directories_title"
+    >Direktori yang Dikecualikan</string>
+    <string
+        name="setcat_excluded_directories_subtitle"
+    >Folder di sini akan dilewati saat memindai pustaka Anda.</string>
     <string name="setcat_artists_title">Artis</string>
-    <string name="setcat_artists_subtitle">Opsi penguraian dan pengorganisasian multi-artis.</string>
+    <string
+        name="setcat_artists_subtitle"
+    >Opsi penguraian dan pengorganisasian multi-artis.</string>
     <string name="setcat_filtering">Penyaringan</string>
     <string name="setcat_min_song_duration">Durasi Lagu Minimum</string>
-    <string name="setcat_min_tracks_per_album">Jumlah Trek Minimum per Album</string>
-    <string name="setcat_album_art_cache_limit">Batas Cache Sampul Album</string>
-    <string name="setcat_album_art_cache_limit_desc">Ukuran cache maksimum sebelum gambar terlama dihapus otomatis</string>
+    <string
+        name="setcat_min_tracks_per_album"
+    >Jumlah Trek Minimum per Album</string>
+    <string
+        name="setcat_album_art_cache_limit"
+    >Batas Cache Sampul Album</string>
+    <string
+        name="setcat_album_art_cache_limit_desc"
+    >Ukuran cache maksimum sebelum gambar terlama dihapus otomatis</string>
     <string name="setcat_sync_scanning">Sinkronisasi dan Pemindaian</string>
-    <string name="setcat_sync_full_rescan_label">Menjalankan pemindaian ulang penuh</string>
-    <string name="toast_library_sync_finished">Sinkronisasi pustaka selesai</string>
-    <string name="toast_full_rescan_started">Pemindaian ulang penuh dimulai…</string>
+    <string
+        name="setcat_sync_full_rescan_label"
+    >Menjalankan pemindaian ulang penuh</string>
+    <string
+        name="toast_library_sync_finished"
+    >Sinkronisasi pustaka selesai</string>
+    <string
+        name="toast_full_rescan_started"
+    >Pemindaian ulang penuh dimulai…</string>
     <string name="setcat_auto_scan_lrc_title">Pindai otomatis file .lrc</string>
-    <string name="setcat_auto_scan_lrc_subtitle">Secara otomatis memindai dan menetapkan file .lrc di folder yang sama selama sinkronisasi pustaka.</string>
+    <string
+        name="setcat_auto_scan_lrc_subtitle"
+    >Secara otomatis memindai dan menetapkan file .lrc di folder yang sama selama sinkronisasi pustaka.</string>
     <string name="setcat_lyrics_management">Manajemen Lirik</string>
-    <string name="setcat_lyrics_source_priority_label">Prioritas Sumber Lirik</string>
-    <string name="setcat_lyrics_source_priority_desc">Pilih sumber mana yang akan dicoba terlebih dahulu saat mengambil lirik.</string>
-    <string name="setcat_lyrics_embedded_first">Tertanam Terlebih Dahulu</string>
+    <string
+        name="setcat_lyrics_source_priority_label"
+    >Prioritas Sumber Lirik</string>
+    <string
+        name="setcat_lyrics_source_priority_desc"
+    >Pilih sumber mana yang akan dicoba terlebih dahulu saat mengambil lirik.</string>
+    <string
+        name="setcat_lyrics_embedded_first"
+    >Tertanam Terlebih Dahulu</string>
     <string name="setcat_lyrics_online_first">Online Terlebih Dahulu</string>
-    <string name="setcat_lyrics_local_first">Lokal (.lrc) Terlebih Dahulu</string>
-    <string name="setcat_reset_imported_lyrics_title">Reset Lirik yang Diimpor</string>
-    <string name="setcat_reset_imported_lyrics_subtitle">Hapus semua lirik yang diimpor dari database.</string>
+    <string
+        name="setcat_lyrics_local_first"
+    >Lokal (.lrc) Terlebih Dahulu</string>
+    <string
+        name="setcat_reset_imported_lyrics_title"
+    >Reset Lirik yang Diimpor</string>
+    <string
+        name="setcat_reset_imported_lyrics_subtitle"
+    >Hapus semua lirik yang diimpor dari database.</string>
 
     <!-- Appearance -->
     <string name="setcat_global_theme">Tema Global</string>
     <string name="setcat_language_label">Bahasa Aplikasi</string>
-    <string name="setcat_language_desc">Pilih bahasa yang digunakan di seluruh antarmuka aplikasi.</string>
+    <string
+        name="setcat_language_desc"
+    >Pilih bahasa yang digunakan di seluruh antarmuka aplikasi.</string>
     <string name="setcat_language_system">Default sistem</string>
     <string name="setcat_language_english">Inggris</string>
     <string name="setcat_language_spanish">Spanyol</string>
@@ -77,202 +137,388 @@
     <string name="setcat_language_indonesian">Indonesia</string>
     <string name="setcat_language_italian">Italia</string>
     <string name="setcat_app_theme_label">Tema Aplikasi</string>
-    <string name="setcat_app_theme_desc">Beralih antara terang, gelap, atau ikuti tampilan sistem.</string>
+    <string
+        name="setcat_app_theme_desc"
+    >Beralih antara terang, gelap, atau ikuti tampilan sistem.</string>
     <string name="setcat_theme_light">Tema Terang</string>
     <string name="setcat_theme_dark">Tema Gelap</string>
     <string name="setcat_theme_follow_system">Ikuti Sistem</string>
     <string name="setcat_smooth_corners_title">Gunakan Sudut Halus</string>
-    <string name="setcat_smooth_corners_subtitle">Gunakan sudut berbentuk kompleks yang secara efektif meningkatkan estetika tetapi mungkin memengaruhi performa pada perangkat berspesifikasi rendah</string>
+    <string
+        name="setcat_smooth_corners_subtitle"
+    >Gunakan sudut berbentuk kompleks yang secara efektif meningkatkan estetika tetapi mungkin memengaruhi performa pada perangkat berspesifikasi rendah</string>
     <string name="setcat_now_playing">Sedang Diputar</string>
     <string name="setcat_player_theme_label">Tema Pemutar</string>
-    <string name="setcat_player_theme_desc">Pilih tampilan untuk pemutar melayang.</string>
+    <string
+        name="setcat_player_theme_desc"
+    >Pilih tampilan untuk pemutar melayang.</string>
     <string name="setcat_player_theme_album_art">Sampul Album</string>
     <string name="setcat_player_theme_dynamic">Dinamis Sistem</string>
-    <string name="setcat_show_player_file_info_title">Tampilkan info file pemutar</string>
-    <string name="setcat_show_player_file_info_subtitle">Tampilkan codec, bitrate, dan sample rate di bagian progres pemutar.</string>
-    <string name="setcat_album_art_palette_title">Gaya Palet Sampul Album</string>
-    <string name="setcat_album_art_palette_subtitle">Saat ini: %1$s. Buka pratinjau langsung dan pilih gaya.</string>
+    <string
+        name="setcat_show_player_file_info_title"
+    >Tampilkan info file pemutar</string>
+    <string
+        name="setcat_show_player_file_info_subtitle"
+    >Tampilkan codec, bitrate, dan sample rate di bagian progres pemutar.</string>
+    <string
+        name="setcat_album_art_palette_title"
+    >Gaya Palet Sampul Album</string>
+    <string
+        name="setcat_album_art_palette_subtitle"
+    >Saat ini: %1$s. Buka pratinjau langsung dan pilih gaya.</string>
     <string name="setcat_carousel_style_label">Gaya Karousel</string>
-    <string name="setcat_carousel_style_desc">Pilih tampilan untuk karousel album.</string>
+    <string
+        name="setcat_carousel_style_desc"
+    >Pilih tampilan untuk karousel album.</string>
     <string name="setcat_carousel_no_peek">Tanpa Intip</string>
     <string name="setcat_carousel_one_peek">Satu Intip</string>
     <string name="setcat_home_collage">Kolase Beranda</string>
     <string name="setcat_collage_pattern_label">Pola Kolase</string>
-    <string name="setcat_collage_pattern_desc">Pilih susunan bentuk untuk kolase Mix Anda.</string>
-    <string name="setcat_auto_rotate_patterns_title">Putar Pola Otomatis</string>
-    <string name="setcat_auto_rotate_patterns_subtitle">Berganti-ganti pola kolase setiap kali Anda mengunjungi Beranda.</string>
+    <string
+        name="setcat_collage_pattern_desc"
+    >Pilih susunan bentuk untuk kolase Mix Anda.</string>
+    <string
+        name="setcat_auto_rotate_patterns_title"
+    >Putar Pola Otomatis</string>
+    <string
+        name="setcat_auto_rotate_patterns_subtitle"
+    >Berganti-ganti pola kolase setiap kali Anda mengunjungi Beranda.</string>
     <string name="setcat_navigation_bar">Bilah Navigasi</string>
     <string name="setcat_navbar_style_label">Gaya NavBar</string>
-    <string name="setcat_navbar_style_desc">Pilih tampilan untuk bilah navigasi.</string>
+    <string
+        name="setcat_navbar_style_desc"
+    >Pilih tampilan untuk bilah navigasi.</string>
     <string name="setcat_navbar_style_default">Default</string>
     <string name="setcat_navbar_style_full_width">Lebar Penuh</string>
     <string name="setcat_compact_mode_title">Mode ringkas</string>
-    <string name="setcat_compact_mode_subtitle">Tampilkan hanya ikon dan kurangi tinggi navbar.</string>
+    <string
+        name="setcat_compact_mode_subtitle"
+    >Tampilkan hanya ikon dan kurangi tinggi navbar.</string>
     <string name="setcat_navbar_corner_title">Radius Sudut NavBar</string>
-    <string name="setcat_navbar_corner_subtitle">Sesuaikan radius sudut bilah navigasi.</string>
+    <string
+        name="setcat_navbar_corner_subtitle"
+    >Sesuaikan radius sudut bilah navigasi.</string>
     <string name="setcat_lyrics_screen">Layar Lirik</string>
     <string name="setcat_immersive_lyrics_title">Lirik Imersif</string>
-    <string name="setcat_immersive_lyrics_subtitle">Sembunyikan kontrol otomatis dan perbesar teks.</string>
-    <string name="setcat_auto_hide_delay_label">Penundaan Sembunyi Otomatis</string>
-    <string name="setcat_auto_hide_delay_desc">Waktu sebelum kontrol disembunyikan.</string>
+    <string
+        name="setcat_immersive_lyrics_subtitle"
+    >Sembunyikan kontrol otomatis dan perbesar teks.</string>
+    <string
+        name="setcat_auto_hide_delay_label"
+    >Penundaan Sembunyi Otomatis</string>
+    <string
+        name="setcat_auto_hide_delay_desc"
+    >Waktu sebelum kontrol disembunyikan.</string>
     <string name="setcat_lyrics_delay_3s">3d</string>
     <string name="setcat_lyrics_delay_4s">4d</string>
     <string name="setcat_lyrics_delay_5s">5d</string>
     <string name="setcat_lyrics_delay_6s">6d</string>
     <string name="setcat_app_navigation_section">Navigasi Aplikasi</string>
     <string name="setcat_default_tab_label">Tab Default</string>
-    <string name="setcat_default_tab_desc">Pilih tab peluncuran Default.</string>
+    <string
+        name="setcat_default_tab_desc"
+    >Pilih tab peluncuran Default.</string>
     <string name="tab_home">Beranda</string>
     <string name="setcat_library_navigation_label">Navigasi Pustaka</string>
-    <string name="setcat_library_navigation_desc">Pilih cara berpindah antar tab Pustaka.</string>
+    <string
+        name="setcat_library_navigation_desc"
+    >Pilih cara berpindah antar tab Pustaka.</string>
     <string name="setcat_library_nav_tab_row">Baris tab (default)</string>
-    <string name="setcat_library_nav_compact_pill">Pil ringkas &amp; kisi</string>
+    <string
+        name="setcat_library_nav_compact_pill"
+    >Pil ringkas &amp; kisi</string>
 
     <!-- Playback -->
     <string name="setcat_background_playback">Pemutaran Latar Belakang</string>
-    <string name="setcat_keep_playing_label">Tetap putar setelah ditutup</string>
-    <string name="setcat_keep_playing_desc">Jika mati, menghapus aplikasi dari daftar terbaru akan menghentikan pemutaran.</string>
-    <string name="setcat_battery_optimization_title">Optimalisasi Baterai</string>
-    <string name="setcat_battery_optimization_subtitle">Nonaktifkan optimalisasi baterai untuk mencegah gangguan pemutaran.</string>
-    <string name="toast_battery_already_disabled">Optimalisasi baterai sudah dinonaktifkan</string>
-    <string name="setcat_replaygain_section">Normalisasi Volume (ReplayGain)</string>
+    <string
+        name="setcat_keep_playing_label"
+    >Tetap putar setelah ditutup</string>
+    <string
+        name="setcat_keep_playing_desc"
+    >Jika mati, menghapus aplikasi dari daftar terbaru akan menghentikan pemutaran.</string>
+    <string
+        name="setcat_battery_optimization_title"
+    >Optimalisasi Baterai</string>
+    <string
+        name="setcat_battery_optimization_subtitle"
+    >Nonaktifkan optimalisasi baterai untuk mencegah gangguan pemutaran.</string>
+    <string
+        name="toast_battery_already_disabled"
+    >Optimalisasi baterai sudah dinonaktifkan</string>
+    <string
+        name="setcat_replaygain_section"
+    >Normalisasi Volume (ReplayGain)</string>
     <string name="setcat_replaygain_enable_title">Aktifkan ReplayGain</string>
-    <string name="setcat_replaygain_enable_subtitle">Normalkan tingkat volume menggunakan metadata ReplayGain dari file audio.</string>
+    <string
+        name="setcat_replaygain_enable_subtitle"
+    >Normalkan tingkat volume menggunakan metadata ReplayGain dari file audio.</string>
     <string name="setcat_gain_mode_label">Mode Gain</string>
-    <string name="setcat_gain_mode_desc">Trek: normalkan setiap lagu. Album: normalkan per album.</string>
+    <string
+        name="setcat_gain_mode_desc"
+    >Trek: normalkan setiap lagu. Album: normalkan per album.</string>
     <string name="setcat_gain_mode_track">Trek</string>
     <string name="setcat_gain_mode_album">Album</string>
     <string name="setcat_cast">Cast</string>
-    <string name="setcat_cast_autoplay_label">Putar otomatis saat cast terhubung/terputus</string>
-    <string name="setcat_cast_autoplay_desc">Mulai memutar segera setelah beralih koneksi cast.</string>
+    <string
+        name="setcat_cast_autoplay_label"
+    >Putar otomatis saat cast terhubung/terputus</string>
+    <string
+        name="setcat_cast_autoplay_desc"
+    >Mulai memutar segera setelah beralih koneksi cast.</string>
     <string name="setcat_headphones">Headphone</string>
-    <string name="setcat_headphones_resume_title">Lanjutkan saat headphone terhubung kembali</string>
-    <string name="setcat_headphones_resume_subtitle">Jika pemutaran dijeda karena headphone dilepas, lanjutkan secara otomatis saat terhubung kembali.</string>
+    <string
+        name="setcat_headphones_resume_title"
+    >Lanjutkan saat headphone terhubung kembali</string>
+    <string
+        name="setcat_headphones_resume_subtitle"
+    >Jika pemutaran dijeda karena headphone dilepas, lanjutkan secara otomatis saat terhubung kembali.</string>
     <string name="setcat_queue_transitions">Antrean dan Transisi</string>
     <string name="setcat_crossfade_label">Crossfade</string>
-    <string name="setcat_crossfade_desc">Aktifkan transisi halus antar lagu.</string>
+    <string
+        name="setcat_crossfade_desc"
+    >Aktifkan transisi halus antar lagu.</string>
     <string name="setcat_crossfade_duration">Durasi Crossfade</string>
     <string name="setcat_hifi_mode_title">Mode Hi-Fi</string>
-    <string name="setcat_hifi_mode_subtitle_supported">Output audio Float 32-bit. Nonaktifkan jika pemutaran tersendat di perangkat Anda.</string>
-    <string name="setcat_hifi_mode_subtitle_unsupported">Tidak didukung di perangkat ini (PCM_FLOAT AudioTrack tidak tersedia).</string>
+    <string
+        name="setcat_hifi_mode_subtitle_supported"
+    >Output audio Float 32-bit. Nonaktifkan jika pemutaran tersendat di perangkat Anda.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_unsupported"
+    >Tidak didukung di perangkat ini (PCM_FLOAT AudioTrack tidak tersedia).</string>
     <string name="setcat_persistent_shuffle_title">Acak Persisten</string>
-    <string name="setcat_persistent_shuffle_subtitle">Ingat pengaturan acak bahkan setelah menutup aplikasi.</string>
-    <string name="setcat_show_queue_history_title">Tampilkan riwayat antrean</string>
-    <string name="setcat_show_queue_history_subtitle">Tampilkan lagu yang diputar sebelumnya di antrean.</string>
+    <string
+        name="setcat_persistent_shuffle_subtitle"
+    >Ingat pengaturan acak bahkan setelah menutup aplikasi.</string>
+    <string
+        name="setcat_show_queue_history_title"
+    >Tampilkan riwayat antrean</string>
+    <string
+        name="setcat_show_queue_history_subtitle"
+    >Tampilkan lagu yang diputar sebelumnya di antrean.</string>
 
     <!-- Behavior -->
     <string name="setcat_folders">Folder</string>
-    <string name="setcat_folder_back_gesture_title">Gerakan kembali mengontrol folder</string>
-    <string name="setcat_folder_back_gesture_subtitle">Di tab Folder, tombol kembali sistem menavigasi tumpukan folder sebelum meninggalkan Pustaka.</string>
+    <string
+        name="setcat_folder_back_gesture_title"
+    >Gerakan kembali mengontrol folder</string>
+    <string
+        name="setcat_folder_back_gesture_subtitle"
+    >Di tab Folder, tombol kembali sistem menavigasi tumpukan folder sebelum meninggalkan Pustaka.</string>
     <string name="setcat_player_gestures">Gerakan Pemutar</string>
-    <string name="setcat_tap_bg_closes_title">Ketuk latar belakang menutup pemutar</string>
-    <string name="setcat_tap_bg_closes_subtitle">Ketuk latar belakang yang kabur untuk menutup panel pemutar.</string>
+    <string
+        name="setcat_tap_bg_closes_title"
+    >Ketuk latar belakang menutup pemutar</string>
+    <string
+        name="setcat_tap_bg_closes_subtitle"
+    >Ketuk latar belakang yang kabur untuk menutup panel pemutar.</string>
     <string name="setcat_haptics">Haptic</string>
     <string name="setcat_haptic_feedback_title">Haptic feedback</string>
-    <string name="setcat_haptic_feedback_subtitle">Aktifkan haptic feedback di seluruh aplikasi.</string>
+    <string
+        name="setcat_haptic_feedback_subtitle"
+    >Aktifkan haptic feedback di seluruh aplikasi.</string>
 
     <!-- AI -->
     <string name="setcat_ai_provider_section">Penyedia AI</string>
     <string name="setcat_ai_provider_label">Penyedia</string>
     <string name="setcat_ai_provider_desc">Pilih penyedia AI Anda</string>
     <string name="setcat_safe_token_title">Mode Token Aman</string>
-    <string name="setcat_safe_token_on">NYALA — Cepat &amp; murah. Mengirim data minimal (~1K token) ke AI.</string>
-    <string name="setcat_safe_token_off">MATI — Konteks mendalam. Mengirim profil mendengarkan lengkap (~8K token) untuk hasil yang lebih kaya.</string>
+    <string
+        name="setcat_safe_token_on"
+    >NYALA — Cepat &amp; murah. Mengirim data minimal (~1K token) ke AI.</string>
+    <string
+        name="setcat_safe_token_off"
+    >MATI — Konteks mendalam. Mengirim profil mendengarkan lengkap (~8K token) untuk hasil yang lebih kaya.</string>
     <string name="setcat_credentials">Kredensial</string>
     <string name="setcat_ai_api_key_title">API Key %1$s</string>
     <string name="setcat_ai_api_key_subtitle">Dapatkan dari %1$s</string>
-    <string name="setcat_ai_source_gemini">Google AI Studio (aistudio.google.com)</string>
-    <string name="setcat_ai_source_deepseek">DeepSeek Platform (api.deepseek.com)</string>
-    <string name="setcat_ai_source_groq">Groq Console (console.groq.com)</string>
-    <string name="setcat_ai_source_mistral">Mistral AI Platform (console.mistral.ai)</string>
-    <string name="setcat_ai_source_nvidia">NVIDIA Build (build.nvidia.com)</string>
-    <string name="setcat_ai_source_kimi">Moonshot AI Platform (platform.moonshot.cn)</string>
-    <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
-    <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
+    <string
+        name="setcat_ai_source_gemini"
+    >Google AI Studio (aistudio.google.com)</string>
+    <string
+        name="setcat_ai_source_deepseek"
+    >DeepSeek Platform (api.deepseek.com)</string>
+    <string
+        name="setcat_ai_source_groq"
+    >Groq Console (console.groq.com)</string>
+    <string
+        name="setcat_ai_source_mistral"
+    >Mistral AI Platform (console.mistral.ai)</string>
+    <string
+        name="setcat_ai_source_nvidia"
+    >NVIDIA Build (build.nvidia.com)</string>
+    <string
+        name="setcat_ai_source_kimi"
+    >Moonshot AI Platform (platform.moonshot.cn)</string>
+    <string
+        name="setcat_ai_source_glm"
+    >Zhipu AI Open Platform (bigmodel.cn)</string>
+    <string
+        name="setcat_ai_source_openai"
+    >OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">Pemilihan Model</string>
     <string name="setcat_loading_models">Memuat model yang tersedia…</string>
     <string name="setcat_ai_model_label">Model AI</string>
     <string name="setcat_ai_model_desc">Pilih sebuah model.</string>
     <string name="setcat_prompt_behavior">Perilaku Prompt</string>
     <string name="setcat_system_prompt_title">Prompt Sistem</string>
-    <string name="setcat_system_prompt_subtitle">Sesuaikan cara AI berperilaku.</string>
+    <string
+        name="setcat_system_prompt_subtitle"
+    >Sesuaikan cara AI berperilaku.</string>
     <string name="setcat_ai_usage_report">Laporan Penggunaan AI</string>
     <string name="setcat_total_consumption_title">Total Konsumsi</string>
-    <string name="setcat_ai_usage_tokens_subtitle">Pelacakan %1$s token\nPrompt: %2$s | Output: %3$s | Pemikiran: %4$s</string>
+    <string
+        name="setcat_ai_usage_tokens_subtitle"
+    >Pelacakan %1$s token\nPrompt: %2$s | Output: %3$s | Pemikiran: %4$s</string>
 
     <!-- Backup / developer / dialogs -->
     <string name="setcat_create_backup">Buat Cadangan</string>
     <string name="setcat_export_backup_title">Ekspor Cadangan</string>
-    <string name="setcat_export_backup_subtitle">%1$s Membuat file cadangan .pxpl.</string>
+    <string
+        name="setcat_export_backup_subtitle"
+    >%1$s Membuat file cadangan .pxpl.</string>
     <string name="setcat_restore_backup_section">Pulihkan Cadangan</string>
     <string name="setcat_import_backup_title">Impor Cadangan</string>
-    <string name="setcat_import_backup_subtitle">Telusuri atau pilih dari cadangan terbaru. Data yang dipilih akan menggantikan data saat ini.</string>
+    <string
+        name="setcat_import_backup_subtitle"
+    >Telusuri atau pilih dari cadangan terbaru. Data yang dipilih akan menggantikan data saat ini.</string>
     <string name="setcat_experiments">Eksperimen</string>
     <string name="setcat_experimental_title">Eksperimental</string>
-    <string name="setcat_experimental_subtitle">Eksperimen pemuatan UI pemutar dan tombol pengalih.</string>
+    <string
+        name="setcat_experimental_subtitle"
+    >Eksperimen pemuatan UI pemutar dan tombol pengalih.</string>
     <string name="setcat_test_setup_title">Uji Alur Penyiapan</string>
-    <string name="setcat_test_setup_subtitle">Luncurkan layar penyiapan orientasi untuk pengujian.</string>
+    <string
+        name="setcat_test_setup_subtitle"
+    >Luncurkan layar penyiapan orientasi untuk pengujian.</string>
     <string name="setcat_maintenance">Pemeliharaan</string>
-    <string name="setcat_force_daily_mix_title">Paksa Regenerasi Daily Mix</string>
-    <string name="setcat_force_daily_mix_subtitle">Membuat ulang daftar putar daily mix segera.</string>
+    <string
+        name="setcat_force_daily_mix_title"
+    >Paksa Regenerasi Daily Mix</string>
+    <string
+        name="setcat_force_daily_mix_subtitle"
+    >Membuat ulang daftar putar daily mix segera.</string>
     <string name="setcat_force_stats_title">Paksa Regenerasi Statistik</string>
-    <string name="setcat_force_stats_subtitle">Bersihkan cache dan hitung ulang statistik pemutaran.</string>
-    <string name="setcat_force_palette_title">Paksa Regenerasi Palet Album</string>
+    <string
+        name="setcat_force_stats_subtitle"
+    >Bersihkan cache dan hitung ulang statistik pemutaran.</string>
+    <string
+        name="setcat_force_palette_title"
+    >Paksa Regenerasi Palet Album</string>
     <string name="setcat_diagnostics">Diagnostik</string>
     <string name="setcat_trigger_crash_title">Picu Crash Uji Coba</string>
-    <string name="setcat_trigger_crash_subtitle">Simulasikan crash untuk menguji sistem pelaporan crash.</string>
+    <string
+        name="setcat_trigger_crash_subtitle"
+    >Simulasikan crash untuk menguji sistem pelaporan crash.</string>
     <string name="setcat_application">Aplikasi</string>
     <string name="setcat_about_pixelplayer_title">Tentang PixelPlayer</string>
-    <string name="setcat_about_pixelplayer_subtitle">Versi aplikasi, kredit, dan lainnya.</string>
+    <string
+        name="setcat_about_pixelplayer_subtitle"
+    >Versi aplikasi, kredit, dan lainnya.</string>
 
     <string name="backup_summary_none">Tidak ada bagian yang dipilih.</string>
     <string name="backup_summary_all">Semua bagian dipilih.</string>
-    <string name="backup_summary_partial">Terpilih %1$d dari %2$d bagian.</string>
+    <string
+        name="backup_summary_partial"
+    >Terpilih %1$d dari %2$d bagian.</string>
     <string name="backup_how_title">Cara kerja pencadangan</string>
-    <string name="backup_how_body">Pilih bagian, ekspor file .pxpl, dan impor nanti. Pemulihan hanya menggantikan bagian yang Anda pilih.</string>
-    <string name="backup_dialog_supporting_export">Pilih dengan tepat apa yang ingin Anda sertakan dalam paket cadangan.</string>
+    <string
+        name="backup_how_body"
+    >Pilih bagian, ekspor file .pxpl, dan impor nanti. Pemulihan hanya menggantikan bagian yang Anda pilih.</string>
+    <string
+        name="backup_dialog_supporting_export"
+    >Pilih dengan tepat apa yang ingin Anda sertakan dalam paket cadangan.</string>
     <string name="backup_confirm_export_pxpl">Ekspor .pxpl</string>
-    <string name="backup_sections_selected_format">%1$d dari %2$d bagian terpilih</string>
-    <string name="backup_transfer_in_progress">Transfer sedang berlangsung…</string>
+    <string
+        name="backup_sections_selected_format"
+    >%1$d dari %2$d bagian terpilih</string>
+    <string
+        name="backup_transfer_in_progress"
+    >Transfer sedang berlangsung…</string>
     <string name="backup_exporting">Mengekspor</string>
     <string name="backup_importing">Mengimpor</string>
     <string name="backup_dialog_creating">Membuat Cadangan</string>
     <string name="backup_dialog_restoring">Memulihkan Cadangan</string>
     <string name="backup_step_format">Langkah %1$d dari %2$d</string>
-    <string name="backup_entries_will_replace">%1$d entri · Akan menggantikan data saat ini</string>
+    <string
+        name="backup_entries_will_replace"
+    >%1$d entri · Akan menggantikan data saat ini</string>
 
-    <string name="dialog_palette_regenerated">Palet diregenerasi untuk %1$s</string>
-    <string name="dialog_palette_regenerate_failed">Tidak dapat meregenerasi palet untuk %1$s</string>
-    <string name="dialog_regenerating_palettes_title">Meregenerasi palet album…</string>
-    <string name="dialog_regenerate_palettes_title">Regenerasi semua palet album?</string>
-    <string name="dialog_regenerate_palettes_progress_body">Membangun kembali varian palet yang dicache untuk %1$d sampul album unik. Ini mungkin memakan waktu lama pada pustaka besar.</string>
-    <string name="dialog_regenerate_palettes_confirm_body">Ini akan membersihkan data tema yang dicache dan membangun kembali semua gaya palet untuk %1$d sampul album unik.</string>
-    <string name="dialog_palette_progress_format">%1$d dari %2$d selesai</string>
+    <string
+        name="dialog_palette_regenerated"
+    >Palet diregenerasi untuk %1$s</string>
+    <string
+        name="dialog_palette_regenerate_failed"
+    >Tidak dapat meregenerasi palet untuk %1$s</string>
+    <string
+        name="dialog_regenerating_palettes_title"
+    >Meregenerasi palet album…</string>
+    <string
+        name="dialog_regenerate_palettes_title"
+    >Regenerasi semua palet album?</string>
+    <string
+        name="dialog_regenerate_palettes_progress_body"
+    >Membangun kembali varian palet yang dicache untuk %1$d sampul album unik. Ini mungkin memakan waktu lama pada pustaka besar.</string>
+    <string
+        name="dialog_regenerate_palettes_confirm_body"
+    >Ini akan membersihkan data tema yang dicache dan membangun kembali semua gaya palet untuk %1$d sampul album unik.</string>
+    <string
+        name="dialog_palette_progress_format"
+    >%1$d dari %2$d selesai</string>
     <string name="working_ellipsis">Bekerja…</string>
     <string name="dialog_regenerate">Regenerasi</string>
-    <string name="toast_regenerated_palettes_all">Berhasil meregenerasi %1$d palet sampul album</string>
-    <string name="toast_regenerated_palettes_partial">Meregenerasi %1$d dari %2$d palet sampul album</string>
+    <string
+        name="toast_regenerated_palettes_all"
+    >Berhasil meregenerasi %1$d palet sampul album</string>
+    <string
+        name="toast_regenerated_palettes_partial"
+    >Meregenerasi %1$d dari %2$d palet sampul album</string>
 
     <string name="dialog_reset_lyrics_title">Reset lirik yang diimpor?</string>
-    <string name="dialog_cannot_undo">Tindakan ini tidak dapat dibatalkan.</string>
+    <string
+        name="dialog_cannot_undo"
+    >Tindakan ini tidak dapat dibatalkan.</string>
     <string name="confirm">Konfirmasi</string>
-    <string name="dialog_rebuild_database_title">Bangun kembali database?</string>
-    <string name="dialog_rebuild_database_message">Ini akan sepenuhnya membangun kembali pustaka musik Anda dari awal. Semua lirik yang diimpor, favorit, dan metadata kustom akan hilang. Tindakan ini tidak dapat dibatalkan.</string>
+    <string
+        name="dialog_rebuild_database_title"
+    >Bangun kembali database?</string>
+    <string
+        name="dialog_rebuild_database_message"
+    >Ini akan sepenuhnya membangun kembali pustaka musik Anda dari awal. Semua lirik yang diimpor, favorit, dan metadata kustom akan hilang. Tindakan ini tidak dapat dibatalkan.</string>
     <string name="rebuild">Bangun Ulang</string>
     <string name="sync_indicator_rebuilding">Membangun kembali database</string>
-    <string name="toast_rebuilding_database">Membangun kembali database…</string>
-    <string name="dialog_regenerate_daily_mix_title">Regenerasi Daily Mix?</string>
-    <string name="dialog_regenerate_daily_mix_body">Ini akan membuang mix saat ini dan menghasilkan yang baru berdasarkan kebiasaan mendengarkan baru-baru ini.</string>
-    <string name="toast_daily_mix_regeneration_started">Regenerasi Daily Mix dimulai</string>
+    <string
+        name="toast_rebuilding_database"
+    >Membangun kembali database…</string>
+    <string
+        name="dialog_regenerate_daily_mix_title"
+    >Regenerasi Daily Mix?</string>
+    <string
+        name="dialog_regenerate_daily_mix_body"
+    >Ini akan membuang mix saat ini dan menghasilkan yang baru berdasarkan kebiasaan mendengarkan baru-baru ini.</string>
+    <string
+        name="toast_daily_mix_regeneration_started"
+    >Regenerasi Daily Mix dimulai</string>
     <string name="dialog_regenerate_stats_title">Regenerasi Statistik?</string>
-    <string name="dialog_regenerate_stats_body">Ini akan menghapus cache statistik dan memaksa perhitungan ulang dari riwayat database.</string>
-    <string name="toast_stats_regeneration_started">Regenerasi statistik dimulai</string>
-    <string name="backup_file_name_format">PixelPlayer_Cadangan_%1$d.pxpl</string>
+    <string
+        name="dialog_regenerate_stats_body"
+    >Ini akan menghapus cache statistik dan memaksa perhitungan ulang dari riwayat database.</string>
+    <string
+        name="toast_stats_regeneration_started"
+    >Regenerasi statistik dimulai</string>
+    <string
+        name="backup_file_name_format"
+    >PixelPlayer_Cadangan_%1$d.pxpl</string>
 
-    <string name="setcat_regenerate_daily_mix_action">Regenerasi Daily Mix</string>
+    <string
+        name="setcat_regenerate_daily_mix_action"
+    >Regenerasi Daily Mix</string>
     <string name="setcat_regenerate_stats_action">Regenerasi Statistik</string>
-    <string name="setcat_force_palette_empty">Tidak ditemukan lagu dengan sampul album.</string>
-    <string name="setcat_force_palette_subtitle">Bangun kembali semua varian palet yang dicache untuk setiap sampul album, atau pilih satu saja untuk disegarkan.</string>
+    <string
+        name="setcat_force_palette_empty"
+    >Tidak ditemukan lagu dengan sampul album.</string>
+    <string
+        name="setcat_force_palette_subtitle"
+    >Bangun kembali semua varian palet yang dicache untuk setiap sampul album, atau pilih satu saja untuk disegarkan.</string>
     <string name="setcat_regenerate_all">Regenerasi Semua</string>
     <string name="setcat_regenerating">Meregenerasi…</string>
     <string name="setcat_choose_song">Pilih Lagu</string>
@@ -288,16 +534,32 @@
     <string name="import_backup_toolbar_title">Impor Cadangan</string>
     <string name="import_inspecting">Memeriksa…</string>
     <string name="import_browse_file">Telusuri file</string>
-    <string name="import_backup_hint">Pilih file cadangan .pxpl untuk diperiksa. Anda akan memilih bagian mana yang ingin dipulihkan pada langkah berikutnya.</string>
+    <string
+        name="import_backup_hint"
+    >Pilih file cadangan .pxpl untuk diperiksa. Anda akan memilih bagian mana yang ingin dipulihkan pada langkah berikutnya.</string>
     <string name="import_recent_backups">Cadangan Terbaru</string>
     <string name="import_no_recent_title">Tidak ada cadangan terbaru</string>
-    <string name="import_no_recent_subtitle">Cadangan yang diimpor sebelumnya akan muncul di sini.</string>
-    <string name="palette_force_regenerate_title">Paksa Regenerasi Palet Album</string>
-    <string name="palette_force_regenerate_subtitle">Pilih lagu untuk membersihkan data tema yang dicache dan meregenerasi semua gaya palet dari sampul album.</string>
-    <string name="search_songs_by_title_artist_album">Cari berdasarkan judul, artis, atau album</string>
+    <string
+        name="import_no_recent_subtitle"
+    >Cadangan yang diimpor sebelumnya akan muncul di sini.</string>
+    <string
+        name="palette_force_regenerate_title"
+    >Paksa Regenerasi Palet Album</string>
+    <string
+        name="palette_force_regenerate_subtitle"
+    >Pilih lagu untuk membersihkan data tema yang dicache dan meregenerasi semua gaya palet dari sampul album.</string>
+    <string
+        name="search_songs_by_title_artist_album"
+    >Cari berdasarkan judul, artis, atau album</string>
     <string name="palette_regenerating_progress">Meregenerasi palet…</string>
-    <string name="search_no_songs_match">Tidak ada lagu yang cocok dengan pencarian Anda.</string>
+    <string
+        name="search_no_songs_match"
+    >Tidak ada lagu yang cocok dengan pencarian Anda.</string>
     <string name="cd_remove_from_history">Hapus dari riwayat</string>
     <string name="cd_clear_search">Bersihkan pencarian</string>
-    <string name="backup_history_modules_line">%1$d modul · v%2$s · schema v%3$d</string>
+    <string
+        name="backup_history_modules_line"
+    >%1$d modul · v%2$s · schema v%3$d</string>
+    <string name="setcat_language_korean">Bahasa Korea</string>
+    <string name="setcat_language_norwegian_bokmal">Norwegia (Bokmål)</string>
 </resources>

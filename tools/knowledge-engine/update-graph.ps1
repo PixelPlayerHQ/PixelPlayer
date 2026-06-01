@@ -13,4 +13,14 @@ if (Test-Path $ScanScript) {
     exit 1
 }
 
+# Build the derived SQLite knowledge-graph DB
+$KgCli = Join-Path $ScriptDir "query\dist\cli.js"
+if (Test-Path $KgCli) {
+    Write-Host "Building graph.db..." -ForegroundColor Cyan
+    node $KgCli build
+} else {
+    Write-Host "Warning: query/dist/cli.js not found — skipping graph.db build." -ForegroundColor Yellow
+    Write-Host "  Run: pnpm kg:compile && pnpm kg:build (from tools/knowledge-engine/)" -ForegroundColor Yellow
+}
+
 Write-Host "🎉 Codebase Knowledge Graph updated successfully!" -ForegroundColor Green

@@ -5,13 +5,17 @@
   "description": "Integration structure for understand-anything knowledge engine in PixelPlayer",
   "workspaces": [
     "core",
-    "dashboard"
+    "dashboard",
+    "query"
   ],
   "scripts": {
     "scan": "node scan-project.mjs",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "validate": "pnpm --filter @understand-anything/core exec vitest run src/graph-validation.test.ts",
-    "validate:factual": "node validate-factual.mjs"
+    "validate:factual": "node validate-factual.mjs",
+    "kg:compile": "pnpm --filter @understand-anything/query run build",
+    "kg:build": "node query/dist/cli.js build",
+    "kg": "node query/dist/cli.js"
   }
 }

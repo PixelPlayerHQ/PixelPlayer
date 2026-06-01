@@ -17,4 +17,13 @@ else
   exit 1
 fi
 
+# Build the derived SQLite knowledge-graph DB
+if [ -f "$SCRIPT_DIR/query/dist/cli.js" ]; then
+  echo "Building graph.db..."
+  node "$SCRIPT_DIR/query/dist/cli.js" build
+else
+  echo "Warning: query/dist/cli.js not found — skipping graph.db build."
+  echo "  Run: pnpm kg:compile && pnpm kg:build (from tools/knowledge-engine/)"
+fi
+
 echo "🎉 Codebase Knowledge Graph updated successfully!"

@@ -40,3 +40,15 @@ CLAUDE.md
 markdown.xml
 .vscode/
 .agents/
+.cursorrules
+
+# Node/tooling dependencies and local env files
+**/node_modules/
+tools/**/dist/
+tools/**/coverage/
+tools/**/.env
+tools/**/.env.*
+!tools/**/.env.example
+
+# Generated knowledge graph SQLite database (derived from knowledge-graph.json)
+tools/knowledge-engine/.understand-anything/graph.db

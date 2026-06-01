@@ -1,3 +1,4 @@
+// [DISABLED/EXPERIMENTAL] This screen is currently experimental and disabled in production.
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.animation.AnimatedVisibility

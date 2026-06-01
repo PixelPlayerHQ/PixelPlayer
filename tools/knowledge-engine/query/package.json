@@ -1,0 +1,23 @@
+{
+  "name": "@understand-anything/query",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SQLite-backed query layer for the PixelPlayer knowledge graph",
+  "scripts": {
+    "build": "tsc",
+    "kg:build": "node dist/cli.js build",
+    "mcp": "node dist/mcp.js",
+    "test": "node dist/test-mcp-integration.js"
+  },
+  "bin": {
+    "kg": "dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -458,6 +458,52 @@ for (const filePath of scannedFiles) {
     const content = stripStringsAndComments(rawContent);
     const fileHash = computeSHA256(rawContent);
 
+    // Enrich tags with codebase keyword detection for feature-aware search (smart segment prefix matching)
+    const KEYWORDS_TO_TAG = [
+      { tag: 'crossfade', prefix: 'crossfade' },
+      { tag: 'equalizer', prefix: 'equaliz' },
+      { tag: 'lyrics', prefix: 'lyric' },
+      { tag: 'playlist', prefix: 'playlist' },
+      { tag: 'theme', prefix: 'theme' },
+      { tag: 'cast', prefix: 'cast' },
+      { tag: 'sleep', prefix: 'sleep' },
+      { tag: 'widget', prefix: 'widget' },
+      { tag: 'replaygain', prefix: 'replaygain' }
+    ];
+
+    const normalizedContentForTagging = rawContent
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+      .replace(/_/g, ' ');
+
+    KEYWORDS_TO_TAG.forEach(({ tag, prefix }) => {
+      const regex = new RegExp(`\\b${prefix}\\w*`, 'i');
+      if (regex.test(normalizedContentForTagging)) {
+        // Exclude false-positive matches for crossfade from UI transition features (Coil/Compose Crossfade animations)
+        if (tag === 'crossfade') {
+          const cleanedForCrossfadeCheck = rawContent
+            .replace(/import\s+androidx\.compose\.animation\.Crossfade/g, '')
+            .replace(/Crossfade\s*\([^)]*\)/g, '')
+            .replace(/\.crossfade\s*\([^)]*\)/g, '')
+            .replace(/crossfadeDurationMillis/g, '')
+            .replace(/Coil/g, ''); // ignore mentions of Coil crossfade
+            
+          const normalizedForCrossfade = cleanedForCrossfadeCheck
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+            .replace(/_/g, ' ');
+            
+          if (!regex.test(normalizedForCrossfade)) {
+            return; // Skip tagging since it's just image transition / UI layout animation crossfade
+          }
+        }
+
+        if (!node.tags.includes(tag)) {
+          node.tags.push(tag);
+        }
+      }
+    });
+
     // Parse functions
     const funMatches = content.matchAll(/fun\s+([A-Za-z0-9_]+)/g);
     for (const match of funMatches) {
@@ -475,9 +521,9 @@ for (const filePath of scannedFiles) {
 
     // --- OPTIMIZATION: HASH SKIP SYSTEM ---
     const cache = graphCache[relativePath];
+    let summaryResolved = '';
     if (cache && cache.description && cache.last_analyzed_hash === fileHash) {
-      node.summary = cache.description;
-      node.last_analyzed_hash = cache.last_analyzed_hash;
+      summaryResolved = cache.description;
       cacheHits++;
       console.log(`⚡ ${progressStr} [CACHE HIT] ${relativePath}`);
     } else {
@@ -485,24 +531,29 @@ for (const filePath of scannedFiles) {
       const activeModel = llmAnalyzer.providers[0]?.model || 'Local Model';
       console.log(`📡 ${progressStr} [LLM QUERY] ${relativePath} (Model: ${activeModel})`);
       try {
-        const description = await llmAnalyzer.analyzeCode(relativePath, rawContent);
-        node.summary = description;
-        node.last_analyzed_hash = fileHash;
-        console.log(`   └─ ✅ Description: "${description}"`);
+        summaryResolved = await llmAnalyzer.analyzeCode(relativePath, rawContent);
+        console.log(`   └─ ✅ Description: "${summaryResolved}"`);
       } catch (err) {
         apiFailures++;
         if (cache && cache.description) {
-          node.summary = cache.description;
-          node.last_analyzed_hash = cache.last_analyzed_hash;
+          summaryResolved = cache.description;
           console.warn(`   └─ ⚠️ [LLM Error] Failed to re-analyze: ${relativePath}. Retaining prior description.`);
         } else {
-          node.summary = `Core component of the ${layer} layer handling specific player business workflows.`;
-          node.last_analyzed_hash = fileHash;
+          summaryResolved = `Core component of the ${layer} layer handling specific player business workflows.`;
           console.warn(`   └─ ❌ [LLM Error] Using standard fallback description.`);
         }
       }
     }
 
+    // Natively enforce [DISABLED/EXPERIMENTAL] annotation if present in source comments
+    if (rawContent.includes('// [DISABLED/EXPERIMENTAL]') || rawContent.includes('// EXPERIMENTAL') || rawContent.includes('// DISABLED')) {
+      if (!summaryResolved.startsWith('[DISABLED/EXPERIMENTAL]')) {
+        summaryResolved = `[DISABLED/EXPERIMENTAL] ${summaryResolved}`;
+      }
+    }
+
+    node.summary = summaryResolved;
+    node.last_analyzed_hash = fileHash;
     graph.nodes.push(node);
 
     // Track node in its respective layer nodeIds

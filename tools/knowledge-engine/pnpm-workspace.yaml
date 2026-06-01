@@ -1,8 +1,10 @@
 packages:
   - 'core'
   - 'dashboard'
+  - 'query'
 allowBuilds:
   esbuild: false
+  better-sqlite3: true
   tree-sitter-c: false
   tree-sitter-c-sharp: false
   tree-sitter-cpp: false

@@ -11,8 +11,8 @@
       "android"
     ],
     "description": "Android music player app with multi-modular architecture.",
-    "analyzedAt": "2026-05-30T15:12:47.764Z",
-    "gitCommitHash": "46cb607d7e5727740dd5b592cb86de2856645390"
+    "analyzedAt": "2026-06-01T15:54:29.168Z",
+    "gitCommitHash": "a4cfa42cf0bdcfc0b6897f747ffff3e8c5eb63a8"
   },
   "nodes": [
     {
@@ -74,7 +74,8 @@
       "summary": "Tests database schema migrations across multiple versions to ensure data integrity and compatibility.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -106,7 +107,8 @@
       "summary": "Tests the SyncWorker's ability to synchronize local database entities from mocked Android MediaStore content queries.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -203,7 +205,8 @@
       "summary": "Orchestrates multi-provider AI calls, implementing failover chains, request timeouts, caching, and usage tracking for reliable content generation.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -230,7 +233,8 @@
       "summary": "Generates a curated playlist by structuring user prompts, local metadata, and candidate songs for an external LLM API call.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -252,7 +256,8 @@
       "summary": "Generates structured system prompts for various AI music analysis and curation tasks (e.g., playlist generation, tagging) by combining roles and constraints.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -273,7 +278,8 @@
       "summary": "Manages AI model fetching, task execution, and context generation for music player features.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -497,7 +503,8 @@
       "summary": "Generates a highly condensed, token-optimized string digest summarizing user listening behavior for AI consumption.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -517,7 +524,10 @@
       "summary": "Manages the entire lifecycle of app data backup and restoration across multiple modular components.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -649,7 +659,9 @@
       "summary": "Adapts legacy JSON backup payloads (v1/v2) into a structured v3 manifest and module map for data restoration.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -752,7 +764,11 @@
       "summary": "Defines all available sections for user data backup, providing keys and display metadata.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -876,7 +892,8 @@
       "summary": "Handles backup, export, and restore logic for equalizer settings using user preferences repository.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -924,7 +941,9 @@
       "summary": "Handles exporting, importing, and restoring global user settings preferences for application backup functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -948,7 +967,8 @@
       "summary": "Handles serialization and persistence of song lyrics data for backup and restoration functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -996,7 +1016,8 @@
       "summary": "Handles the serialization and deserialization of playlist data for cross-device backup, including metadata resolution.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1210,7 +1231,10 @@
       "summary": "Validates the structure and content of various music player backup modules (e.g., playlists, history) from a JSON payload.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1263,7 +1287,8 @@
       "summary": "Manages data migration from legacy JSON to Room and computes complex, weighted song recommendations (daily/personalized mixes).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1392,7 +1417,8 @@
       "summary": "Manages persistence operations for album art themes, including insertion and retrieval by URI and style.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1414,7 +1440,8 @@
       "summary": "Stores album art theme color schemes (light/dark) in a Room database entity.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1495,7 +1522,8 @@
       "summary": "DAO responsible for persisting and retrieving song play counts, durations, and engagement statistics.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1663,7 +1691,8 @@
       "summary": "Provides DAO methods for CRUD operations on songs and playlists from the Jellyfin media source.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1704,7 +1733,8 @@
       "summary": "Defines the database schema entity for storing playlist metadata from Jellyfin.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1722,7 +1752,8 @@
       "summary": "Defines the database entity structure and conversion logic for storing Jellyfin song metadata.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1743,7 +1774,8 @@
       "summary": "Manages all database interactions for creating, reading, updating, and deleting playlists and their associated songs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1776,7 +1808,8 @@
       "summary": "Manages CRUD operations for song lyrics data within the local Room database.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1803,7 +1836,8 @@
       "summary": "Defines the database schema for storing song lyrics content and synchronization status.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1821,7 +1855,9 @@
       "summary": "DAO interface providing comprehensive CRUD and complex query methods for all music metadata (songs, albums, artists) in the player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -1987,7 +2023,8 @@
       "summary": "DAO for managing cached Navidrome song and playlist data operations.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2027,7 +2064,8 @@
       "summary": "Defines the Room database entity structure for caching playlist metadata from a music server.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2045,7 +2083,8 @@
       "summary": "Defines the database entity and conversion logic for caching songs retrieved from a Navidrome server.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2066,7 +2105,8 @@
       "summary": "DAO interface managing database operations for Netease songs and playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2100,7 +2140,8 @@
       "summary": "Defines the database schema entity for storing Netease playlist metadata.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2118,7 +2159,8 @@
       "summary": "Database entity defining Netease song data and providing conversion methods to the application's Song model.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2138,7 +2180,11 @@
       "summary": "Central persistence layer defining schemas and managing complex, multi-source database migrations for all music metadata and features.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2230,7 +2276,8 @@
       "summary": "Defines the database entity structure and provides mapping functions for Playlist data persistence.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2251,7 +2298,8 @@
       "summary": "Defines the database entity mapping playlist songs to maintain order within a specific playlist.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2269,7 +2317,8 @@
       "summary": "Defines a Room data structure to map and retrieve a playlist along with its associated list of song entities.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2287,7 +2336,8 @@
       "summary": "DAO interface managing database operations for songs and playlists in the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2318,7 +2368,8 @@
       "summary": "Defines the database schema entity for storing playlist metadata from QQ Music.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2336,7 +2387,8 @@
       "summary": "Defines the Room database entity structure and provides conversion methods between the local data model and QQ music specific song records.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2442,7 +2494,8 @@
       "summary": "Defines the `SongEntity` Room database schema and provides comprehensive mapping logic between the data model and persistence layer.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2552,7 +2605,8 @@
       "summary": "Room entity defining telegram song metadata, including conversion methods to and from the domain model (Song).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2592,7 +2646,8 @@
       "summary": "DAO managing persistence and retrieval of track transition rules within a music playlist database.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2621,7 +2676,8 @@
       "summary": "Defines a Room database entity for storing unique transition rules within a playlist.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2659,7 +2715,9 @@
       "summary": "Manages and controls all built-in Android audio effects (EQ, BassBoost, Virtualizer) attached to the audio session ID.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2703,7 +2761,8 @@
       "summary": "Defines and provides static factory methods for various predefined equalizer presets used in the music player's audio processing module.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2768,7 +2827,8 @@
       "summary": "Manages Google Drive authentication, token refreshing, and synchronization of music metadata across the application's local database.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -2976,7 +3036,9 @@
       "summary": "Manages Jellyfin authentication, synchronization of playlists and library songs, and provides data access for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3099,7 +3161,8 @@
       "summary": "Defines the immutable data structure for a Jellyfin playlist entity used across the application.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3139,7 +3202,9 @@
       "summary": "Reads comprehensive audio metadata (title, artist, album art) from local files using TagLib and JAudioTagger fallbacks.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3248,7 +3313,8 @@
       "summary": "Reads ReplayGain metadata from audio files, caches volume multipliers, and calculates final playback gain adjustments.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3275,7 +3341,9 @@
       "summary": "Handles comprehensive metadata editing for audio files using multiple backends (TagLib, JAudioTagger, OpusFile).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3419,7 +3487,8 @@
       "summary": "Defines and manages the distinct, immutable tabs for browsing music library content (Songs, Albums, Artists, etc.).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3440,7 +3509,8 @@
       "summary": "Defines data structures for song lyrics, including plain text, timed lines, and detailed synchronized words.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3460,7 +3530,8 @@
       "summary": "Defines the priority order for fetching lyrics sources (API, embedded metadata, local files).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3518,7 +3589,10 @@
       "summary": "Defines serializable data models for queue items, widget colors, and comprehensive player state information.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3543,7 +3617,8 @@
       "summary": "Defines the immutable data structure for a music playlist, including metadata and associated song IDs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3562,7 +3637,8 @@
       "summary": "Defines the available types of filters for searching content within the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3598,7 +3674,8 @@
       "summary": "Defines a sealed interface for heterogeneous search results, encapsulating songs, albums, artists, and playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3620,7 +3697,8 @@
       "summary": "Defines and manages static rules for generating smart, curated playlists based on playback history.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3640,7 +3718,8 @@
       "summary": "Data model representing a song with comprehensive metadata and multiple platform identifiers.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3660,7 +3739,8 @@
       "summary": "Defines all possible sorting criteria (Title, Artist, Date) for music entities and manages sort logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3726,7 +3806,8 @@
       "summary": "Defines the data structure and logic for sorting options within the music player's data layer.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -3760,7 +3841,8 @@
       "summary": "Defines structured data models for managing music playback transition rules and associated volume curves.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3864,7 +3946,8 @@
       "summary": "Data model representing a playlist fetched from the Navidrome server API.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3904,7 +3987,9 @@
       "summary": "Manages authentication, synchronization (playlists/library), and caching of music data from the Navidrome streaming service.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -3966,7 +4051,9 @@
       "summary": "Manages all data synchronization and retrieval logic for the Netease music service, including authentication, playlist syncing, and song URL resolution.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4076,7 +4163,9 @@
       "summary": "Implements all network communication and API logic for interacting with the Jellyfin media server backend.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4115,7 +4204,8 @@
       "summary": "Parses complex JSON responses from the Jellyfin API into structured domain models (Song, Album, Artist, Playlist).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4144,7 +4234,8 @@
       "summary": "Retrofit service defining API calls for fetching and searching song lyrics from an external web service.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4165,7 +4256,8 @@
       "summary": "Data model representing the API response for song lyrics, containing plain and synchronized text.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4183,7 +4275,9 @@
       "summary": "Implements the Subsonic API client for all music metadata, streaming, and playback interactions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4234,7 +4328,8 @@
       "summary": "Parses complex JSON responses from the Subsonic API into structured, type-safe data models for music playback components.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4267,7 +4362,8 @@
       "summary": "Defines various cryptographic modes required for interacting with different Netease Cloud Music API endpoints.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4285,7 +4381,9 @@
       "summary": "Dedicated API client handling all networking, cookie management, and complex encryption logic for the Netease Cloud Music Service.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4316,7 +4414,10 @@
       "summary": "Implements all necessary cryptographic utilities (AES, RSA, MD5) for secure API communication with Netease music services.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4345,7 +4446,8 @@
       "summary": "Handles all network communication and API calls for QQ Music services, including session management and data decompression.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4402,7 +4504,8 @@
       "summary": "PagingSource responsible for loading paginated song data from Android MediaStore based on pre-filtered IDs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4424,7 +4527,8 @@
       "summary": "Handles parsing M3U/M3U8 playlists from URIs and generating formatted playlist strings for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4576,7 +4680,8 @@
       "summary": "Manages and provides reactive access to all user-configurable audio equalizer settings via DataStore.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4686,7 +4791,8 @@
       "summary": "Manages all user playlist data, including creation, modification, and synchronization with local database and preferences.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4742,7 +4848,8 @@
       "summary": "Defines display modes for topic playlists, managing visibility between combined and individual channel topics.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4762,7 +4869,8 @@
       "summary": "Manages and provides reactive access to all application-level user preferences using DataStore.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4785,10 +4893,17 @@
       "type": "file",
       "name": "UserPreferencesRepository.kt",
       "filePath": "app/src/main/java/com/theveloper/pixelplay/data/preferences/UserPreferencesRepository.kt",
-      "summary": "Repository managing all application settings, including playback state, UI preferences, and library filters via DataStore.",
+      "summary": "Repository managing all application settings via DataStore, including the global master switch for enabling crossfade (isCrossfadeEnabled) and the global default crossfade duration (crossfadeDuration).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "equalizer",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [
@@ -4958,7 +5073,9 @@
       "summary": "Central repository for QQ Music data, managing authentication, synchronizing playlists and songs, resolving streaming URLs, and mapping all content to the application's unified local database structure.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5153,7 +5270,8 @@
       "summary": "Manages all data operations for fetching, caching, and persisting song lyrics from various sources.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5182,7 +5300,8 @@
       "summary": "Manages the retrieval, caching, and persistence of song lyrics by coordinating local file reads, embedded metadata extraction, and complex remote API calls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5212,7 +5331,9 @@
       "summary": "Retrieves and manages all song data from MediaStore, handling filtering, metadata parsing, and providing paginated/flow access.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5249,7 +5370,9 @@
       "summary": "Defines all data access methods for songs, albums, artists, and search functionality across the music library.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5342,7 +5465,10 @@
       "summary": "Manages all music data retrieval (songs, albums, artists) from local storage and integrates Telegram content synchronization.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5472,7 +5598,8 @@
       "summary": "Manages and resolves all application-wide transition rules, settings, and playback context logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5499,7 +5626,8 @@
       "summary": "Resolves transition settings by querying specific rules, playlist defaults, and global user preferences in priority order.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5528,7 +5656,8 @@
       "summary": "Manages the hierarchical browsing structure and retrieval of all media content (songs, albums, artists, playlists).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5566,7 +5695,8 @@
       "summary": "Utility object for normalizing and detecting Chromecast-compatible audio MIME types from various inputs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5592,7 +5722,8 @@
       "summary": "Provides necessary Google Cast options and media intent receivers for controlling playback on cast devices.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5613,7 +5744,8 @@
       "summary": "Maps Google Cast `MediaStatus` to a simplified projection of remote playback state (playing, buffering).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5635,7 +5767,8 @@
       "summary": "Detects the audio codec (e.g., AAC, FLAC) from raw multimedia file bytes by parsing ISO BMFF container structures.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5690,7 +5823,9 @@
       "summary": "Manages and validates all security policies, tokens, and URL generation for the Cast streaming session.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5721,7 +5856,9 @@
       "summary": "Manages the lifecycle and HTTP serving of local media files, including complex audio transcoding for Chromecast streaming.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5783,7 +5920,8 @@
       "summary": "Defines constants for custom commands and extras used by the music player's notification service.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5801,13 +5939,22 @@
       "summary": "Manages media playback lifecycle, handles background services, and implements complex features like ReplayGain, Cast synchronization, and widget updates.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "equalizer",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast",
+        "sleep",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
         "MusicService"
       ],
       "functions": [
+        "loadArtworkBytesViaCoil",
         "markPendingMediaButtonForegroundStart",
         "unmarkPendingMediaButtonForegroundStart",
         "consumePendingMediaButtonForegroundStart",
@@ -5843,7 +5990,7 @@
         "stopCountedPlay"
       ],
       "hiltRole": "entry_point",
-      "last_analyzed_hash": "bf34474dbfc289414d8546c4dd934d84ca175a9a1a5ce1bf8ca0f2917ace19e9"
+      "last_analyzed_hash": "f3dfcb0b3af40290a1c8d783fb71962c40e80f928906bbab2d5dca343be74c88"
     },
     {
       "id": "app/src/main/java/com/theveloper/pixelplay/data/service/PixelPlayMediaButtonReceiver.kt",
@@ -5914,7 +6061,8 @@
       "summary": "Manages complex, asynchronous communication with the Google Cast SDK for queue loading and media playback control.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -5967,7 +6115,10 @@
       "summary": "Manages two ExoPlayer instances (master/auxiliary) for seamless audio transitions, crossfades, and advanced playback state handling.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6154,7 +6305,10 @@
       "summary": "Orchestrates song transitions by observing player state and commanding the DualPlayerEngine for crossfades.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6180,7 +6334,8 @@
       "summary": "Handles system broadcast intent upon sleep timer expiration by restarting the MusicService.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6200,7 +6355,9 @@
       "summary": "Quick Settings tile service responsible for retrieving and launching the last played playlist ID to the main activity.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6288,7 +6445,8 @@
       "summary": "Coordinates the multi-step process of transferring song metadata, artwork, and audio stream to a connected Wear OS device.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6400,7 +6558,8 @@
       "summary": "Handles all Wear OS communication (playback, volume, browse, transfer) and coordinates media playback commands.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6463,7 +6622,8 @@
       "summary": "Publishes the current music player state and album art to the Wear Data Layer for watch synchronization.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6492,7 +6652,8 @@
       "summary": "Constructs a comprehensive Wear OS color palette defining gradients and surface tones using dynamic color blending and contrast checks.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -6587,7 +6748,8 @@
       "summary": "Provides utility functions for parsing JSON and splitting complex artist strings during cloud music synchronization.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6692,7 +6854,8 @@
       "summary": "Manages the lifecycle and communication with the Telegram API via TDLib for authentication and updates.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6722,7 +6885,8 @@
       "summary": "Manages Telegram authentication flow and fetches song data from chat history/topics via TDLib API.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6805,7 +6969,8 @@
       "summary": "Executes complex AI content generation using WorkManager, deferring execution during active music playback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6892,7 +7057,8 @@
       "summary": "Handles background synchronization of music data from Navidrome using Android WorkManager.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6914,7 +7080,8 @@
       "summary": "Manages all background synchronization logic, scheduling and observing WorkManager tasks for library updates.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6948,7 +7115,9 @@
       "summary": "Performs comprehensive background sync of media metadata from various sources (MediaStore, Telegram, Netease, Navidrome) into the unified local database.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -6990,7 +7159,10 @@
       "summary": "Provides all database DAOs and core infrastructure components (e.g., OkHttpClient, Repositories) for dependency injection.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7036,7 +7208,10 @@
       "summary": "Provides Gson and various module handlers for comprehensive application backup serialization and dependency injection.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7079,7 +7254,8 @@
       "summary": "Handles incoming intents (ACTION_VIEW/SEND) to play external audio URIs and manages theme state for the player overlay UI.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7105,7 +7281,10 @@
       "summary": "Manages application lifecycle, handles deep links/intents, and orchestrates the main UI composition flow.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7148,7 +7327,8 @@
       "summary": "Defines constants for inter-activity communication intents and extras within the music player application.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7166,7 +7346,8 @@
       "summary": "Initializes application-wide services, manages lifecycle observers, and configures image loading for modular data sources.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7190,7 +7371,8 @@
       "summary": "Manages the UI state and presentation logic for editing AI-generated song metadata within a bottom sheet component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7209,7 +7391,9 @@
       "summary": "Renders a complex, animated bottom sheet UI for generating AI-powered music playlists based on user input and parameters.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7227,7 +7411,8 @@
       "summary": "Renders a dynamic, multi-shape collage of album art for up to six songs using Compose UI components.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7268,7 +7453,8 @@
       "summary": "Displays a modal bottom sheet for multi-album selection with action buttons (Play, Next, Add to Queue).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7306,7 +7492,8 @@
       "summary": "Displays an application rebrand confirmation dialog allowing users to dismiss the prompt and optionally prevent future displays.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7324,7 +7511,9 @@
       "summary": "Renders the main navigation drawer structure, handling all primary application destinations and settings links.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7349,7 +7538,8 @@
       "summary": "Dialog component managing module selection state and displaying detailed information for the backup or restore plan.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7369,7 +7559,8 @@
       "summary": "Composable UI component displaying a clean install disclaimer dialog with dismiss logic and checkbox state management.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7387,7 +7578,8 @@
       "summary": "Displays a comprehensive beta information sheet detailing usage guidelines, bug reporting, and feature requests for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7414,7 +7606,8 @@
       "summary": "Primary composable view responsible for managing game state, executing physics simulations, collision detection, and rendering the entire interactive brick breaker gameplay loop.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7452,7 +7645,9 @@
       "summary": "Renders the full connectivity management interface, including active device status, Wi-Fi/Bluetooth listings, and playback controls within a modal bottom sheet.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7507,7 +7702,8 @@
       "summary": "Renders the entire changelog view, including version headers and detailed feature lists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7531,7 +7727,8 @@
       "summary": "Generates a list of UI configurations based on the selected collage pattern for visual layout assembly.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7554,7 +7751,9 @@
       "summary": "Composable component managing the dynamic appearance and layout of a collapsible top navigation bar.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7572,7 +7771,9 @@
       "summary": "Displays a Material3 dialog for viewing and sharing detailed crash report information.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7590,7 +7791,9 @@
       "summary": "Displays a modal sheet for managing and selecting equalizer presets with individual item actions (pin, rename, delete).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7627,7 +7830,10 @@
       "summary": "Renders the Daily Mix section UI, managing song lists, info sheets, and playback interactions using ViewModels.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7652,7 +7858,9 @@
       "summary": "Displays a dismissible undo bar component with animated progress and action buttons.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7670,7 +7878,10 @@
       "summary": "Provides the main composable view logic for batch editing multiple songs' metadata fields in a modal dialog sheet.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7693,7 +7904,10 @@
       "summary": "Composable view managing comprehensive song metadata input forms and interactive cover art cropping functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7713,7 +7927,8 @@
       "summary": "Renders a composable UI component displaying offline status with retry functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7732,7 +7947,8 @@
       "summary": "Interactive composable component visualizing list/grid scrolling progress using a customizable, draggable scroll thumb indicator.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -7760,7 +7976,8 @@
       "summary": "Generates fast scroll labels for various music entities (Song, Album, Artist, Playlist) based on the current sort option.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7811,7 +8028,8 @@
       "summary": "Composable component managing animated, collapsible top bar title and subtitle display logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7830,7 +8048,8 @@
       "summary": "Composable function responsible for displaying the persistent, animated mini-player overlay UI component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7848,7 +8067,8 @@
       "summary": "Renders the primary file explorer view, managing storage tabs, hierarchical breadcrumbs, and dynamic listing of directory contents.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7871,7 +8091,8 @@
       "summary": "Presents a modal bottom sheet UI for selecting sorting options (Artist, Album, Title) and triggering shuffle functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7890,7 +8111,8 @@
       "summary": "Composable UI component providing reusable, gradient-themed TopAppBar implementations for screen headers.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7961,7 +8183,10 @@
       "summary": "Renders a modular bottom sheet component for selecting and managing library sorting methods, view types, and data sources.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7981,7 +8206,9 @@
       "summary": "Composable UI component managing the main lyrics toolbar state and navigation controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -7999,7 +8226,11 @@
       "summary": "Renders the main music lyrics sheet UI, handling playback controls, synchronized/plain lyric display, and immersive mode logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "sleep",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8047,7 +8278,9 @@
       "summary": "Renders a composable control row for synchronizing lyrics display offset using multiple button actions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8085,7 +8318,9 @@
       "summary": "Displays a bottom sheet for batch operations on selected songs, providing actions like play all, add to queue, and delete.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8104,7 +8339,8 @@
       "summary": "Composable UI component displaying offline state and retry action for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8123,7 +8359,9 @@
       "summary": "Optimized Composable component managing asynchronous loading, caching, and displaying of album artwork images using Coil.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8145,7 +8383,8 @@
       "summary": "Renders a composable collage of permission icons using dynamic layout configurations and resource IDs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8165,7 +8404,9 @@
       "summary": "Renders the animated and interactive playback controls (Previous, Play/Pause, Next) for the music player UI.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8187,7 +8428,8 @@
       "summary": "Composable UI component managing playback controls like shuffle, repeat, and favorite toggles in the player bar.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8205,7 +8447,10 @@
       "summary": "Orchestrates the entire music player UI, managing state flow, gestures, and layout across portrait/landscape modes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8254,7 +8499,8 @@
       "summary": "UI component managing the selection flow and visual display of multiple artist shortcut options within a music player's modal bottom sheet.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8276,7 +8522,8 @@
       "summary": "Renders the main music player navigation bar using Compose, handling state, layout, and double-tap search logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8301,7 +8548,9 @@
       "summary": "Composables the album art collage based on the number of songs in a playlist, handling 1D, 2D, and 3D arrangements.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8319,7 +8568,9 @@
       "summary": "Manages the UI state and interaction logic for selecting songs into multiple playlists within a modal bottom sheet.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8337,7 +8588,9 @@
       "summary": "Composable UI component responsible for listing, managing state, and handling interactions for all user-defined playlists within the music player view.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8358,7 +8611,9 @@
       "summary": "Renders a customizable, shape-aware visual component for displaying playlist cover art or generated content.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8377,7 +8632,9 @@
       "summary": "Composable view handling all complex user input parameters and state required for advanced AI playlist prompt generation.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8404,7 +8661,9 @@
       "summary": "Bottom Sheet UI component managing multi-selection actions (delete, export, merge, share) and displaying stacked covers for selected playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8424,7 +8683,8 @@
       "summary": "Displays a composable dialog component for showing Play Store announcements and associated actions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8447,7 +8707,10 @@
       "summary": "Interactive bottom sheet UI component managing playback queue display, reordering gestures, and global music controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8484,7 +8747,8 @@
       "summary": "Renders a horizontally scrollable selection of time range chips for recently played content.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8503,7 +8767,8 @@
       "summary": "Composable component displaying a horizontally scrollable section of recently played music album art pills.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8528,7 +8793,9 @@
       "summary": "Manages the UI state and interaction logic for reordering and pinning equalizer presets in a sheet dialog.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8549,7 +8816,8 @@
       "summary": "Modal bottom sheet UI component enabling drag-and-drop reordering of music library tabs and managing associated state logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8667,7 +8935,9 @@
       "summary": "Presents composable dialogs for saving and renaming equalizer presets with input validation.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8686,7 +8956,8 @@
       "summary": "Manages the UI state and animation logic for the composable Cast Sheet component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -8727,7 +8998,8 @@
       "summary": "Composable component for rendering animated, selectable navigation bar items in a music player's UI.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8839,7 +9111,8 @@
       "summary": "Handles predictive and standard back navigation logic for displaying song lyrics progress.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -8857,7 +9130,8 @@
       "summary": "Manages the complex gesture logic and animation state for dismissing a mini-player component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9175,7 +9449,8 @@
       "summary": "Calculates and manages the composite state for sheet visibility, keyboard status, and visual animation fractions in the music player UI.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9195,7 +9470,9 @@
       "summary": "Calculates and animates the dynamic theme state, color schemes, and visual parameters for the full-screen media player sheet component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9285,7 +9562,8 @@
       "summary": "Manages screen transitions, depth effects, and visual state (dimming/rounding) for the main music player UI container.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9303,7 +9581,8 @@
       "summary": "Provides a reusable composable UI component that simulates loading state using a shimmering gradient effect.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9321,7 +9600,8 @@
       "summary": "Composable UI component for displaying album art using Coil and handling various image data types (Bitmap, URI, etc.).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9389,7 +9669,11 @@
       "summary": "Interactive modal sheet presenting comprehensive song metadata, playback actions, and device-specific features like watch transfer.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9416,7 +9700,9 @@
       "summary": "Composable screen managing song selection flow, handling filtering by storage type, searching, and paginated display of library tracks.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9442,7 +9728,8 @@
       "summary": "Renders the overall playback statistics summary card, including total duration, play count, and top track details.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9465,7 +9752,8 @@
       "summary": "Composable sheet component displaying streaming providers and managing navigation to various music services.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9484,7 +9772,8 @@
       "summary": "Calculates and displays the largest possible font size for text to fit within given constraints using binary search.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9520,7 +9809,8 @@
       "summary": "Renders an animated, interactive list item displaying song metadata with multi-selection and playback state handling.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9541,7 +9831,8 @@
       "summary": "Composable UI component displaying song details, album art, and metadata for list items.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9559,7 +9850,9 @@
       "summary": "Manages the UI state transitions for fetching, displaying, and selecting song lyrics in a modal search dialog.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9583,7 +9876,9 @@
       "summary": "Renders the main library action row, managing creation, import, shuffle controls, and displaying hierarchical navigation breadcrumbs for context.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9602,7 +9897,9 @@
       "summary": "UI component presenting comprehensive advanced settings for song lyrics, including saving, translation, appearance, and core player toggles.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9620,7 +9917,8 @@
       "summary": "Renders a drawable resource as an Image component, ensuring correct theme application for light/dark modes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9655,7 +9953,8 @@
       "summary": "Composable UI component managing and displaying the music player's seek progress bar functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9673,7 +9972,8 @@
       "summary": "Renders a dynamic visual equalizer component using Compose Canvas for animated bar/dot visualization.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9691,7 +9991,8 @@
       "summary": "Displays selection actions (Select All/Deselect) and count in a multi-selection UI component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9710,7 +10011,8 @@
       "summary": "Renders a persistent UI header component displaying stacked cover arts and action buttons for batch song operations.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9747,7 +10049,8 @@
       "summary": "Composable UI component displaying detailed and compact progress indicators for library synchronization status.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9767,7 +10070,9 @@
       "summary": "Manages the UI state and interaction logic for setting sleep timer duration (predefined/custom) and play count limits.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9785,7 +10090,8 @@
       "summary": "Renders a reusable, animated UI component for selecting one option from a group of mutually exclusive toggle segments.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9807,7 +10113,13 @@
       "summary": "Orchestrates the main music player UI by composing and managing interactive layers for playback queue, detailed song information, and casting functionality.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast",
+        "sleep",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9831,7 +10143,10 @@
       "summary": "Coordinates the rendering of mini and full player UI layers, managing visibility, scaling, and state transitions across different sheet expansion states.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9850,7 +10165,9 @@
       "summary": "MiniPlayerComponent: Composable UI responsible for displaying current song info and controlling playback (play/pause, skip).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9869,7 +10186,11 @@
       "summary": "Composes the primary music playback sheet, managing complex transitions between mini and full-screen view states.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme",
+        "cast",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -9890,7 +10211,8 @@
       "summary": "Implements a customizable, wavy circular slider component for continuous value selection and haptic feedback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9910,7 +10232,8 @@
       "summary": "Custom Composable Slider visualizing audio progress with dynamic wave animation, haptic feedback, and interactive state-based thumb transformation.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9929,7 +10252,8 @@
       "summary": "Renders a highly customizable, interactive wavy progress slider component for music playback time tracking.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -9949,7 +10273,9 @@
       "summary": "Handles Google Drive authentication flow, displaying sign-in and folder selection UI states.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10008,7 +10334,8 @@
       "summary": "Composable view responsible for rendering the main Google Drive dashboard, displaying folder lists and sync controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10050,7 +10377,9 @@
       "summary": "Renders the main UI for Jellyfin authentication, handling input fields and connection logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10099,7 +10428,9 @@
       "summary": "Composable screen responsible for rendering the main Jellyfin dashboard view, displaying user info, sync status, quick actions, and a scrollable list of playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10120,7 +10451,8 @@
       "summary": "Manages dashboard state, handles synchronization logic for playlists and songs, and provides user session data.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10146,7 +10478,8 @@
       "summary": "Defines stable identifiers and sort options for all major music library sections (Songs, Albums, Artists, etc.).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10189,7 +10522,8 @@
       "summary": "Defines all available settings categories, their titles, and associated icons for the music player's settings screen.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10209,7 +10543,9 @@
       "summary": "Renders the multi-step login UI for Navidrome, handling state and user input flow.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10259,7 +10595,9 @@
       "summary": "Renders the primary music player dashboard UI, displaying synchronized playlists, user status, and global synchronization controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10281,7 +10619,8 @@
       "summary": "Manages dashboard state, orchestrates background syncs via WorkManager, and exposes reactive data streams for playlists and song lists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10307,7 +10646,9 @@
       "summary": "Manages the entire application navigation graph, defining routes and applying custom transition animations for screen transitions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10372,7 +10713,9 @@
       "summary": "Defines all application navigation routes and associated arguments for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10447,7 +10790,9 @@
       "summary": "Handles the entire Netease web login flow using a WebView, managing UI state and cookie extraction for authentication.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10493,7 +10838,9 @@
       "summary": "Composable screen component managing the entire music player dashboard UI, displaying playlists, user info, and synchronization status.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10512,7 +10859,8 @@
       "summary": "Manages dashboard state, handles data synchronization (playlists/songs), and provides user session logic for the Netease music service.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10538,7 +10886,9 @@
       "summary": "Handles the entire UI flow for QQ Music login using a WebView, managing state and cookie extraction.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10584,7 +10934,9 @@
       "summary": "Primary UI screen composable that displays user profile, sync status, and paginated list of local QQ Music playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10603,7 +10955,8 @@
       "summary": "Manages dashboard state, including user data, playlists, and synchronization logic for QQ Music features.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10634,7 +10987,8 @@
       "summary": "Renders the application's \"About\" screen, listing community contributors and maintaining complex scroll/collapse animations for the header UI component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10665,7 +11019,9 @@
       "summary": "Manages the UI state and interaction logic for linking external music service accounts.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10696,7 +11052,9 @@
       "summary": "Renders a composable UI component displaying individual AI usage log entries with time, prompt details, and token counts.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10717,7 +11075,10 @@
       "summary": "Primary screen component managing album details, featuring a collapsible header, scrollable tracklist, and interactive bottom sheet presentation for metadata actions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10739,7 +11100,10 @@
       "summary": "Renders the complete artist profile screen, managing dynamic album sections, state transitions, and a collapsing header component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10765,7 +11129,8 @@
       "summary": "Renders the full-screen UI view responsible for displaying and managing advanced music library artist parsing configuration settings.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10787,7 +11152,9 @@
       "summary": "Renders the multi-step composable form for creating or editing playlist metadata, managing cover art, colors, icons, and custom shape parameters.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10819,7 +11186,10 @@
       "summary": "Composes the primary Daily Mix screen UI, coordinating song lists, playback controls, and interactive sheets using multiple view model states.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10839,7 +11209,9 @@
       "summary": "Manages the UI state and interaction logic for configuring path delimiters within a music player screen.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10859,7 +11231,9 @@
       "summary": "Displays aggregated system diagnostics, including codec support, local storage usage, and overall playback readiness status to the user.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -10904,7 +11278,8 @@
       "summary": "Displays an animated Easter egg screen overlay using Compose, managing visibility and triggering a thank you toast.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10919,10 +11294,13 @@
       "type": "file",
       "name": "EditTransitionScreen.kt",
       "filePath": "app/src/main/java/com/theveloper/pixelplay/presentation/screens/EditTransitionScreen.kt",
-      "summary": "Presents a comprehensive UI for configuring all aspects of music transition rules, including mode selection, duration sliders, and curve settings.",
+      "summary": "Presents an advanced UI for configuring fine-grained music transition rules (TransitionSettings) such as transition mode (NONE vs OVERLAP), duration, and fade curves, both globally and per-playlist, but is separate from the global master switch.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10947,7 +11325,9 @@
       "summary": "Composable screen responsible for rendering all equalizer controls, integrating customizable band sliders, effect toggles, volume control, and complex UI transitions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -10981,7 +11361,9 @@
       "summary": "Presents the comprehensive UI screen for managing advanced, modular audio playback configuration options and experimental features.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11002,7 +11384,8 @@
       "summary": "Composable screen managing the UI flow for exploring, selecting, and navigating device music folders.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11018,7 +11401,10 @@
       "summary": "Primary UI component orchestrating the display of genre-specific song lists, headers, and interactive player controls with complex scroll animations.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11044,7 +11430,8 @@
       "summary": "Main dashboard composable aggregating and displaying all core personalized music sections (Your Mix, Daily Mix, Recently Played) using various viewmodel states.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11068,7 +11455,9 @@
       "summary": "Composable function displaying a customizable empty state UI for various music library sections.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11089,7 +11478,9 @@
       "summary": "Composable screens providing paginated views and state management for browsing Albums, Artists, and Playlists in the music library.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11129,7 +11520,11 @@
       "summary": "Primary composable for the music library, managing tab switching, media content display, multi-selection logic, and background synchronization feedback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11177,7 +11572,8 @@
       "summary": "Presents the main music library view using pagination, handling load states, refreshing, and integrating global player context.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11196,7 +11592,8 @@
       "summary": "Renders the main music library view using Paging and Compose, handling selection, playback state, and loading indicators.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11211,10 +11608,13 @@
       "type": "file",
       "name": "MashupScreen.kt",
       "filePath": "app/src/main/java/com/theveloper/pixelplay/presentation/screens/MashupScreen.kt",
-      "summary": "Renders the main screen view for two mixing decks, coordinating playback controls, crossfader interaction, and song selection logic.",
+      "summary": "[DISABLED/EXPERIMENTAL] Renders the main screen view for two mixing decks, coordinating playback controls, crossfader interaction, and song selection logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11227,7 +11627,7 @@
         "SongPickerItem"
       ],
       "hiltRole": "none",
-      "last_analyzed_hash": "fdcaaf4329fbd4bf15e37004cb480bac61ce2b3273ccd503fe94f37a8109e792"
+      "last_analyzed_hash": "51444e8e88e43398e1c47217245de1827aaa45e09d38455c5a5509b894e2ab79"
     },
     {
       "id": "app/src/main/java/com/theveloper/pixelplay/presentation/screens/NavBarCornerRadiusScreen.kt",
@@ -11237,7 +11637,8 @@
       "summary": "Composable UI screen managing user input via slider and button actions to configure and preview the application's navigation bar corner radius settings.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11257,7 +11658,8 @@
       "summary": "Presentation screen managing user input and real-time previewing of album art palette style and color accuracy settings.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11283,7 +11685,10 @@
       "summary": "Orchestrates the main UI for viewing, managing, and interacting with all songs within a specific music playlist.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11303,7 +11708,8 @@
       "summary": "Manages a multi-step UI flow for selecting songs and defining genre metadata for bulk content updates in the player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11323,7 +11729,10 @@
       "summary": "Presents the interactive recent playback history screen, managing data fetching, time-based grouping, and core player controls within a modular UI structure.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11351,7 +11760,8 @@
       "summary": "Displays genre categories using a responsive grid/list layout and manages view mode state via ViewModel.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11370,7 +11780,8 @@
       "summary": "Resolves genre strings to corresponding drawable resource IDs by normalizing input text and mapping aliases via keyword lookup.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11428,7 +11839,10 @@
       "summary": "Composable screen managing user search input, applying filters, and rendering structured, categorized lists of music search results.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11454,10 +11868,17 @@
       "type": "file",
       "name": "SettingsCategoryScreen.kt",
       "filePath": "app/src/main/java/com/theveloper/pixelplay/presentation/screens/SettingsCategoryScreen.kt",
-      "summary": "Composes the main settings screen UI, coordinating state from multiple ViewModels and managing dynamic sections for all player configuration options.",
+      "summary": "Composes settings category screens, including the Playback settings category which renders the Master Toggle Switch to globally enable/disable crossfade (isCrossfadeEnabled) and adjust global crossfade duration (crossfadeDuration).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "equalizer",
+        "lyrics",
+        "theme",
+        "cast",
+        "widget",
+        "replaygain"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11491,7 +11912,9 @@
       "summary": "Composable library providing reusable UI elements for displaying complex application settings, covering synchronization status, theme management, and data configuration.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11520,7 +11943,9 @@
       "summary": "Primary UI component presenting structured application settings with dynamic collapsing header based on scroll position.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11545,7 +11970,11 @@
       "summary": "Orchestrates the multi-step onboarding flow for initial app setup, managing mandatory permissions, directory selection, and core UI configuration settings.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11563,7 +11992,8 @@
       "summary": "Orchestrates the UI display of comprehensive music playback statistics, including dynamic timeline charts and top category breakdowns.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11627,7 +12057,8 @@
       "summary": "Composable component handling animated state changes and visual feedback for tab selection in the music player UI.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11645,7 +12076,9 @@
       "summary": "Manages the UI state and interaction logic for configuring word delimiters within the music player settings screen.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11682,7 +12115,8 @@
       "summary": "Composable screen orchestrating the multi-step Telegram authentication flow, managing UI transitions for phone number, code verification, and password input.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11758,7 +12192,8 @@
       "summary": "Renders a modal sheet UI for searching and viewing results within a Telegram channel context.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11776,7 +12211,8 @@
       "summary": "Manages the search, synchronization, and playback initiation of songs from Telegram channels into the music library.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11801,7 +12237,8 @@
       "summary": "Renders a reusable, animated UI component displaying song details and download/play actions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11819,7 +12256,8 @@
       "summary": "Orchestrates the main UI flow for viewing, managing, and interacting with a list of synced Telegram channels, including dynamic top bar collapse logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -11893,7 +12331,10 @@
       "summary": "Maps multilingual genre identifiers to unique drawable resources, providing centralized icon mapping for music category visualization.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11913,7 +12354,8 @@
       "summary": "Aggregates connection status and synced content counts from multiple external music services into a unified UI state.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11937,7 +12379,10 @@
       "summary": "Orchestrates AI feature execution, managing state flows for playlist generation, daily mix refinement, and song metadata enhancement.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -11995,7 +12440,8 @@
       "summary": "Manages the full UI state, data loading, and lifecycle for an artist's detail screen in a music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12051,7 +12497,8 @@
       "summary": "Manages the selection and state transitions for casting routes within the media player's ViewModel layer.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12074,7 +12521,8 @@
       "summary": "Manages and synchronizes all state related to Chromecast/remote media playback sessions and routes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12119,7 +12567,10 @@
       "summary": "Manages complex state synchronization and recovery logic for remote (Cast) playback sessions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12205,7 +12656,9 @@
       "summary": "Processes album art URIs to generate and cache color schemes, managing memory and database persistence.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12242,7 +12695,8 @@
       "summary": "Manages and exposes real-time state for WiFi, Bluetooth connectivity, and audio output devices across the application.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12304,7 +12758,8 @@
       "summary": "Manages and updates the state of Daily Mix and Your Mix playlists using repository data flows.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12332,7 +12787,8 @@
       "summary": "Aggregates comprehensive device capabilities, analyzing audio codecs, system hardware info, local storage metrics, and song playback format compatibility.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12382,7 +12838,9 @@
       "summary": "Manages and synchronizes the entire UI state, persistence, and operational logic for the music player's advanced equalizer settings.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "equalizer"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12529,7 +12987,8 @@
       "summary": "Manages navigation state and logic for traversing music folders within the player's UI state.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12553,7 +13012,8 @@
       "summary": "Manages genre detail UI state, grouping songs into sections and flattening them for efficient list rendering.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12590,7 +13050,8 @@
       "summary": "Manages and exposes all music library data (Songs, Albums, Artists) as reactive flows, handling filtering and sorting logic.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12713,7 +13174,8 @@
       "summary": "Defines the sealed state structure for managing UI flow and data presentation during lyrics search operations.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12737,7 +13199,8 @@
       "summary": "Manages lyrics loading, sync offset tracking, and search UI state for music playback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12796,10 +13259,11 @@
       "type": "file",
       "name": "MashupViewModel.kt",
       "filePath": "app/src/main/java/com/theveloper/pixelplay/presentation/viewmodel/MashupViewModel.kt",
-      "summary": "Manages dual-deck state, controls playback logic (play/pause, seek), and updates UI flow for a music mashup player.",
+      "summary": "[DISABLED/EXPERIMENTAL] Manages dual-deck state, controls playback logic (play/pause, seek), and updates UI flow for a music mashup player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12826,7 +13290,7 @@
         "onCleared"
       ],
       "hiltRole": "injectable",
-      "last_analyzed_hash": "afe2c5d28f3cc59ce31e71f72320a1f0bc08dc17779976219a902f113c164733"
+      "last_analyzed_hash": "6e400c2aa4efbbacd4674cea0b1e340e0daddad8bb441110adf77056c89365f7"
     },
     {
       "id": "app/src/main/java/com/theveloper/pixelplay/presentation/viewmodel/MetadataEditStateHolder.kt",
@@ -12836,7 +13300,9 @@
       "summary": "Manages complex metadata editing logic, including artwork preservation and repository synchronization for music files.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12886,7 +13352,10 @@
       "summary": "Manages and synchronizes the global playback state, position, and media controller across local and remote players.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "cast",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12961,7 +13430,8 @@
       "summary": "Manages the entire UI state for the music player, including playback queue, search results, and various view filters.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -12979,7 +13449,13 @@
       "summary": "Manages all playback state, queue logic, and media control interactions for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13128,7 +13604,8 @@
       "summary": "Manages the UI state and logic for dismissing a playlist and handling the subsequent undo action.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13152,7 +13629,8 @@
       "summary": "Manages multi-selection state for playlists, preserving selection order and providing derived status flows.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13178,7 +13656,9 @@
       "summary": "Manages UI state and business logic for loading, sorting, creating, and manipulating music playlists.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13290,7 +13770,8 @@
       "summary": "Manages all search logic, including debounced query execution, filter selection, and history persistence.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13319,7 +13800,11 @@
       "summary": "Manages all application settings, AI provider state, file explorer navigation, and backup/restore logic for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "lyrics",
+        "theme",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13467,7 +13952,8 @@
       "summary": "Manages initial application setup, including permission checks, file explorer state, and backup restoration flow.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13515,7 +14001,8 @@
       "summary": "Manages complex sleep and end-of-track timers, coordinating AlarmManager scheduling with coroutine state flows for UI updates.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13577,7 +14064,8 @@
       "summary": "Manages the complex state and business logic for deleting a song across multiple repositories and UI confirmations.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13599,7 +14087,8 @@
       "summary": "Defines the immutable state container for managing all playback data and UI status in the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13646,7 +14135,8 @@
       "summary": "Manages and synchronizes global and per-album color schemes based on theme preferences and album art URIs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13676,7 +14166,8 @@
       "summary": "Manages and persists transition settings, coordinating UI state updates with repository data loading for both global and playlist-specific rules.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13727,7 +14218,9 @@
       "summary": "Renders the entire Glance App Widget UI, displaying album art, song/artist info, and playback controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13748,7 +14241,8 @@
       "summary": "Registers the main app widget for a 4x1 size display on the Android home screen.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13766,7 +14260,9 @@
       "summary": "Renders the main UI structure for a music player glance widget using Compose and Glance.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13787,7 +14283,8 @@
       "summary": "Registers the main app widget for a 4x2 size, handling widget lifecycle events.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13805,7 +14302,9 @@
       "summary": "Renders a 2x2 grid widget displaying current player info, including album art and playback controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13826,7 +14325,8 @@
       "summary": "Registers the main app widget for a 2x2 grid layout using Glance framework.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13844,7 +14344,8 @@
       "summary": "Provides a reusable mechanism to generate an explicit `Intent` for launching the main application activity from non-activity contexts like widgets.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13864,7 +14365,9 @@
       "summary": "Renders all adaptive user interface compositions for the music player's Android App Widget using Glance components.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13903,7 +14406,8 @@
       "summary": "Registers the main app widget component for displaying music playback status on the Android home screen.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13921,7 +14425,8 @@
       "summary": "Handles incoming glance widget actions by starting the music service with appropriate intent parameters.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -13966,7 +14471,8 @@
       "summary": "Generates a composable Glance widget displaying an animated, wavy linear progress indicator for music playback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -13985,7 +14491,8 @@
       "summary": "Decodes and resamples album art from various URIs for use in Android Glance widgets.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14004,7 +14511,9 @@
       "summary": "Renders composable UI components for an Android Glance app widget, managing album art display and interactive media playback controls.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14029,7 +14538,8 @@
       "summary": "Handles broadcast intents to trigger and update all associated Glance app widgets upon playback state changes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14049,7 +14559,9 @@
       "summary": "Manages bitmap caching for album art and provides widget-specific color extraction from player data.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14074,7 +14586,8 @@
       "summary": "Defines all application-wide color constants for both dark and light themes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14090,7 +14603,8 @@
       "summary": "Analyzes album art bitmaps to extract a representative seed color and generates corresponding dynamic light/dark Material 3 ColorSchemes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14134,7 +14648,8 @@
       "summary": "Generates dynamic Compose ColorSchemes for genres based on ID or object, handling light/dark modes and caching results.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14165,7 +14680,8 @@
       "summary": "Defines global, reusable corner radius shapes for Compose UI components (small, medium, large).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14181,7 +14697,9 @@
       "summary": "Provides cached singleton instances of frequently used `AbsoluteSmoothCornerShape` objects for UI styling consistency.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14199,7 +14717,8 @@
       "summary": "Manages application theming, applying dynamic or custom color schemes and handling system status bar appearance.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14219,7 +14738,8 @@
       "summary": "Defines the application's comprehensive typography system using Google Sans fonts for consistent UI styling.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -14318,7 +14838,8 @@
       "summary": "Manages dynamic app shortcuts and persists the last played playlist state for quick access outside the running application.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14339,7 +14860,8 @@
       "summary": "Sanitizes and resamples artwork bytes to fit dimension and size constraints for various UI components.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14663,7 +15185,8 @@
       "summary": "Utility object providing comprehensive security and format validation for importing various lyric file types (LRC/TTML).",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14705,7 +15228,10 @@
       "summary": "Parses diverse lyric file formats (LRC, Kugou) into structured data models and provides comprehensive multi-language romanization utilities for text enrichment.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14774,7 +15300,8 @@
       "summary": "Builds ExoPlayer MediaItem objects from Song data, handling URI normalization and metadata population for playback.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "widget"
       ],
       "complexity": "moderate",
       "classes": [
@@ -14792,7 +15319,7 @@
         "isInsideAppStorage"
       ],
       "hiltRole": "none",
-      "last_analyzed_hash": "4a429aa1b55643d339fb834aedc797a5e999293b02b64cb12c524b90839a341a"
+      "last_analyzed_hash": "7f30c826edbd7bd267e530d1ffe57259ef4392f62f410cbae9879fac9100d9f6"
     },
     {
       "id": "app/src/main/java/com/theveloper/pixelplay/utils/MediaMetadataRetrieverPool.kt",
@@ -14896,7 +15423,8 @@
       "summary": "Resolves appropriate foreground content color for playlist covers based on the provided Material Design color scheme tokens.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -15036,7 +15564,8 @@
       "summary": "Parses TTML XML format into a sorted list of time-stamped LRC lyric strings for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15173,7 +15702,10 @@
       "summary": "Tests the logic for adapting various legacy backup JSON formats into structured application data modules.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "crossfade",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15191,7 +15723,10 @@
       "summary": "Unit tests validating the structure and integrity of defined music player backup sections.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15265,7 +15800,9 @@
       "summary": "Tests the sanitization logic for strings, URLs, and module keys used in content handling.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "equalizer",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15283,7 +15820,8 @@
       "summary": "Tests the ManifestValidator's ability to validate backup manifest integrity, including schema versioning and checksum verification.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15303,7 +15841,8 @@
       "summary": "Tests the schema validation logic for various backup sections using sample JSON payloads.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15337,7 +15876,8 @@
       "summary": "Unit tests validating the logic and state transitions of sort option enumeration.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15454,7 +15994,8 @@
       "summary": "Unit tests the LyricsRepositoryImpl's complex data fetching strategy, managing source prioritization and synchronization between local storage and remote APIs.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15483,7 +16024,9 @@
       "summary": "Implements and tests the core music data access layer (Repository pattern), coordinating DAO calls for songs, albums, artists, and preferences.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15506,7 +16049,8 @@
       "summary": "Tests the logic for determining remote playback state based on Google Cast media status projections.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15524,7 +16068,8 @@
       "summary": "Unit tests verifying the core logic for detecting audio codecs from MP4 file byte streams.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15554,7 +16099,8 @@
       "summary": "Unit tests validating the security logic and policy generation for casting sessions.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15874,7 +16420,8 @@
       "summary": "Provides unit tests validating core business logic for synchronizing, cleaning, clustering, and calculating display metrics for lyrics.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15951,7 +16498,8 @@
       "summary": "Tests the logic for determining the appropriate color scheme for the player sheet component.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -15973,7 +16521,8 @@
       "summary": "Tests the logic for decoding and maintaining the stable order of library tabs from a serialized list of keys.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16049,7 +16598,8 @@
       "summary": "Tests the logic for loading and updating song lyrics state based on stored data and metadata changes.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16073,7 +16623,8 @@
       "summary": "Tests the state management logic for playback position and queue synchronization in a music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16094,7 +16645,8 @@
       "summary": "Tests the logic for hydrating song data and parsing persisted lyrics within the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16117,7 +16669,12 @@
       "summary": "Tests the core playback logic, including genre filtering, shuffle routines, and search history management for the music player.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "playlist",
+        "theme",
+        "cast",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16141,7 +16698,8 @@
       "summary": "Unit test suite validating color scheme generation and seed selection logic for the music player's UI theme.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16173,7 +16731,8 @@
       "summary": "Tests validating the generation of Compose ColorSchemes for genre-specific UI theming.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16318,7 +16877,8 @@
       "summary": "Unit tests validating the security and format integrity of imported lyrics files (LRC/TTML) against injection and size limits.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16345,7 +16905,8 @@
       "summary": "Handles parsing and serialization of complex music lyric metadata from formats like LRC and TTML, extracting timed lines, translations, and segmented words.",
       "tags": [
         "Presentation",
-        "kotlin"
+        "kotlin",
+        "lyrics"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16469,7 +17030,8 @@
       "summary": "Defines the structured request payload for browsing music library content from a wearable device.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16487,7 +17049,8 @@
       "summary": "Data structure modeling the response payload containing browse results and potential errors from a watch service.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16579,7 +17142,8 @@
       "summary": "Defines a serializable data structure for lightweight representation of library items across various media types for Wear OS display.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16615,7 +17179,9 @@
       "summary": "Defines structured commands for controlling music playback from a wearable device to the phone.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16651,7 +17217,9 @@
       "summary": "DTO representing minimal player state for synchronization between phone and watch devices.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "lyrics",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16669,7 +17237,8 @@
       "summary": "Defines the serializable data structure for transmitting a comprehensive color palette theme from phone to watch.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16687,7 +17256,8 @@
       "summary": "Data model representing comprehensive metadata for a song transferred from phone to watch for local database persistence and playback state restoration.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16759,7 +17329,8 @@
       "summary": "DTO for synchronizing music stream volume state and routing information between connected devices.",
       "tags": [
         "Domain-Shared",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16808,7 +17379,8 @@
       "summary": "Defines the Room database entity structure for storing metadata of locally available songs.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16826,7 +17398,8 @@
       "summary": "Provides the persistent storage layer for offline song metadata using Room database abstraction.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16944,7 +17517,8 @@
       "summary": "Manages wear-to-phone communication, caching, and request/response correlation for music library browsing data.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -16987,7 +17561,8 @@
       "summary": "Manages local audio playback using ExoPlayer and MediaSession, providing state flow for UI synchronization.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17061,7 +17636,9 @@
       "summary": "Sends playback and volume commands from the wearable device to the phone app via Wear Data Layer messages.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17131,7 +17708,8 @@
       "summary": "Manages the entire lifecycle of song transfers from phone to watch via Wearable APIs and local database persistence.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17253,7 +17831,8 @@
       "summary": "Renders a circular progress indicator for volume visualization using Compose Canvas drawing primitives.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17271,7 +17850,8 @@
       "summary": "Maps a string route type to the appropriate Compose ImageVector icon for audio output selection.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "cast"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17343,7 +17923,9 @@
       "summary": "Renders the main library browsing screen using a vertical list of category chips for navigation.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17362,7 +17944,8 @@
       "summary": "Primary UI component for viewing local downloads, managing active transfers, and displaying the device's entire music library on Wear OS.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17390,7 +17973,9 @@
       "summary": "Displays a scrollable list of music library items (albums, artists, playlists) fetched from the Wear OS device.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17409,7 +17994,9 @@
       "summary": "Renders the main \"More\" screen UI, displaying playback controls, queue status, and navigation chips for music actions.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17430,7 +18017,8 @@
       "summary": "Renders the Wear OS output selection UI, displaying connected devices and managing playback state transitions.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17450,7 +18038,9 @@
       "summary": "Renders the main player UI, handling album art reveals and displaying playback controls for a wearable music player.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17498,7 +18088,9 @@
       "summary": "Displays the music playback queue and controls for both local and remote sources in a Wear OS UI.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17520,7 +18112,9 @@
       "summary": "Renders the primary song list UI component, coordinating browsing data, playback state, and user action menus within a Wear OS context.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17544,7 +18138,9 @@
       "summary": "Composable screen responsible for displaying and managing the sleep timer settings UI flow.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17563,7 +18159,8 @@
       "summary": "Wear OS composable presenting the full interactive volume control UI, handling state collection and rotary input logic.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17604,7 +18201,8 @@
       "summary": "Provides dynamic color palettes and implements the core MaterialTheme wrapper for Wear OS UI components.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17638,7 +18236,8 @@
       "summary": "Defines and remembers a custom, variable-font family for the browse subscreen title text styling.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [],
@@ -17656,7 +18255,8 @@
       "summary": "Manages UI state, loads library browse results from the phone repository, and controls playback actions.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17715,7 +18315,9 @@
       "summary": "Manages unified player state and controls playback logic across local (watch) and remote (phone) audio sources.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme",
+        "sleep"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17759,7 +18361,8 @@
       "summary": "Manages the Wear OS lifecycle, observing ambient state and setting foreground status for the music player UI.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "theme"
       ],
       "complexity": "moderate",
       "classes": [
@@ -17783,7 +18386,8 @@
       "summary": "Manages all Wear OS navigation flow and screen composition for the music player application.",
       "tags": [
         "Wearable",
-        "kotlin"
+        "kotlin",
+        "playlist"
       ],
       "complexity": "moderate",
       "classes": [
@@ -27212,6 +27816,13 @@
     {
       "source": "app/src/main/java/com/theveloper/pixelplay/data/service/MusicService.kt",
       "target": "app/src/main/java/com/theveloper/pixelplay/PixelPlayApplication.kt",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "app/src/main/java/com/theveloper/pixelplay/data/service/MusicService.kt",
+      "target": "app/src/main/java/com/theveloper/pixelplay/presentation/components/AlbumArtCollage.kt",
       "type": "calls",
       "direction": "forward",
       "weight": 0.6

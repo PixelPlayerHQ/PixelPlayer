@@ -251,7 +251,6 @@ class PlayerViewModelTest {
             mockUserPreferencesRepository,
             mockAiPreferencesRepository,
             mockThemePreferencesRepository,
-            mockAlbumArtThemeDao,
             mockSyncManager,
             mockDualPlayerEngine,
             mockAppShortcutManager,

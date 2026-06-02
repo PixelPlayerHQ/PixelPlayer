@@ -54,5 +54,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: codeql-database
-          path: ${{ runner.temp }}/codeql_databases
+          path: ${{ runner.temp }}/codeql_databases/java-kotlin
           retention-days: 1

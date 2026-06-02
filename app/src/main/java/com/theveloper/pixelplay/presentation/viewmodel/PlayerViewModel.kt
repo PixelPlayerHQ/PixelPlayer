@@ -4926,53 +4926,15 @@ class PlayerViewModel @Inject constructor(
 
     fun translateLyricsViaAi() {
         val currentSong = stablePlayerState.value.currentSong ?: return
-        val songId = currentSong.id.toLongOrNull() ?: return
-        val rawLyrics = currentSong.lyrics
-        val lyricsObj = stablePlayerState.value.lyrics
-
-        if (rawLyrics.isNullOrBlank()) {
-            sendToast(context.getString(R.string.lyrics_not_found))
-            return
-        }
-
-        if (lyricsObj?.synced != null) {
-            val hasValidTranslation = lyricsObj.synced.any { !it.translation.isNullOrBlank() }
-            if (hasValidTranslation) {
-                sendToast(context.getString(R.string.ai_lyrics_already_translated))
-                return
-            }
-        }
-
-        viewModelScope.launch {
-            sendToast(context.getString(R.string.ai_lyrics_translating))
-            val result = aiStateHolder.translateLyrics(rawLyrics)
-            result.onSuccess { translatedText ->
-                if (translatedText.trim() == "ALREADY_IN_TARGET_LANGUAGE") {
-                    sendToast(context.getString(R.string.ai_lyrics_already_in_target_language))
-                    return@onSuccess
-                }
-
-                if (translatedText.isNotBlank()) {
-                    val validation = com.theveloper.pixelplay.utils.LyricsImportSecurity.validateImportedLrcContent(translatedText)
-                    if (validation is com.theveloper.pixelplay.utils.LyricsImportValidationResult.Valid) {
-                        lyricsStateHolder.importLyricsFromFile(songId, validation.value, currentSong)
-                        sendToast(context.getString(R.string.ai_lyrics_translation_success))
-                    } else {
-                        val reason = (validation as com.theveloper.pixelplay.utils.LyricsImportValidationResult.Invalid).reason
-                        val errorMsg = com.theveloper.pixelplay.utils.LyricsImportSecurity.messageFor(reason)
-                        sendToast(context.getString(R.string.ai_error_generic, errorMsg))
-                    }
-                } else {
-                     sendToast(context.getString(R.string.ai_error_generic, "Empty response"))
-                }
-            }.onFailure {
-                if (it.message?.contains("key", ignoreCase = true) == true || it.message?.contains("config", ignoreCase = true) == true) {
-                    sendToast(context.getString(R.string.ai_error_api_key))
-                } else {
-                    sendToast(context.getString(R.string.ai_error_generic, it.message))
-                }
-            }
-        }
+        lyricsStateHolder.translateLyricsViaAi(
+            currentSong = currentSong,
+            lyricsObj = stablePlayerState.value.lyrics,
+            cb = LyricsTranslationCallbacks(
+                translate = { rawLyrics -> aiStateHolder.translateLyrics(rawLyrics) },
+                getString = { resId -> context.getString(resId) },
+                getErrorString = { detail -> context.getString(R.string.ai_error_generic, detail) }
+            )
+        )
     }
 
     /**

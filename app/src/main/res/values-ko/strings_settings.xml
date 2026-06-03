@@ -1,31 +1,55 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">설정</string>
     <string name="settings_accounts_row_title">계정</string>
-    <string name="settings_accounts_row_subtitle">Telegram, Google Drive, NetEase Music 및 기타 서비스 관리</string>
+    <string
+        name="settings_accounts_row_subtitle"
+    >Telegram, Google Drive, NetEase Music 및 기타 서비스 관리</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">음악 관리</string>
-    <string name="settings_category_library_subtitle">폴더 관리, 라이브러리 새로고침, 파싱 옵션</string>
+    <string
+        name="settings_category_library_subtitle"
+    >폴더 관리, 라이브러리 새로고침, 파싱 옵션</string>
     <string name="settings_category_appearance_title">디자인</string>
-    <string name="settings_category_appearance_subtitle">테마, 레이아웃 및 시각적 스타일</string>
+    <string
+        name="settings_category_appearance_subtitle"
+    >테마, 레이아웃 및 시각적 스타일</string>
     <string name="settings_category_playback_title">재생</string>
-    <string name="settings_category_playback_subtitle">오디오 동작, 크로스페이드 및 백그라운드 재생</string>
+    <string
+        name="settings_category_playback_subtitle"
+    >오디오 동작, 크로스페이드 및 백그라운드 재생</string>
     <string name="settings_category_behavior_title">동작</string>
-    <string name="settings_category_behavior_subtitle">제스처, 햅틱 및 내비게이션 동작</string>
+    <string
+        name="settings_category_behavior_subtitle"
+    >제스처, 햅틱 및 내비게이션 동작</string>
     <string name="settings_category_ai_title">AI 연동 (β)</string>
-    <string name="settings_category_ai_subtitle">AI 제공업체, API 키 및 모델 설정</string>
+    <string
+        name="settings_category_ai_subtitle"
+    >AI 제공업체, API 키 및 모델 설정</string>
     <string name="settings_category_backup_title">백업 및 복구</string>
-    <string name="settings_category_backup_subtitle">개인 앱 데이터 내보내기 및 복구</string>
+    <string
+        name="settings_category_backup_subtitle"
+    >개인 앱 데이터 내보내기 및 복구</string>
     <string name="settings_category_developer_title">개발자 옵션</string>
-    <string name="settings_category_developer_subtitle">실험적 기능 및 디버깅</string>
+    <string
+        name="settings_category_developer_subtitle"
+    >실험적 기능 및 디버깅</string>
     <string name="settings_category_equalizer_title">이퀄라이저</string>
-    <string name="settings_category_equalizer_subtitle">오디오 주파수 및 프리셋 조정</string>
-    <string name="settings_category_device_capabilities_title">기기 성능</string>
-    <string name="settings_category_device_capabilities_subtitle">오디오 사양, 코덱 및 디코더 정보</string>
+    <string
+        name="settings_category_equalizer_subtitle"
+    >오디오 주파수 및 프리셋 조정</string>
+    <string
+        name="settings_category_device_capabilities_title"
+    >기기 성능</string>
+    <string
+        name="settings_category_device_capabilities_subtitle"
+    >오디오 사양, 코덱 및 디코더 정보</string>
     <string name="settings_category_about_title">정보</string>
-    <string name="settings_category_about_subtitle">앱 정보, 버전 및 제작진</string>
+    <string
+        name="settings_category_about_subtitle"
+    >앱 정보, 버전 및 제작진</string>
 
     <!-- Common toggles / labels used in ThemeSelectorItem maps -->
     <string name="label_on">켜짐</string>
@@ -40,33 +64,51 @@
     <!-- Library category -->
     <string name="setcat_library_structure">라이브러리 구조</string>
     <string name="setcat_excluded_directories_title">제외된 디렉토리</string>
-    <string name="setcat_excluded_directories_subtitle">여기에 있는 폴더는 라이브러리 스캔 시 제외됩니다.</string>
+    <string
+        name="setcat_excluded_directories_subtitle"
+    >여기에 있는 폴더는 라이브러리 스캔 시 제외됩니다.</string>
     <string name="setcat_artists_title">아티스트</string>
-    <string name="setcat_artists_subtitle">멀티 아티스트 파싱 및 구성 옵션.</string>
+    <string
+        name="setcat_artists_subtitle"
+    >멀티 아티스트 파싱 및 구성 옵션.</string>
     <string name="setcat_filtering">필터링</string>
     <string name="setcat_min_song_duration">최소 곡 길이</string>
     <string name="setcat_min_tracks_per_album">앨범당 최소 트랙 수</string>
     <string name="setcat_album_art_cache_limit">앨범 아트 캐시 제한</string>
-    <string name="setcat_album_art_cache_limit_desc">가장 오래된 이미지가 자동 삭제되기 전의 최대 캐시 크기</string>
+    <string
+        name="setcat_album_art_cache_limit_desc"
+    >가장 오래된 이미지가 자동 삭제되기 전의 최대 캐시 크기</string>
     <string name="setcat_sync_scanning">동기화 및 스캔</string>
     <string name="setcat_sync_full_rescan_label">전체 재스캔 실행 중</string>
     <string name="toast_library_sync_finished">라이브러리 동기화 완료</string>
     <string name="toast_full_rescan_started">전체 재스캔 시작됨…</string>
     <string name="setcat_auto_scan_lrc_title">.lrc 파일 자동 스캔</string>
-    <string name="setcat_auto_scan_lrc_subtitle">라이브러리 동기화 중 같은 폴더에 있는 .lrc 파일을 자동으로 스캔하여 할당합니다.</string>
+    <string
+        name="setcat_auto_scan_lrc_subtitle"
+    >라이브러리 동기화 중 같은 폴더에 있는 .lrc 파일을 자동으로 스캔하여 할당합니다.</string>
     <string name="setcat_lyrics_management">가사 관리</string>
-    <string name="setcat_lyrics_source_priority_label">가사 소스 우선순위</string>
-    <string name="setcat_lyrics_source_priority_desc">가사를 가져올 때 먼저 시도할 소스를 선택하세요.</string>
+    <string
+        name="setcat_lyrics_source_priority_label"
+    >가사 소스 우선순위</string>
+    <string
+        name="setcat_lyrics_source_priority_desc"
+    >가사를 가져올 때 먼저 시도할 소스를 선택하세요.</string>
     <string name="setcat_lyrics_embedded_first">내장 가사 우선</string>
     <string name="setcat_lyrics_online_first">온라인 우선</string>
     <string name="setcat_lyrics_local_first">로컬(.lrc) 우선</string>
-    <string name="setcat_reset_imported_lyrics_title">가져온 가사 초기화</string>
-    <string name="setcat_reset_imported_lyrics_subtitle">데이터베이스에서 가져온 모든 가사를 삭제합니다.</string>
+    <string
+        name="setcat_reset_imported_lyrics_title"
+    >가져온 가사 초기화</string>
+    <string
+        name="setcat_reset_imported_lyrics_subtitle"
+    >데이터베이스에서 가져온 모든 가사를 삭제합니다.</string>
 
     <!-- Appearance -->
     <string name="setcat_global_theme">전체 테마</string>
     <string name="setcat_language_label">앱 언어</string>
-    <string name="setcat_language_desc">앱 인터페이스에서 사용할 언어를 선택하세요.</string>
+    <string
+        name="setcat_language_desc"
+    >앱 인터페이스에서 사용할 언어를 선택하세요.</string>
     <string name="setcat_language_system">시스템 기본값</string>
     <string name="setcat_language_english">영어</string>
     <string name="setcat_language_spanish">스페인어</string>
@@ -76,203 +118,365 @@
     <string name="setcat_language_chinese">중국어(간체)</string>
     <string name="setcat_language_indonesian">인도네시아어</string>
     <string name="setcat_language_italian">이탈리아어</string>
+    <string name="setcat_language_korean">한국어</string>
+    <string name="setcat_language_norwegian_bokmal">노르웨이어 (Bokmål)</string>
     <string name="setcat_app_theme_label">앱 테마</string>
-    <string name="setcat_app_theme_desc">밝은 테마, 어두운 테마 또는 시스템 설정 따르기 중에서 선택하세요.</string>
+    <string
+        name="setcat_app_theme_desc"
+    >밝은 테마, 어두운 테마 또는 시스템 설정 따르기 중에서 선택하세요.</string>
     <string name="setcat_theme_light">밝은 테마</string>
     <string name="setcat_theme_dark">어두운 테마</string>
     <string name="setcat_theme_follow_system">시스템 설정 따르기</string>
     <string name="setcat_smooth_corners_title">부드러운 모서리 사용</string>
-    <string name="setcat_smooth_corners_subtitle">복잡한 모양의 모서리를 사용하여 미적 감각을 효과적으로 개선하지만, 저사양 기기에서는 성능에 영향을 줄 수 있습니다.</string>
+    <string
+        name="setcat_smooth_corners_subtitle"
+    >복잡한 모양의 모서리를 사용하여 미적 감각을 효과적으로 개선하지만, 저사양 기기에서는 성능에 영향을 줄 수 있습니다.</string>
     <string name="setcat_now_playing">현재 재생 중</string>
     <string name="setcat_player_theme_label">플레이어 테마</string>
-    <string name="setcat_player_theme_desc">플로팅 플레이어의 디자인을 선택하세요.</string>
+    <string
+        name="setcat_player_theme_desc"
+    >플로팅 플레이어의 디자인을 선택하세요.</string>
     <string name="setcat_player_theme_album_art">앨범 아트</string>
     <string name="setcat_player_theme_dynamic">시스템 다이내믹</string>
-    <string name="setcat_show_player_file_info_title">플레이어 파일 정보 표시</string>
-    <string name="setcat_show_player_file_info_subtitle">플레이어 진행 영역에 코덱, 비트레이트, 샘플링 레이트를 표시합니다.</string>
-    <string name="setcat_album_art_palette_title">앨범 아트 팔레트 스타일</string>
-    <string name="setcat_album_art_palette_subtitle">현재: %1$s. 실시간 미리보기를 열고 스타일을 선택하세요.</string>
+    <string
+        name="setcat_show_player_file_info_title"
+    >플레이어 파일 정보 표시</string>
+    <string
+        name="setcat_show_player_file_info_subtitle"
+    >플레이어 진행 영역에 코덱, 비트레이트, 샘플링 레이트를 표시합니다.</string>
+    <string
+        name="setcat_album_art_palette_title"
+    >앨범 아트 팔레트 스타일</string>
+    <string
+        name="setcat_album_art_palette_subtitle"
+    >현재: %1$s. 실시간 미리보기를 열고 스타일을 선택하세요.</string>
     <string name="setcat_carousel_style_label">캐러셀 스타일</string>
-    <string name="setcat_carousel_style_desc">앨범 캐러셀의 디자인을 선택하세요.</string>
+    <string
+        name="setcat_carousel_style_desc"
+    >앨범 캐러셀의 디자인을 선택하세요.</string>
     <string name="setcat_carousel_no_peek">미리보기 없음</string>
     <string name="setcat_carousel_one_peek">하나 미리보기</string>
     <string name="setcat_home_collage">홈 콜라주</string>
     <string name="setcat_collage_pattern_label">콜라주 패턴</string>
-    <string name="setcat_collage_pattern_desc">\'내 믹스\' 콜라주의 모양 배치를 선택하세요.</string>
+    <string
+        name="setcat_collage_pattern_desc"
+    >\'내 믹스\' 콜라주의 모양 배치를 선택하세요.</string>
     <string name="setcat_auto_rotate_patterns_title">패턴 자동 회전</string>
-    <string name="setcat_auto_rotate_patterns_subtitle">홈을 방문할 때마다 콜라주 패턴을 순환합니다.</string>
+    <string
+        name="setcat_auto_rotate_patterns_subtitle"
+    >홈을 방문할 때마다 콜라주 패턴을 순환합니다.</string>
     <string name="setcat_navigation_bar">내비게이션 바</string>
     <string name="setcat_navbar_style_label">내비게이션 바 스타일</string>
-    <string name="setcat_navbar_style_desc">내비게이션 바의 디자인을 선택하세요.</string>
+    <string
+        name="setcat_navbar_style_desc"
+    >내비게이션 바의 디자인을 선택하세요.</string>
     <string name="setcat_navbar_style_default">기본값</string>
     <string name="setcat_navbar_style_full_width">전체 너비</string>
     <string name="setcat_compact_mode_title">컴팩트 모드</string>
-    <string name="setcat_compact_mode_subtitle">아이콘만 표시하고 내비게이션 바 높이를 줄입니다.</string>
+    <string
+        name="setcat_compact_mode_subtitle"
+    >아이콘만 표시하고 내비게이션 바 높이를 줄입니다.</string>
     <string name="setcat_navbar_corner_title">내비게이션 바 모서리 반경</string>
-    <string name="setcat_navbar_corner_subtitle">내비게이션 바의 모서리 반경을 조정합니다.</string>
+    <string
+        name="setcat_navbar_corner_subtitle"
+    >내비게이션 바의 모서리 반경을 조정합니다.</string>
     <string name="setcat_lyrics_screen">가사 화면</string>
     <string name="setcat_immersive_lyrics_title">몰입형 가사</string>
-    <string name="setcat_immersive_lyrics_subtitle">컨트롤을 자동으로 숨기고 텍스트를 확대합니다.</string>
+    <string
+        name="setcat_immersive_lyrics_subtitle"
+    >컨트롤을 자동으로 숨기고 텍스트를 확대합니다.</string>
     <string name="setcat_auto_hide_delay_label">자동 숨김 지연 시간</string>
-    <string name="setcat_auto_hide_delay_desc">컨트롤이 숨겨지기 전까지의 시간입니다.</string>
+    <string
+        name="setcat_auto_hide_delay_desc"
+    >컨트롤이 숨겨지기 전까지의 시간입니다.</string>
     <string name="setcat_lyrics_delay_3s">3초</string>
     <string name="setcat_lyrics_delay_4s">4초</string>
     <string name="setcat_lyrics_delay_5s">5초</string>
     <string name="setcat_lyrics_delay_6s">6초</string>
     <string name="setcat_app_navigation_section">앱 내비게이션</string>
     <string name="setcat_default_tab_label">기본 탭</string>
-    <string name="setcat_default_tab_desc">시작 시 열릴 기본 탭을 선택하세요.</string>
+    <string
+        name="setcat_default_tab_desc"
+    >시작 시 열릴 기본 탭을 선택하세요.</string>
     <string name="tab_home">홈</string>
-    <string name="setcat_library_navigation_label">라이브러리 내비게이션</string>
-    <string name="setcat_library_navigation_desc">라이브러리 탭 간 이동 방식을 선택하세요.</string>
+    <string
+        name="setcat_library_navigation_label"
+    >라이브러리 내비게이션</string>
+    <string
+        name="setcat_library_navigation_desc"
+    >라이브러리 탭 간 이동 방식을 선택하세요.</string>
     <string name="setcat_library_nav_tab_row">탭 행 (기본값)</string>
-    <string name="setcat_library_nav_compact_pill">컴팩트 알약 및 그리드</string>
+    <string
+        name="setcat_library_nav_compact_pill"
+    >컴팩트 알약 및 그리드</string>
 
     <!-- Playback -->
     <string name="setcat_background_playback">백그라운드 재생</string>
     <string name="setcat_keep_playing_label">닫은 후에도 계속 재생</string>
-    <string name="setcat_keep_playing_desc">꺼져 있으면 최근 앱 목록에서 앱을 제거할 때 재생이 중지됩니다.</string>
+    <string
+        name="setcat_keep_playing_desc"
+    >꺼져 있으면 최근 앱 목록에서 앱을 제거할 때 재생이 중지됩니다.</string>
     <string name="setcat_battery_optimization_title">배터리 최적화</string>
-    <string name="setcat_battery_optimization_subtitle">재생 중단을 방지하기 위해 배터리 최적화를 비활성화합니다.</string>
-    <string name="toast_battery_already_disabled">배터리 최적화가 이미 비활성화되어 있습니다</string>
+    <string
+        name="setcat_battery_optimization_subtitle"
+    >재생 중단을 방지하기 위해 배터리 최적화를 비활성화합니다.</string>
+    <string
+        name="toast_battery_already_disabled"
+    >배터리 최적화가 이미 비활성화되어 있습니다</string>
     <string name="setcat_replaygain_section">볼륨 정규화 (ReplayGain)</string>
     <string name="setcat_replaygain_enable_title">ReplayGain 활성화</string>
-    <string name="setcat_replaygain_enable_subtitle">오디오 파일의 ReplayGain 메타데이터를 사용하여 볼륨 수준을 정규화합니다.</string>
+    <string
+        name="setcat_replaygain_enable_subtitle"
+    >오디오 파일의 ReplayGain 메타데이터를 사용하여 볼륨 수준을 정규화합니다.</string>
     <string name="setcat_gain_mode_label">게인 모드</string>
-    <string name="setcat_gain_mode_desc">트랙: 각 노래를 정규화합니다. 앨범: 앨범별로 정규화합니다.</string>
+    <string
+        name="setcat_gain_mode_desc"
+    >트랙: 각 노래를 정규화합니다. 앨범: 앨범별로 정규화합니다.</string>
     <string name="setcat_gain_mode_track">트랙</string>
     <string name="setcat_gain_mode_album">앨범</string>
     <string name="setcat_cast">전송(Cast)</string>
-    <string name="setcat_cast_autoplay_label">전송 연결/해제 시 자동 재생</string>
-    <string name="setcat_cast_autoplay_desc">전송 연결 전환 후 즉시 재생을 시작합니다.</string>
+    <string
+        name="setcat_cast_autoplay_label"
+    >전송 연결/해제 시 자동 재생</string>
+    <string
+        name="setcat_cast_autoplay_desc"
+    >전송 연결 전환 후 즉시 재생을 시작합니다.</string>
     <string name="setcat_headphones">헤드폰</string>
     <string name="setcat_headphones_resume_title">헤드폰 재연결 시 재개</string>
-    <string name="setcat_headphones_resume_subtitle">헤드폰이 제거되어 재생이 일시 중지된 경우, 다시 연결될 때 자동으로 재개합니다.</string>
+    <string
+        name="setcat_headphones_resume_subtitle"
+    >헤드폰이 제거되어 재생이 일시 중지된 경우, 다시 연결될 때 자동으로 재개합니다.</string>
     <string name="setcat_queue_transitions">대기열 및 전환</string>
     <string name="setcat_crossfade_label">크로스페이드</string>
-    <string name="setcat_crossfade_desc">노래 간 부드러운 전환을 활성화합니다.</string>
+    <string
+        name="setcat_crossfade_desc"
+    >노래 간 부드러운 전환을 활성화합니다.</string>
     <string name="setcat_crossfade_duration">크로스페이드 지속 시간</string>
     <string name="setcat_hifi_mode_title">Hi-Fi 모드</string>
-    <string name="setcat_hifi_mode_subtitle_supported">32비트 부동 소수점 오디오 출력. 기기에서 재생이 끊기면 비활성화하세요.</string>
-    <string name="setcat_hifi_mode_subtitle_unsupported">이 기기에서는 지원되지 않습니다 (PCM_FLOAT AudioTrack 사용 불가).</string>
+    <string
+        name="setcat_hifi_mode_subtitle_supported"
+    >32비트 부동 소수점 오디오 출력. 기기에서 재생이 끊기면 비활성화하세요.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_unsupported"
+    >이 기기에서는 지원되지 않습니다 (PCM_FLOAT AudioTrack 사용 불가).</string>
     <string name="setcat_persistent_shuffle_title">셔플 상태 유지</string>
-    <string name="setcat_persistent_shuffle_subtitle">앱을 닫은 후에도 셔플 설정을 기억합니다.</string>
+    <string
+        name="setcat_persistent_shuffle_subtitle"
+    >앱을 닫은 후에도 셔플 설정을 기억합니다.</string>
     <string name="setcat_show_queue_history_title">대기열 기록 표시</string>
-    <string name="setcat_show_queue_history_subtitle">대기열에서 이전에 재생된 노래를 표시합니다.</string>
+    <string
+        name="setcat_show_queue_history_subtitle"
+    >대기열에서 이전에 재생된 노래를 표시합니다.</string>
 
     <!-- Behavior -->
     <string name="setcat_folders">폴더</string>
-    <string name="setcat_folder_back_gesture_title">뒤로 가기 제스처로 폴더 제어</string>
-    <string name="setcat_folder_back_gesture_subtitle">폴더 탭에서 시스템 뒤로 가기가 라이브러리를 나가기 전에 폴더 스택을 탐색합니다.</string>
+    <string
+        name="setcat_folder_back_gesture_title"
+    >뒤로 가기 제스처로 폴더 제어</string>
+    <string
+        name="setcat_folder_back_gesture_subtitle"
+    >폴더 탭에서 시스템 뒤로 가기가 라이브러리를 나가기 전에 폴더 스택을 탐색합니다.</string>
     <string name="setcat_player_gestures">플레이어 제스처</string>
     <string name="setcat_tap_bg_closes_title">배경 탭 시 플레이어 닫기</string>
-    <string name="setcat_tap_bg_closes_subtitle">흐릿한 배경을 탭하여 플레이어 시트를 닫습니다.</string>
+    <string
+        name="setcat_tap_bg_closes_subtitle"
+    >흐릿한 배경을 탭하여 플레이어 시트를 닫습니다.</string>
     <string name="setcat_haptics">햅틱</string>
     <string name="setcat_haptic_feedback_title">햅틱 피드백</string>
-    <string name="setcat_haptic_feedback_subtitle">앱 전반에서 진동 피드백을 활성화합니다.</string>
+    <string
+        name="setcat_haptic_feedback_subtitle"
+    >앱 전반에서 진동 피드백을 활성화합니다.</string>
 
     <!-- AI -->
     <string name="setcat_ai_provider_section">AI 제공업체</string>
     <string name="setcat_ai_provider_label">제공업체</string>
     <string name="setcat_ai_provider_desc">AI 제공업체를 선택하세요</string>
     <string name="setcat_safe_token_title">안전 토큰 모드</string>
-    <string name="setcat_safe_token_on">켜짐 — 빠르고 저렴함. AI에 최소한의 데이터(~1K 토큰)를 보냅니다.</string>
-    <string name="setcat_safe_token_off">꺼짐 — 깊은 문맥. 더 풍부한 결과를 위해 전체 청취 프로필(~8K 토큰)을 보냅니다.</string>
+    <string
+        name="setcat_safe_token_on"
+    >켜짐 — 빠르고 저렴함. AI에 최소한의 데이터(~1K 토큰)를 보냅니다.</string>
+    <string
+        name="setcat_safe_token_off"
+    >꺼짐 — 깊은 문맥. 더 풍부한 결과를 위해 전체 청취 프로필(~8K 토큰)을 보냅니다.</string>
     <string name="setcat_credentials">인증 정보</string>
     <string name="setcat_ai_api_key_title">%1$s API 키</string>
     <string name="setcat_ai_api_key_subtitle">%1$s에서 가져오기</string>
-    <string name="setcat_ai_source_gemini">Google AI Studio (aistudio.google.com)</string>
-    <string name="setcat_ai_source_deepseek">DeepSeek Platform (api.deepseek.com)</string>
-    <string name="setcat_ai_source_groq">Groq Console (console.groq.com)</string>
-    <string name="setcat_ai_source_mistral">Mistral AI Platform (console.mistral.ai)</string>
-    <string name="setcat_ai_source_nvidia">NVIDIA Build (build.nvidia.com)</string>
-    <string name="setcat_ai_source_kimi">Moonshot AI Platform (platform.moonshot.cn)</string>
-    <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
-    <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
+    <string
+        name="setcat_ai_source_gemini"
+    >Google AI Studio (aistudio.google.com)</string>
+    <string
+        name="setcat_ai_source_deepseek"
+    >DeepSeek Platform (api.deepseek.com)</string>
+    <string
+        name="setcat_ai_source_groq"
+    >Groq Console (console.groq.com)</string>
+    <string
+        name="setcat_ai_source_mistral"
+    >Mistral AI Platform (console.mistral.ai)</string>
+    <string
+        name="setcat_ai_source_nvidia"
+    >NVIDIA Build (build.nvidia.com)</string>
+    <string
+        name="setcat_ai_source_kimi"
+    >Moonshot AI Platform (platform.moonshot.cn)</string>
+    <string
+        name="setcat_ai_source_glm"
+    >Zhipu AI Open Platform (bigmodel.cn)</string>
+    <string
+        name="setcat_ai_source_openai"
+    >OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">모델 선택</string>
     <string name="setcat_loading_models">사용 가능한 모델 로드 중…</string>
     <string name="setcat_ai_model_label">AI 모델</string>
     <string name="setcat_ai_model_desc">모델을 선택하세요.</string>
     <string name="setcat_prompt_behavior">프롬프트 동작</string>
     <string name="setcat_system_prompt_title">시스템 프롬프트</string>
-    <string name="setcat_system_prompt_subtitle">AI의 동작 방식을 사용자 지정합니다.</string>
+    <string
+        name="setcat_system_prompt_subtitle"
+    >AI의 동작 방식을 사용자 지정합니다.</string>
     <string name="setcat_ai_usage_report">AI 사용 보고서</string>
     <string name="setcat_total_consumption_title">총 소비량</string>
-    <string name="setcat_ai_usage_tokens_subtitle">%1$s 토큰 추적\n프롬프트: %2$s | 출력: %3$s | 생각: %4$s</string>
+    <string
+        name="setcat_ai_usage_tokens_subtitle"
+    >%1$s 토큰 추적\n프롬프트: %2$s | 출력: %3$s | 생각: %4$s</string>
 
     <!-- Backup / developer / dialogs -->
     <string name="setcat_create_backup">백업 생성</string>
     <string name="setcat_export_backup_title">백업 내보내기</string>
-    <string name="setcat_export_backup_subtitle">%1$s .pxpl 백업 파일을 생성합니다.</string>
+    <string
+        name="setcat_export_backup_subtitle"
+    >%1$s .pxpl 백업 파일을 생성합니다.</string>
     <string name="setcat_restore_backup_section">백업 복구</string>
     <string name="setcat_import_backup_title">백업 가져오기</string>
-    <string name="setcat_import_backup_subtitle">최근 백업에서 찾아보거나 선택하세요. 선택한 데이터가 현재 데이터를 대체합니다.</string>
+    <string
+        name="setcat_import_backup_subtitle"
+    >최근 백업에서 찾아보거나 선택하세요. 선택한 데이터가 현재 데이터를 대체합니다.</string>
     <string name="setcat_experiments">실험실</string>
     <string name="setcat_experimental_title">실험적 기능</string>
-    <string name="setcat_experimental_subtitle">플레이어 UI 로딩 실험 및 토글.</string>
+    <string
+        name="setcat_experimental_subtitle"
+    >플레이어 UI 로딩 실험 및 토글.</string>
     <string name="setcat_test_setup_title">설정 프로세스 테스트</string>
-    <string name="setcat_test_setup_subtitle">테스트를 위해 온보딩 설정 화면을 시작합니다.</string>
+    <string
+        name="setcat_test_setup_subtitle"
+    >테스트를 위해 온보딩 설정 화면을 시작합니다.</string>
     <string name="setcat_maintenance">유지 관리</string>
     <string name="setcat_force_daily_mix_title">데일리 믹스 강제 재생성</string>
-    <string name="setcat_force_daily_mix_subtitle">데일리 믹스 플레이리스트를 즉시 다시 생성합니다.</string>
+    <string
+        name="setcat_force_daily_mix_subtitle"
+    >데일리 믹스 플레이리스트를 즉시 다시 생성합니다.</string>
     <string name="setcat_force_stats_title">통계 강제 재생성</string>
-    <string name="setcat_force_stats_subtitle">캐시를 지우고 재생 통계를 다시 계산합니다.</string>
+    <string
+        name="setcat_force_stats_subtitle"
+    >캐시를 지우고 재생 통계를 다시 계산합니다.</string>
     <string name="setcat_force_palette_title">앨범 팔레트 강제 재생성</string>
     <string name="setcat_diagnostics">진단</string>
     <string name="setcat_trigger_crash_title">테스트 크래시 발생</string>
-    <string name="setcat_trigger_crash_subtitle">크래시 보고 시스템을 테스트하기 위해 크래시를 시뮬레이션합니다.</string>
+    <string
+        name="setcat_trigger_crash_subtitle"
+    >크래시 보고 시스템을 테스트하기 위해 크래시를 시뮬레이션합니다.</string>
     <string name="setcat_application">애플리케이션</string>
     <string name="setcat_about_pixelplayer_title">PixelPlayer 정보</string>
-    <string name="setcat_about_pixelplayer_subtitle">앱 버전, 제작진 등.</string>
+    <string
+        name="setcat_about_pixelplayer_subtitle"
+    >앱 버전, 제작진 등.</string>
 
     <string name="backup_summary_none">선택된 섹션이 없습니다.</string>
     <string name="backup_summary_all">모든 섹션이 선택되었습니다.</string>
-    <string name="backup_summary_partial">%2$개 중 %1$개 섹션이 선택되었습니다.</string>
+    <string
+        name="backup_summary_partial"
+    >%2$개 중 %1$개 섹션이 선택되었습니다.</string>
     <string name="backup_how_title">백업 작동 방식</string>
-    <string name="backup_how_body">섹션을 선택하고 .pxpl 파일을 내보낸 후 나중에 가져오세요. 복구는 선택한 섹션만 대체합니다.</string>
-    <string name="backup_dialog_supporting_export">백업 패키지에 포함할 항목을 정확히 선택하세요.</string>
+    <string
+        name="backup_how_body"
+    >섹션을 선택하고 .pxpl 파일을 내보낸 후 나중에 가져오세요. 복구는 선택한 섹션만 대체합니다.</string>
+    <string
+        name="backup_dialog_supporting_export"
+    >백업 패키지에 포함할 항목을 정확히 선택하세요.</string>
     <string name="backup_confirm_export_pxpl">.pxpl 내보내기</string>
-    <string name="backup_sections_selected_format">%2$개 중 %1$개 섹션 선택됨</string>
+    <string
+        name="backup_sections_selected_format"
+    >%2$개 중 %1$개 섹션 선택됨</string>
     <string name="backup_transfer_in_progress">전송 중…</string>
     <string name="backup_exporting">내보내는 중</string>
     <string name="backup_importing">가져오는 중</string>
     <string name="backup_dialog_creating">백업 생성 중</string>
     <string name="backup_dialog_restoring">백업 복구 중</string>
     <string name="backup_step_format">%2$단계 중 %1$단계</string>
-    <string name="backup_entries_will_replace">%1$개 항목 · 현재 데이터를 대체합니다</string>
+    <string
+        name="backup_entries_will_replace"
+    >%1$개 항목 · 현재 데이터를 대체합니다</string>
 
-    <string name="dialog_palette_regenerated">%1$s의 팔레트가 재생성되었습니다</string>
-    <string name="dialog_palette_regenerate_failed">%1$s의 팔레트를 재생성할 수 없습니다</string>
-    <string name="dialog_regenerating_palettes_title">앨범 팔레트 재생성 중…</string>
-    <string name="dialog_regenerate_palettes_title">모든 앨범 팔레트를 재생성하시겠습니까?</string>
-    <string name="dialog_regenerate_palettes_progress_body">%1$개의 고유한 앨범 아트에 대해 캐시된 팔레트 변형을 다시 빌드합니다. 라이브러리가 큰 경우 시간이 걸릴 수 있습니다.</string>
-    <string name="dialog_regenerate_palettes_confirm_body">캐시된 테마 데이터를 지우고 %1$개의 고유한 앨범 아트에 대해 모든 팔레트 스타일을 다시 빌드합니다.</string>
+    <string
+        name="dialog_palette_regenerated"
+    >%1$s의 팔레트가 재생성되었습니다</string>
+    <string
+        name="dialog_palette_regenerate_failed"
+    >%1$s의 팔레트를 재생성할 수 없습니다</string>
+    <string
+        name="dialog_regenerating_palettes_title"
+    >앨범 팔레트 재생성 중…</string>
+    <string
+        name="dialog_regenerate_palettes_title"
+    >모든 앨범 팔레트를 재생성하시겠습니까?</string>
+    <string
+        name="dialog_regenerate_palettes_progress_body"
+    >%1$개의 고유한 앨범 아트에 대해 캐시된 팔레트 변형을 다시 빌드합니다. 라이브러리가 큰 경우 시간이 걸릴 수 있습니다.</string>
+    <string
+        name="dialog_regenerate_palettes_confirm_body"
+    >캐시된 테마 데이터를 지우고 %1$개의 고유한 앨범 아트에 대해 모든 팔레트 스타일을 다시 빌드합니다.</string>
     <string name="dialog_palette_progress_format">%2$개 중 %1$개 완료</string>
     <string name="working_ellipsis">작업 중…</string>
     <string name="dialog_regenerate">재생성</string>
-    <string name="toast_regenerated_palettes_all">%1$개의 앨범 아트 팔레트가 재생성되었습니다</string>
-    <string name="toast_regenerated_palettes_partial">%2$개 중 %1$개의 앨범 아트 팔레트가 재생성되었습니다</string>
+    <string
+        name="toast_regenerated_palettes_all"
+    >%1$개의 앨범 아트 팔레트가 재생성되었습니다</string>
+    <string
+        name="toast_regenerated_palettes_partial"
+    >%2$개 중 %1$개의 앨범 아트 팔레트가 재생성되었습니다</string>
 
-    <string name="dialog_reset_lyrics_title">가져온 가사를 초기화하시겠습니까?</string>
+    <string
+        name="dialog_reset_lyrics_title"
+    >가져온 가사를 초기화하시겠습니까?</string>
     <string name="dialog_cannot_undo">이 작업은 취소할 수 없습니다.</string>
     <string name="confirm">확인</string>
-    <string name="dialog_rebuild_database_title">데이터베이스를 다시 구축하시겠습니까?</string>
-    <string name="dialog_rebuild_database_message">음악 라이브러리를 처음부터 완전히 다시 구축합니다. 가져온 모든 가사, 즐겨찾기 및 사용자 지정 메타데이터가 손실됩니다. 이 작업은 취소할 수 없습니다.</string>
+    <string
+        name="dialog_rebuild_database_title"
+    >데이터베이스를 다시 구축하시겠습니까?</string>
+    <string
+        name="dialog_rebuild_database_message"
+    >음악 라이브러리를 처음부터 완전히 다시 구축합니다. 가져온 모든 가사, 즐겨찾기 및 사용자 지정 메타데이터가 손실됩니다. 이 작업은 취소할 수 없습니다.</string>
     <string name="rebuild">다시 구축</string>
     <string name="sync_indicator_rebuilding">데이터베이스 다시 구축 중</string>
     <string name="toast_rebuilding_database">데이터베이스 다시 구축 중…</string>
-    <string name="dialog_regenerate_daily_mix_title">데일리 믹스를 재생성하시겠습니까?</string>
-    <string name="dialog_regenerate_daily_mix_body">현재 믹스를 버리고 최근 청취 습관을 바탕으로 새로운 믹스를 생성합니다.</string>
-    <string name="toast_daily_mix_regeneration_started">데일리 믹스 재생성 시작됨</string>
-    <string name="dialog_regenerate_stats_title">통계를 재생성하시겠습니까?</string>
-    <string name="dialog_regenerate_stats_body">통계 캐시를 지우고 데이터베이스 기록에서 다시 계산하도록 합니다.</string>
+    <string
+        name="dialog_regenerate_daily_mix_title"
+    >데일리 믹스를 재생성하시겠습니까?</string>
+    <string
+        name="dialog_regenerate_daily_mix_body"
+    >현재 믹스를 버리고 최근 청취 습관을 바탕으로 새로운 믹스를 생성합니다.</string>
+    <string
+        name="toast_daily_mix_regeneration_started"
+    >데일리 믹스 재생성 시작됨</string>
+    <string
+        name="dialog_regenerate_stats_title"
+    >통계를 재생성하시겠습니까?</string>
+    <string
+        name="dialog_regenerate_stats_body"
+    >통계 캐시를 지우고 데이터베이스 기록에서 다시 계산하도록 합니다.</string>
     <string name="toast_stats_regeneration_started">통계 재생성 시작됨</string>
     <string name="backup_file_name_format">PixelPlayer_Backup_%1$d.pxpl</string>
 
-    <string name="setcat_regenerate_daily_mix_action">데일리 믹스 재생성</string>
+    <string
+        name="setcat_regenerate_daily_mix_action"
+    >데일리 믹스 재생성</string>
     <string name="setcat_regenerate_stats_action">통계 재생성</string>
-    <string name="setcat_force_palette_empty">앨범 아트가 있는 노래를 찾을 수 없습니다.</string>
-    <string name="setcat_force_palette_subtitle">모든 앨범 아트에 대해 캐시된 모든 팔레트 변형을 다시 빌드하거나, 새로 고칠 곡을 하나 선택하세요.</string>
+    <string
+        name="setcat_force_palette_empty"
+    >앨범 아트가 있는 노래를 찾을 수 없습니다.</string>
+    <string
+        name="setcat_force_palette_subtitle"
+    >모든 앨범 아트에 대해 캐시된 모든 팔레트 변형을 다시 빌드하거나, 새로 고칠 곡을 하나 선택하세요.</string>
     <string name="setcat_regenerate_all">모두 재생성</string>
     <string name="setcat_regenerating">재생성 중…</string>
     <string name="setcat_choose_song">곡 선택</string>
@@ -288,16 +492,30 @@
     <string name="import_backup_toolbar_title">백업 가져오기</string>
     <string name="import_inspecting">검사 중…</string>
     <string name="import_browse_file">파일 찾아보기</string>
-    <string name="import_backup_hint">검사할 .pxpl 백업 파일을 선택하세요. 다음 단계에서 복구할 섹션을 선택하게 됩니다.</string>
+    <string
+        name="import_backup_hint"
+    >검사할 .pxpl 백업 파일을 선택하세요. 다음 단계에서 복구할 섹션을 선택하게 됩니다.</string>
     <string name="import_recent_backups">최근 백업</string>
     <string name="import_no_recent_title">최근 백업 없음</string>
-    <string name="import_no_recent_subtitle">이전에 가져온 백업이 여기에 표시됩니다.</string>
-    <string name="palette_force_regenerate_title">앨범 팔레트 강제 재생성</string>
-    <string name="palette_force_regenerate_subtitle">곡을 선택하여 캐시된 테마 데이터를 지우고 앨범 아트에서 모든 팔레트 스타일을 재생성합니다.</string>
-    <string name="search_songs_by_title_artist_album">제목, 아티스트 또는 앨범으로 검색</string>
+    <string
+        name="import_no_recent_subtitle"
+    >이전에 가져온 백업이 여기에 표시됩니다.</string>
+    <string
+        name="palette_force_regenerate_title"
+    >앨범 팔레트 강제 재생성</string>
+    <string
+        name="palette_force_regenerate_subtitle"
+    >곡을 선택하여 캐시된 테마 데이터를 지우고 앨범 아트에서 모든 팔레트 스타일을 재생성합니다.</string>
+    <string
+        name="search_songs_by_title_artist_album"
+    >제목, 아티스트 또는 앨범으로 검색</string>
     <string name="palette_regenerating_progress">팔레트 재생성 중…</string>
-    <string name="search_no_songs_match">검색 결과와 일치하는 노래가 없습니다.</string>
+    <string
+        name="search_no_songs_match"
+    >검색 결과와 일치하는 노래가 없습니다.</string>
     <string name="cd_remove_from_history">기록에서 제거</string>
     <string name="cd_clear_search">검색어 지우기</string>
-    <string name="backup_history_modules_line">모듈 %1$d개 · v%2$s · 스키마 v%3$d</string>
+    <string
+        name="backup_history_modules_line"
+    >모듈 %1$d개 · v%2$s · 스키마 v%3$d</string>
 </resources>

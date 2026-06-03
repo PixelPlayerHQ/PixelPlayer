@@ -68,7 +68,9 @@ import com.theveloper.pixelplay.data.worker.SyncProgress
 import com.theveloper.pixelplay.presentation.viewmodel.LyricsRefreshProgress
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.sp
 import androidx.core.view.HapticFeedbackConstantsCompat
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.performAppCompatHapticFeedback
 
@@ -478,7 +480,12 @@ fun RefreshLibraryItem(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.presentation_batch_f_full_rescan))
+                    TightWrapText(
+                        text = stringResource(R.string.presentation_batch_f_full_rescan),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                        lineHeight = 22.sp,
+                    )
                 }
             }
              
@@ -505,7 +512,12 @@ fun RefreshLibraryItem(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.presentation_batch_f_rebuild_database))
+                    TightWrapText(
+                        text = stringResource(R.string.presentation_batch_f_rebuild_database),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                        lineHeight = 22.sp,
+                    )
                 }
             }
 

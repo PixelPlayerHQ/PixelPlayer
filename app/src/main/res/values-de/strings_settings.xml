@@ -1,31 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Einstellungen</string>
     <string name="settings_accounts_row_title">Accounts</string>
-    <string name="settings_accounts_row_subtitle">Telegram, Google Drive, Netease und mehr verwalten</string>
+    <string
+        name="settings_accounts_row_subtitle"
+    >Telegram, Google Drive, Netease und mehr verwalten</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Musikverwaltung</string>
-    <string name="settings_category_library_subtitle">Ordner, Scan und Parsing</string>
+    <string
+        name="settings_category_library_subtitle"
+    >Ordner, Scan und Parsing</string>
     <string name="settings_category_appearance_title">Darstellung</string>
-    <string name="settings_category_appearance_subtitle">Design, Layout und Farben</string>
+    <string
+        name="settings_category_appearance_subtitle"
+    >Design, Layout und Farben</string>
     <string name="settings_category_playback_title">Wiedergabe</string>
-    <string name="settings_category_playback_subtitle">Audio, Crossfade und Hintergrundwiedergabe</string>
+    <string
+        name="settings_category_playback_subtitle"
+    >Audio, Crossfade und Hintergrundwiedergabe</string>
     <string name="settings_category_behavior_title">Verhalten</string>
-    <string name="settings_category_behavior_subtitle">Gesten, Haptik und Navigation</string>
+    <string
+        name="settings_category_behavior_subtitle"
+    >Gesten, Haptik und Navigation</string>
     <string name="settings_category_ai_title">KI-Integration (β)</string>
-    <string name="settings_category_ai_subtitle">Anbieter, API Keys und Modelle</string>
-    <string name="settings_category_backup_title">Backup &amp; Wiederherstellen</string>
-    <string name="settings_category_backup_subtitle">App-Daten exportieren und importieren</string>
+    <string
+        name="settings_category_ai_subtitle"
+    >Anbieter, API Keys und Modelle</string>
+    <string
+        name="settings_category_backup_title"
+    >Backup &amp; Wiederherstellen</string>
+    <string
+        name="settings_category_backup_subtitle"
+    >App-Daten exportieren und importieren</string>
     <string name="settings_category_developer_title">Entwickleroptionen</string>
-    <string name="settings_category_developer_subtitle">Experimente und Debugging</string>
+    <string
+        name="settings_category_developer_subtitle"
+    >Experimente und Debugging</string>
     <string name="settings_category_equalizer_title">Equalizer</string>
-    <string name="settings_category_equalizer_subtitle">Frequenzen und Presets anpassen</string>
-    <string name="settings_category_device_capabilities_title">Gerätefähigkeiten</string>
-    <string name="settings_category_device_capabilities_subtitle">Codecs, Decoder und Audio-Specs</string>
+    <string
+        name="settings_category_equalizer_subtitle"
+    >Frequenzen und Presets anpassen</string>
+    <string
+        name="settings_category_device_capabilities_title"
+    >Gerätefähigkeiten</string>
+    <string
+        name="settings_category_device_capabilities_subtitle"
+    >Codecs, Decoder und Audio-Specs</string>
     <string name="settings_category_about_title">Über</string>
-    <string name="settings_category_about_subtitle">Version, Credits und mehr</string>
+    <string
+        name="settings_category_about_subtitle"
+    >Version, Credits und mehr</string>
 
     <!-- Common toggles / labels -->
     <string name="label_on">An</string>
@@ -39,34 +65,60 @@
 
     <!-- Library category -->
     <string name="setcat_library_structure">Bibliotheksstruktur</string>
-    <string name="setcat_excluded_directories_title">Ausgeschlossene Ordner</string>
-    <string name="setcat_excluded_directories_subtitle">Diese Ordner werden beim Scan ignoriert.</string>
+    <string
+        name="setcat_excluded_directories_title"
+    >Ausgeschlossene Ordner</string>
+    <string
+        name="setcat_excluded_directories_subtitle"
+    >Diese Ordner werden beim Scan ignoriert.</string>
     <string name="setcat_artists_title">Künstler</string>
-    <string name="setcat_artists_subtitle">Mehrkünstler-Parsing und Sortierung</string>
+    <string
+        name="setcat_artists_subtitle"
+    >Mehrkünstler-Parsing und Sortierung</string>
     <string name="setcat_filtering">Filter</string>
     <string name="setcat_min_song_duration">Minimale Song-Dauer</string>
     <string name="setcat_min_tracks_per_album">Minimale Titel pro Album</string>
     <string name="setcat_album_art_cache_limit">Cover-Cache-Limit</string>
-    <string name="setcat_album_art_cache_limit_desc">Maximale Cache-Größe – ältere Bilder werden automatisch gelöscht</string>
+    <string
+        name="setcat_album_art_cache_limit_desc"
+    >Maximale Cache-Größe – ältere Bilder werden automatisch gelöscht</string>
     <string name="setcat_sync_scanning">Sync &amp; Scan</string>
-    <string name="setcat_sync_full_rescan_label">Vollständiger Rescan läuft</string>
-    <string name="toast_library_sync_finished">Bibliothek synchronisiert</string>
+    <string
+        name="setcat_sync_full_rescan_label"
+    >Vollständiger Rescan läuft</string>
+    <string
+        name="toast_library_sync_finished"
+    >Bibliothek synchronisiert</string>
     <string name="toast_full_rescan_started">Rescan gestartet…</string>
-    <string name="setcat_auto_scan_lrc_title">.lrc-Dateien automatisch scannen</string>
-    <string name="setcat_auto_scan_lrc_subtitle">.lrc-Dateien im selben Ordner werden beim Sync automatisch erkannt und zugewiesen.</string>
+    <string
+        name="setcat_auto_scan_lrc_title"
+    >.lrc-Dateien automatisch scannen</string>
+    <string
+        name="setcat_auto_scan_lrc_subtitle"
+    >.lrc-Dateien im selben Ordner werden beim Sync automatisch erkannt und zugewiesen.</string>
     <string name="setcat_lyrics_management">Lyrics</string>
-    <string name="setcat_lyrics_source_priority_label">Lyrics-Quell-Priorität</string>
-    <string name="setcat_lyrics_source_priority_desc">Legt fest, welche Quelle beim Laden von Lyrics zuerst versucht wird.</string>
+    <string
+        name="setcat_lyrics_source_priority_label"
+    >Lyrics-Quell-Priorität</string>
+    <string
+        name="setcat_lyrics_source_priority_desc"
+    >Legt fest, welche Quelle beim Laden von Lyrics zuerst versucht wird.</string>
     <string name="setcat_lyrics_embedded_first">Eingebettet zuerst</string>
     <string name="setcat_lyrics_online_first">Online zuerst</string>
     <string name="setcat_lyrics_local_first">Lokal (.lrc) zuerst</string>
-    <string name="setcat_reset_imported_lyrics_title">Importierte Lyrics zurücksetzen</string>
-    <string name="setcat_reset_imported_lyrics_subtitle">Alle manuell importierten Lyrics aus der Datenbank löschen.</string>
+    <string
+        name="setcat_reset_imported_lyrics_title"
+    >Importierte Lyrics zurücksetzen</string>
+    <string
+        name="setcat_reset_imported_lyrics_subtitle"
+    >Alle manuell importierten Lyrics aus der Datenbank löschen.</string>
 
     <!-- Appearance -->
     <string name="setcat_global_theme">Design</string>
     <string name="setcat_language_label">Sprache</string>
-    <string name="setcat_language_desc">Sprache der App-Oberfläche festlegen.</string>
+    <string
+        name="setcat_language_desc"
+    >Sprache der App-Oberfläche festlegen.</string>
     <string name="setcat_language_system">Systemstandard</string>
     <string name="setcat_language_english">English</string>
     <string name="setcat_language_spanish">Español</string>
@@ -77,181 +129,339 @@
     <string name="setcat_language_indonesian">Bahasa Indonesia</string>
     <string name="setcat_language_italian">Italiano</string>
     <string name="setcat_app_theme_label">App-Design</string>
-    <string name="setcat_app_theme_desc">Hell, Dunkel oder System-Design – ganz nach Geschmack.</string>
+    <string
+        name="setcat_app_theme_desc"
+    >Hell, Dunkel oder System-Design – ganz nach Geschmack.</string>
     <string name="setcat_theme_light">Hell</string>
     <string name="setcat_theme_dark">Dunkel</string>
     <string name="setcat_theme_follow_system">System folgen</string>
     <string name="setcat_smooth_corners_title">Sanfte Ecken</string>
-    <string name="setcat_smooth_corners_subtitle">Weichere Eckenform – kann auf älteren Geräten die Performance leicht beeinflussen.</string>
+    <string
+        name="setcat_smooth_corners_subtitle"
+    >Weichere Eckenform – kann auf älteren Geräten die Performance leicht beeinflussen.</string>
     <string name="setcat_now_playing">Läuft gerade</string>
     <string name="setcat_player_theme_label">Player-Design</string>
     <string name="setcat_player_theme_desc">Wie der Player aussieht.</string>
     <string name="setcat_player_theme_album_art">Cover</string>
     <string name="setcat_player_theme_dynamic">System Dynamic</string>
-    <string name="setcat_show_player_file_info_title">Dateiinfo im Player</string>
-    <string name="setcat_show_player_file_info_subtitle">Codec, Bitrate und Sample Rate unter dem Fortschrittsbalken anzeigen.</string>
+    <string
+        name="setcat_show_player_file_info_title"
+    >Dateiinfo im Player</string>
+    <string
+        name="setcat_show_player_file_info_subtitle"
+    >Codec, Bitrate und Sample Rate unter dem Fortschrittsbalken anzeigen.</string>
     <string name="setcat_album_art_palette_title">Cover-Palette</string>
-    <string name="setcat_album_art_palette_subtitle">Aktuell: %1$s – antippen für Vorschau und Stilwahl.</string>
+    <string
+        name="setcat_album_art_palette_subtitle"
+    >Aktuell: %1$s – antippen für Vorschau und Stilwahl.</string>
     <string name="setcat_carousel_style_label">Karussell-Stil</string>
-    <string name="setcat_carousel_style_desc">Wie das Album-Karussell dargestellt wird.</string>
+    <string
+        name="setcat_carousel_style_desc"
+    >Wie das Album-Karussell dargestellt wird.</string>
     <string name="setcat_carousel_no_peek">Kein Peek</string>
     <string name="setcat_carousel_one_peek">Ein Peek</string>
     <string name="setcat_home_collage">Home-Collage</string>
     <string name="setcat_collage_pattern_label">Collage-Muster</string>
-    <string name="setcat_collage_pattern_desc">Formanordnung für die Collage in deinem Mix.</string>
-    <string name="setcat_auto_rotate_patterns_title">Muster automatisch wechseln</string>
-    <string name="setcat_auto_rotate_patterns_subtitle">Bei jedem Home-Besuch ein anderes Collage-Muster zeigen.</string>
+    <string
+        name="setcat_collage_pattern_desc"
+    >Formanordnung für die Collage in deinem Mix.</string>
+    <string
+        name="setcat_auto_rotate_patterns_title"
+    >Muster automatisch wechseln</string>
+    <string
+        name="setcat_auto_rotate_patterns_subtitle"
+    >Bei jedem Home-Besuch ein anderes Collage-Muster zeigen.</string>
     <string name="setcat_navigation_bar">Navigationsleiste</string>
     <string name="setcat_navbar_style_label">NavBar-Stil</string>
-    <string name="setcat_navbar_style_desc">Wie die Navigationsleiste aussieht.</string>
+    <string
+        name="setcat_navbar_style_desc"
+    >Wie die Navigationsleiste aussieht.</string>
     <string name="setcat_navbar_style_default">Standard</string>
     <string name="setcat_navbar_style_full_width">Volle Breite</string>
     <string name="setcat_compact_mode_title">Kompaktmodus</string>
-    <string name="setcat_compact_mode_subtitle">Nur Icons, schmälere NavBar.</string>
+    <string
+        name="setcat_compact_mode_subtitle"
+    >Nur Icons, schmälere NavBar.</string>
     <string name="setcat_navbar_corner_title">NavBar-Eckenradius</string>
-    <string name="setcat_navbar_corner_subtitle">Ecken der NavBar an dein Gerät anpassen.</string>
+    <string
+        name="setcat_navbar_corner_subtitle"
+    >Ecken der NavBar an dein Gerät anpassen.</string>
     <string name="setcat_lyrics_screen">Lyrics-Ansicht</string>
     <string name="setcat_immersive_lyrics_title">Immersive Lyrics</string>
-    <string name="setcat_immersive_lyrics_subtitle">Steuerung automatisch ausblenden und Text im Vollbild genießen.</string>
+    <string
+        name="setcat_immersive_lyrics_subtitle"
+    >Steuerung automatisch ausblenden und Text im Vollbild genießen.</string>
     <string name="setcat_auto_hide_delay_label">Ausblend-Verzögerung</string>
-    <string name="setcat_auto_hide_delay_desc">Wie lange die Steuerung sichtbar bleibt, bevor sie ausblendet.</string>
+    <string
+        name="setcat_auto_hide_delay_desc"
+    >Wie lange die Steuerung sichtbar bleibt, bevor sie ausblendet.</string>
     <string name="setcat_lyrics_delay_3s">3s</string>
     <string name="setcat_lyrics_delay_4s">4s</string>
     <string name="setcat_lyrics_delay_5s">5s</string>
     <string name="setcat_lyrics_delay_6s">6s</string>
     <string name="setcat_app_navigation_section">App-Navigation</string>
     <string name="setcat_default_tab_label">Start-Tab</string>
-    <string name="setcat_default_tab_desc">Welcher Tab beim Öffnen der App zuerst erscheint.</string>
+    <string
+        name="setcat_default_tab_desc"
+    >Welcher Tab beim Öffnen der App zuerst erscheint.</string>
     <string name="tab_home">Home</string>
-    <string name="setcat_library_navigation_label">Bibliotheks-Navigation</string>
-    <string name="setcat_library_navigation_desc">Wie zwischen Bibliotheks-Tabs gewechselt wird.</string>
+    <string
+        name="setcat_library_navigation_label"
+    >Bibliotheks-Navigation</string>
+    <string
+        name="setcat_library_navigation_desc"
+    >Wie zwischen Bibliotheks-Tabs gewechselt wird.</string>
     <string name="setcat_library_nav_tab_row">Tab-Leiste (Standard)</string>
-    <string name="setcat_library_nav_compact_pill">Kompakte Pill &amp; Raster</string>
+    <string
+        name="setcat_library_nav_compact_pill"
+    >Kompakte Pill &amp; Raster</string>
 
     <!-- Playback -->
     <string name="setcat_background_playback">Hintergrundwiedergabe</string>
-    <string name="setcat_keep_playing_label">Nach Schließen weiterspielen</string>
-    <string name="setcat_keep_playing_desc">Aus: Wiedergabe stoppt, wenn die App aus den letzten Apps entfernt wird.</string>
+    <string
+        name="setcat_keep_playing_label"
+    >Nach Schließen weiterspielen</string>
+    <string
+        name="setcat_keep_playing_desc"
+    >Aus: Wiedergabe stoppt, wenn die App aus den letzten Apps entfernt wird.</string>
     <string name="setcat_battery_optimization_title">Akku-Optimierung</string>
-    <string name="setcat_battery_optimization_subtitle">Deaktivieren, damit Android die Wiedergabe nicht unterbricht.</string>
-    <string name="toast_battery_already_disabled">Akku-Optimierung ist bereits deaktiviert</string>
-    <string name="setcat_replaygain_section">Lautstärke-Normalisierung (ReplayGain)</string>
+    <string
+        name="setcat_battery_optimization_subtitle"
+    >Deaktivieren, damit Android die Wiedergabe nicht unterbricht.</string>
+    <string
+        name="toast_battery_already_disabled"
+    >Akku-Optimierung ist bereits deaktiviert</string>
+    <string
+        name="setcat_replaygain_section"
+    >Lautstärke-Normalisierung (ReplayGain)</string>
     <string name="setcat_replaygain_enable_title">ReplayGain</string>
-    <string name="setcat_replaygain_enable_subtitle">Lautstärke anhand der ReplayGain-Tags in den Audiodateien angleichen.</string>
+    <string
+        name="setcat_replaygain_enable_subtitle"
+    >Lautstärke anhand der ReplayGain-Tags in den Audiodateien angleichen.</string>
     <string name="setcat_gain_mode_label">Gain-Modus</string>
-    <string name="setcat_gain_mode_desc">Track: jeden Song einzeln normalisieren. Album: Lautstärke pro Album angleichen.</string>
+    <string
+        name="setcat_gain_mode_desc"
+    >Track: jeden Song einzeln normalisieren. Album: Lautstärke pro Album angleichen.</string>
     <string name="setcat_gain_mode_track">Track</string>
     <string name="setcat_gain_mode_album">Album</string>
     <string name="setcat_cast">Cast</string>
-    <string name="setcat_cast_autoplay_label">Autoplay beim Cast-Wechsel</string>
-    <string name="setcat_cast_autoplay_desc">Wiedergabe startet automatisch, wenn eine Cast-Verbindung hergestellt oder getrennt wird.</string>
+    <string
+        name="setcat_cast_autoplay_label"
+    >Autoplay beim Cast-Wechsel</string>
+    <string
+        name="setcat_cast_autoplay_desc"
+    >Wiedergabe startet automatisch, wenn eine Cast-Verbindung hergestellt oder getrennt wird.</string>
     <string name="setcat_headphones">Kopfhörer</string>
-    <string name="setcat_headphones_resume_title">Fortsetzen beim Wiederverbinden</string>
-    <string name="setcat_headphones_resume_subtitle">Wurde die Musik durch das Trennen der Kopfhörer pausiert, läuft sie beim Wiederverbinden weiter.</string>
+    <string
+        name="setcat_headphones_resume_title"
+    >Fortsetzen beim Wiederverbinden</string>
+    <string
+        name="setcat_headphones_resume_subtitle"
+    >Wurde die Musik durch das Trennen der Kopfhörer pausiert, läuft sie beim Wiederverbinden weiter.</string>
     <string name="setcat_queue_transitions">Queue &amp; Übergänge</string>
     <string name="setcat_crossfade_label">Crossfade</string>
-    <string name="setcat_crossfade_desc">Songs sanft ineinander übergehen lassen.</string>
+    <string
+        name="setcat_crossfade_desc"
+    >Songs sanft ineinander übergehen lassen.</string>
     <string name="setcat_crossfade_duration">Crossfade-Dauer</string>
     <string name="setcat_hifi_mode_title">Hi-Fi-Modus</string>
-    <string name="setcat_hifi_mode_subtitle_supported">32-Bit-Float-Ausgabe für maximale Qualität. Bei Aussetzern deaktivieren.</string>
-    <string name="setcat_hifi_mode_subtitle_unsupported">Auf diesem Gerät nicht verfügbar (PCM_FLOAT AudioTrack fehlt).</string>
+    <string
+        name="setcat_hifi_mode_subtitle_supported"
+    >32-Bit-Float-Ausgabe für maximale Qualität. Bei Aussetzern deaktivieren.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_unsupported"
+    >Auf diesem Gerät nicht verfügbar (PCM_FLOAT AudioTrack fehlt).</string>
     <string name="setcat_persistent_shuffle_title">Shuffle merken</string>
-    <string name="setcat_persistent_shuffle_subtitle">Shuffle bleibt aktiv, auch nachdem die App geschlossen wurde.</string>
-    <string name="setcat_show_queue_history_title">Queue-Verlauf anzeigen</string>
-    <string name="setcat_show_queue_history_subtitle">Bereits gespielte Songs in der Queue sichtbar lassen.</string>
+    <string
+        name="setcat_persistent_shuffle_subtitle"
+    >Shuffle bleibt aktiv, auch nachdem die App geschlossen wurde.</string>
+    <string
+        name="setcat_show_queue_history_title"
+    >Queue-Verlauf anzeigen</string>
+    <string
+        name="setcat_show_queue_history_subtitle"
+    >Bereits gespielte Songs in der Queue sichtbar lassen.</string>
 
     <!-- Behavior -->
     <string name="setcat_folders">Ordner</string>
-    <string name="setcat_folder_back_gesture_title">Zurück navigiert durch Ordner</string>
-    <string name="setcat_folder_back_gesture_subtitle">Im Ordner-Tab geht die Zurück-Geste zuerst eine Ebene hoch, bevor die Bibliothek verlassen wird.</string>
+    <string
+        name="setcat_folder_back_gesture_title"
+    >Zurück navigiert durch Ordner</string>
+    <string
+        name="setcat_folder_back_gesture_subtitle"
+    >Im Ordner-Tab geht die Zurück-Geste zuerst eine Ebene hoch, bevor die Bibliothek verlassen wird.</string>
     <string name="setcat_player_gestures">Player-Gesten</string>
-    <string name="setcat_tap_bg_closes_title">Hintergrund antippen schließt Player</string>
-    <string name="setcat_tap_bg_closes_subtitle">Auf den unscharfen Hintergrund tippen, um den Player zu schließen.</string>
+    <string
+        name="setcat_tap_bg_closes_title"
+    >Hintergrund antippen schließt Player</string>
+    <string
+        name="setcat_tap_bg_closes_subtitle"
+    >Auf den unscharfen Hintergrund tippen, um den Player zu schließen.</string>
     <string name="setcat_haptics">Haptik</string>
     <string name="setcat_haptic_feedback_title">Haptisches Feedback</string>
-    <string name="setcat_haptic_feedback_subtitle">Vibrieren bei Interaktionen in der gesamten App.</string>
+    <string
+        name="setcat_haptic_feedback_subtitle"
+    >Vibrieren bei Interaktionen in der gesamten App.</string>
 
     <!-- AI -->
     <string name="setcat_ai_provider_section">KI-Anbieter</string>
     <string name="setcat_ai_provider_label">Anbieter</string>
     <string name="setcat_ai_provider_desc">KI-Dienst auswählen</string>
     <string name="setcat_safe_token_title">Safe Token-Modus</string>
-    <string name="setcat_safe_token_on">AN – Schnell &amp; günstig. Nur minimale Daten (~1K Tokens) werden gesendet.</string>
-    <string name="setcat_safe_token_off">AUS – Mehr Kontext. Das vollständige Hörprofil (~8K Tokens) für bessere Ergebnisse.</string>
+    <string
+        name="setcat_safe_token_on"
+    >AN – Schnell &amp; günstig. Nur minimale Daten (~1K Tokens) werden gesendet.</string>
+    <string
+        name="setcat_safe_token_off"
+    >AUS – Mehr Kontext. Das vollständige Hörprofil (~8K Tokens) für bessere Ergebnisse.</string>
     <string name="setcat_credentials">Zugangsdaten</string>
     <string name="setcat_ai_api_key_title">%1$s API Key</string>
     <string name="setcat_ai_api_key_subtitle">Erhältlich bei %1$s</string>
-    <string name="setcat_ai_source_gemini">Google AI Studio (aistudio.google.com)</string>
-    <string name="setcat_ai_source_deepseek">DeepSeek Platform (api.deepseek.com)</string>
-    <string name="setcat_ai_source_groq">Groq Console (console.groq.com)</string>
-    <string name="setcat_ai_source_mistral">Mistral AI Platform (console.mistral.ai)</string>
-    <string name="setcat_ai_source_nvidia">NVIDIA Build (build.nvidia.com)</string>
-    <string name="setcat_ai_source_kimi">Moonshot AI Platform (platform.moonshot.cn)</string>
-    <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
-    <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
+    <string
+        name="setcat_ai_source_gemini"
+    >Google AI Studio (aistudio.google.com)</string>
+    <string
+        name="setcat_ai_source_deepseek"
+    >DeepSeek Platform (api.deepseek.com)</string>
+    <string
+        name="setcat_ai_source_groq"
+    >Groq Console (console.groq.com)</string>
+    <string
+        name="setcat_ai_source_mistral"
+    >Mistral AI Platform (console.mistral.ai)</string>
+    <string
+        name="setcat_ai_source_nvidia"
+    >NVIDIA Build (build.nvidia.com)</string>
+    <string
+        name="setcat_ai_source_kimi"
+    >Moonshot AI Platform (platform.moonshot.cn)</string>
+    <string
+        name="setcat_ai_source_glm"
+    >Zhipu AI Open Platform (bigmodel.cn)</string>
+    <string
+        name="setcat_ai_source_openai"
+    >OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">Modell</string>
     <string name="setcat_loading_models">Modelle werden geladen…</string>
     <string name="setcat_ai_model_label">KI-Modell</string>
     <string name="setcat_ai_model_desc">Aktives Modell auswählen.</string>
     <string name="setcat_prompt_behavior">Prompt</string>
     <string name="setcat_system_prompt_title">System-Prompt</string>
-    <string name="setcat_system_prompt_subtitle">KI-Verhalten nach eigenen Vorstellungen anpassen.</string>
+    <string
+        name="setcat_system_prompt_subtitle"
+    >KI-Verhalten nach eigenen Vorstellungen anpassen.</string>
     <string name="setcat_ai_usage_report">Nutzungsbericht</string>
-    <string name="setcat_total_consumption_title">Token-Verbrauch gesamt</string>
-    <string name="setcat_ai_usage_tokens_subtitle">%1$s Tokens\nPrompt: %2$s | Ausgabe: %3$s | Denken: %4$s</string>
+    <string
+        name="setcat_total_consumption_title"
+    >Token-Verbrauch gesamt</string>
+    <string
+        name="setcat_ai_usage_tokens_subtitle"
+    >%1$s Tokens\nPrompt: %2$s | Ausgabe: %3$s | Denken: %4$s</string>
 
     <!-- Backup / developer / dialogs -->
     <string name="setcat_create_backup">Backup erstellen</string>
     <string name="setcat_export_backup_title">Backup exportieren</string>
-    <string name="setcat_export_backup_subtitle">%1$s Speichert alles in einer .pxpl-Datei.</string>
-    <string name="setcat_restore_backup_section">Backup wiederherstellen</string>
+    <string
+        name="setcat_export_backup_subtitle"
+    >%1$s Speichert alles in einer .pxpl-Datei.</string>
+    <string
+        name="setcat_restore_backup_section"
+    >Backup wiederherstellen</string>
     <string name="setcat_import_backup_title">Backup importieren</string>
-    <string name="setcat_import_backup_subtitle">Datei auswählen – die importierten Daten ersetzen die aktuellen.</string>
+    <string
+        name="setcat_import_backup_subtitle"
+    >Datei auswählen – die importierten Daten ersetzen die aktuellen.</string>
     <string name="setcat_experiments">Experimente</string>
     <string name="setcat_experimental_title">Experimentell</string>
-    <string name="setcat_experimental_subtitle">Player-UI-Experimente und Debug-Schalter.</string>
+    <string
+        name="setcat_experimental_subtitle"
+    >Player-UI-Experimente und Debug-Schalter.</string>
     <string name="setcat_test_setup_title">Setup testen</string>
-    <string name="setcat_test_setup_subtitle">Onboarding-Flow zum Ausprobieren öffnen.</string>
+    <string
+        name="setcat_test_setup_subtitle"
+    >Onboarding-Flow zum Ausprobieren öffnen.</string>
     <string name="setcat_maintenance">Wartung</string>
     <string name="setcat_force_daily_mix_title">Daily Mix neu erstellen</string>
-    <string name="setcat_force_daily_mix_subtitle">Den aktuellen Mix sofort neu generieren.</string>
+    <string
+        name="setcat_force_daily_mix_subtitle"
+    >Den aktuellen Mix sofort neu generieren.</string>
     <string name="setcat_force_stats_title">Statistiken neu berechnen</string>
-    <string name="setcat_force_stats_subtitle">Cache leeren und Wiedergabe-Statistiken neu aufbauen.</string>
-    <string name="setcat_force_palette_title">Album-Palette neu generieren</string>
+    <string
+        name="setcat_force_stats_subtitle"
+    >Cache leeren und Wiedergabe-Statistiken neu aufbauen.</string>
+    <string
+        name="setcat_force_palette_title"
+    >Album-Palette neu generieren</string>
     <string name="setcat_diagnostics">Diagnose</string>
     <string name="setcat_trigger_crash_title">Test-Absturz auslösen</string>
-    <string name="setcat_trigger_crash_subtitle">Crash simulieren, um das Absturz-Reporting zu testen.</string>
+    <string
+        name="setcat_trigger_crash_subtitle"
+    >Crash simulieren, um das Absturz-Reporting zu testen.</string>
     <string name="setcat_application">App</string>
     <string name="setcat_about_pixelplayer_title">Über PixelPlayer</string>
-    <string name="setcat_about_pixelplayer_subtitle">Version, Credits und mehr.</string>
+    <string
+        name="setcat_about_pixelplayer_subtitle"
+    >Version, Credits und mehr.</string>
 
     <string name="backup_summary_none">Keine Bereiche ausgewählt.</string>
     <string name="backup_summary_all">Alle Bereiche ausgewählt.</string>
-    <string name="backup_summary_partial">%1$d von %2$d Bereichen ausgewählt.</string>
+    <string
+        name="backup_summary_partial"
+    >%1$d von %2$d Bereichen ausgewählt.</string>
     <string name="backup_how_title">So funktioniert Backup</string>
-    <string name="backup_how_body">Bereiche auswählen, als .pxpl exportieren und später importieren. Nur die gewählten Bereiche werden überschrieben.</string>
-    <string name="backup_dialog_supporting_export">Auswählen, was ins Backup soll.</string>
+    <string
+        name="backup_how_body"
+    >Bereiche auswählen, als .pxpl exportieren und später importieren. Nur die gewählten Bereiche werden überschrieben.</string>
+    <string
+        name="backup_dialog_supporting_export"
+    >Auswählen, was ins Backup soll.</string>
     <string name="backup_confirm_export_pxpl">.pxpl exportieren</string>
-    <string name="backup_sections_selected_format">%1$d von %2$d Bereichen ausgewählt</string>
+    <string
+        name="backup_sections_selected_format"
+    >%1$d von %2$d Bereichen ausgewählt</string>
     <string name="backup_transfer_in_progress">Übertragung läuft…</string>
     <string name="backup_exporting">Wird exportiert</string>
     <string name="backup_importing">Wird importiert</string>
     <string name="backup_dialog_creating">Backup wird erstellt</string>
-    <string name="backup_dialog_restoring">Backup wird wiederhergestellt</string>
+    <string
+        name="backup_dialog_restoring"
+    >Backup wird wiederhergestellt</string>
     <string name="backup_step_format">Schritt %1$d von %2$d</string>
-    <string name="backup_entries_will_replace">%1$d Einträge · aktuelle Daten werden ersetzt</string>
+    <string
+        name="backup_entries_will_replace"
+    >%1$d Einträge · aktuelle Daten werden ersetzt</string>
 
-    <string name="dialog_palette_regenerated">Palette für %1$s neu generiert</string>
-    <string name="dialog_palette_regenerate_failed">Palette für %1$s konnte nicht neu generiert werden</string>
-    <string name="dialog_regenerating_palettes_title">Album-Paletten werden neu generiert…</string>
-    <string name="dialog_regenerate_palettes_title">Alle Album-Paletten neu generieren?</string>
-    <string name="dialog_regenerate_palettes_progress_body">%1$d einzigartige Cover werden neu verarbeitet. Bei großen Bibliotheken kann das etwas dauern.</string>
-    <string name="dialog_regenerate_palettes_confirm_body">Gecachte Farbdaten werden gelöscht und für %1$d Cover neu erstellt.</string>
+    <string
+        name="dialog_palette_regenerated"
+    >Palette für %1$s neu generiert</string>
+    <string
+        name="dialog_palette_regenerate_failed"
+    >Palette für %1$s konnte nicht neu generiert werden</string>
+    <string
+        name="dialog_regenerating_palettes_title"
+    >Album-Paletten werden neu generiert…</string>
+    <string
+        name="dialog_regenerate_palettes_title"
+    >Alle Album-Paletten neu generieren?</string>
+    <string
+        name="dialog_regenerate_palettes_progress_body"
+    >%1$d einzigartige Cover werden neu verarbeitet. Bei großen Bibliotheken kann das etwas dauern.</string>
+    <string
+        name="dialog_regenerate_palettes_confirm_body"
+    >Gecachte Farbdaten werden gelöscht und für %1$d Cover neu erstellt.</string>
     <string name="dialog_palette_progress_format">%1$d von %2$d fertig</string>
     <string name="working_ellipsis">Wird bearbeitet…</string>
     <string name="dialog_regenerate">Neu generieren</string>
-    <string name="toast_regenerated_palettes_all">%1$d Cover-Paletten neu generiert</string>
-    <string name="toast_regenerated_palettes_partial">%1$d von %2$d Cover-Paletten neu generiert</string>
+    <string
+        name="toast_regenerated_palettes_all"
+    >%1$d Cover-Paletten neu generiert</string>
+    <string
+        name="toast_regenerated_palettes_partial"
+    >%1$d von %2$d Cover-Paletten neu generiert</string>
 
-    <string name="dialog_reset_lyrics_title">Importierte Lyrics zurücksetzen?</string>
+    <string
+        name="dialog_reset_lyrics_title"
+    >Importierte Lyrics zurücksetzen?</string>
+    <string name="setcat_language_korean">Koreanisch</string>
+    <string name="setcat_language_norwegian_bokmal">Norwegisch Bokmål</string>
 </resources>

@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -78,6 +79,7 @@ import com.theveloper.pixelplay.presentation.components.RecentlyPlayedRangeSelec
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.model.RecentlyPlayedSongUiModel
 import com.theveloper.pixelplay.presentation.model.collectRecentlyPlayedSongIds
@@ -503,7 +505,8 @@ private fun RecentlyPlayedActions(
                 topEnd = 14.dp,
                 bottomStart = 52.dp,
                 bottomEnd = 14.dp
-            )
+            ),
+            contentPadding = PaddingValues(horizontal = 10.dp),
         ) {
             Icon(
                 imageVector = Icons.Rounded.PlayArrow,
@@ -511,7 +514,13 @@ private fun RecentlyPlayedActions(
                 modifier = Modifier.size(ButtonDefaults.IconSize)
             )
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            Text(stringResource(R.string.presentation_batch_b_play_latest))
+            TightWrapText(
+                text = stringResource(R.string.presentation_batch_b_play_latest),
+                modifier = Modifier.padding(end = 4.dp),
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                lineHeight = 20.sp
+            )
         }
 
         FilledTonalButton(
@@ -524,7 +533,8 @@ private fun RecentlyPlayedActions(
                 topEnd = 52.dp,
                 bottomStart = 14.dp,
                 bottomEnd = 52.dp
-            )
+            ),
+            contentPadding = PaddingValues(horizontal = 10.dp),
         ) {
             Icon(
                 imageVector = Icons.Rounded.Shuffle,
@@ -532,7 +542,13 @@ private fun RecentlyPlayedActions(
                 modifier = Modifier.size(ButtonDefaults.IconSize)
             )
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            Text(shuffleLabel)
+            TightWrapText(
+                text = shuffleLabel,
+                modifier = Modifier.padding(end = 4.dp),
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                lineHeight = 20.sp
+            )
         }
     }
 }

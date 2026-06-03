@@ -42,9 +42,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
+import com.theveloper.pixelplay.presentation.components.subcomps.AutoSizingTextToFill
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -71,35 +75,38 @@ fun AlbumMultiSelectionOptionSheet(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(78.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StackedAlbumCovers(
                     albums = selectedAlbums.take(4)
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
+                Column {
+                    AutoSizingTextToFill(
                         text = stringResource(R.string.presentation_batch_g_album_sel_count, selectedAlbums.size),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = GoogleSansRounded
+                        fontFamily = GoogleSansRounded,
+                        minFontSize = 16.sp,
+                        maxFontSizeLimit = 24.sp,
+                        maxLines = 2,
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.presentation_batch_g_album_sel_selected),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = GoogleSansRounded
+                        fontFamily = GoogleSansRounded,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = stringResource(R.string.presentation_batch_g_album_sel_queue_hint),
@@ -203,14 +210,18 @@ private fun AlbumSelectionActionButton(
     FilledTonalButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 66.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp),
         colors = colors,
         shape = CircleShape
     ) {
         icon()
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
+        Spacer(modifier = Modifier.width(6.dp))
+        TightWrapText(
             text = text,
+            modifier = Modifier.padding(end = 4.dp),
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
+            lineHeight = 20.sp,
             style = MaterialTheme.typography.titleMedium
         )
     }

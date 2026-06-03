@@ -1,31 +1,59 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Настройки</string>
     <string name="settings_accounts_row_title">Аккаунты</string>
-    <string name="settings_accounts_row_subtitle">Управление Telegram, Google Drive, NetEase Music и другими сервисами</string>
+    <string
+        name="settings_accounts_row_subtitle"
+    >Управление Telegram, Google Drive, NetEase Music и другими сервисами</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Управление музыкой</string>
-    <string name="settings_category_library_subtitle">Управление папками, обновление фонотеки, параметры парсинга</string>
+    <string
+        name="settings_category_library_subtitle"
+    >Управление папками, обновление фонотеки, параметры парсинга</string>
     <string name="settings_category_appearance_title">Внешний вид</string>
-    <string name="settings_category_appearance_subtitle">Темы, макеты и визуальные стили</string>
+    <string
+        name="settings_category_appearance_subtitle"
+    >Темы, макеты и визуальные стили</string>
     <string name="settings_category_playback_title">Воспроизведение</string>
-    <string name="settings_category_playback_subtitle">Поведение звука, плавное переключение и фоновое воспроизведение</string>
+    <string
+        name="settings_category_playback_subtitle"
+    >Поведение звука, плавное переключение и фоновое воспроизведение</string>
     <string name="settings_category_behavior_title">Поведение</string>
-    <string name="settings_category_behavior_subtitle">Жесты, тактильная отдача и навигация</string>
+    <string
+        name="settings_category_behavior_subtitle"
+    >Жесты, тактильная отдача и навигация</string>
     <string name="settings_category_ai_title">Интеграция ИИ (β)</string>
-    <string name="settings_category_ai_subtitle">Поставщики ИИ, API-ключи и настройки моделей</string>
-    <string name="settings_category_backup_title">Бэкап и восстановление</string>
-    <string name="settings_category_backup_subtitle">Экспорт и восстановление ваших личных данных приложения</string>
-    <string name="settings_category_developer_title">Параметры разработчика</string>
-    <string name="settings_category_developer_subtitle">Экспериментальные функции и отладка</string>
+    <string
+        name="settings_category_ai_subtitle"
+    >Поставщики ИИ, API-ключи и настройки моделей</string>
+    <string
+        name="settings_category_backup_title"
+    >Бэкап и восстановление</string>
+    <string
+        name="settings_category_backup_subtitle"
+    >Экспорт и восстановление ваших личных данных приложения</string>
+    <string
+        name="settings_category_developer_title"
+    >Параметры разработчика</string>
+    <string
+        name="settings_category_developer_subtitle"
+    >Экспериментальные функции и отладка</string>
     <string name="settings_category_equalizer_title">Эквалайзер</string>
-    <string name="settings_category_equalizer_subtitle">Настройка аудиочастот и пресетов</string>
-    <string name="settings_category_device_capabilities_title">Возможности устройства</string>
-    <string name="settings_category_device_capabilities_subtitle">Аудиохарактеристики, кодеки и информация о декодерах</string>
+    <string
+        name="settings_category_equalizer_subtitle"
+    >Настройка аудиочастот и пресетов</string>
+    <string
+        name="settings_category_device_capabilities_title"
+    >Возможности устройства</string>
+    <string
+        name="settings_category_device_capabilities_subtitle"
+    >Аудиохарактеристики, кодеки и информация о декодерах</string>
     <string name="settings_category_about_title">О приложении</string>
-    <string name="settings_category_about_subtitle">Информация о приложении, версия и благодарности</string>
+    <string
+        name="settings_category_about_subtitle"
+    >Информация о приложении, версия и благодарности</string>
 
     <!-- Common toggles / labels used in ThemeSelectorItem maps -->
     <string name="label_on">Вкл</string>
@@ -40,33 +68,63 @@
     <!-- Library category -->
     <string name="setcat_library_structure">Структура фонотеки</string>
     <string name="setcat_excluded_directories_title">Исключенные папки</string>
-    <string name="setcat_excluded_directories_subtitle">Папки здесь будут пропущены при сканировании фонотеки.</string>
+    <string
+        name="setcat_excluded_directories_subtitle"
+    >Папки здесь будут пропущены при сканировании фонотеки.</string>
     <string name="setcat_artists_title">Исполнители</string>
-    <string name="setcat_artists_subtitle">Параметры парсинга и организации нескольких исполнителей.</string>
+    <string
+        name="setcat_artists_subtitle"
+    >Параметры парсинга и организации нескольких исполнителей.</string>
     <string name="setcat_filtering">Фильтрация</string>
-    <string name="setcat_min_song_duration">Минимальная длительность песни</string>
+    <string
+        name="setcat_min_song_duration"
+    >Минимальная длительность песни</string>
     <string name="setcat_min_tracks_per_album">Минимум треков в альбоме</string>
-    <string name="setcat_album_art_cache_limit">Лимит кэша обложек альбомов</string>
-    <string name="setcat_album_art_cache_limit_desc">Макс. размер кэша, прежде чем старые изображения будут удалены</string>
+    <string
+        name="setcat_album_art_cache_limit"
+    >Лимит кэша обложек альбомов</string>
+    <string
+        name="setcat_album_art_cache_limit_desc"
+    >Макс. размер кэша, прежде чем старые изображения будут удалены</string>
     <string name="setcat_sync_scanning">Синхронизация и сканирование</string>
-    <string name="setcat_sync_full_rescan_label">Выполняется полное сканирование</string>
-    <string name="toast_library_sync_finished">Синхронизация фонотеки завершена</string>
-    <string name="toast_full_rescan_started">Полное сканирование запущено…</string>
-    <string name="setcat_auto_scan_lrc_title">Автосканирование .lrc файлов</string>
-    <string name="setcat_auto_scan_lrc_subtitle">Автоматически искать и назначать .lrc файлы в той же папке при синхронизации.</string>
+    <string
+        name="setcat_sync_full_rescan_label"
+    >Выполняется полное сканирование</string>
+    <string
+        name="toast_library_sync_finished"
+    >Синхронизация фонотеки завершена</string>
+    <string
+        name="toast_full_rescan_started"
+    >Полное сканирование запущено…</string>
+    <string
+        name="setcat_auto_scan_lrc_title"
+    >Автосканирование .lrc файлов</string>
+    <string
+        name="setcat_auto_scan_lrc_subtitle"
+    >Автоматически искать и назначать .lrc файлы в той же папке при синхронизации.</string>
     <string name="setcat_lyrics_management">Управление текстами песен</string>
-    <string name="setcat_lyrics_source_priority_label">Приоритет источников текстов</string>
-    <string name="setcat_lyrics_source_priority_desc">Выберите, какой источник пробовать первым при получении текста.</string>
+    <string
+        name="setcat_lyrics_source_priority_label"
+    >Приоритет источников текстов</string>
+    <string
+        name="setcat_lyrics_source_priority_desc"
+    >Выберите, какой источник пробовать первым при получении текста.</string>
     <string name="setcat_lyrics_embedded_first">Сначала встроенные</string>
     <string name="setcat_lyrics_online_first">Сначала онлайн</string>
     <string name="setcat_lyrics_local_first">Сначала локальные (.lrc)</string>
-    <string name="setcat_reset_imported_lyrics_title">Сбросить импортированные тексты</string>
-    <string name="setcat_reset_imported_lyrics_subtitle">Удалить все импортированные тексты из базы данных.</string>
+    <string
+        name="setcat_reset_imported_lyrics_title"
+    >Сбросить импортированные тексты</string>
+    <string
+        name="setcat_reset_imported_lyrics_subtitle"
+    >Удалить все импортированные тексты из базы данных.</string>
 
     <!-- Appearance -->
     <string name="setcat_global_theme">Общая тема</string>
     <string name="setcat_language_label">Язык приложения</string>
-    <string name="setcat_language_desc">Выберите язык интерфейса приложения.</string>
+    <string
+        name="setcat_language_desc"
+    >Выберите язык интерфейса приложения.</string>
     <string name="setcat_language_system">Системный по умолчанию</string>
     <string name="setcat_language_english">Английский</string>
     <string name="setcat_language_spanish">Испанский</string>
@@ -76,210 +134,388 @@
     <string name="setcat_language_chinese">Китайский</string>
     <string name="setcat_language_indonesian">Индонезийский</string>
     <string name="setcat_language_italian">Итальянский</string>
-	
+    <string name="setcat_language_korean">Корейский</string>
+    <string name="setcat_language_norwegian_bokmal">Норвежский (Bokmål)</string>
+
     <string name="setcat_app_theme_label">Тема приложения</string>
-    <string name="setcat_app_theme_desc">Переключение между светлой, темной или системной темой.</string>
+    <string
+        name="setcat_app_theme_desc"
+    >Переключение между светлой, темной или системной темой.</string>
     <string name="setcat_theme_light">Светлая тема</string>
     <string name="setcat_theme_dark">Темная тема</string>
     <string name="setcat_theme_follow_system">Как в системе</string>
     <string name="setcat_smooth_corners_title">Сглаженные углы</string>
-    <string name="setcat_smooth_corners_subtitle">Использовать сложную форму углов для улучшения эстетики; может влиять на производительность слабых устройств</string>
+    <string
+        name="setcat_smooth_corners_subtitle"
+    >Использовать сложную форму углов для улучшения эстетики; может влиять на производительность слабых устройств</string>
     <string name="setcat_now_playing">Сейчас играет</string>
     <string name="setcat_player_theme_label">Тема плеера</string>
-    <string name="setcat_player_theme_desc">Выберите внешний вид плавающего плеера.</string>
+    <string
+        name="setcat_player_theme_desc"
+    >Выберите внешний вид плавающего плеера.</string>
     <string name="setcat_player_theme_album_art">Обложка альбома</string>
     <string name="setcat_player_theme_dynamic">Системная динамическая</string>
-    <string name="setcat_show_player_file_info_title">Инфо о файле в плеере</string>
-    <string name="setcat_show_player_file_info_subtitle">Показывать кодек, битрейт и частоту дискретизации в области прогресса.</string>
+    <string
+        name="setcat_show_player_file_info_title"
+    >Инфо о файле в плеере</string>
+    <string
+        name="setcat_show_player_file_info_subtitle"
+    >Показывать кодек, битрейт и частоту дискретизации в области прогресса.</string>
     <string name="setcat_album_art_palette_title">Стиль палитры обложки</string>
-    <string name="setcat_album_art_palette_subtitle">Текущий: %1$s. Откройте предпросмотр для выбора.</string>
+    <string
+        name="setcat_album_art_palette_subtitle"
+    >Текущий: %1$s. Откройте предпросмотр для выбора.</string>
     <string name="setcat_carousel_style_label">Стиль карусели</string>
-    <string name="setcat_carousel_style_desc">Выберите внешний вид карусели альбомов.</string>
+    <string
+        name="setcat_carousel_style_desc"
+    >Выберите внешний вид карусели альбомов.</string>
     <string name="setcat_carousel_no_peek">Без предпросмотра краев</string>
     <string name="setcat_carousel_one_peek">С предпросмотром краев</string>
     <string name="setcat_home_collage">Коллаж на Главной</string>
     <string name="setcat_collage_pattern_label">Узор коллажа</string>
-    <string name="setcat_collage_pattern_desc">Выберите расположение фигур для коллажа «Ваш микс».</string>
+    <string
+        name="setcat_collage_pattern_desc"
+    >Выберите расположение фигур для коллажа «Ваш микс».</string>
     <string name="setcat_auto_rotate_patterns_title">Автосмена узоров</string>
-    <string name="setcat_auto_rotate_patterns_subtitle">Менять узор коллажа при каждом посещении Главной.</string>
+    <string
+        name="setcat_auto_rotate_patterns_subtitle"
+    >Менять узор коллажа при каждом посещении Главной.</string>
     <string name="setcat_navigation_bar">Панель навигации</string>
     <string name="setcat_navbar_style_label">Стиль NavBar</string>
-    <string name="setcat_navbar_style_desc">Выберите внешний вид панели навигации.</string>
+    <string
+        name="setcat_navbar_style_desc"
+    >Выберите внешний вид панели навигации.</string>
     <string name="setcat_navbar_style_default">По умолчанию</string>
     <string name="setcat_navbar_style_full_width">Во всю ширину</string>
     <string name="setcat_compact_mode_title">Компактный режим</string>
-    <string name="setcat_compact_mode_subtitle">Показывать только иконки и уменьшить высоту панели.</string>
+    <string
+        name="setcat_compact_mode_subtitle"
+    >Показывать только иконки и уменьшить высоту панели.</string>
     <string name="setcat_navbar_corner_title">Радиус углов NavBar</string>
-    <string name="setcat_navbar_corner_subtitle">Настройте радиус скругления углов панели навигации.</string>
+    <string
+        name="setcat_navbar_corner_subtitle"
+    >Настройте радиус скругления углов панели навигации.</string>
     <string name="setcat_lyrics_screen">Экран текста песен</string>
     <string name="setcat_immersive_lyrics_title">Иммерсивный текст</string>
-    <string name="setcat_immersive_lyrics_subtitle">Автоматически скрывать элементы управления и увеличивать текст.</string>
+    <string
+        name="setcat_immersive_lyrics_subtitle"
+    >Автоматически скрывать элементы управления и увеличивать текст.</string>
     <string name="setcat_auto_hide_delay_label">Задержка скрытия</string>
-    <string name="setcat_auto_hide_delay_desc">Время до скрытия элементов управления.</string>
+    <string
+        name="setcat_auto_hide_delay_desc"
+    >Время до скрытия элементов управления.</string>
     <string name="setcat_lyrics_delay_3s">3с</string>
     <string name="setcat_lyrics_delay_4s">4с</string>
     <string name="setcat_lyrics_delay_5s">5с</string>
     <string name="setcat_lyrics_delay_6s">6с</string>
     <string name="setcat_app_navigation_section">Навигация в приложении</string>
     <string name="setcat_default_tab_label">Вкладка по умолчанию</string>
-    <string name="setcat_default_tab_desc">Выберите вкладку, открываемую при запуске.</string>
+    <string
+        name="setcat_default_tab_desc"
+    >Выберите вкладку, открываемую при запуске.</string>
     <string name="tab_home">Главная</string>
-    <string name="setcat_library_navigation_label">Навигация по фонотеке</string>
-    <string name="setcat_library_navigation_desc">Выберите способ переключения между вкладками фонотеки.</string>
+    <string
+        name="setcat_library_navigation_label"
+    >Навигация по фонотеке</string>
+    <string
+        name="setcat_library_navigation_desc"
+    >Выберите способ переключения между вкладками фонотеки.</string>
     <string name="setcat_library_nav_tab_row">Ряд вкладок (стандарт)</string>
-    <string name="setcat_library_nav_compact_pill">Компактные кнопки и сетка</string>
+    <string
+        name="setcat_library_nav_compact_pill"
+    >Компактные кнопки и сетка</string>
 
     <!-- Playback -->
     <string name="setcat_background_playback">Фоновое воспроизведение</string>
-    <string name="setcat_keep_playing_label">Не останавливать при закрытии</string>
-    <string name="setcat_keep_playing_desc">Если выключено, удаление приложения из списка недавних остановит музыку.</string>
-    <string name="setcat_battery_optimization_title">Оптимизация батареи</string>
-    <string name="setcat_battery_optimization_subtitle">Отключите оптимизацию батареи, чтобы предотвратить прерывания музыки.</string>
-    <string name="toast_battery_already_disabled">Оптимизация батареи уже отключена</string>
-    <string name="setcat_replaygain_section">Нормализация громкости (ReplayGain)</string>
+    <string
+        name="setcat_keep_playing_label"
+    >Не останавливать при закрытии</string>
+    <string
+        name="setcat_keep_playing_desc"
+    >Если выключено, удаление приложения из списка недавних остановит музыку.</string>
+    <string
+        name="setcat_battery_optimization_title"
+    >Оптимизация батареи</string>
+    <string
+        name="setcat_battery_optimization_subtitle"
+    >Отключите оптимизацию батареи, чтобы предотвратить прерывания музыки.</string>
+    <string
+        name="toast_battery_already_disabled"
+    >Оптимизация батареи уже отключена</string>
+    <string
+        name="setcat_replaygain_section"
+    >Нормализация громкости (ReplayGain)</string>
     <string name="setcat_replaygain_enable_title">Включить ReplayGain</string>
-    <string name="setcat_replaygain_enable_subtitle">Выравнивание громкости с использованием метаданных ReplayGain.</string>
+    <string
+        name="setcat_replaygain_enable_subtitle"
+    >Выравнивание громкости с использованием метаданных ReplayGain.</string>
     <string name="setcat_gain_mode_label">Режим Gain</string>
-    <string name="setcat_gain_mode_desc">Трек: нормализовать каждую песню. Альбом: нормализовать для всего альбома.</string>
+    <string
+        name="setcat_gain_mode_desc"
+    >Трек: нормализовать каждую песню. Альбом: нормализовать для всего альбома.</string>
     <string name="setcat_gain_mode_track">Трек</string>
     <string name="setcat_gain_mode_album">Альбом</string>
     <string name="setcat_cast">Трансляция (Cast)</string>
-    <string name="setcat_cast_autoplay_label">Автовоспроизведение при Cast</string>
-    <string name="setcat_cast_autoplay_desc">Начинать играть сразу при смене подключений Cast.</string>
+    <string
+        name="setcat_cast_autoplay_label"
+    >Автовоспроизведение при Cast</string>
+    <string
+        name="setcat_cast_autoplay_desc"
+    >Начинать играть сразу при смене подключений Cast.</string>
     <string name="setcat_headphones">Наушники</string>
-    <string name="setcat_headphones_resume_title">Продолжать при подключении</string>
-    <string name="setcat_headphones_resume_subtitle">Если музыка встала на паузу при отключении наушников, она продолжится при их подключении.</string>
+    <string
+        name="setcat_headphones_resume_title"
+    >Продолжать при подключении</string>
+    <string
+        name="setcat_headphones_resume_subtitle"
+    >Если музыка встала на паузу при отключении наушников, она продолжится при их подключении.</string>
     <string name="setcat_queue_transitions">Очередь и переходы</string>
     <string name="setcat_crossfade_label">Плавное переключение</string>
     <string name="setcat_crossfade_desc">Плавный переход между песнями.</string>
     <string name="setcat_crossfade_duration">Длительность перехода</string>
     <string name="setcat_hifi_mode_title">Режим Hi-Fi</string>
-    <string name="setcat_hifi_mode_subtitle_supported">Вывод 32-битного аудио (Float). Отключите, если звук заикается.</string>
-    <string name="setcat_hifi_mode_subtitle_unsupported">Не поддерживается на этом устройстве (PCM_FLOAT недоступен).</string>
-    <string name="setcat_persistent_shuffle_title">Постоянное перемешивание</string>
-    <string name="setcat_persistent_shuffle_subtitle">Запоминать режим перемешивания после закрытия приложения.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_supported"
+    >Вывод 32-битного аудио (Float). Отключите, если звук заикается.</string>
+    <string
+        name="setcat_hifi_mode_subtitle_unsupported"
+    >Не поддерживается на этом устройстве (PCM_FLOAT недоступен).</string>
+    <string
+        name="setcat_persistent_shuffle_title"
+    >Постоянное перемешивание</string>
+    <string
+        name="setcat_persistent_shuffle_subtitle"
+    >Запоминать режим перемешивания после закрытия приложения.</string>
     <string name="setcat_show_queue_history_title">История очереди</string>
-    <string name="setcat_show_queue_history_subtitle">Показывать ранее проигранные песни в очереди.</string>
+    <string
+        name="setcat_show_queue_history_subtitle"
+    >Показывать ранее проигранные песни в очереди.</string>
 
     <!-- Behavior -->
     <string name="setcat_folders">Папки</string>
     <string name="setcat_folder_back_gesture_title">Назад в папках</string>
-    <string name="setcat_folder_back_gesture_subtitle">Во вкладке «Папки» жест «Назад» перемещает по истории папок перед выходом из библиотеки.</string>
+    <string
+        name="setcat_folder_back_gesture_subtitle"
+    >Во вкладке «Папки» жест «Назад» перемещает по истории папок перед выходом из библиотеки.</string>
     <string name="setcat_player_gestures">Жесты плеера</string>
-    <string name="setcat_tap_bg_closes_title">Закрывать плеер нажатием на фон</string>
-    <string name="setcat_tap_bg_closes_subtitle">Нажатие на размытый фон закроет панель плеера.</string>
+    <string
+        name="setcat_tap_bg_closes_title"
+    >Закрывать плеер нажатием на фон</string>
+    <string
+        name="setcat_tap_bg_closes_subtitle"
+    >Нажатие на размытый фон закроет панель плеера.</string>
     <string name="setcat_haptics">Тактильный отклик</string>
     <string name="setcat_haptic_feedback_title">Виброотклик</string>
-    <string name="setcat_haptic_feedback_subtitle">Включить вибрацию при действиях в приложении.</string>
+    <string
+        name="setcat_haptic_feedback_subtitle"
+    >Включить вибрацию при действиях в приложении.</string>
 
     <!-- AI -->
     <string name="setcat_ai_provider_section">Поставщик ИИ</string>
     <string name="setcat_ai_provider_label">Поставщик</string>
     <string name="setcat_ai_provider_desc">Выберите поставщика ИИ</string>
     <string name="setcat_safe_token_title">Режим экономии токенов</string>
-    <string name="setcat_safe_token_on">ВКЛ — Быстро и дешево. Отправляет минимум данных (~1K токенов).</string>
-    <string name="setcat_safe_token_off">ВЫКЛ — Глубокий контекст. Отправляет полный профиль (~8K токенов) для лучших результатов.</string>
+    <string
+        name="setcat_safe_token_on"
+    >ВКЛ — Быстро и дешево. Отправляет минимум данных (~1K токенов).</string>
+    <string
+        name="setcat_safe_token_off"
+    >ВЫКЛ — Глубокий контекст. Отправляет полный профиль (~8K токенов) для лучших результатов.</string>
     <string name="setcat_credentials">Данные для доступа</string>
     <string name="setcat_ai_api_key_title">API-ключ %1$s</string>
     <string name="setcat_ai_api_key_subtitle">Получить в %1$s</string>
-    <string name="setcat_ai_source_gemini">Google AI Studio (aistudio.google.com)</string>
-    <string name="setcat_ai_source_deepseek">DeepSeek Platform (api.deepseek.com)</string>
-    <string name="setcat_ai_source_groq">Groq Console (console.groq.com)</string>
-    <string name="setcat_ai_source_mistral">Mistral AI Platform (console.mistral.ai)</string>
-    <string name="setcat_ai_source_nvidia">NVIDIA Build (build.nvidia.com)</string>
-    <string name="setcat_ai_source_kimi">Moonshot AI Platform (platform.moonshot.cn)</string>
-    <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
-    <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
+    <string
+        name="setcat_ai_source_gemini"
+    >Google AI Studio (aistudio.google.com)</string>
+    <string
+        name="setcat_ai_source_deepseek"
+    >DeepSeek Platform (api.deepseek.com)</string>
+    <string
+        name="setcat_ai_source_groq"
+    >Groq Console (console.groq.com)</string>
+    <string
+        name="setcat_ai_source_mistral"
+    >Mistral AI Platform (console.mistral.ai)</string>
+    <string
+        name="setcat_ai_source_nvidia"
+    >NVIDIA Build (build.nvidia.com)</string>
+    <string
+        name="setcat_ai_source_kimi"
+    >Moonshot AI Platform (platform.moonshot.cn)</string>
+    <string
+        name="setcat_ai_source_glm"
+    >Zhipu AI Open Platform (bigmodel.cn)</string>
+    <string
+        name="setcat_ai_source_openai"
+    >OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">Выбор модели</string>
     <string name="setcat_loading_models">Загрузка доступных моделей…</string>
     <string name="setcat_ai_model_label">Модель ИИ</string>
     <string name="setcat_ai_model_desc">Выберите модель.</string>
     <string name="setcat_prompt_behavior">Поведение запроса</string>
     <string name="setcat_system_prompt_title">Системный запрос</string>
-    <string name="setcat_system_prompt_subtitle">Настройка поведения ИИ.</string>
+    <string
+        name="setcat_system_prompt_subtitle"
+    >Настройка поведения ИИ.</string>
     <string name="setcat_ai_usage_report">Отчет об использовании ИИ</string>
     <string name="setcat_total_consumption_title">Общее потребление</string>
-    <string name="setcat_ai_usage_tokens_subtitle">Трекинг токенов: %1$s\nЗапрос: %2$s | Вывод: %3$s | Мысли: %4$s</string>
+    <string
+        name="setcat_ai_usage_tokens_subtitle"
+    >Трекинг токенов: %1$s\nЗапрос: %2$s | Вывод: %3$s | Мысли: %4$s</string>
 
     <!-- Backup / developer / dialogs -->
     <string name="setcat_create_backup">Создать бэкап</string>
     <string name="setcat_export_backup_title">Экспорт бэкапа</string>
-    <string name="setcat_export_backup_subtitle">%1$s Создает файл бэкапа .pxpl.</string>
+    <string
+        name="setcat_export_backup_subtitle"
+    >%1$s Создает файл бэкапа .pxpl.</string>
     <string name="setcat_restore_backup_section">Восстановление бэкапа</string>
     <string name="setcat_import_backup_title">Импорт бэкапа</string>
-    <string name="setcat_import_backup_subtitle">Поиск в файлах или выбор из недавних. Данные заменят текущие.</string>
+    <string
+        name="setcat_import_backup_subtitle"
+    >Поиск в файлах или выбор из недавних. Данные заменят текущие.</string>
     <string name="setcat_experiments">Эксперименты</string>
     <string name="setcat_experimental_title">Экспериментальные функции</string>
-    <string name="setcat_experimental_subtitle">Эксперименты с загрузкой UI и переключатели.</string>
+    <string
+        name="setcat_experimental_subtitle"
+    >Эксперименты с загрузкой UI и переключатели.</string>
     <string name="setcat_test_setup_title">Тест процесса настройки</string>
-    <string name="setcat_test_setup_subtitle">Запуск экрана первичной настройки для тестирования.</string>
+    <string
+        name="setcat_test_setup_subtitle"
+    >Запуск экрана первичной настройки для тестирования.</string>
     <string name="setcat_maintenance">Обслуживание</string>
-    <string name="setcat_force_daily_mix_title">Принудительно обновить Daily Mix</string>
-    <string name="setcat_force_daily_mix_subtitle">Немедленно пересоздать плейлист Daily Mix.</string>
-    <string name="setcat_force_stats_title">Принудительно обновить статистику</string>
-    <string name="setcat_force_stats_subtitle">Очищает кэш и пересчитывает статистику воспроизведения.</string>
-    <string name="setcat_force_palette_title">Принудительно обновить палитры</string>
+    <string
+        name="setcat_force_daily_mix_title"
+    >Принудительно обновить Daily Mix</string>
+    <string
+        name="setcat_force_daily_mix_subtitle"
+    >Немедленно пересоздать плейлист Daily Mix.</string>
+    <string
+        name="setcat_force_stats_title"
+    >Принудительно обновить статистику</string>
+    <string
+        name="setcat_force_stats_subtitle"
+    >Очищает кэш и пересчитывает статистику воспроизведения.</string>
+    <string
+        name="setcat_force_palette_title"
+    >Принудительно обновить палитры</string>
     <string name="setcat_diagnostics">Диагностика</string>
     <string name="setcat_trigger_crash_title">Вызвать тестовый сбой</string>
-    <string name="setcat_trigger_crash_subtitle">Симуляция сбоя для проверки системы отчетов.</string>
+    <string
+        name="setcat_trigger_crash_subtitle"
+    >Симуляция сбоя для проверки системы отчетов.</string>
     <string name="setcat_application">Приложение</string>
     <string name="setcat_about_pixelplayer_title">О PixelPlayer</string>
-    <string name="setcat_about_pixelplayer_subtitle">Версия приложения, авторы и др.</string>
+    <string
+        name="setcat_about_pixelplayer_subtitle"
+    >Версия приложения, авторы и др.</string>
 
     <string name="backup_summary_none">Разделы не выбраны.</string>
     <string name="backup_summary_all">Все разделы выбраны.</string>
-    <string name="backup_summary_partial">Выбрано %1$d из %2$d разделов.</string>
+    <string
+        name="backup_summary_partial"
+    >Выбрано %1$d из %2$d разделов.</string>
     <string name="backup_how_title">Как работает бэкап</string>
-    <string name="backup_how_body">Выберите разделы, экспортируйте файл .pxpl и импортируйте его позже. Восстановление заменит только выбранные разделы.</string>
-    <string name="backup_dialog_supporting_export">Выберите точно, что вы хотите включить в пакет бэкапа.</string>
+    <string
+        name="backup_how_body"
+    >Выберите разделы, экспортируйте файл .pxpl и импортируйте его позже. Восстановление заменит только выбранные разделы.</string>
+    <string
+        name="backup_dialog_supporting_export"
+    >Выберите точно, что вы хотите включить в пакет бэкапа.</string>
     <string name="backup_confirm_export_pxpl">Экспорт .pxpl</string>
-    <string name="backup_sections_selected_format">Выбрано разделов: %1$d из %2$d</string>
+    <string
+        name="backup_sections_selected_format"
+    >Выбрано разделов: %1$d из %2$d</string>
     <string name="backup_transfer_in_progress">Передача данных…</string>
     <string name="backup_exporting">Экспорт</string>
     <string name="backup_importing">Импорт</string>
     <string name="backup_dialog_creating">Создание бэкапа</string>
     <string name="backup_dialog_restoring">Восстановление бэкапа</string>
     <string name="backup_step_format">Шаг %1$d из %2$d</string>
-    <string name="backup_entries_will_replace">Записей: %1$d · Заменят текущие данные</string>
+    <string
+        name="backup_entries_will_replace"
+    >Записей: %1$d · Заменят текущие данные</string>
 
-    <string name="dialog_palette_regenerated">Палитра обновлена для %1$s</string>
-    <string name="dialog_palette_regenerate_failed">Не удалось обновить палитру для %1$s</string>
-    <string name="dialog_regenerating_palettes_title">Обновление палитр альбомов…</string>
-    <string name="dialog_regenerate_palettes_title">Обновить все палитры альбомов?</string>
-    <string name="dialog_regenerate_palettes_progress_body">Пересоздание кэшированных вариантов палитр для %1$d уникальных обложек. Это может занять время.</string>
-    <string name="dialog_regenerate_palettes_confirm_body">Это очистит кэшированные данные тем и перестроит палитры для %1$d уникальных обложек.</string>
-    <string name="dialog_palette_progress_format">%1$d из %2$d завершено</string>
+    <string
+        name="dialog_palette_regenerated"
+    >Палитра обновлена для %1$s</string>
+    <string
+        name="dialog_palette_regenerate_failed"
+    >Не удалось обновить палитру для %1$s</string>
+    <string
+        name="dialog_regenerating_palettes_title"
+    >Обновление палитр альбомов…</string>
+    <string
+        name="dialog_regenerate_palettes_title"
+    >Обновить все палитры альбомов?</string>
+    <string
+        name="dialog_regenerate_palettes_progress_body"
+    >Пересоздание кэшированных вариантов палитр для %1$d уникальных обложек. Это может занять время.</string>
+    <string
+        name="dialog_regenerate_palettes_confirm_body"
+    >Это очистит кэшированные данные тем и перестроит палитры для %1$d уникальных обложек.</string>
+    <string
+        name="dialog_palette_progress_format"
+    >%1$d из %2$d завершено</string>
     <string name="working_ellipsis">Работаем…</string>
     <string name="dialog_regenerate">Обновить</string>
-    <string name="toast_regenerated_palettes_all">Обновлено палитр обложек: %1$d</string>
-    <string name="toast_regenerated_palettes_partial">Обновлено палитр обложек: %1$d из %2$d</string>
+    <string
+        name="toast_regenerated_palettes_all"
+    >Обновлено палитр обложек: %1$d</string>
+    <string
+        name="toast_regenerated_palettes_partial"
+    >Обновлено палитр обложек: %1$d из %2$d</string>
 
-    <string name="dialog_reset_lyrics_title">Сбросить импортированные тексты?</string>
+    <string
+        name="dialog_reset_lyrics_title"
+    >Сбросить импортированные тексты?</string>
     <string name="dialog_cannot_undo">Это действие нельзя отменить.</string>
     <string name="confirm">Подтвердить</string>
-    <string name="dialog_rebuild_database_title">Пересобрать базу данных?</string>
-    <string name="dialog_rebuild_database_message">Это полностью пересоберёт вашу фонотеку с нуля. Все импортированные тексты, избранное и метаданные будут потеряны. Это действие нельзя отменить.</string>
+    <string
+        name="dialog_rebuild_database_title"
+    >Пересобрать базу данных?</string>
+    <string
+        name="dialog_rebuild_database_message"
+    >Это полностью пересоберёт вашу фонотеку с нуля. Все импортированные тексты, избранное и метаданные будут потеряны. Это действие нельзя отменить.</string>
     <string name="rebuild">Пересобрать</string>
     <string name="sync_indicator_rebuilding">Пересборка базы данных</string>
     <string name="toast_rebuilding_database">Пересборка базы данных…</string>
-    <string name="dialog_regenerate_daily_mix_title">Обновить Daily Mix?</string>
-    <string name="dialog_regenerate_daily_mix_body">Это удалит текущий микс и создаст новый на основе недавних прослушиваний.</string>
-    <string name="toast_daily_mix_regeneration_started">Обновление Daily Mix запущено</string>
+    <string
+        name="dialog_regenerate_daily_mix_title"
+    >Обновить Daily Mix?</string>
+    <string
+        name="dialog_regenerate_daily_mix_body"
+    >Это удалит текущий микс и создаст новый на основе недавних прослушиваний.</string>
+    <string
+        name="toast_daily_mix_regeneration_started"
+    >Обновление Daily Mix запущено</string>
     <string name="dialog_regenerate_stats_title">Обновить статистику?</string>
-    <string name="dialog_regenerate_stats_body">Это очистит кэш статистики и принудительно пересчитает её из истории в базе.</string>
-    <string name="toast_stats_regeneration_started">Обновление статистики запущено</string>
+    <string
+        name="dialog_regenerate_stats_body"
+    >Это очистит кэш статистики и принудительно пересчитает её из истории в базе.</string>
+    <string
+        name="toast_stats_regeneration_started"
+    >Обновление статистики запущено</string>
     <string name="backup_file_name_format">PixelPlayer_Backup_%1$d.pxpl</string>
 
-    <string name="setcat_regenerate_daily_mix_action">Обновить Daily Mix</string>
+    <string
+        name="setcat_regenerate_daily_mix_action"
+    >Обновить Daily Mix</string>
     <string name="setcat_regenerate_stats_action">Обновить статистику</string>
-    <string name="setcat_force_palette_empty">Песен с обложками не найдено.</string>
-    <string name="setcat_force_palette_subtitle">Перестроить кэшированные палитры для каждой обложки или выбрать одну.</string>
+    <string
+        name="setcat_force_palette_empty"
+    >Песен с обложками не найдено.</string>
+    <string
+        name="setcat_force_palette_subtitle"
+    >Перестроить кэшированные палитры для каждой обложки или выбрать одну.</string>
     <string name="setcat_regenerate_all">Обновить все</string>
     <string name="setcat_regenerating">Обновление…</string>
     <string name="setcat_choose_song">Выбрать песню</string>
 
     <string name="setcat_ai_clear_logs">Очистить логи</string>
-    <string name="setcat_ai_activity_log_title">Лог активности ИИ (%1$d)</string>
+    <string
+        name="setcat_ai_activity_log_title"
+    >Лог активности ИИ (%1$d)</string>
     <string name="cd_show">Показать</string>
     <string name="cd_hide">Скрыть</string>
     <string name="setcat_select_export">Выбрать и экспортировать</string>
@@ -289,16 +525,28 @@
     <string name="import_backup_toolbar_title">Импорт бэкапа</string>
     <string name="import_inspecting">Проверка…</string>
     <string name="import_browse_file">Найти файл</string>
-    <string name="import_backup_hint">Выберите файл .pxpl для проверки. На следующем шаге вы выберете разделы для восстановления.</string>
+    <string
+        name="import_backup_hint"
+    >Выберите файл .pxpl для проверки. На следующем шаге вы выберете разделы для восстановления.</string>
     <string name="import_recent_backups">Недавние бэкапы</string>
     <string name="import_no_recent_title">Нет недавних бэкапов</string>
-    <string name="import_no_recent_subtitle">Ранее импортированные бэкапы появятся здесь.</string>
-    <string name="palette_force_regenerate_title">Обновить палитру альбома</string>
-    <string name="palette_force_regenerate_subtitle">Выберите песню, чтобы очистить кэш темы и пересоздать палитру из обложки.</string>
-    <string name="search_songs_by_title_artist_album">Поиск по названию, артисту или альбому</string>
+    <string
+        name="import_no_recent_subtitle"
+    >Ранее импортированные бэкапы появятся здесь.</string>
+    <string
+        name="palette_force_regenerate_title"
+    >Обновить палитру альбома</string>
+    <string
+        name="palette_force_regenerate_subtitle"
+    >Выберите песню, чтобы очистить кэш темы и пересоздать палитру из обложки.</string>
+    <string
+        name="search_songs_by_title_artist_album"
+    >Поиск по названию, артисту или альбому</string>
     <string name="palette_regenerating_progress">Обновление палитры…</string>
     <string name="search_no_songs_match">Ничего не найдено.</string>
     <string name="cd_remove_from_history">Удалить из истории</string>
     <string name="cd_clear_search">Очистить поиск</string>
-    <string name="backup_history_modules_line">Модулей: %1$d · v%2$s · схема v%3$d</string>
+    <string
+        name="backup_history_modules_line"
+    >Модулей: %1$d · v%2$s · схема v%3$d</string>
 </resources>

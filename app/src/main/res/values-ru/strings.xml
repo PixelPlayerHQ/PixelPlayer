@@ -80,7 +80,7 @@
     <string name="previous_track">Предыдущий трек</string>
     <string name="next_track">Следующий трек</string>
     <string name="pause_playback">Пауза</string>
-    <string name="play_playback">Воспроизведение</string>
+    <string name="play_playback">Играть</string>
     <string name="playlist_not_found">Плейлист не найден.</string>
     <string name="disc_number_header">Диск %d</string>
 

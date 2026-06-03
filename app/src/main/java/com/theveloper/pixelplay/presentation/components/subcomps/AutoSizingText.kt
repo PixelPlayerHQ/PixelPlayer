@@ -34,7 +34,8 @@ fun AutoSizingTextToFill(
     fontFamily: FontFamily? = null,
     fontWeight: FontWeight? = null,
     maxFontSizeLimit: TextUnit = 100.sp, // Límite superior práctico para la búsqueda
-    lineHeightRatio: Float = 1.2f // Factor para el interlineado (e.g., 1.2f para un 20% más de espacio)
+    lineHeightRatio: Float = 1.2f, // Factor para el interlineado (e.g., 1.2f para un 20% más de espacio)
+    maxLines: Int = Int.MAX_VALUE
 ) {
     // TextMeasurer se utiliza para medir el texto de forma eficiente.
     val textMeasurer = rememberTextMeasurer()
@@ -42,7 +43,8 @@ fun AutoSizingTextToFill(
     val density = LocalDensity.current
 
     // Estado para el tamaño de fuente determinado.
-    var currentFontSize by remember { mutableStateOf(minFontSize) }
+    val currentFontSizeState = remember { mutableStateOf(minFontSize) }
+    var currentFontSize by currentFontSizeState
     // Estado para saber si el cálculo está listo y podemos dibujar.
     var readyToDraw by remember { mutableStateOf(false) }
 
@@ -54,7 +56,7 @@ fun AutoSizingTextToFill(
 
         // LaunchedEffect para recalcular cuando el texto, estilo, límites de fuente,
         // ratio de interlineado o el tamaño del contenedor cambien.
-        LaunchedEffect(text, style, minFontSize, maxFontSizeLimit, lineHeightRatio, maxWidthPx, maxHeightPx) {
+        LaunchedEffect(text, style, minFontSize, maxFontSizeLimit, lineHeightRatio, maxLines, maxWidthPx, maxHeightPx) {
             readyToDraw = false // Indicar que necesitamos recalcular.
             var bestFitFontSize = minFontSize // Empezamos asumiendo el mínimo.
 
@@ -80,7 +82,7 @@ fun AutoSizingTextToFill(
                 style = minFontEffectiveStyle,
                 overflow = TextOverflow.Clip, // Usamos Clip para la medición precisa.
                 softWrap = true,
-                maxLines = Int.MAX_VALUE, // Permitir todas las líneas necesarias.
+                maxLines = maxLines, // Permitir todas las líneas necesarias.
                 constraints = Constraints(
                     maxWidth = maxWidthPx.coerceAtLeast(0), // Asegurar que no sea negativo.
                     maxHeight = maxHeightPx.coerceAtLeast(0) // Asegurar que no sea negativo.
@@ -128,7 +130,7 @@ fun AutoSizingTextToFill(
                     style = candidateStyle,
                     overflow = TextOverflow.Clip,
                     softWrap = true,
-                    maxLines = Int.MAX_VALUE,
+                    maxLines = maxLines,
                     constraints = Constraints(
                         maxWidth = maxWidthPx.coerceAtLeast(0),
                         maxHeight = maxHeightPx.coerceAtLeast(0)
@@ -166,7 +168,7 @@ fun AutoSizingTextToFill(
                 overflow = TextOverflow.Ellipsis, // Trunca si, a pesar de todo, aún se desborda.
                 softWrap = true,
                 // El tamaño de fuente se eligió para que todas las líneas quepan en altura.
-                maxLines = Int.MAX_VALUE
+                maxLines = maxLines
             )
         }
     }

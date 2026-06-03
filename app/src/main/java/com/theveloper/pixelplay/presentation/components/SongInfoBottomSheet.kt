@@ -17,6 +17,7 @@ import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -89,6 +90,8 @@ import com.theveloper.pixelplay.presentation.screens.TabAnimation
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.AudioMetaUtils
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.sp
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -487,23 +490,32 @@ fun SongInfoBottomSheet(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
-                                                MediumExtendedFloatingActionButton(
+                                                FilledTonalButton(
                                                     modifier = Modifier
                                                         .weight(0.5f)
-                                                        .fillMaxHeight(),
-                                                    onClick = onPlaySong,
-                                                    elevation = FloatingActionButtonDefaults.elevation(0.dp),
+                                                        .heightIn(min = 80.dp),
+                                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    ),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp),
                                                     shape = playButtonShape,
-                                                    icon = {
-                                                        Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.cd_play_song_action))
-                                                    },
-                                                    text = {
-                                                        Text(
-                                                            modifier = Modifier.padding(end = 10.dp),
-                                                            text = stringResource(R.string.play_playback)
-                                                        )
-                                                    }
-                                                )
+                                                    onClick = onPlaySong
+                                                ) {
+                                                    Icon(
+                                                        Icons.Rounded.PlayArrow,
+                                                        contentDescription = stringResource(R.string.cd_play_song_action),
+                                                    )
+                                                    Spacer(Modifier.width(6.dp))
+                                                    TightWrapText(
+                                                        text = stringResource(R.string.play_playback),
+                                                        modifier = Modifier.padding(end = 4.dp),
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        maxLines = 2,
+                                                        lineHeight = 22.sp,
+                                                        style = MaterialTheme.typography.titleLarge
+                                                    )
+                                                }
 
                                                 FilledIconButton(
                                                     modifier = Modifier
@@ -560,6 +572,7 @@ fun SongInfoBottomSheet(
                                                 }
                                             }
                                         }
+
                                         item {
                                             Row(
                                                 modifier = Modifier
@@ -576,16 +589,22 @@ fun SongInfoBottomSheet(
                                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                                                     ),
-                                                    contentPadding = PaddingValues(horizontal = 0.dp),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp),
                                                     shape = CircleShape,
                                                     onClick = onAddToQueue
                                                 ) {
                                                     Icon(
                                                         Icons.AutoMirrored.Rounded.QueueMusic,
-                                                        contentDescription = stringResource(R.string.cd_add_to_queue)
+                                                        contentDescription = stringResource(R.string.cd_add_to_queue),
                                                     )
-                                                    Spacer(Modifier.width(14.dp))
-                                                    Text(stringResource(R.string.action_add_to_queue))
+                                                    Spacer(Modifier.width(6.dp))
+                                                    TightWrapText(
+                                                        text = stringResource(R.string.action_add_to_queue),
+                                                        modifier = Modifier.padding(end = 4.dp),
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        maxLines = 2,
+                                                        lineHeight = 20.sp
+                                                    )
                                                 }
                                                 FilledTonalButton(
                                                     modifier = Modifier
@@ -595,7 +614,7 @@ fun SongInfoBottomSheet(
                                                         containerColor = MaterialTheme.colorScheme.tertiary,
                                                         contentColor = MaterialTheme.colorScheme.onTertiary
                                                     ),
-                                                    contentPadding = PaddingValues(horizontal = 0.dp),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp),
                                                     shape = CircleShape,
                                                     onClick = onAddNextToQueue
                                                 ) {
@@ -603,8 +622,14 @@ fun SongInfoBottomSheet(
                                                         Icons.AutoMirrored.Filled.QueueMusic,
                                                         contentDescription = stringResource(R.string.cd_play_next_in_queue)
                                                     )
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Text(stringResource(R.string.action_queue_next))
+                                                    Spacer(Modifier.width(6.dp))
+                                                    TightWrapText(
+                                                        text = stringResource(R.string.action_queue_next),
+                                                        modifier = Modifier.padding(end = 4.dp),
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        maxLines = 2,
+                                                        lineHeight = 20.sp
+                                                    )
                                                 }
                                             }
                                         }
@@ -625,6 +650,7 @@ fun SongInfoBottomSheet(
                                                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                                                     ),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp),
                                                     shape = CircleShape,
                                                     onClick = onAddToPlayList
                                                 ) {
@@ -632,8 +658,14 @@ fun SongInfoBottomSheet(
                                                         Icons.AutoMirrored.Rounded.PlaylistAdd,
                                                         contentDescription = stringResource(R.string.cd_add_to_playlist)
                                                     )
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Text(stringResource(R.string.shortcut_playlist_short))
+                                                    Spacer(Modifier.width(6.dp))
+                                                    TightWrapText(
+                                                        text = stringResource(R.string.shortcut_playlist_short),
+                                                        modifier = Modifier.padding(end = 4.dp),
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        maxLines = 2,
+                                                        lineHeight = 20.sp
+                                                    )
                                                 }
 
                                                 FilledTonalButton(
@@ -644,6 +676,7 @@ fun SongInfoBottomSheet(
                                                         containerColor = MaterialTheme.colorScheme.errorContainer,
                                                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                                                     ),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp),
                                                     shape = CircleShape,
                                                     onClick = {
                                                         (context as? Activity)?.let { activity ->
@@ -660,8 +693,14 @@ fun SongInfoBottomSheet(
                                                         Icons.Default.DeleteForever,
                                                         contentDescription = stringResource(R.string.delete_action)
                                                     )
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Text(stringResource(R.string.delete_action))
+                                                    Spacer(Modifier.width(6.dp))
+                                                    TightWrapText(
+                                                        text = stringResource(R.string.delete_action),
+                                                        modifier = Modifier.padding(end = 4.dp),
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        maxLines = 2,
+                                                        lineHeight = 20.sp
+                                                    )
                                                 }
                                             }
                                         }

@@ -95,7 +95,7 @@
     <string name="cd_play_next_in_queue">Putar berikutnya dalam antrean</string>
     <string name="cd_add_to_playlist">Tambah ke playlist</string>
     <string name="action_add_to_queue">Tambah ke antrean</string>
-    <string name="action_queue_next">Berikutnya</string>
+    <string name="action_queue_next">Putar berikutnya</string>
     <string name="song_info_checking_watch">Memeriksa jam tangan</string>
     <string name="song_info_transferring_percent">Mentransfer %1$d%%</string>
     <string name="song_info_transferring_to_watch">Mentransfer ke jam tangan</string>

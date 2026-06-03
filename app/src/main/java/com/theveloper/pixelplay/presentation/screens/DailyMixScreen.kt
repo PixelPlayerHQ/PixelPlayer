@@ -64,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,6 +91,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 
@@ -309,12 +311,19 @@ fun DailyMixScreen(
                                 topEnd = 14.dp,
                                 bottomStart = 60.dp,
                                 bottomEnd = 14.dp
-                            )
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp),
                         ) {
                             Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.cd_play), modifier = Modifier.size(
                                 ButtonDefaults.IconSize))
                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(playItLabel)
+                            TightWrapText(
+                                text = playItLabel,
+                                modifier = Modifier.padding(end = 4.dp),
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                lineHeight = 20.sp
+                            )
                         }
                         FilledTonalButton(
                             onClick = {
@@ -335,12 +344,19 @@ fun DailyMixScreen(
                                 topEnd = 60.dp,
                                 bottomStart = 14.dp,
                                 bottomEnd = 60.dp
-                            )
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp),
                         ) {
                             Icon(Icons.Rounded.Shuffle, contentDescription = shuffleLabel, modifier = Modifier.size(
                                 ButtonDefaults.IconSize))
                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(shuffleLabel)
+                            TightWrapText(
+                                text = shuffleLabel,
+                                modifier = Modifier.padding(end = 4.dp),
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                lineHeight = 20.sp
+                            )
                         }
                     }
                 }

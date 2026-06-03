@@ -82,6 +82,7 @@ import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 
 // --- Data Models & Helpers ---
 
@@ -425,7 +426,7 @@ fun GenreDetailScreen(
                                     showSortSheet = false
                                     showQuickFillDialog = true
                                 },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -434,10 +435,13 @@ fun GenreDetailScreen(
                             ) {
                                 Icon(Icons.Rounded.AutoFixHigh, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(
+                                TightWrapText(
                                     text = stringResource(R.string.genre_quick_fill),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                                    modifier = Modifier.padding(end = 4.dp),
+                                    overflow = TextOverflow.Ellipsis,
+                                    maxLines = 2,
+                                    lineHeight = 22.sp
                                 )
                             }
                         }

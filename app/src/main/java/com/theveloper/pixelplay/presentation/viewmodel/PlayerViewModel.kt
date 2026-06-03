@@ -1272,7 +1272,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     private var mediaController: MediaController? = null
-    private var mediaControllerPlaybackListener: Player.Listener? = null
+    // All Player.Listener instances registered by the decomposed setup*Listeners()
+    // helpers. Tracked together so they can be removed in one pass on re-setup and
+    // in onCleared().
+    private val mediaControllerPlaybackListeners = mutableListOf<Player.Listener>()
     private val _isMediaControllerReady = MutableStateFlow(false)
     val isMediaControllerReady: StateFlow<Boolean> = _isMediaControllerReady.asStateFlow()
     // SessionToken injected via constructor
@@ -2835,9 +2838,44 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Wires the [MediaController] into the ViewModel. Decomposed from a single
+     * ~300-line block into a one-time state sync plus a set of focused, structured
+     * sub-listener registrations so each playback concern reads in isolation:
+     *  - [applyInitialControllerState]: snapshot the controller's current state on attach
+     *  - [setupVolumeListeners]: track volume changes
+     *  - [setupPlaybackListeners]: play/pause, playWhenReady, playback-state transitions
+     *  - [setupTransitionListeners]: media-item and timeline transitions
+     *  - [setupMetadataListeners]: tracks, metadata, shuffle and repeat mode
+     */
     private fun setupMediaControllerListeners() {
         Trace.beginSection("PlayerViewModel.setupMediaControllerListeners")
         val playerCtrl = mediaController ?: return Trace.endSection()
+        applyInitialControllerState(playerCtrl)
+        clearMediaControllerPlaybackListeners(playerCtrl)
+        setupVolumeListeners(playerCtrl)
+        setupPlaybackListeners(playerCtrl)
+        setupTransitionListeners(playerCtrl)
+        setupMetadataListeners(playerCtrl)
+        Trace.endSection()
+    }
+
+    /** Registers [listener] on [playerCtrl] and tracks it for later removal. */
+    private fun registerMediaControllerListener(playerCtrl: MediaController, listener: Player.Listener) {
+        mediaControllerPlaybackListeners.add(listener)
+        playerCtrl.addListener(listener)
+    }
+
+    /** Removes and forgets every listener registered via [registerMediaControllerListener]. */
+    private fun clearMediaControllerPlaybackListeners(controller: MediaController?) {
+        mediaControllerPlaybackListeners.forEach { listener ->
+            controller?.removeListener(listener)
+        }
+        mediaControllerPlaybackListeners.clear()
+    }
+
+    /** One-time snapshot of the controller's current state when it first attaches. */
+    private fun applyInitialControllerState(playerCtrl: MediaController) {
         _trackVolume.value = playerCtrl.volume
         playbackStateHolder.updateStablePlayerState {
             it.copy(
@@ -2893,13 +2931,20 @@ class PlayerViewModel @Inject constructor(
                 resetPlaybackAudioMetadata()
             }
         }
+    }
 
-        mediaControllerPlaybackListener?.let(playerCtrl::removeListener)
-        mediaControllerPlaybackListener = object : Player.Listener {
+    /** Volume changes coming back from the player/session. */
+    private fun setupVolumeListeners(playerCtrl: MediaController) {
+        registerMediaControllerListener(playerCtrl, object : Player.Listener {
             override fun onVolumeChanged(volume: Float) {
                 _trackVolume.value = volume
             }
+        })
+    }
 
+    /** Play/pause, playWhenReady and playback-state lifecycle. */
+    private fun setupPlaybackListeners(playerCtrl: MediaController) {
+        registerMediaControllerListener(playerCtrl, object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isRemoteSessionControllingPlayback()) return
                 playbackStateHolder.updateStablePlayerState {
@@ -2936,6 +2981,66 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (isRemoteSessionControllingPlayback()) return
+                refreshPlaybackAudioMetadata(playerCtrl)
+                syncDisplayedMediaItemIfChanged(playerCtrl)
+
+                // Debounce buffering state to avoid flickering
+                bufferingDebounceJob?.cancel()
+                if (playbackState == Player.STATE_BUFFERING) {
+                    bufferingDebounceJob = viewModelScope.launch {
+                        delay(150) // Wait 150ms before showing buffering indicator
+                        playbackStateHolder.updateStablePlayerState { state ->
+                            state.copy(isBuffering = true)
+                        }
+                    }
+                } else {
+                    // Immediately hide buffering when not buffering
+                    playbackStateHolder.updateStablePlayerState { state ->
+                        state.copy(isBuffering = false)
+                    }
+                }
+
+                if (playbackState == Player.STATE_READY) {
+                    clearPreparingSongIfMatching(playerCtrl.currentMediaItem?.mediaId)
+                    val readyPosition = playerCtrl.currentPosition.coerceAtLeast(0L)
+                    val songDurationHint = playbackStateHolder.stablePlayerState.value.currentSong?.duration ?: 0L
+                    val resolvedDuration = playbackStateHolder.resolveDurationForPlaybackState(
+                        reportedDurationMs = playerCtrl.duration,
+                        songDurationHintMs = songDurationHint,
+                        currentPositionMs = readyPosition
+                    )
+                    syncPlaybackPositionFromPlayer(playerCtrl.currentMediaItem?.mediaId, readyPosition)
+                    playbackStateHolder.updateStablePlayerState { it.copy(totalDuration = resolvedDuration) }
+                    startProgressUpdates()
+                }
+                if (playbackState == Player.STATE_IDLE && playerCtrl.mediaItemCount == 0) {
+                    clearPreparingSongIfMatching()
+                    if (!isCastConnecting.value && !isRemotePlaybackActive.value) {
+                        lyricsStateHolder.cancelLoading()
+                        playbackStateHolder.updateStablePlayerState {
+                            it.copy(
+                                currentSong = null,
+                                isPlaying = false,
+                                playWhenReady = false,
+                                lyrics = null,
+                                isLoadingLyrics = false,
+                                totalDuration = 0L
+                            )
+                        }
+                        playbackStateHolder.clearCurrentPositionHints()
+                        playbackStateHolder.setCurrentPosition(0L)
+                        resetPlaybackAudioMetadata()
+                    }
+                }
+            }
+        })
+    }
+
+    /** Media-item and timeline transitions (incl. EOT timer + Telegram offline guard). */
+    private fun setupTransitionListeners(playerCtrl: MediaController) {
+        registerMediaControllerListener(playerCtrl, object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 if (isRemoteSessionControllingPlayback()) return
                 playbackStateHolder.onPlaybackOccurrenceTransition(mediaItem?.mediaId)
@@ -2965,7 +3070,7 @@ class PlayerViewModel @Inject constructor(
 
                     mediaItem?.let { transitionedItem ->
                         val song = resolveSongFromMediaItem(transitionedItem)
-                        
+
                         // Offline check for Telegram songs
                         if (song?.contentUriString?.startsWith("telegram:") == true) {
                             ensureTelegramPlaybackObserversStarted()
@@ -3035,60 +3140,26 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
-            override fun onPlaybackStateChanged(playbackState: Int) {
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 if (isRemoteSessionControllingPlayback()) return
-                refreshPlaybackAudioMetadata(playerCtrl)
                 syncDisplayedMediaItemIfChanged(playerCtrl)
+                // Skip updates during crossfade transitions to prevent UI freeze and jumpy state.
+                if (dualPlayerEngine.isTransitionRunning()) return
 
-                // Debounce buffering state to avoid flickering
-                bufferingDebounceJob?.cancel()
-                if (playbackState == Player.STATE_BUFFERING) {
-                    bufferingDebounceJob = viewModelScope.launch {
-                        delay(150) // Wait 150ms before showing buffering indicator
-                        playbackStateHolder.updateStablePlayerState { state ->
-                            state.copy(isBuffering = true)
-                        }
-                    }
-                } else {
-                    // Immediately hide buffering when not buffering
-                    playbackStateHolder.updateStablePlayerState { state ->
-                        state.copy(isBuffering = false)
-                    }
-                }
+                transitionSchedulerJob?.cancel()
 
-                if (playbackState == Player.STATE_READY) {
-                    clearPreparingSongIfMatching(playerCtrl.currentMediaItem?.mediaId)
-                    val readyPosition = playerCtrl.currentPosition.coerceAtLeast(0L)
-                    val songDurationHint = playbackStateHolder.stablePlayerState.value.currentSong?.duration ?: 0L
-                    val resolvedDuration = playbackStateHolder.resolveDurationForPlaybackState(
-                        reportedDurationMs = playerCtrl.duration,
-                        songDurationHintMs = songDurationHint,
-                        currentPositionMs = readyPosition
-                    )
-                    syncPlaybackPositionFromPlayer(playerCtrl.currentMediaItem?.mediaId, readyPosition)
-                    playbackStateHolder.updateStablePlayerState { it.copy(totalDuration = resolvedDuration) }
-                    startProgressUpdates()
-                }
-                if (playbackState == Player.STATE_IDLE && playerCtrl.mediaItemCount == 0) {
-                    clearPreparingSongIfMatching()
-                    if (!isCastConnecting.value && !isRemotePlaybackActive.value) {
-                        lyricsStateHolder.cancelLoading()
-                        playbackStateHolder.updateStablePlayerState {
-                            it.copy(
-                                currentSong = null,
-                                isPlaying = false,
-                                playWhenReady = false,
-                                lyrics = null,
-                                isLoadingLyrics = false,
-                                totalDuration = 0L
-                            )
-                        }
-                        playbackStateHolder.clearCurrentPositionHints()
-                        playbackStateHolder.setCurrentPosition(0L)
-                        resetPlaybackAudioMetadata()
-                    }
+                // Only refresh full queue on structural changes or source updates (metadata)
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED ||
+                    reason == Player.TIMELINE_CHANGE_REASON_SOURCE_UPDATE) {
+                    updateCurrentPlaybackQueueFromPlayer(mediaController)
                 }
             }
+        })
+    }
+
+    /** Track/metadata changes plus shuffle and repeat-mode reconciliation. */
+    private fun setupMetadataListeners(playerCtrl: MediaController) {
+        registerMediaControllerListener(playerCtrl, object : Player.Listener {
             override fun onTracksChanged(tracks: Tracks) {
                 if (isRemoteSessionControllingPlayback()) return
                 refreshPlaybackAudioMetadata(playerCtrl, tracks)
@@ -3112,23 +3183,7 @@ class PlayerViewModel @Inject constructor(
                 playbackStateHolder.updateStablePlayerState { it.copy(repeatMode = repeatMode) }
                 viewModelScope.launch { userPreferencesRepository.setRepeatMode(repeatMode) }
             }
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                if (isRemoteSessionControllingPlayback()) return
-                syncDisplayedMediaItemIfChanged(playerCtrl)
-                // Skip updates during crossfade transitions to prevent UI freeze and jumpy state.
-                if (dualPlayerEngine.isTransitionRunning()) return
-
-                transitionSchedulerJob?.cancel()
-                
-                // Only refresh full queue on structural changes or source updates (metadata)
-                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED ||
-                    reason == Player.TIMELINE_CHANGE_REASON_SOURCE_UPDATE) {
-                    updateCurrentPlaybackQueueFromPlayer(mediaController)
-                }
-            }
-        }
-        playerCtrl.addListener(checkNotNull(mediaControllerPlaybackListener))
-        Trace.endSection()
+        })
     }
 
 
@@ -4385,10 +4440,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         val controllerToRelease = mediaController
-        mediaControllerPlaybackListener?.let { listener ->
-            controllerToRelease?.removeListener(listener)
-            mediaControllerPlaybackListener = null
-        }
+        clearMediaControllerPlaybackListeners(controllerToRelease)
         playbackStateHolder.clearMediaController(controllerToRelease)
         controllerToRelease?.release()
         mediaController = null

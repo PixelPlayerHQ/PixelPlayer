@@ -189,7 +189,9 @@ internal fun rememberSheetVisualState(
                 showPlayerContentArea &&
                 playerContentExpansionFraction.value < 0.01f
             ) {
-                if (navBarStyle == NavBarStyle.DEFAULT) {
+                if (navBarStyle == NavBarStyle.FULL_WIDTH) {
+                    calculatedNormally
+                } else if (navBarStyle == NavBarStyle.DEFAULT) {
                     lerp(10.dp, navBarCornerRadiusDp, swipeDismissProgress)
                 } else {
                     val baseCollapsedRadius = if (isNavBarHidden) 32.dp else navBarCornerRadiusDp

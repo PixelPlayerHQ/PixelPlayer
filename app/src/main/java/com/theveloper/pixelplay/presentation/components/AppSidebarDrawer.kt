@@ -35,6 +35,7 @@ sealed class DrawerDestination(val route: String) {
     object Equalizer : DrawerDestination("equalizer")
     object Settings : DrawerDestination("settings")
     object Telegram : DrawerDestination("telegram")
+    object Extensions : DrawerDestination("extensions")
 }
 
 @Composable
@@ -176,6 +177,33 @@ private fun DrawerContent(
             },
             selected = selectedRoute == DrawerDestination.Telegram.route,
             onClick = { onDestinationSelected(DrawerDestination.Telegram) },
+            modifier = Modifier.padding(vertical = 4.dp),
+            colors = NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                unselectedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.rounded_settings_24),
+                    contentDescription = "Extensions"
+                )
+            },
+            label = {
+                Text(
+                    text = "Extensions",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            },
+            selected = selectedRoute == DrawerDestination.Extensions.route,
+            onClick = { onDestinationSelected(DrawerDestination.Extensions) },
             modifier = Modifier.padding(vertical = 4.dp),
             colors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,

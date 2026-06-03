@@ -22,4 +22,10 @@ class LibraryViewModel @Inject constructor(
     val favoriteSongCountFlow = libraryStateHolder.favoriteSongCountFlow
 
     val isLoadingLibrary = libraryStateHolder.isLoadingLibrary
+
+    val currentSourceScope = libraryStateHolder.currentSourceScope
+
+    fun setSourceScope(scope: com.theveloper.pixelplay.data.model.SourceScope) {
+        libraryStateHolder.setSourceScope(scope)
+    }
 }

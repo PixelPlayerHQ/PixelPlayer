@@ -51,6 +51,7 @@ import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.SearchFilterType
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SourceScope
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.toLibraryTabIdOrNull
 import com.theveloper.pixelplay.data.provider.SharedArtworkContentProvider
@@ -245,7 +246,7 @@ class PlayerViewModel @Inject constructor(
     private val playbackStateHolder: PlaybackStateHolder,
     private val connectivityStateHolder: ConnectivityStateHolder,
     private val sleepTimerStateHolder: SleepTimerStateHolder,
-    private val searchStateHolder: SearchStateHolder,
+    val searchStateHolder: SearchStateHolder,
     private val aiStateHolder: AiStateHolder,
     private val libraryStateHolder: LibraryStateHolder,
     private val folderNavigationStateHolder: FolderNavigationStateHolder,
@@ -257,6 +258,8 @@ class PlayerViewModel @Inject constructor(
     val themeStateHolder: ThemeStateHolder,
     val multiSelectionStateHolder: MultiSelectionStateHolder,
     val playlistSelectionStateHolder: PlaylistSelectionStateHolder,
+    private val extensionEngine: dev.brahmkshatriya.echo.extension.loader.ExtensionLoader,
+    private val downloadManager: com.theveloper.pixelplay.data.download.DownloadManager,
     private val sessionToken: SessionToken,
     private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
 ) : ViewModel() {
@@ -320,8 +323,8 @@ class PlayerViewModel @Inject constructor(
 
 
 
-    private val _playlistPickerStorageFilter = MutableStateFlow(com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE)
-    val playlistPickerStorageFilter: StateFlow<com.theveloper.pixelplay.data.model.StorageFilter> = _playlistPickerStorageFilter.asStateFlow()
+    private val _playlistPickerSourceScope = MutableStateFlow<SourceScope>(SourceScope.All)
+    val playlistPickerSourceScope: StateFlow<SourceScope> = _playlistPickerSourceScope.asStateFlow()
 
     /**
      * Paginated songs for efficient display in LibraryScreen.
@@ -334,14 +337,14 @@ class PlayerViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val playlistPickerFavoriteSongs: Flow<PagingData<Song>> = combine(
         libraryStateHolder.currentSongSortOption,
-        _playlistPickerStorageFilter
-    ) { sortOption, storageFilter ->
-        sortOption to storageFilter
+        _playlistPickerSourceScope
+    ) { sortOption, sourceScope ->
+        sortOption to sourceScope
     }
-        .flatMapLatest { (sortOption, storageFilter) ->
+        .flatMapLatest { (sortOption, sourceScope) ->
             musicRepository.getPaginatedFavoriteSongs(
                 sortOption = sortOption,
-                storageFilter = storageFilter
+                storageFilter = sourceScope
             )
         }
         .cachedIn(viewModelScope)
@@ -349,14 +352,14 @@ class PlayerViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val playlistPickerSongs: Flow<PagingData<Song>> = combine(
         libraryStateHolder.currentSongSortOption,
-        _playlistPickerStorageFilter
-    ) { sortOption, storageFilter ->
-        sortOption to storageFilter
+        _playlistPickerSourceScope
+    ) { sortOption, sourceScope ->
+        sortOption to sourceScope
     }
-        .flatMapLatest { (sortOption, storageFilter) ->
+        .flatMapLatest { (sortOption, sourceScope) ->
             musicRepository.getPaginatedSongs(
                 sortOption = sortOption,
-                storageFilter = storageFilter
+                storageFilter = sourceScope
             )
         }
         .cachedIn(viewModelScope)
@@ -714,24 +717,52 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val sortOption = playerUiState.value.currentSongSortOption
-                
-                // Logic must match effectiveStorageFilter in LibraryStateHolder
-                val baseFilter = playerUiState.value.currentStorageFilter
-                val hideLocal = playerUiState.value.hideLocalMedia
-                val storageFilter = if (hideLocal) {
-                    com.theveloper.pixelplay.data.model.StorageFilter.ONLINE
-                } else {
-                    baseFilter
-                }
+                val currentScope = libraryStateHolder.currentSourceScope.value
 
-                val sortedIds = musicRepository.getSongIdsSorted(sortOption, storageFilter)
-
+                // Unified ID resolution
                 val unifiedId = currentSong.id.toLongOrNull()
                     ?: currentSong.contentUriString
                         .takeIf { it.isNotBlank() }
                         ?.let { musicRepository.getSongIdByContentUri(it) }
 
-                val index = unifiedId?.let { sortedIds.indexOf(it) } ?: -1
+                if (unifiedId == null) {
+                    sendToast(context.getString(R.string.player_song_not_found_in_list))
+                    return@launch
+                }
+
+                // First attempt with current scope
+                var sortedIds = musicRepository.getSongIdsSorted(sortOption, currentScope)
+                var index = sortedIds.indexOf(unifiedId)
+
+                if (index == -1) {
+                    // Smart Locate: Switch to the song's actual scope
+                    val targetScope = when {
+                        currentSong.extensionId != null -> com.theveloper.pixelplay.data.model.SourceScope.Extension(currentSong.extensionId!!)
+                        currentSong.id.toLongOrNull() != null && currentSong.id.toLong() >= 0 -> com.theveloper.pixelplay.data.model.SourceScope.Local
+                        else -> com.theveloper.pixelplay.data.model.SourceScope.All
+                    }
+
+                    if (targetScope != currentScope) {
+                        libraryStateHolder.setSourceScope(targetScope)
+                        // Wait for scope change propagation
+                        kotlinx.coroutines.delay(300)
+
+                        sortedIds = musicRepository.getSongIdsSorted(sortOption, targetScope)
+                        index = sortedIds.indexOf(unifiedId)
+
+                        if (index != -1) {
+                            val scopeName = when(targetScope) {
+                                com.theveloper.pixelplay.data.model.SourceScope.All -> context.getString(R.string.library_storage_filter_all_songs)
+                                com.theveloper.pixelplay.data.model.SourceScope.Local -> context.getString(R.string.library_storage_filter_offline)
+                                is com.theveloper.pixelplay.data.model.SourceScope.Extension -> {
+                                    extensionEngine.music.value.find { it.metadata.id == targetScope.extensionId }?.metadata?.name 
+                                        ?: context.getString(R.string.library_storage_filter_online)
+                                }
+                            }
+                            sendToast(context.getString(R.string.player_locate_switching_to_scope, scopeName))
+                        }
+                    }
+                }
 
                 if (index != -1) {
                     _scrollToIndexEvent.emit(index)
@@ -757,8 +788,9 @@ class PlayerViewModel @Inject constructor(
             failureMessage = "Failed to build full library queue for songId=%s"
         ) {
             val sortOption = playerUiState.value.currentSongSortOption
-            val storageFilter = playerUiState.value.currentStorageFilter
-            musicRepository.getSongIdsSorted(sortOption, storageFilter)
+            val sourceScope = playerUiState.value.currentSourceScope
+            musicRepository.getSongIdsSorted(sortOption, sourceScope)
+
         }
     }
 
@@ -774,15 +806,16 @@ class PlayerViewModel @Inject constructor(
             failureMessage = "Failed to build favorites queue for songId=%s"
         ) {
             val sortOption = playerUiState.value.currentFavoriteSortOption
-            val storageFilter = playerUiState.value.currentStorageFilter
+            val storageFilter = playerUiState.value.currentSourceScope
             musicRepository.getFavoriteSongIdsSorted(sortOption, storageFilter)
         }
     }
 
     suspend fun getSongsForCurrentLibrarySelection(): List<Song> {
         val sortOption = playerUiState.value.currentSongSortOption
-        val storageFilter = playerUiState.value.currentStorageFilter
-        val sortedIds = musicRepository.getSongIdsSorted(sortOption, storageFilter)
+        val sourceScope = playerUiState.value.currentSourceScope
+        val sortedIds = musicRepository.getSongIdsSorted(sortOption, sourceScope)
+
         return resolvePlaybackQueueFromSortedIds(sortedIds)
     }
 
@@ -1333,6 +1366,58 @@ class PlayerViewModel @Inject constructor(
         favoriteSongId?.let { ids.contains(it) } ?: false
     }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val isCurrentSongDownloadable: StateFlow<Boolean> = stablePlayerState
+        .map { it.currentSong }
+        .distinctUntilChanged()
+        .flatMapLatest { song ->
+            kotlinx.coroutines.flow.flow {
+                if (song == null || !song.id.startsWith("extension:")) {
+                    emit(false)
+                    return@flow
+                }
+                val parts = song.id.split(":")
+                if (parts.size < 2) {
+                    emit(false)
+                    return@flow
+                }
+                val extId = parts[1]
+                val extension = extensionEngine.music.value.find { it.metadata.id == extId }
+                val client = extension?.instance?.value()?.getOrNull()
+                emit(client is dev.brahmkshatriya.echo.common.clients.DownloadClient)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentSongDownloadProgress: StateFlow<Int?> = stablePlayerState
+        .map { it.currentSong?.id }
+        .distinctUntilChanged()
+        .flatMapLatest { songId ->
+            if (songId == null) flowOf(null)
+            else downloadManager.downloads.map { it[songId] }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun downloadCurrentSong() {
+        val song = stablePlayerState.value.currentSong ?: return
+        if (!song.id.startsWith("extension:")) return
+        val parts = song.id.split(":")
+        if (parts.size < 3) return
+        val extId = parts[1]
+        
+        viewModelScope.launch {
+            val extension = extensionEngine.music.value.find { it.metadata.id == extId }
+            val client = extension?.instance?.value()?.getOrNull()
+            if (client is dev.brahmkshatriya.echo.common.clients.DownloadClient) {
+                sendToast("Enqueued download from ${extension.metadata.name}...")
+                try {
+                    downloadManager.downloadSong(song)
+                } catch (e: Exception) {
+                    sendToast("Failed to enqueue download: ${e.message}")
+                }
+            }
+        }
+    }
 
     // ---------------------------------------------------------------------------
     // FullPlayerSlice — consolidates 11 independent flows into ONE subscription.
@@ -2012,13 +2097,8 @@ class PlayerViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            libraryStateHolder.currentStorageFilter.collect { filter ->
-                _playerUiState.update { it.copy(currentStorageFilter = filter) }
-            }
-        }
-        viewModelScope.launch {
-            userPreferencesRepository.hideLocalMediaFlow.collect { hide ->
-                _playerUiState.update { it.copy(hideLocalMedia = hide) }
+            libraryStateHolder.currentSourceScope.collect { scope ->
+                _playerUiState.update { it.copy(currentSourceScope = scope) }
             }
         }
 
@@ -2124,10 +2204,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun loadInitialLibraryDataParallel() {
-        libraryStateHolder.loadSongsFromRepository()
-        libraryStateHolder.loadAlbumsFromRepository()
-        libraryStateHolder.loadArtistsFromRepository()
-        libraryStateHolder.loadFoldersFromRepository()
+        libraryStateHolder.startObservingLibraryData()
     }
 
     private fun resetAndLoadInitialData(caller: String = "Unknown") {
@@ -2141,33 +2218,17 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun loadSongsIfNeeded() = libraryStateHolder.loadSongsIfNeeded()
-    fun loadAlbumsIfNeeded() = libraryStateHolder.loadAlbumsIfNeeded()
-    fun loadArtistsIfNeeded() = libraryStateHolder.loadArtistsIfNeeded()
-    fun loadFoldersFromRepository() = libraryStateHolder.loadFoldersFromRepository()
+    fun loadSongsIfNeeded() = libraryStateHolder.startObservingLibraryData()
+    fun loadAlbumsIfNeeded() = libraryStateHolder.startObservingLibraryData()
+    fun loadArtistsIfNeeded() = libraryStateHolder.startObservingLibraryData()
+    fun loadFoldersFromRepository() = libraryStateHolder.startObservingLibraryData()
 
-    fun setStorageFilter(filter: com.theveloper.pixelplay.data.model.StorageFilter) {
-        libraryStateHolder.setStorageFilter(filter)
+    fun setSourceScope(scope: com.theveloper.pixelplay.data.model.SourceScope) {
+        libraryStateHolder.setSourceScope(scope)
     }
 
-    fun setPlaylistPickerStorageFilter(filter: com.theveloper.pixelplay.data.model.StorageFilter) {
-        _playlistPickerStorageFilter.value = filter
-    }
-
-    fun setHideLocalMedia(hide: Boolean) {
-        viewModelScope.launch {
-            userPreferencesRepository.setHideLocalMedia(hide)
-        }
-    }
-
-    fun toggleStorageFilter() {
-        val current = _playerUiState.value.currentStorageFilter
-        val next = when (current) {
-            com.theveloper.pixelplay.data.model.StorageFilter.ALL -> com.theveloper.pixelplay.data.model.StorageFilter.ONLINE
-            com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE
-            com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> com.theveloper.pixelplay.data.model.StorageFilter.ALL
-        }
-        setStorageFilter(next)
+    fun setPlaylistPickerSourceScope(scope: com.theveloper.pixelplay.data.model.SourceScope) {
+        _playlistPickerSourceScope.value = scope
     }
 
     fun showAndPlaySong(

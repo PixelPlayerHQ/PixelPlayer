@@ -226,7 +226,8 @@ fun FullPlayerContent(
     onShowCastClicked: () -> Unit,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    onDownloadClick: () -> Unit = {}
 ) {
     var retainedSong by remember { mutableStateOf(currentSong) }
     LaunchedEffect(currentSong?.id) {
@@ -246,6 +247,8 @@ fun FullPlayerContent(
     // distinctUntilChanged in the ViewModel ensures this only emits when something
     // actually changed, batching multiple rapid updates into one recomposition.
     val fullPlayerSlice by playerViewModel.fullPlayerSlice.collectAsStateWithLifecycle()
+    val isDownloadable by playerViewModel.isCurrentSongDownloadable.collectAsStateWithLifecycle()
+    val downloadProgress by playerViewModel.currentSongDownloadProgress.collectAsStateWithLifecycle()
     val currentSongArtists = fullPlayerSlice.currentSongArtists
     val lyricsSyncOffset = fullPlayerSlice.lyricsSyncOffset
     val albumArtQuality = fullPlayerSlice.albumArtQuality
@@ -1119,9 +1122,12 @@ private fun FullPlayerControlsSection(
     shuffleTransitionInProgress: Boolean,
     repeatModeProvider: () -> Int,
     isFavoriteProvider: () -> Boolean,
+    isDownloadable: Boolean = false,
+    downloadProgress: Int? = null,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    onDownloadClick: () -> Unit = {}
 ) {
     val stableControlAnimationSpec = remember {
         tween<Float>(durationMillis = 240, easing = FastOutSlowInEasing)
@@ -1183,9 +1189,12 @@ private fun FullPlayerControlsSection(
                 isShuffleTransitionInProgress = shuffleTransitionInProgress,
                 repeatMode = repeatModeProvider(),
                 isFavoriteProvider = isFavoriteProvider,
+                isDownloadable = isDownloadable,
+                downloadProgress = downloadProgress,
                 onShuffleToggle = onShuffleToggle,
                 onRepeatToggle = onRepeatToggle,
-                onFavoriteToggle = onFavoriteToggle
+                onFavoriteToggle = onFavoriteToggle,
+                onDownloadClick = onDownloadClick
             )
         }
     }
@@ -2532,9 +2541,12 @@ private fun BottomToggleRow(
     isShuffleTransitionInProgress: Boolean,
     repeatMode: Int,
     isFavoriteProvider: () -> Boolean,
+    isDownloadable: Boolean = false,
+    downloadProgress: Int? = null,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    onDownloadClick: () -> Unit = {}
 ) {
     val isFavorite = isFavoriteProvider()
     val rowCorners = 60.dp
@@ -2622,6 +2634,34 @@ private fun BottomToggleRow(
                 iconId = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.rounded_favorite_24,
                 contentDesc = "Favorito"
             )
+
+            if (isDownloadable) {
+                ToggleSegmentButton(
+                    modifier = commonModifier,
+                    active = false,
+                    activeColor = LocalMaterialTheme.current.primaryFixed,
+                    activeCornerRadius = rowCorners,
+                    inactiveColor = inactiveBg,
+                    onClick = onDownloadClick,
+                ) {
+                    if (downloadProgress != null) {
+                        CircularProgressIndicator(
+                            progress = { downloadProgress!! / 100f },
+                            modifier = Modifier.size(20.dp),
+                            color = LocalMaterialTheme.current.primaryFixed,
+                            strokeWidth = 3.dp,
+                            trackColor = inactiveContentColor.copy(alpha = 0.2f)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.outline_save_24),
+                            contentDescription = "Download",
+                            tint = inactiveContentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

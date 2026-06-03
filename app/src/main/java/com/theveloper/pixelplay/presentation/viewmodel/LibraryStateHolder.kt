@@ -31,6 +31,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.theveloper.pixelplay.data.model.SourceScope
+import javax.inject.Provider
 
 private const val ENABLE_FOLDERS_STORAGE_FILTER = false
 private data class GenreSeed(
@@ -45,7 +47,8 @@ private data class GenreSeed(
 @Singleton
 class LibraryStateHolder @Inject constructor(
     private val musicRepository: MusicRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val extensionRepository: com.theveloper.pixelplay.data.repository.ExtensionRepository
 ) {
 
     // --- State ---
@@ -75,38 +78,30 @@ class LibraryStateHolder @Inject constructor(
     val currentSongSortOption = _currentSongSortOption.asStateFlow()
 
     // Filter Options
-    private val _currentStorageFilter = MutableStateFlow(com.theveloper.pixelplay.data.model.StorageFilter.ALL)
-    val currentStorageFilter = _currentStorageFilter.asStateFlow()
+    private val _currentSourceScope = MutableStateFlow<SourceScope>(SourceScope.All)
+    val currentSourceScope = _currentSourceScope.asStateFlow()
 
     /**
-     * Effective storage filter that accounts for the "hide local media" preference.
-     * When hideLocalMedia is true, forces ONLINE filter (excludes source_type = 0).
+     * Effective source scope. Legacy hideLocalMedia pref is now handled by setting SourceScope to Extension.
      */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private val effectiveStorageFilter: kotlinx.coroutines.flow.Flow<com.theveloper.pixelplay.data.model.StorageFilter> =
-        kotlinx.coroutines.flow.combine(
-            _currentStorageFilter,
-            userPreferencesRepository.hideLocalMediaFlow
-        ) { filter, hideLocal ->
-            if (hideLocal) com.theveloper.pixelplay.data.model.StorageFilter.ONLINE else filter
-        }
+    val effectiveSourceScope: kotlinx.coroutines.flow.Flow<SourceScope> = _currentSourceScope.asStateFlow()
 
-    private fun effectiveFoldersStorageFilter(
-        selectedFilter: com.theveloper.pixelplay.data.model.StorageFilter
-    ): com.theveloper.pixelplay.data.model.StorageFilter {
+    private fun effectiveFoldersSourceScope(
+        selectedScope: SourceScope
+    ): SourceScope {
         return if (ENABLE_FOLDERS_STORAGE_FILTER) {
-            selectedFilter
+            selectedScope
         } else {
-            com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE
+            SourceScope.Local
         }
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val songsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
-        kotlinx.coroutines.flow.combine(_currentSongSortOption, effectiveStorageFilter) { sort, filter ->
-            sort to filter
-        }.flatMapLatest { (sortOption, filter) ->
-            musicRepository.getPaginatedSongs(sortOption, filter)
+        kotlinx.coroutines.flow.combine(_currentSongSortOption, effectiveSourceScope) { sort, scope ->
+            sort to scope
+        }.flatMapLatest { (sortOption, scope) ->
+            musicRepository.getPaginatedSongs(sortOption, scope)
         }
         .flowOn(Dispatchers.IO)
 
@@ -126,36 +121,36 @@ class LibraryStateHolder @Inject constructor(
     val albumsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Album>> =
         kotlinx.coroutines.flow.combine(
             _currentAlbumSortOption,
-            effectiveStorageFilter,
+            effectiveSourceScope,
             userPreferencesRepository.minTracksPerAlbumFlow
-        ) { sort, filter, minTracks ->
-            Triple(sort, filter, minTracks)
-        }.flatMapLatest { (sortOption, filter, minTracks) ->
-            musicRepository.getPaginatedAlbums(sortOption, filter, minTracks)
+        ) { sort, scope, minTracks ->
+            Triple(sort, scope, minTracks)
+        }.flatMapLatest { (sortOption, scope, minTracks) ->
+            musicRepository.getPaginatedAlbums(sortOption, scope, minTracks)
         }
         .flowOn(Dispatchers.IO)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val artistsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Artist>> =
-        kotlinx.coroutines.flow.combine(_currentArtistSortOption, effectiveStorageFilter) { sort, filter ->
-            sort to filter
-        }.flatMapLatest { (sortOption, filter) ->
-            musicRepository.getPaginatedArtists(sortOption, filter)
+        kotlinx.coroutines.flow.combine(_currentArtistSortOption, effectiveSourceScope) { sort, scope ->
+            sort to scope
+        }.flatMapLatest { (sortOption, scope) ->
+            musicRepository.getPaginatedArtists(sortOption, scope)
         }
         .flowOn(Dispatchers.IO)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
-        kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, effectiveStorageFilter) { sort, filter ->
-            sort to filter
-        }.flatMapLatest { (sortOption, storageFilter) ->
-            musicRepository.getPaginatedFavoriteSongs(sortOption, storageFilter)
+        kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, effectiveSourceScope) { sort, scope ->
+            sort to scope
+        }.flatMapLatest { (sortOption, scope) ->
+            musicRepository.getPaginatedFavoriteSongs(sortOption, scope)
         }
         .flowOn(Dispatchers.IO)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = effectiveStorageFilter
-        .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
+    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = effectiveSourceScope
+        .flatMapLatest { scope -> musicRepository.getFavoriteSongCountFlow(scope) }
         .flowOn(Dispatchers.IO)
 
     val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> =
@@ -212,8 +207,32 @@ class LibraryStateHolder @Inject constructor(
             val likedSortKey = userPreferencesRepository.likedSongsSortOptionFlow.first()
             _currentFavoriteSortOption.value = SortOption.LIKED.find { it.storageKey == likedSortKey } ?: SortOption.LikedSongDateLiked
 
-            // Restore last storage filter (All / Cloud / Local)
-            _currentStorageFilter.value = userPreferencesRepository.lastStorageFilterFlow.first()
+            // Restore last source scope
+            _currentSourceScope.value = userPreferencesRepository.lastSourceScopeFlow.first()
+        }
+
+        // Reactive Bridge: Observe extensions
+        scope.launch {
+            extensionRepository.currentMusicExtension.collect { extension ->
+                if (extension != null) {
+                    // Auto-switch to extension scope if one is selected from Home/Search
+                    setSourceScope(SourceScope.Extension(extension.metadata.id))
+                }
+            }
+        }
+
+        // Recovery Logic: Fallback if extension is uninstalled
+        scope.launch {
+            extensionRepository.installedMusicExtensions.collect { extensions ->
+                val current = _currentSourceScope.value
+                if (current is SourceScope.Extension) {
+                    val stillInstalled = extensions.any { it.metadata.id == current.extensionId }
+                    if (!stillInstalled) {
+                        Log.w("LibraryStateHolder", "Extension ${current.extensionId} uninstalled. Falling back to All scope.")
+                        setSourceScope(SourceScope.All)
+                    }
+                }
+            }
         }
     }
 
@@ -222,11 +241,6 @@ class LibraryStateHolder @Inject constructor(
     }
 
     // --- Data Loading ---
-
-    // We observe the repository flows permanently in initialize(), or we start collecting here?
-    // Better to start collecting in initialize() or have these functions just be "ensure active".
-    // Actually, explicit "load" functions are legacy imperative style.
-    // We should launch collectors in initialize() that update the state.
 
     private var songsJob: Job? = null
     private var albumsJob: Job? = null
@@ -251,16 +265,12 @@ class LibraryStateHolder @Inject constructor(
         songsJob = scope?.launch {
             _isLoadingLibrary.value = true
             musicRepository.getAudioFiles().conflate().collect { songs ->
-                // Process heavy list conversions on Default dispatcher to avoid blocking UI
                 val immutableSongs = withContext(Dispatchers.Default) { songs.toImmutableList() }
                 val songsMap = withContext(Dispatchers.Default) { songs.associateBy { it.id } }
 
                 _allSongs.value = immutableSongs
                 _allSongsById.value = songsMap
 
-                // When the repository emits a new list (triggered by directory changes),
-                // we update our state and re-apply current sorting.
-                // Apply sort to the new data
                 sortSongs(_currentSongSortOption.value, persist = false)
                 _isLoadingLibrary.value = false
             }
@@ -270,12 +280,12 @@ class LibraryStateHolder @Inject constructor(
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             kotlinx.coroutines.flow.combine(
-                effectiveStorageFilter,
+                effectiveSourceScope,
                 userPreferencesRepository.minTracksPerAlbumFlow
-            ) { filter, minTracks ->
-                filter to minTracks
-            }.flatMapLatest { (filter, minTracks) ->
-                musicRepository.getAlbums(filter, minTracks)
+            ) { scope, minTracks ->
+                scope to minTracks
+            }.flatMapLatest { (scope, minTracks) ->
+                musicRepository.getAlbums(scope, minTracks)
             }.conflate().collect { albums ->
                 val sortedAlbums = withContext(Dispatchers.Default) {
                     sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()
@@ -288,8 +298,8 @@ class LibraryStateHolder @Inject constructor(
         artistsJob = scope?.launch {
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            effectiveStorageFilter.flatMapLatest { filter ->
-                musicRepository.getArtists(filter)
+            effectiveSourceScope.flatMapLatest { scope ->
+                musicRepository.getArtists(scope)
             }.conflate().collect { artists ->
                 val sortedArtists = withContext(Dispatchers.Default) {
                     sortArtistsList(artists, _currentArtistSortOption.value).toImmutableList()
@@ -301,8 +311,8 @@ class LibraryStateHolder @Inject constructor(
 
         foldersJob = scope?.launch {
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-            effectiveStorageFilter.flatMapLatest { filter ->
-                musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
+            effectiveSourceScope.flatMapLatest { scope ->
+                musicRepository.getMusicFolders(effectiveFoldersSourceScope(scope))
             }.conflate().collect { folders ->
                 val sortedFolders = withContext(Dispatchers.Default) {
                     sortFoldersList(folders, _currentFolderSortOption.value).toImmutableList()
@@ -311,30 +321,6 @@ class LibraryStateHolder @Inject constructor(
             }
         }
     }
-
-    // Deprecated imperative loaders - redirected to observer start
-    fun loadSongsFromRepository() {
-        startObservingLibraryData()
-    }
-
-    fun loadAlbumsFromRepository() {
-        startObservingLibraryData()
-    }
-
-    fun loadArtistsFromRepository() {
-        startObservingLibraryData()
-    }
-
-    fun loadFoldersFromRepository() {
-        startObservingLibraryData()
-    }
-
-    // --- Lazy Loading Checks ---
-
-    // --- Lazy Loading Checks ---
-    // We replace conditional "check if empty" with "ensure observing".
-    // If we are already observing, startObservingLibraryData returns early.
-    // If we are not (e.g. process death recovery?), it restarts.
 
     fun loadSongsIfNeeded() {
         startObservingLibraryData()
@@ -358,7 +344,6 @@ class LibraryStateHolder @Inject constructor(
             if (persist) {
                 userPreferencesRepository.setSongsSortOption(sortOption.storageKey)
             }
-            // Updating the sort option triggers songsPagingFlow to reload with new sort at DB level
             _currentSongSortOption.value = sortOption
         }
     }
@@ -532,14 +517,9 @@ class LibraryStateHolder @Inject constructor(
                 userPreferencesRepository.setLikedSongsSortOption(sortOption.storageKey)
             }
             _currentFavoriteSortOption.value = sortOption
-            // The actual filtering/sorting of favorites happens in ViewModel using this flow
         }
     }
 
-    /**
-     * Updates a single song in the in-memory list.
-     * Used effectively after metadata edits to reflect changes immediately.
-     */
     fun updateSong(updatedSong: Song) {
         _allSongs.update { currentList ->
             currentList.map { if (it.id == updatedSong.id) updatedSong else it }.toImmutableList()
@@ -552,10 +532,10 @@ class LibraryStateHolder @Inject constructor(
         }
     }
 
-    fun setStorageFilter(filter: com.theveloper.pixelplay.data.model.StorageFilter) {
-        _currentStorageFilter.value = filter
-        scope?.launch {
-            userPreferencesRepository.saveLastStorageFilter(filter)
+    fun setSourceScope(scope: SourceScope) {
+        _currentSourceScope.value = scope
+        this.scope?.launch {
+            userPreferencesRepository.saveLastSourceScope(scope)
         }
     }
 
@@ -565,18 +545,6 @@ class LibraryStateHolder @Inject constructor(
             level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND ||
                 level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE
         if (!shouldReleaseLibraryState) return
-
-        val hasLoadedData =
-            _allSongs.value.isNotEmpty() ||
-                _albums.value.isNotEmpty() ||
-                _artists.value.isNotEmpty() ||
-                _musicFolders.value.isNotEmpty()
-        val hasActiveCollectors =
-            songsJob?.isActive == true ||
-                albumsJob?.isActive == true ||
-                artistsJob?.isActive == true ||
-                foldersJob?.isActive == true
-        if (!hasLoadedData && !hasActiveCollectors) return
 
         songsJob?.cancel()
         albumsJob?.cancel()

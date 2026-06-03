@@ -35,3 +35,9 @@ include(":app")
 include(":shared")
 include(":wear")
 include(":baselineprofile")
+// Official Echo modules are available in the workspace but excluded from
+// project includes for local app assemble until their Gradle setup is aligned.
+
+include(":common")
+project(":common").projectDir = File(rootDir, "../echo/common")
+include(":extension-loader")

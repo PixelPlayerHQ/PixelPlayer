@@ -78,6 +78,9 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import java.io.File
 import androidx.compose.ui.res.stringResource
 
+import com.theveloper.pixelplay.data.model.SourceScope
+import androidx.compose.ui.graphics.painter.Painter
+
 val defaultShape = RoundedCornerShape(26.dp) // Fallback shape
 val genHeight = 42.dp
 
@@ -89,9 +92,7 @@ fun LibraryActionRow(
     onLocateClick: () -> Unit = {},
     showSortButton: Boolean,
     showLocateButton: Boolean = false,
-    showImportButton: Boolean = true,
     isPlaylistTab: Boolean,
-    onImportM3uClick: () -> Unit = {},
     isFoldersTab: Boolean,
     modifier: Modifier = Modifier,
     // Breadcrumb parameters
@@ -101,13 +102,12 @@ fun LibraryActionRow(
     onFolderClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     isShuffleEnabled: Boolean = false,
-    // Storage Filter
-    showStorageFilterButton: Boolean = false,
-    currentStorageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL,
-    onStorageFilterClick: () -> Unit = {}
+    // Source Scope
+    showSourceScopeButton: Boolean = false,
+    currentSourceScope: SourceScope = SourceScope.All,
+    sourceIconPainter: Painter? = null,
+    onSourceScopeClick: () -> Unit = {}
 ) {
-    val shouldShowImport = isPlaylistTab && showImportButton
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -138,29 +138,13 @@ fun LibraryActionRow(
                     onNavigateBack = onNavigateBack
                 )
             } else {
-                val outerCorner = 26.dp
-                val innerCorner = 8.dp
-
-                val newButtonEndCorner by animateDpAsState(
-                    targetValue = if (shouldShowImport) innerCorner else outerCorner,
-                    label = "NewButtonEndCorner"
-                )
-
-                val importButtonStartCorner by animateDpAsState(
-                    targetValue = innerCorner,
-                    label = "ImportButtonStartCorner"
-                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Determine button colors based on shuffle state (not for playlist tab)
                     val buttonContainerColor = MaterialTheme.colorScheme.tertiaryContainer
                     val buttonContentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     
                     FilledTonalButton(
                         onClick = onMainActionClick,
-                        shape = RoundedCornerShape(
-                            topStart = 26.dp, bottomStart = 26.dp,
-                            topEnd =  newButtonEndCorner, bottomEnd = newButtonEndCorner
-                        ),
+                        shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = buttonContainerColor,
                             contentColor = buttonContentColor
@@ -199,70 +183,6 @@ fun LibraryActionRow(
                             )
                         }
                     }
-
-                    AnimatedVisibility(
-                        visible = shouldShowImport,
-                        enter = fadeIn() + expandHorizontally(
-                            expandFrom = Alignment.Start,
-                            clip = false, // <— evita el 「corte」 durante la expansión
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ),
-                        exit = fadeOut() + shrinkHorizontally(
-                            shrinkTowards = Alignment.Start,
-                            clip = false, // <— evita el 「corte」 durante la expansión
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        )
-                    ) {
-                        Row(modifier = Modifier.height(genHeight), verticalAlignment = Alignment.CenterVertically) {
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            FilledTonalButton(
-                                onClick = onImportM3uClick,
-                                shape = RoundedCornerShape(
-                                    topStart = importButtonStartCorner,
-                                    bottomStart = importButtonStartCorner,
-                                    topEnd = 26.dp,
-                                    bottomEnd = 26.dp
-                                ),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(
-                                    defaultElevation = 4.dp,
-                                    pressedElevation = 6.dp
-                                ),
-                                contentPadding = PaddingValues(
-                                    horizontal = 14.dp,
-                                    vertical = 10.dp
-                                ),
-                                modifier = Modifier.height(genHeight)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.rounded_upload_file_24),
-                                        contentDescription = stringResource(R.string.cd_import_m3u_playlist),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.import_file),
-                                        overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -273,36 +193,25 @@ fun LibraryActionRow(
         if (showSortButton) {
             val outerCorner = 26.dp
             
-            // Logic for Sort Button (Rightmost)
             val sortStartCorner by animateDpAsState(
-                targetValue = if (showLocateButton || showStorageFilterButton) 8.dp else outerCorner,
+                targetValue = if (showLocateButton || showSourceScopeButton) 8.dp else outerCorner,
                 label = "SortStartCorner"
             )
 
-            // Logic for Filter Button (Middle or Left if Locate hidden)
-            // Filter is visible if showStorageFilterButton is true
-            val filterEndCorner = 8.dp // Connected to Sort
+            val filterEndCorner = 8.dp 
             val filterStartCorner by animateDpAsState(
                 targetValue = if (showLocateButton) 8.dp else outerCorner,
                 label = "FilterStartCorner"
             )
             
-            // Logic for Locate Button (Leftmost)
-            val locateEndCorner = 8.dp // Connected to Filer or Sort
+            val locateEndCorner = 8.dp 
 
-            // Gaps
-            // If Filter is shown, gap is between Filter and Sort? OR if we use connected buttons, gap is 4dp between groups or 0dp between connected?
-            // Existing code used 4dp gap and 8dp corner. 
-            // "SortButtonsGap" was 4dp if showLocateButton else 0dp.
-            // If we want "connected" look (segmented), gap should be small (1dp or 2dp) or 0.
-            // But existing code uses `4.dp`.
-            
             val gapBetweenLocateAndNext by animateDpAsState(
                 targetValue = if (showLocateButton) 4.dp else 0.dp,
                 label = "GapLocate"
             )
             val gapBetweenFilterAndSort by animateDpAsState(
-                targetValue = if (showStorageFilterButton) 4.dp else 0.dp,
+                targetValue = if (showSourceScopeButton) 4.dp else 0.dp,
                 label = "GapFilter"
             )
 
@@ -333,21 +242,16 @@ fun LibraryActionRow(
                 
                 Spacer(modifier = Modifier.width(gapBetweenLocateAndNext))
 
-                // Storage Filter Button
+                // Source Scope Button
                 AnimatedVisibility(
-                    visible = showStorageFilterButton,
+                    visible = showSourceScopeButton,
                     enter = slideInHorizontally(initialOffsetX = { it / 2 }) + fadeIn(),
                     exit = slideOutHorizontally(targetOffsetX = { it / 2 }) + fadeOut()
                 ) {
-                     val finalIcon = when(currentStorageFilter) {
-                         com.theveloper.pixelplay.data.model.StorageFilter.ALL -> Icons.Rounded.Dataset
-                         com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> Icons.Rounded.Cloud
-                         com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> Icons.Rounded.PhoneAndroid
-                     }
-                     val tooltipText = when(currentStorageFilter) {
-                         com.theveloper.pixelplay.data.model.StorageFilter.ALL -> stringResource(R.string.library_storage_filter_all_songs)
-                         com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> stringResource(R.string.library_storage_filter_online)
-                         com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> stringResource(R.string.library_storage_filter_offline)
+                     val label = when(currentSourceScope) {
+                         SourceScope.All -> stringResource(R.string.library_storage_filter_all_songs)
+                         SourceScope.Local -> stringResource(R.string.library_storage_filter_offline)
+                         is SourceScope.Extension -> stringResource(R.string.library_storage_filter_online)
                      }
                      val tooltipState = rememberTooltipState()
 
@@ -356,25 +260,55 @@ fun LibraryActionRow(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                         tooltip = {
                             PlainTooltip {
-                                Text(tooltipText)
+                                Text(label)
                             }
                         },
                         state = tooltipState
                     ) {
-                        FilledTonalIconButton(
-                            onClick = onStorageFilterClick,
+                        FilledTonalButton(
+                            onClick = onSourceScopeClick,
                             shape = RoundedCornerShape(
                                 topStart = filterStartCorner,
                                 bottomStart = filterStartCorner,
                                 topEnd = filterEndCorner,
                                 bottomEnd = filterEndCorner
                             ),
-                            modifier = Modifier.size(genHeight)
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier.height(genHeight).animateContentSize()
                         ) {
-                             Icon(
-                                imageVector = finalIcon,
-                                contentDescription = tooltipText
-                            )
+                             Row(
+                                 verticalAlignment = Alignment.CenterVertically,
+                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
+                             ) {
+                                 if (currentSourceScope is SourceScope.Extension && sourceIconPainter != null) {
+                                     Icon(
+                                         painter = sourceIconPainter,
+                                         contentDescription = null,
+                                         tint = Color.Unspecified,
+                                         modifier = Modifier.size(20.dp)
+                                     )
+                                 } else {
+                                     val icon = when(currentSourceScope) {
+                                         SourceScope.All -> Icons.Rounded.Dataset
+                                         SourceScope.Local -> Icons.Rounded.PhoneAndroid
+                                         else -> Icons.Rounded.Cloud
+                                     }
+                                     Icon(
+                                         imageVector = icon,
+                                         contentDescription = null,
+                                         modifier = Modifier.size(20.dp)
+                                     )
+                                 }
+                                 
+                                 AnimatedVisibility(visible = currentSourceScope !is SourceScope.All) {
+                                     Text(
+                                         text = label,
+                                         style = MaterialTheme.typography.labelLarge,
+                                         maxLines = 1,
+                                         overflow = TextOverflow.Ellipsis
+                                     )
+                                 }
+                             }
                         }
                     }
                 }

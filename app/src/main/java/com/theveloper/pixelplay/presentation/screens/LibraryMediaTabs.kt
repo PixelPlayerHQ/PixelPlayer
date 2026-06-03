@@ -58,7 +58,7 @@ import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
-import com.theveloper.pixelplay.data.model.StorageFilter
+import com.theveloper.pixelplay.data.model.SourceScope
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistContainer
@@ -90,7 +90,7 @@ fun LibraryAlbumsTab(
     onAlbumLongPress: (Album) -> Unit = {},
     onAlbumSelectionToggle: (Album) -> Unit = {},
     getSelectionIndex: (Long) -> Int? = { null },
-    storageFilter: StorageFilter = StorageFilter.ALL
+    currentSourceScope: SourceScope = SourceScope.All
 ) {
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
@@ -297,7 +297,7 @@ fun LibraryAlbumsTab(
         albums.itemCount == 0 && refreshState is LoadState.NotLoading -> {
             LibraryExpressiveEmptyState(
                 tabId = LibraryTabId.ALBUMS,
-                storageFilter = storageFilter,
+                currentSourceScope = currentSourceScope,
                 bottomBarHeight = bottomBarHeight
             )
         }
@@ -477,7 +477,7 @@ fun LibraryArtistsTab(
     onArtistClick: (Long) -> Unit,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    storageFilter: StorageFilter = StorageFilter.ALL
+    currentSourceScope: SourceScope = SourceScope.All
 ) {
     val listState = rememberLazyListState()
     val artistFastScrollLabelProvider = remember(artists, currentArtistSortOption) {
@@ -577,7 +577,7 @@ fun LibraryArtistsTab(
         artists.itemCount == 0 && refreshState is LoadState.NotLoading -> {
             LibraryExpressiveEmptyState(
                 tabId = LibraryTabId.ARTISTS,
-                storageFilter = storageFilter,
+                currentSourceScope = currentSourceScope,
                 bottomBarHeight = bottomBarHeight
             )
         }

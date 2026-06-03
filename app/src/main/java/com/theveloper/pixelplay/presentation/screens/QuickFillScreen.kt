@@ -170,6 +170,7 @@ fun QuickFillContent(
                             selectedSongIds = selectedSongIds,
                             modifier = Modifier.weight(1f),
                             albumShape = CircleShape,
+                            searchQuery = searchQuery,
                             contentPadding = PaddingValues(bottom = 100.dp) // Space for docked toolbar
                         )
                     }

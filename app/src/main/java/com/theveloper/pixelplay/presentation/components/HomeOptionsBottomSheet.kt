@@ -18,6 +18,7 @@ import com.theveloper.pixelplay.R
 @Composable
 fun HomeOptionsBottomSheet(
     onNavigateToMashup: () -> Unit,
+    onNavigateToExtensions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier.padding(bottom = 32.dp)) { // Padding for gesture bar
@@ -30,9 +31,23 @@ fun HomeOptionsBottomSheet(
                 )
             },
             modifier = Modifier
-                .padding(20.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .clickable(onClick = onNavigateToMashup)
+        )
+
+        ListItem(
+            headlineContent = { Text("Extension Store") },
+            leadingContent = {
+                Icon(
+                    painter = painterResource(id = R.drawable.rounded_audio_file_24),
+                    contentDescription = "Extension Store"
+                )
+            },
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .clickable(onClick = onNavigateToExtensions)
         )
     }
 }

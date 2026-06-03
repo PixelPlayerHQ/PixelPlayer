@@ -19,6 +19,7 @@ import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.TransitionSettings
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset // Added import
+import com.theveloper.pixelplay.data.model.SourceScope
 import com.theveloper.pixelplay.data.model.StorageFilter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -95,6 +96,9 @@ constructor(
         val FAVORITE_SONG_IDS = stringSetPreferencesKey("favorite_song_ids")
         val USER_PLAYLISTS = stringPreferencesKey("user_playlists_json_v1")
         val PLAYLIST_SONG_ORDER_MODES = stringPreferencesKey("playlist_song_order_modes")
+
+        // Extension Store
+        val EXTENSION_REGISTRIES = stringSetPreferencesKey("extension_registries")
 
         // Sort Option Keys
         val SONGS_SORT_OPTION = stringPreferencesKey("songs_sort_option")
@@ -1195,18 +1199,28 @@ constructor(
         }
     }
 
-    val lastStorageFilterFlow: Flow<StorageFilter> =
+    val lastSourceScopeFlow: Flow<SourceScope> =
         dataStore.data.map { preferences ->
-            when (preferences[PreferencesKeys.LAST_STORAGE_FILTER]) {
-                "ONLINE"  -> StorageFilter.ONLINE
-                "OFFLINE" -> StorageFilter.OFFLINE
-                else      -> StorageFilter.ALL
+            val value = preferences[PreferencesKeys.LAST_STORAGE_FILTER] ?: "ALL"
+            when {
+                value == "ALL" -> SourceScope.All
+                value == "LOCAL" -> SourceScope.Local
+                value.startsWith("EXT:") -> SourceScope.Extension(value.removePrefix("EXT:"))
+                // Legacy support
+                value == "ONLINE" -> SourceScope.All
+                value == "OFFLINE" -> SourceScope.Local
+                else -> SourceScope.All
             }
         }
 
-    suspend fun saveLastStorageFilter(filter: StorageFilter) {
+    suspend fun saveLastSourceScope(scope: SourceScope) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_STORAGE_FILTER] = filter.name
+            val value = when (scope) {
+                SourceScope.All -> "ALL"
+                SourceScope.Local -> "LOCAL"
+                is SourceScope.Extension -> "EXT:${scope.extensionId}"
+            }
+            preferences[PreferencesKeys.LAST_STORAGE_FILTER] = value
         }
     }
 
@@ -1783,6 +1797,27 @@ constructor(
         dataStore.edit {
             it[PreferencesKeys.LAST_PLAYLIST_ID] = playlistId
             it[PreferencesKeys.LAST_PLAYLIST_NAME] = playlistName
+        }
+    }
+
+    // --- Extension Store ---
+
+    val extensionRegistriesFlow: Flow<Set<String>> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.EXTENSION_REGISTRIES] ?: emptySet()
+        }
+
+    suspend fun addExtensionRegistry(url: String) {
+        dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.EXTENSION_REGISTRIES] ?: emptySet()
+            preferences[PreferencesKeys.EXTENSION_REGISTRIES] = current + url
+        }
+    }
+
+    suspend fun removeExtensionRegistry(url: String) {
+        dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.EXTENSION_REGISTRIES] ?: emptySet()
+            preferences[PreferencesKeys.EXTENSION_REGISTRIES] = current - url
         }
     }
 

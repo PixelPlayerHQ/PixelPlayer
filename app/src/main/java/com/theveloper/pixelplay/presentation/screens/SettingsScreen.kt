@@ -12,7 +12,6 @@ import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +27,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -37,11 +34,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,10 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
-import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.model.SettingsCategory
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -85,23 +79,20 @@ import kotlinx.coroutines.launch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
-import com.theveloper.pixelplay.data.preferences.LaunchTab
-
-// SettingsTopBar removed, replaced by CollapsibleCommonTopBar
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-        navController: NavController,
-        playerViewModel: PlayerViewModel,
-        onNavigationIconClick: () -> Unit,
-        settingsViewModel: SettingsViewModel = hiltViewModel()
+    navController: NavController,
+    playerViewModel: PlayerViewModel,
+    onBack: () -> Unit,
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
 
     // Animation effects
     val transitionState = remember { MutableTransitionState(false) }
-    LaunchedEffect(true) { transitionState.targetState = true }
+    LaunchedEffect(Unit) { transitionState.targetState = true }
 
     val transition = rememberTransition(transitionState, label = "SettingsAppearTransition")
 
@@ -123,16 +114,10 @@ fun SettingsScreen(
 
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = 180.dp 
+    val maxTopBarHeight = 180.dp
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
-
-    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val launchTab = uiState.launchTab
-    val useSmoothCorners by settingsViewModel.useSmoothCorners.collectAsStateWithLifecycle()
-
-    var showCornerRadiusOverlay by remember { mutableStateOf(false) }
 
     val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
     var collapseFraction by remember { mutableStateOf(0f) }
@@ -214,11 +199,11 @@ fun SettingsScreen(
                 val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                 ExpressiveSettingsGroup {
                     val mainCategories = SettingsCategory.entries.filter {
-                        it != SettingsCategory.ABOUT && 
+                        it != SettingsCategory.ABOUT &&
                         it != SettingsCategory.DEVICE_CAPABILITIES
                     }
 
-                    val totalItems = mainCategories.size + 3 // Device + Accounts + About
+                    val totalItems = mainCategories.size + 4 // Device + Accounts + About + Downloads
                     fun shapeFor(index: Int) =
                         when {
                             totalItems == 1 -> RoundedCornerShape(24.dp)
@@ -249,6 +234,19 @@ fun SettingsScreen(
                         }
                         itemIndex++
                     }
+
+                    ExpressiveNavigationItem(
+                        title = stringResource(R.string.settings_downloads_title),
+                        subtitle = stringResource(R.string.settings_downloads_subtitle),
+                        icon = Icons.Rounded.Download,
+                        colors = getDownloadsColors(isDark),
+                        onClick = { navController.navigateSafely(Screen.Downloads.route) },
+                        shape = shapeFor(itemIndex)
+                    )
+                    if (itemIndex < totalItems - 1) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
+                    itemIndex++
 
                     ExpressiveCategoryItem(
                         category = SettingsCategory.DEVICE_CAPABILITIES,
@@ -290,7 +288,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_top_bar_title),
                 collapseFraction = collapseFraction,
                 headerHeight = currentTopBarHeightDp,
-                onBackClick = onNavigationIconClick
+                onBackClick = onBack
         )
 
         // Block interaction during transition
@@ -383,7 +381,7 @@ fun ExpressiveCategoryItem(
         onClick = onClick,
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth().height(88.dp) 
+        modifier = Modifier.fillMaxWidth().height(88.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -413,9 +411,9 @@ fun ExpressiveCategoryItem(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(category.titleRes),
@@ -433,24 +431,8 @@ fun ExpressiveCategoryItem(
                     maxLines = 2
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
-//            // Chevron or indicator
-//             Box(
-//                contentAlignment = Alignment.Center,
-//                modifier = Modifier
-//                    .size(36.dp)
-//                    .clip(CircleShape)
-//                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-//            ) {
-//                 Icon(
-//                    imageVector = Icons.Rounded.ChevronRight,
-//                    contentDescription = null,
-//                    tint = MaterialTheme.colorScheme.onSurface,
-//                    modifier = Modifier.size(20.dp)
-//                )
-//            }
         }
     }
 }
@@ -478,16 +460,16 @@ fun ExpressiveSettingsGroup(content: @Composable () -> Unit) {
 private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair<Color, Color> {
     return if (isDark) {
         when (category) {
-            SettingsCategory.LIBRARY -> Color(0xFF004A77) to Color(0xFFC2E7FF) 
-            SettingsCategory.APPEARANCE -> Color(0xFF7D5260) to Color(0xFFFFD8E4) 
-            SettingsCategory.PLAYBACK -> Color(0xFF633B48) to Color(0xFFFFD8EC) 
+            SettingsCategory.LIBRARY -> Color(0xFF004A77) to Color(0xFFC2E7FF)
+            SettingsCategory.APPEARANCE -> Color(0xFF7D5260) to Color(0xFFFFD8E4)
+            SettingsCategory.PLAYBACK -> Color(0xFF633B48) to Color(0xFFFFD8EC)
             SettingsCategory.BEHAVIOR -> Color(0xFF3E4C63) to Color(0xFFD7E3FF)
-            SettingsCategory.AI_INTEGRATION -> Color(0xFF004F58) to Color(0xFF88FAFF) 
+            SettingsCategory.AI_INTEGRATION -> Color(0xFF004F58) to Color(0xFF88FAFF)
             SettingsCategory.BACKUP_RESTORE -> Color(0xFF3B4869) to Color(0xFFD9E2FF)
-            SettingsCategory.DEVELOPER -> Color(0xFF324F34) to Color(0xFFCBEFD0) 
-            SettingsCategory.EQUALIZER -> Color(0xFF6E4E13) to Color(0xFFFFDEAC) 
-            SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF004D61) to Color(0xFFACEFEE) // Custom teal/cyan mix
-            SettingsCategory.ABOUT -> Color(0xFF3F474D) to Color(0xFFDEE3EB) 
+            SettingsCategory.DEVELOPER -> Color(0xFF324F34) to Color(0xFFCBEFD0)
+            SettingsCategory.EQUALIZER -> Color(0xFF6E4E13) to Color(0xFFFFDEAC)
+            SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF004D61) to Color(0xFFACEFEE)
+            SettingsCategory.ABOUT -> Color(0xFF3F474D) to Color(0xFFDEE3EB)
         }
     } else {
         when (category) {
@@ -502,5 +484,13 @@ private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair
             SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFFACEFEE) to Color(0xFF002022)
             SettingsCategory.ABOUT -> Color(0xFFEFF1F7) to Color(0xFF44474F)
         }
+    }
+}
+
+private fun getDownloadsColors(isDark: Boolean): Pair<Color, Color> {
+    return if (isDark) {
+        Color(0xFF2E3B2F) to Color(0xFFCBEFD0)
+    } else {
+        Color(0xFFE8F5E9) to Color(0xFF1B5E20)
     }
 }

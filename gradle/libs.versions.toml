@@ -7,7 +7,6 @@ googlePlayServicesCast = "22.3.1"
 animation = "1.11.2"
 appcompat = "1.7.1"
 capturable = "3.0.1"
-codeview = "1.3.9"
 coilCompose = "2.7.0"
 composeDnd = "0.4.0"
 composeMaterialIcons = "1.7.8"
@@ -15,7 +14,6 @@ composeUi = "1.11.2"
 constraintlayoutCompose = "1.1.1"
 coreSplashscreen = "1.2.0"
 desugarJdkLibs = "2.1.5"
-duktapeAndroid = "1.4.0"
 foundation = "1.11.2"
 glance = "1.3.0-alpha01"
 graphicsShapes = "1.1.0"
@@ -44,8 +42,6 @@ mediaRouter = "1.8.1"
 navigationCompose = "2.9.8"
 paletteKtx = "1.0.0"
 protobufJavalite = "4.35.0"
-pytorch_android = "2.1.0"
-pytorch_android_torchvision = "2.1.0"
 reorderable = "0.9.6"
 reorderables = "3.1.0"
 paging = "3.5.0"
@@ -53,7 +49,7 @@ roomCompiler = "2.8.4"
 roomKtx = "2.8.4"
 roomRuntime = "2.8.4"
 accompanist = "0.37.3"
-checkerframework = "4.1.0" # O la versión más reciente que encuentres
+checkerframework = "4.1.0"
 taglib = "1.0.6"
 jaudiotagger = "3.0.1"
 vorbisjava = "0.8"
@@ -79,11 +75,6 @@ javax-inject = "1"
 # Annotations procesing
 ksp = "2.3.8"
 smoothCornerRectAndroidCompose = "v1.0.0"
-spleeterAndroidIos = "1.0.2"
-tensorflowLite = "2.17.0"
-tensorflowLiteSelectTfOps = "2.16.1"
-tensorflowLiteSelectTfOpsVersion = "2.16.1"
-tensorflowLiteSupport = "0.5.0"
 wavySlider = "2.2.0"
 workRuntimeKtx = "2.11.2"
 composeTesting = "1.0.0-alpha03"
@@ -160,10 +151,8 @@ androidx-paging-compose = { module = "androidx.paging:paging-compose", version.r
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 capturable = { module = "dev.shreyaspatil:capturable", version.ref = "capturable" }
-codeview = { module = "io.github.amrdeveloper:codeview", version.ref = "codeview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 compose-dnd = { module = "com.mohamedrejeb.dnd:compose-dnd", version.ref = "composeDnd" }
-duktape-android = { module = "com.squareup.duktape:duktape-android", version.ref = "duktapeAndroid" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
@@ -194,16 +183,10 @@ ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio-jvm", version.ref
 material = { module = "com.google.android.material:material", version.ref = "material" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
-pytorch_android = { module = "org.pytorch:pytorch_android", version.ref = "pytorch_android" }
-pytorch_android_torchvision = { module = "org.pytorch:pytorch_android_torchvision", version.ref = "pytorch_android_torchvision" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJavalite" }
 reorderable = { module = "org.burnoutcrew.composereorderable:reorderable", version.ref = "reorderable" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
 smooth-corner-rect-android-compose = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smoothCornerRectAndroidCompose" }
-spleeter-android-ios = { module = "com.github.FaceOnLive:Spleeter-Android-iOS", version.ref = "spleeterAndroidIos" }
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
-#tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflowLiteSelectTfOps" }
-tensorflow-lite-select-tf-ops = { module = "org.tensorflow:tensorflow-lite-select-tf-ops", version.ref = "tensorflowLiteSelectTfOpsVersion" }
-tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 wavy-slider = { module = "ir.mahozad.multiplatform:wavy-slider", version.ref = "wavySlider" }
 checker-qual = { group = "org.checkerframework", name = "checker-qual", version.ref = "checkerframework" }
@@ -270,6 +253,8 @@ jdom2 = { module = "org.jdom:jdom2", version.ref = "jdom2" }
 jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
 apache-httpclient = { module = "org.apache.httpcomponents:httpclient", version.ref = "httpclient" }
 
+[bundles]
+kotlinx = ["kotlinx-coroutines-core", "kotlinx-serialization-json"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -282,3 +267,7 @@ android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+dokka = { id = "org.jetbrains.dokka", version = "2.0.0" }

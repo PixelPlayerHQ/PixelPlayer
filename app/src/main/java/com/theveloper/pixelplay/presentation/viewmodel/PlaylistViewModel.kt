@@ -385,44 +385,32 @@ class PlaylistViewModel @Inject constructor(
                     .mapNotNull { (songId, _) -> songById[songId] }
                     .take(safeLimit)
             }
-
+            SmartPlaylistRule.RECENTLY_ADDED -> {
+                allSongs.sortedByDescending { it.dateAdded }.take(safeLimit)
+            }
+            SmartPlaylistRule.NEVER_PLAYED -> {
+                val playedIds = engagements.keys
+                allSongs.filter { it.id !in playedIds }.take(safeLimit)
+            }
+            SmartPlaylistRule.LONGEST_SONGS -> {
+                allSongs.sortedByDescending { it.duration }.take(safeLimit)
+            }
+            SmartPlaylistRule.SHORTEST_SONGS -> {
+                allSongs.sortedBy { it.duration }.take(safeLimit)
+            }
             SmartPlaylistRule.FORGOTTEN_FAVORITES -> {
-                val staleThreshold = now - TimeUnit.DAYS.toMillis(30)
-                allSongs
-                    .asSequence()
-                    .filter { favoriteIds.contains(it.id) }
-                    .sortedWith(
-                        compareBy<Song> { engagements[it.id]?.lastPlayedTimestamp ?: 0L }
-                            .thenBy { it.title.lowercase() }
-                    )
-                    .filter { song ->
-                        (engagements[song.id]?.lastPlayedTimestamp ?: 0L) < staleThreshold
-                    }
+                favoriteIds.mapNotNull { id -> songById[id] }
+                    .sortedBy { engagements[it.id]?.lastPlayedTimestamp ?: 0L }
                     .take(safeLimit)
-                    .toList()
             }
-
             SmartPlaylistRule.NEW_GEMS -> {
-                allSongs
-                    .asSequence()
-                    .sortedWith(
-                        compareByDescending<Song> { it.dateAdded }
-                            .thenBy { engagements[it.id]?.playCount ?: 0 }
-                    )
-                    .filter { song -> (engagements[song.id]?.playCount ?: 0) <= 2 }
+                allSongs.filter { (engagements[it.id]?.playCount ?: 0) < 5 }
+                    .sortedByDescending { it.dateAdded }
                     .take(safeLimit)
-                    .toList()
             }
         }
 
-        if (pickedSongs.isNotEmpty()) {
-            return pickedSongs.map { it.id }.distinct()
-        }
-
-        return allSongs
-            .sortedByDescending { it.dateAdded }
-            .take(safeLimit)
-            .map { it.id }
+        return pickedSongs.map { it.id }.distinct()
     }
 
 

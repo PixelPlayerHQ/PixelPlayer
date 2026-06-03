@@ -278,7 +278,6 @@ dependencies {
     implementation(libs.generativeai)
     implementation(libs.smooth.corner.rect.android.compose)
     implementation(libs.reorderables)
-    implementation(libs.codeview)
     implementation(libs.androidx.glance)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
@@ -296,6 +295,8 @@ dependencies {
 
     // Projects
     implementation(project(":shared"))
+    implementation(project(":common"))
+    implementation(project(":extension-loader"))
 
     // Testing (Unit)
     testImplementation(libs.junit.jupiter.api)

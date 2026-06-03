@@ -56,7 +56,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
-import com.theveloper.pixelplay.data.model.StorageFilter
+import com.theveloper.pixelplay.data.model.SourceScope
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.songFastScrollLabel
@@ -85,7 +85,7 @@ fun LibraryFavoritesTab(
     sortOption: SortOption,
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
     onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
-    storageFilter: StorageFilter = StorageFilter.ALL,
+    currentSourceScope: SourceScope = SourceScope.All,
     hasCurrentSong: Boolean = false
 ) {
     val listState = rememberLazyListState()
@@ -199,7 +199,7 @@ fun LibraryFavoritesTab(
     if (favoriteSongs.itemCount == 0 && favoriteSongs.loadState.refresh !is LoadState.Loading) {
         LibraryExpressiveEmptyState(
             tabId = LibraryTabId.LIKED,
-            storageFilter = storageFilter,
+            currentSourceScope = currentSourceScope,
             bottomBarHeight = bottomBarHeight
         )
     } else {

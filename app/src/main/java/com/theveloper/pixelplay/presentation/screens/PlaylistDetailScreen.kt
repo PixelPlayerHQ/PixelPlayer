@@ -687,9 +687,9 @@ fun PlaylistDetailScreen(
 
     if (showAddSongsSheet && currentPlaylist != null && !isFolderPlaylist) {
         SongPickerBottomSheet(
-            initiallySelectedSongIds = currentPlaylist.songIds.toSet(),
+            initialSelectedIds = currentPlaylist.songIds.toSet(),
             onDismiss = { showAddSongsSheet = false },
-            onConfirm = { selectedIds ->
+            onSongsSelected = { selectedIds ->
                 playlistViewModel.addSongsToPlaylist(currentPlaylist.id, selectedIds.toList())
                 showAddSongsSheet = false
             }

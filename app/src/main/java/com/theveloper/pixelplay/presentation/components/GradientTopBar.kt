@@ -18,9 +18,15 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -99,10 +105,11 @@ fun GenreGradientTopBar(
 @Composable
 fun HomeGradientTopBar(
     onNavigationIconClick: () -> Unit,
-    onMoreOptionsClick: () -> Unit,
-    onBetaClick: () -> Unit,
-    onTelegramClick: () -> Unit,
-    onMenuClick: () -> Unit = {},
+    onSourceSelectionClick: () -> Unit,
+    onMashupClick: () -> Unit,
+    onStoreClick: () -> Unit,
+    activeExtensionName: String?,
+    isSourceSelectionEnabled: Boolean,
     isScrolled: Boolean = false,
 ) {
     val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -117,70 +124,72 @@ fun HomeGradientTopBar(
 
     TopAppBar(
         modifier = Modifier.background(surfaceContainerHigh.copy(alpha = animatedAlpha)),
-        title = { /* nada, usamos solo acciones */ },
+        title = { /* Empty */ },
         navigationIcon = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(start = 12.dp)
-            ) {
-                FilledTonalButton(
-                    modifier = Modifier.padding(start = 4.dp),
-                    shape = CircleShape,
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    onClick = onBetaClick
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.presentation_batch_g_topbar_beta_letter),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = stringResource(R.string.presentation_batch_g_topbar_beta),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
+            InputChip(
+                selected = false,
+                onClick = onSourceSelectionClick,
+                enabled = isSourceSelectionEnabled,
+                label = { Text(activeExtensionName ?: "Local Mode") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (activeExtensionName != null) Icons.Rounded.MusicNote else Icons.Rounded.Storage,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (isSourceSelectionEnabled) {
+                        Icon(Icons.Rounded.KeyboardArrowDown, null, modifier = Modifier.size(18.dp))
                     }
-                }
-            }
+                },
+                modifier = Modifier.padding(start = 16.dp),
+                shape = CircleShape,
+                colors = InputChipDefaults.inputChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                    leadingIconColor = MaterialTheme.colorScheme.primary
+                ),
+                border = null
+            )
         },
         actions = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 14.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(end = 8.dp)
             ) {
+                // DJ Mashup Button
                 FilledIconButton(
+                    shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    onClick = onTelegramClick
+                    onClick = onMashupClick
                 ) {
                     Icon(
-                         imageVector = Icons.Rounded.Cloud,
-                         contentDescription = stringResource(R.string.presentation_batch_g_topbar_cd_telegram)
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = "DJ Mashup"
                     )
                 }
+
+                // Extension Store (Cloud) Button
                 FilledIconButton(
+                    shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    onClick = onMoreOptionsClick
+                    onClick = onStoreClick
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.round_newspaper_24),
-                        contentDescription = stringResource(R.string.presentation_batch_g_topbar_cd_changelog)
+                        imageVector = Icons.Rounded.Cloud,
+                        contentDescription = "Extension Store"
                     )
                 }
+
+                // Settings Button
                 FilledIconButton(
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

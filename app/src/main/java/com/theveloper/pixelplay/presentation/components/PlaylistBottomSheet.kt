@@ -166,7 +166,7 @@ fun PlaylistBottomSheet(
                     },
                     iconRotation = 0f,
                     showSortButton = false,
-                    showImportButton = false,
+                    showSourceScopeButton = false,
                     onSortClick = { },
                     isPlaylistTab = true,
                     isFoldersTab = false,

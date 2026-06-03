@@ -99,6 +99,8 @@
             android:theme="@style/Theme.PixelPlay"
             android:windowSoftInputMode="adjustResize" />
 
+
+
         <activity
             android:name=".presentation.qqmusic.auth.QqMusicLoginActivity"
             android:exported="false"

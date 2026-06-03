@@ -71,4 +71,9 @@
     <string name="auth_error_no_cookies">No cookies found. Log in first.</string>
     <string name="auth_error_netease_login_incomplete">Login not detected yet. Complete NetEase login before pressing Done.</string>
     <string name="auth_error_qq_login_incomplete">Login not detected yet. Complete QQ Music login before pressing Done.</string>
+
+    <!-- Extension Login -->
+    <string name="auth_extension_login_title">Extension Login</string>
+    <string name="auth_web_exit_confirm_title_extension">Exit login?</string>
+    <string name="auth_web_login_security_note_extension">Log in to the official service. PixelPlayer will capture only the required session data.</string>
 </resources>

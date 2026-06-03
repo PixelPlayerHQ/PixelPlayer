@@ -45,7 +45,9 @@ import javax.inject.Singleton
 import kotlin.math.abs
 import okhttp3.OkHttpClient
 import okhttp3.Request
-
+import dev.brahmkshatriya.echo.extension.loader.ExtensionLoader
+import com.theveloper.pixelplay.extensions.core.toAppLyrics
+import com.theveloper.pixelplay.extensions.core.loadAll
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -94,7 +96,8 @@ class LyricsRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val lrcLibApiService: LrcLibApiService,
     private val lyricsDao: com.theveloper.pixelplay.data.database.LyricsDao,
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient,
+    private val extensionLoader: ExtensionLoader
 ) : LyricsRepository {
 
 
@@ -346,11 +349,15 @@ class LyricsRepositoryImpl @Inject constructor(
             fetchLyricsFromAPI(song)
         }
 
+        val fetchFromExtensions: suspend () -> Lyrics? = {
+            fetchFromExtensionsProviders(song)
+        }
+
         // Try sources in order based on preference, with fallback (matching Rhythm)
         val sourceFetchers = when (sourcePreference) {
-            LyricsSourcePreference.API_FIRST -> listOf(fetchFromAPI, fetchFromEmbedded, fetchFromLocal)
-            LyricsSourcePreference.EMBEDDED_FIRST -> listOf(fetchFromEmbedded, fetchFromAPI, fetchFromLocal)
-            LyricsSourcePreference.LOCAL_FIRST -> listOf(fetchFromLocal, fetchFromEmbedded, fetchFromAPI)
+            LyricsSourcePreference.API_FIRST -> listOf(fetchFromAPI, fetchFromExtensions, fetchFromEmbedded, fetchFromLocal)
+            LyricsSourcePreference.EMBEDDED_FIRST -> listOf(fetchFromEmbedded, fetchFromExtensions, fetchFromAPI, fetchFromLocal)
+            LyricsSourcePreference.LOCAL_FIRST -> listOf(fetchFromLocal, fetchFromEmbedded, fetchFromExtensions, fetchFromAPI)
         }
 
         // Try each source in order until we find lyrics (early return on success)
@@ -535,6 +542,49 @@ class LyricsRepositoryImpl @Inject constructor(
             return@withContext null
         } catch (e: Exception) {
             Log.e(TAG, "LRCLIB lyrics fetch failed: ${e.message}", e)
+            return@withContext null
+        }
+    }
+
+    private suspend fun fetchFromExtensionsProviders(song: Song): Lyrics? = withContext(Dispatchers.IO) {
+        try {
+            val extensions = extensionLoader.lyrics.value
+            if (extensions.isEmpty()) return@withContext null
+
+            val track = dev.brahmkshatriya.echo.common.models.Track(
+                id = song.id,
+                title = song.title,
+                artists = listOf(
+                    dev.brahmkshatriya.echo.common.models.Artist(
+                        id = song.artistId.toString(),
+                        name = song.displayArtist
+                    )
+                ),
+                album = dev.brahmkshatriya.echo.common.models.Album(
+                    id = "local:${song.albumId}",
+                    title = song.album
+                ),
+                duration = song.duration
+            )
+
+            for (ext in extensions) {
+                if (!ext.isEnabled) continue
+                val client = ext.instance.value ?: continue
+                runCatching {
+                    val feed = client.searchTrackLyrics(ext.metadata.id, track)
+                    val items = feed.loadAll()
+                    for (candidate in items) {
+                        val loaded = client.loadLyrics(candidate)
+                        val converted = loaded.toAppLyrics()
+                        if (converted.isValid()) return@withContext converted
+                    }
+                }.onFailure {
+                    Log.w(TAG, "Extension lyrics provider ${ext.metadata.id} failed: ${it.message}")
+                }
+            }
+            return@withContext null
+        } catch (e: Exception) {
+            Log.w(TAG, "fetchFromExtensionsProviders failed: ${e.message}")
             return@withContext null
         }
     }

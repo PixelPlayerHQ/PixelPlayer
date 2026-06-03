@@ -27,6 +27,26 @@ enum class SmartPlaylistRule(
         storageKey = "new_gems",
         title = "New Gems",
         subtitle = "Recently added tracks with low play counts."
+    ),
+    RECENTLY_ADDED(
+        storageKey = "recently_added",
+        title = "Recently Added",
+        subtitle = "Tracks most recently added to your library."
+    ),
+    NEVER_PLAYED(
+        storageKey = "never_played",
+        title = "Never Played",
+        subtitle = "Tracks you haven't played yet."
+    ),
+    LONGEST_SONGS(
+        storageKey = "longest_songs",
+        title = "Longest Songs",
+        subtitle = "Tracks with the longest duration."
+    ),
+    SHORTEST_SONGS(
+        storageKey = "shortest_songs",
+        title = "Shortest Songs",
+        subtitle = "Tracks with the shortest duration."
     );
 
     companion object {

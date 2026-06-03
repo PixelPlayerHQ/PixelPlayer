@@ -9,14 +9,18 @@ import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
 
 @Entity(
     tableName = "artists",
-    indices = [Index(value = ["name"], unique = false)] // Índice en el nombre para búsquedas rápidas
+    indices = [
+        Index(value = ["name"], unique = false),
+        Index(value = ["extension_id"], unique = false)
+    ] // Índice en el nombre para búsquedas rápidas
 )
 data class ArtistEntity(
     @PrimaryKey val id: Long,
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "track_count") val trackCount: Int,
     @ColumnInfo(name = "image_url") val imageUrl: String? = null,
-    @ColumnInfo(name = "custom_image_uri") val customImageUri: String? = null
+    @ColumnInfo(name = "custom_image_uri") val customImageUri: String? = null,
+    @ColumnInfo(name = "extension_id") val extensionId: String? = null
 )
 
 fun ArtistEntity.toArtist(): Artist {
@@ -25,7 +29,8 @@ fun ArtistEntity.toArtist(): Artist {
         name = this.name.normalizeMetadataTextOrEmpty(),
         songCount = this.trackCount, // El modelo Artist usa songCount, MediaStore usa NUMBER_OF_TRACKS
         imageUrl = this.imageUrl,
-        customImageUri = this.customImageUri
+        customImageUri = this.customImageUri,
+        extensionId = this.extensionId
     )
 }
 
@@ -39,6 +44,7 @@ fun Artist.toEntity(): ArtistEntity {
         name = this.name,
         trackCount = this.songCount,
         imageUrl = this.imageUrl,
-        customImageUri = this.customImageUri
+        customImageUri = this.customImageUri,
+        extensionId = this.extensionId
     )
 }

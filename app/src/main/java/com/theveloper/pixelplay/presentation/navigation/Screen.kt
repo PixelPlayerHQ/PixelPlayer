@@ -54,5 +54,10 @@ sealed class Screen(val route: String) {
     object QqMusicDashboard : Screen("qqmusic_dashboard")
     object NavidromeDashboard : Screen("navidrome_dashboard")
     object JellyfinDashboard : Screen("jellyfin_dashboard")
+    object Extensions : Screen("extensions")
+    object ExtensionSettings : Screen("extension_settings/{extensionId}") {
+        fun createRoute(extensionId: String) = "extension_settings/$extensionId"
+    }
+    object Downloads : Screen("downloads")
 
 }

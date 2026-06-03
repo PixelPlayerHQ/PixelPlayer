@@ -116,7 +116,12 @@ object AppModule {
     @Singleton
     @Provides
     fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
-        return WorkManager.getInstance(context)
+        return try {
+            WorkManager.getInstance(context)
+        } catch (e: Exception) {
+            // Fallback for cases where initialization is still in progress
+            androidx.work.impl.WorkManagerImpl.getInstance(context) 
+        }
     }
 
     @Singleton
@@ -259,6 +264,12 @@ object AppModule {
 
     @Singleton
     @Provides
+    fun provideDownloadDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.DownloadDao {
+        return database.downloadDao()
+    }
+
+    @Singleton
+    @Provides
     fun provideJellyfinDao(database: PixelPlayDatabase): com.theveloper.pixelplay.data.database.JellyfinDao {
         return database.jellyfinDao()
     }
@@ -321,13 +332,15 @@ object AppModule {
         @ApplicationContext context: Context,
         lrcLibApiService: LrcLibApiService,
         lyricsDao: LyricsDao,
-        okHttpClient: OkHttpClient
+        okHttpClient: OkHttpClient,
+        extensionLoader: dev.brahmkshatriya.echo.extension.loader.ExtensionLoader
     ): LyricsRepository {
         return LyricsRepositoryImpl(
             context = context,
             lrcLibApiService = lrcLibApiService,
             lyricsDao = lyricsDao,
-            okHttpClient = okHttpClient
+            okHttpClient = okHttpClient,
+            extensionLoader = extensionLoader
         )
     }
 

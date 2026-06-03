@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.extensions.core.toSong
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
@@ -135,6 +136,7 @@ fun HomeScreen(
     qqMusicViewModel: QqMusicDashboardViewModel = hiltViewModel(),
     navidromeViewModel: NavidromeDashboardViewModel = hiltViewModel(),
     jellyfinViewModel: JellyfinDashboardViewModel = hiltViewModel(),
+    extensionsViewModel: com.theveloper.pixelplay.presentation.viewmodel.ExtensionsViewModel = hiltViewModel(),
     onOpenSidebar: () -> Unit
 ) {
     val context = LocalContext.current
@@ -150,15 +152,37 @@ fun HomeScreen(
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val homeFeed by extensionsViewModel.homeFeed.collectAsStateWithLifecycle()
+    val shelves by extensionsViewModel.shelves.collectAsStateWithLifecycle()
+    val isLoadingFeed by extensionsViewModel.isLoadingFeed.collectAsStateWithLifecycle()
+    val currentMusicExtension by extensionsViewModel.currentMusicExtension.collectAsStateWithLifecycle()
+    
+    // Songs extracted from extension feed
+    val yourMixSongsFromExtension by extensionsViewModel.yourMixSongsFromExtension.collectAsStateWithLifecycle()
+    val dailyMixSongsFromExtension by extensionsViewModel.dailyMixSongsFromExtension.collectAsStateWithLifecycle()
+
+    // Check if extension is active and has songs (use same UI layout, just different data)
+    val isExtensionActive = remember(currentMusicExtension, yourMixSongsFromExtension, dailyMixSongsFromExtension) {
+        currentMusicExtension != null && (yourMixSongsFromExtension.isNotEmpty() || dailyMixSongsFromExtension.isNotEmpty())
+    }
+
     val usesFallbackHomeMix = remember(curatedYourMixSongs, dailyMixSongs) {
         curatedYourMixSongs.isEmpty() && dailyMixSongs.isEmpty()
     }
-    val yourMixSongs = remember(curatedYourMixSongs, dailyMixSongs, homeMixPreviewSongs) {
+    
+    // Use extension songs if available, otherwise use local mixes
+    val yourMixSongs = remember(isExtensionActive, yourMixSongsFromExtension, curatedYourMixSongs, dailyMixSongs, homeMixPreviewSongs) {
         when {
+            isExtensionActive && yourMixSongsFromExtension.isNotEmpty() -> yourMixSongsFromExtension
             curatedYourMixSongs.isNotEmpty() -> curatedYourMixSongs
             dailyMixSongs.isNotEmpty() -> dailyMixSongs
             else -> homeMixPreviewSongs
         }
+    }
+    
+    // Use extension daily mix if available, otherwise use local daily mix
+    val dailyMixForDisplay = remember(isExtensionActive, dailyMixSongsFromExtension, dailyMixSongs) {
+        if (isExtensionActive && dailyMixSongsFromExtension.isNotEmpty()) dailyMixSongsFromExtension else dailyMixSongs
     }
     var homePlaceholderRefreshGeneration by rememberSaveable { mutableIntStateOf(0) }
     var hasHomeLoadingMinimumElapsed by rememberSaveable(homePlaceholderRefreshGeneration) {
@@ -224,6 +248,20 @@ fun HomeScreen(
         recentlyPlayedSongs.map { it.song }.toImmutableList()
     }
 
+    // Filter recently played by extension if active
+    val recentlyPlayedToShow = remember(isExtensionActive, recentlyPlayedSongs, currentMusicExtension) {
+        val ext = currentMusicExtension
+        if (isExtensionActive && ext != null) {
+            // Show only songs played from current extension
+            recentlyPlayedSongs.filter { entry ->
+                entry.song.id.startsWith("extension:${ext.metadata.id}:")
+            }
+        } else {
+            // Show all recently played (local + other sources)
+            recentlyPlayedSongs
+        }
+    }
+
     ReportDrawnWhen {
         yourMixSongs.isNotEmpty() || hasHomeLoadingMinimumElapsed || isBenchmarkMode
     }
@@ -249,11 +287,11 @@ fun HomeScreen(
 
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
     var showChangelogBottomSheet by remember { mutableStateOf(false) }
-    var showBetaInfoBottomSheet by remember { mutableStateOf(false) }
+    var showSourceSelectionSheet by remember { mutableStateOf(false) }
     var showStreamingProviderSheet by remember { mutableStateOf(false) }
     var cleanInstallDisclaimerDismissedThisSession by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
-    val betaSheetState = rememberModalBottomSheetState()
+    val sourceSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     LocalContext.current
 
@@ -312,22 +350,24 @@ fun HomeScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
+                val activeExtName = extensionsViewModel.currentMusicExtension.collectAsStateWithLifecycle().value?.metadata?.name
+                val installedExts = extensionsViewModel.allExtensions.collectAsStateWithLifecycle().value
+                
                 HomeGradientTopBar(
                     onNavigationIconClick = {
                         navController.navigateSafely(Screen.Settings.route)
                     },
-                    onMoreOptionsClick = {
-                        showChangelogBottomSheet = true
+                    onSourceSelectionClick = {
+                         showSourceSelectionSheet = true
                     },
-                    onBetaClick = {
-                        showBetaInfoBottomSheet = true
+                    onMashupClick = {
+                        navController.navigateSafely(Screen.DJSpace.route)
                     },
-                    onTelegramClick = {
-                         showStreamingProviderSheet = true
+                    onStoreClick = {
+                        navController.navigateSafely(Screen.Extensions.route)
                     },
-                    onMenuClick = {
-                        // onOpenSidebar() // Disabled
-                    },
+                    activeExtensionName = activeExtName,
+                    isSourceSelectionEnabled = installedExts.isNotEmpty(),
                     isScrolled = isScrolledPastThreshold.value
                 )
             }
@@ -344,6 +384,7 @@ fun HomeScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // Your Mix Section (uses extension songs if active, otherwise local)
                 if (yourMixSongs.isEmpty()) {
                     item(
                         key = "your_mix_placeholder",
@@ -373,9 +414,10 @@ fun HomeScreen(
                                 if (usesFallbackHomeMix) {
                                     playerViewModel.shuffleAllSongs(queueName = "Your Mix")
                                 } else {
+                                    val queueName = if (isExtensionActive) "${currentMusicExtension?.metadata?.name} Mix" else "Your Mix"
                                     playerViewModel.playSongsShuffled(
                                         songsToPlay = yourMixSongs,
-                                        queueName = "Your Mix",
+                                        queueName = queueName,
                                         startAtZero = true,
                                     )
                                 }
@@ -384,7 +426,7 @@ fun HomeScreen(
                     }
                 }
 
-                // Collage
+                // Collage (uses album art from Your Mix songs)
                 if (yourMixSongs.isNotEmpty()) {
                     item(
                         key = "album_art_collage",
@@ -406,7 +448,7 @@ fun HomeScreen(
 
                         AlbumArtCollage(
                             modifier = Modifier.fillMaxWidth(),
-                            songs = yourMixSongs,
+                            songs = yourMixSongs.toImmutableList(),
                             padding = 14.dp,
                             height = 400.dp,
                             pattern = activePattern,
@@ -414,23 +456,34 @@ fun HomeScreen(
                                 if (usesFallbackHomeMix) {
                                     playerViewModel.showAndPlaySongFromLibrary(song, queueName = "Your Mix")
                                 } else {
-                                    playerViewModel.showAndPlaySong(song, yourMixSongs, "Your Mix")
+                                    val queueName = if (isExtensionActive) "${currentMusicExtension?.metadata?.name} Mix" else "Your Mix"
+                                    playerViewModel.showAndPlaySong(song, yourMixSongs.toImmutableList(), queueName)
                                 }
                             }
                         )
                     }
                 }
 
-                // Daily Mix
-                if (dailyMixSongs.isNotEmpty()) {
+                // Daily Mix Section (uses extension songs if active, otherwise local)
+                if (dailyMixForDisplay.isNotEmpty()) {
                     item(
                         key = "daily_mix_section",
                         contentType = "daily_mix_section"
                     ) {
                         DailyMixSection(
-                            songs = dailyMixSongs,
+                            songs = dailyMixForDisplay.toImmutableList(),
                             onClickOpen = {
-                                navController.navigateSafely(Screen.DailyMixScreen.route)
+                                if (isExtensionActive) {
+                                    // When extension is active, there's no dedicated daily mix screen
+                                    // Just play the daily mix section
+                                    playerViewModel.playSongsShuffled(
+                                        songsToPlay = dailyMixForDisplay,
+                                        queueName = "${currentMusicExtension?.metadata?.name} Daily",
+                                        startAtZero = true
+                                    )
+                                } else {
+                                    navController.navigateSafely(Screen.DailyMixScreen.route)
+                                }
                             },
                             onNavigateToAlbum = { song ->
                                 navController.navigateSafelyReplacing(
@@ -454,19 +507,50 @@ fun HomeScreen(
                     }
                 }
 
-                if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
+                // Extension Shelves (only show if extension active and there are additional shelves beyond Your Mix/Daily Mix)
+                if (isExtensionActive && shelves.size > 2) {
+                    item(
+                        key = "extension_shelves_additional",
+                        contentType = "extension_shelves"
+                    ) {
+                        com.theveloper.pixelplay.presentation.components.ExtensionShelvesSection(
+                            shelves = shelves.drop(2), // Skip first 2 shelves (used for Your Mix/Daily Mix)
+                            onItemClick = { item ->
+                                if (item is dev.brahmkshatriya.echo.common.models.Track) {
+                                    val extensionId = extensionsViewModel.currentMusicExtension.value?.metadata?.id ?: ""
+                                    val song = item.toSong(extensionId)
+                                    playerViewModel.showAndPlaySong(song, listOf(song), "Extension Feed")
+                                } else {
+                                    // TODO: Handle Album/Playlist clicks
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // Recently Played (show for current source - extension or local)
+                if (recentlyPlayedToShow.size >= RecentlyPlayedSectionMinSongsToShow) {
                     item(
                         key = "recently_played_section",
                         contentType = "recently_played_section"
                     ) {
+                        val recentlyPlayedQueue = remember(recentlyPlayedToShow) {
+                            recentlyPlayedToShow.map { it.song }.toImmutableList()
+                        }
+                        val queueName = if (isExtensionActive) {
+                            "${currentMusicExtension?.metadata?.name} Recently Played"
+                        } else {
+                            "Recently Played"
+                        }
+
                         RecentlyPlayedSection(
-                            songs = recentlyPlayedSongs,
+                            songs = recentlyPlayedToShow,
                             onSongClick = { song ->
                                 if (recentlyPlayedQueue.isNotEmpty()) {
                                     playerViewModel.playSongs(
                                         songsToPlay = recentlyPlayedQueue,
                                         startSong = song,
-                                        queueName = "Recently Played"
+                                        queueName = queueName
                                     )
                                 }
                             },
@@ -480,6 +564,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Stats Overview Card
                 if (homeStatsOverview != null) {
                     item(
                         key = "listening_stats_preview",
@@ -527,27 +612,71 @@ fun HomeScreen(
                             navController.navigateSafely(Screen.DJSpace.route)
                         }
                     }
+                },
+                onNavigateToExtensions = {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        if (!sheetState.isVisible) {
+                            showOptionsBottomSheet = false
+                            navController.navigateSafely(Screen.Extensions.route)
+                        }
+                    }
                 }
             )
         }
     }
-    if (showChangelogBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showChangelogBottomSheet = false },
-            sheetState = sheetState
-        ) {
-            ChangelogBottomSheet()
+    if (showSourceSelectionSheet) {
+        val allExtensions by extensionsViewModel.allExtensions.collectAsStateWithLifecycle()
+        val currentMusicExtension by extensionsViewModel.currentMusicExtension.collectAsStateWithLifecycle()
+        
+        val musicExtensions = remember(allExtensions) {
+            allExtensions.filterIsInstance<dev.brahmkshatriya.echo.common.MusicExtension>()
         }
-    }
-    if (showBetaInfoBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBetaInfoBottomSheet = false },
-            sheetState = betaSheetState,
-            //contentWindowInsets = { WindowInsets.statusBars.only(WindowInsets.statusBars) }
-        ) {
-            BetaInfoBottomSheet()
+        val lyricsExtensions = remember(allExtensions) {
+            allExtensions.filterIsInstance<dev.brahmkshatriya.echo.common.LyricsExtension>()
         }
-    }
+
+        val isNeteaseLoggedIn by neteaseViewModel.isLoggedIn.collectAsStateWithLifecycle() 
+        val isQqMusicLoggedIn by qqMusicViewModel.isLoggedIn.collectAsStateWithLifecycle() 
+
+        ModalBottomSheet(
+            onDismissRequest = { showSourceSelectionSheet = false },
+            sheetState = sourceSheetState
+        ) {
+            com.theveloper.pixelplay.presentation.components.SourceSelectionBottomSheet(   
+                musicExtensions = musicExtensions,
+                currentMusicExtension = currentMusicExtension,
+                onMusicExtensionSelected = { extension ->
+                    extensionsViewModel.selectMusicExtension(extension)
+                    scope.launch { sourceSheetState.hide() }.invokeOnCompletion {
+                        showSourceSelectionSheet = false
+                    }
+                },
+                lyricsExtensions = lyricsExtensions,
+                onNavigateToStore = {
+                    scope.launch { sourceSheetState.hide() }.invokeOnCompletion {
+                        showSourceSelectionSheet = false
+                        navController.navigateSafely(Screen.Extensions.route)
+                    }
+                },
+                isNeteaseLoggedIn = isNeteaseLoggedIn,
+                onNeteaseClick = {
+                    scope.launch { sourceSheetState.hide() }.invokeOnCompletion {
+                        showSourceSelectionSheet = false
+                        navController.navigateSafely(Screen.NeteaseDashboard.route)        
+                    }
+                },
+                isQqMusicLoggedIn = isQqMusicLoggedIn,
+                onQqMusicClick = {
+                    scope.launch { sourceSheetState.hide() }.invokeOnCompletion {
+                        showSourceSelectionSheet = false
+                        navController.navigateSafely(Screen.QqMusicDashboard.route)        
+                    }
+                }
+            )
+        }
+        }
     if (showStreamingProviderSheet) {
         val isNeteaseLoggedIn by neteaseViewModel.isLoggedIn.collectAsStateWithLifecycle()
         val isQqMusicLoggedIn by qqMusicViewModel.isLoggedIn.collectAsStateWithLifecycle()

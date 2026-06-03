@@ -38,7 +38,8 @@ data class MashupUiState(
 @HiltViewModel
 class MashupViewModel @Inject constructor(
     private val application: Application,
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    private val extensionRepository: com.theveloper.pixelplay.data.repository.ExtensionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MashupUiState())
@@ -53,6 +54,18 @@ class MashupViewModel @Inject constructor(
         initializeDecks()
         loadAllSongs()
         startProgressUpdater()
+        observeExtensionFeeds()
+    }
+
+    private fun observeExtensionFeeds() {
+        viewModelScope.launch {
+            // Combine extension songs with local library songs
+            extensionRepository.yourMixSongsFromExtension.collect { extSongs ->
+                if (extSongs.isNotEmpty()) {
+                    _uiState.update { it.copy(allSongs = extSongs + it.allSongs.filter { s -> !s.id.startsWith("extension:") }) }
+                }
+            }
+        }
     }
 
     private fun initializeDecks() {

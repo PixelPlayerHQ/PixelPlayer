@@ -59,9 +59,11 @@
 - **Folder Filtering** - Choose which directories to scan
 
 ### 🔍 Discovery & Organization
-- **Full-text Search** - Search across your entire library
+- **Full-text Search** - Search across your entire library and active extensions
 - **Daily Mix** - AI-powered personalized playlist based on listening habits
 - **Playlists** - Create and manage custom playlists
+- **Extension System** - Dynamically load plugins for online streaming and custom UI ([Learn more](EXTENSIONS.md))
+- **Download Manager** - Centralized management for offline content from extensions
 - **Statistics** - Track your listening history and habits
 
 ### 🎤 Lyrics

@@ -14,7 +14,8 @@ import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
         Index(value = ["title"], unique = false),
         Index(value = ["artist_id"], unique = false), // Para buscar álbumes por artista
         Index(value = ["artist_name"], unique = false), // Nuevo índice para búsquedas por nombre de artista del álbum
-        Index(value = ["album_artist"], unique = false) // Album artist tag from metadata (TPE2)
+        Index(value = ["album_artist"], unique = false), // Album artist tag from metadata (TPE2)
+        Index(value = ["extension_id"], unique = false)
     ]
 )
 data class AlbumEntity(
@@ -26,7 +27,8 @@ data class AlbumEntity(
     @ColumnInfo(name = "song_count") val songCount: Int,
     @ColumnInfo(name = "date_added") val dateAdded: Long,
     @ColumnInfo(name = "year") val year: Int,
-    @ColumnInfo(name = "album_artist") val albumArtist: String? = null
+    @ColumnInfo(name = "album_artist") val albumArtist: String? = null,
+    @ColumnInfo(name = "extension_id") val extensionId: String? = null
 )
 
 fun AlbumEntity.toAlbum(): Album {
@@ -55,7 +57,8 @@ fun AlbumEntity.toAlbum(): Album {
         albumArtUriString = effectiveAlbumArtUri,
         songCount = this.songCount,
         dateAdded = this.dateAdded,
-        year = this.year
+        year = this.year,
+        extensionId = this.extensionId
     )
 }
 
@@ -73,6 +76,7 @@ fun Album.toEntity(artistIdForAlbum: Long): AlbumEntity { // Necesitamos pasar e
         songCount = this.songCount,
         dateAdded = this.dateAdded,
         year = this.year,
-        albumArtist = this.albumArtist
+        albumArtist = this.albumArtist,
+        extensionId = this.extensionId
     )
 }

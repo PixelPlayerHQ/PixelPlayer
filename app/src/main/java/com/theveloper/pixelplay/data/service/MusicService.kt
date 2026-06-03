@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.service
 
+import com.theveloper.pixelplay.extensions.core.toSong
 import android.app.AlarmManager
 import android.app.BackgroundServiceStartNotAllowedException
 import android.app.ForegroundServiceStartNotAllowedException
@@ -142,6 +143,8 @@ class MusicService : MediaLibraryService() {
     lateinit var controller: TransitionController
     @Inject
     lateinit var musicRepository: MusicRepository
+    @Inject
+    lateinit var extensionEngine: dev.brahmkshatriya.echo.extension.loader.ExtensionLoader
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
     @Inject
@@ -2604,7 +2607,37 @@ class MusicService : MediaLibraryService() {
         requestedItems: List<MediaItem>
     ): TrustedMediaItemsResolution {
         val songIds = requestedItems.map { it.mediaId }
-        val songs = musicRepository.getSongsByIds(songIds).first()
+        val extensionIds = songIds.filter { it.startsWith("extension:") }
+        val localSongIds = songIds.filter { !it.startsWith("extension:") }
+
+        val songs = musicRepository.getSongsByIds(localSongIds).first().toMutableList()
+        
+        // Resolve extension songs
+        extensionIds.forEach { fullId ->
+            try {
+                val parts = fullId.split(":")
+                if (parts.size >= 3) {
+                    val extId = parts[1]
+                    val trackId = parts.drop(2).joinToString(":")
+                    val extensionInfo = extensionEngine.music.value.find { it.metadata.id == extId }
+                    val extension = extensionInfo?.instance?.value()?.getOrNull() as? dev.brahmkshatriya.echo.common.clients.TrackClient
+                    if (extension != null) {
+                        val track = dev.brahmkshatriya.echo.common.models.Track(id = trackId, title = "Unknown", isPlayable = dev.brahmkshatriya.echo.common.models.Track.Playable.Yes)
+                        val loadedTrack = extension.loadTrack(track, false)
+                        val streamable = loadedTrack.streamables.firstOrNull()
+                        val streamUrl = if (streamable != null) {
+                            val media = extension.loadStreamableMedia(streamable, false)
+                            (media as? dev.brahmkshatriya.echo.common.models.Streamable.Media.Server)?.sources?.firstOrNull()?.id
+                        } else null
+                        val song = loadedTrack.toSong(extId, streamUrl)
+                        songs.add(song)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.tag("MusicService").e(e, "Error resolving extension song: $fullId")
+            }
+        }
+
         val songMap = songs.associateBy { it.id }
 
         return resolveMediaItemsWithTrustedArtworkGrants(requestedItems) { mediaId ->

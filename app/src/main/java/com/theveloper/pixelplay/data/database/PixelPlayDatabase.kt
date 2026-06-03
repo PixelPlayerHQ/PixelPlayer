@@ -34,9 +34,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         JellyfinSongEntity::class,
         JellyfinPlaylistEntity::class,
         AiCacheEntity::class,
-        AiUsageEntity::class
+        AiUsageEntity::class,
+        DownloadEntity::class
     ],
-    version = 42,
+    version = 43,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -56,6 +57,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun jellyfinDao(): JellyfinDao
     abstract fun aiCacheDao(): AiCacheDao
     abstract fun aiUsageDao(): AiUsageDao
+    abstract fun downloadDao(): DownloadDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -1526,6 +1528,28 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 createSongsSearchVirtualTable(db)
                 installSongsSearchSyncTriggers(db)
                 rebuildSongsSearchIndex(db)
+            }
+        }
+
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS downloads (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        song_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        artist TEXT NOT NULL,
+                        thumbnail_url TEXT,
+                        status INTEGER NOT NULL DEFAULT 0,
+                        progress REAL NOT NULL DEFAULT 0,
+                        total_size INTEGER NOT NULL DEFAULT 0,
+                        download_path TEXT,
+                        extension_id TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        error_message TEXT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_downloads_song_id ON downloads(song_id)")
             }
         }
 

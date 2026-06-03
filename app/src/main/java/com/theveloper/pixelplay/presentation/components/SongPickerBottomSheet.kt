@@ -1,124 +1,79 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package com.theveloper.pixelplay.presentation.components
 
-import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.AudioFile
-import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeExtendedFloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
-import com.theveloper.pixelplay.data.model.StorageFilter
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemContentType
-import coil.size.Size
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SourceScope
 import com.theveloper.pixelplay.presentation.screens.TabAnimation
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.ShapeCache
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.map
-import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(UnstableApi::class)
-@ExperimentalMaterial3Api
 @Composable
 fun SongPickerBottomSheet(
-    initiallySelectedSongIds: Set<String>,
     onDismiss: () -> Unit,
-    onConfirm: (Set<String>) -> Unit,
+    onSongsSelected: (Set<String>) -> Unit,
+    initialSelectedIds: Set<String> = emptySet(),
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val selectedSongIds = remember {
+    val selectedSongIds = remember { 
         mutableStateMapOf<String, Boolean>().apply {
-            initiallySelectedSongIds.forEach { put(it, true) }
+            initialSelectedIds.forEach { put(it, true) }
         }
     }
 
-    ModalBottomSheet(
+    androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        dragHandle = null,
         containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxSize()
+        scrimColor = Color.Black.copy(alpha = 0.6f)
     ) {
         SongPickerContent(
             selectedSongIds = selectedSongIds,
-            onConfirm = onConfirm,
+            onConfirm = { 
+                onSongsSelected(it)
+                onDismiss()
+            },
             playerViewModel = playerViewModel
         )
     }
@@ -131,13 +86,13 @@ fun SongPickerContent(
     onConfirm: (Set<String>) -> Unit,
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val storageFilter by playerViewModel.playlistPickerStorageFilter.collectAsStateWithLifecycle()
+    val sourceScope by playerViewModel.playlistPickerSourceScope.collectAsStateWithLifecycle()
     val hasCloudSongs by playerViewModel.hasCloudSongsFlow.collectAsStateWithLifecycle()
     val showCloudFilter = hasCloudSongs != false
 
-    LaunchedEffect(hasCloudSongs, storageFilter) {
-        if (hasCloudSongs == false && storageFilter != StorageFilter.OFFLINE) {
-            playerViewModel.setPlaylistPickerStorageFilter(StorageFilter.OFFLINE)
+    LaunchedEffect(hasCloudSongs, sourceScope) {
+        if (hasCloudSongs == false && sourceScope != SourceScope.Local) {
+            playerViewModel.setPlaylistPickerSourceScope(SourceScope.Local)
         }
     }
 
@@ -169,10 +124,10 @@ fun SongPickerContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val tabs = listOf(
-                        StorageFilter.OFFLINE to R.string.library_storage_filter_offline,
-                        StorageFilter.ONLINE to R.string.library_storage_filter_online
+                        SourceScope.Local to R.string.library_storage_filter_offline,
+                        SourceScope.All to R.string.library_storage_filter_all_songs
                     )
-                    val selectedTabIndex = tabs.indexOfFirst { it.first == storageFilter }.coerceAtLeast(0)
+                    val selectedTabIndex = tabs.indexOfFirst { it.first == sourceScope }.coerceAtLeast(0)
 
                     PrimaryTabRow(
                         selectedTabIndex = selectedTabIndex,
@@ -185,19 +140,19 @@ fun SongPickerContent(
                         divider = {},
                         indicator = {}
                     ) {
-                        tabs.forEachIndexed { index, (filter, labelRes) ->
+                        tabs.forEachIndexed { index, (scope, labelRes) ->
                             TabAnimation(
                                 index = index,
                                 title = stringResource(labelRes),
                                 selectedIndex = selectedTabIndex,
-                                onClick = { playerViewModel.setPlaylistPickerStorageFilter(filter) },
+                                onClick = { playerViewModel.setPlaylistPickerSourceScope(scope) },
                                 transformOrigin = if (index == 0) TransformOrigin(0f, 0.5f) else TransformOrigin(1f, 0.5f)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
-                                    if (filter == StorageFilter.OFFLINE) {
+                                    if (scope == SourceScope.Local) {
                                         Icon(
                                             painter = painterResource(R.drawable.ic_phonef),
                                             contentDescription = null,
@@ -280,6 +235,7 @@ fun SongPickerContent(
         )
     }
 }
+
 @OptIn(UnstableApi::class)
 @Composable
 fun SongPickerSelectionPane(
@@ -290,29 +246,26 @@ fun SongPickerSelectionPane(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var favoritesOnly by remember { mutableStateOf(false) }
-    val storageFilter by playerViewModel.playlistPickerStorageFilter.collectAsStateWithLifecycle()
+    val sourceScope by playerViewModel.playlistPickerSourceScope.collectAsStateWithLifecycle()
     
     val pagedSongs = playerViewModel.playlistPickerSongs.collectAsLazyPagingItems()
     val pagedFavoriteSongs = playerViewModel.playlistPickerFavoriteSongs.collectAsLazyPagingItems()
 
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
+    
     val searchResultsInitialValue: List<Song>? = remember(searchQuery) {
         if (searchQuery.isBlank()) emptyList() else null
     }
-    val searchResults by remember(searchQuery, playerViewModel, storageFilter) {
+    val searchResults by remember(searchQuery, playerViewModel, sourceScope) {
         playerViewModel.searchSongs(searchQuery)
             .map { songs ->
-                when (storageFilter) {
-                    StorageFilter.OFFLINE -> songs.filter { s ->
-                        s.telegramFileId == null && s.neteaseId == null && s.gdriveFileId == null &&
-                                s.qqMusicMid == null && s.navidromeId == null && s.jellyfinId == null
+                when (sourceScope) {
+                    SourceScope.Local -> songs.filter { s ->
+                        s.extensionId == null
                     }
-
-                    StorageFilter.ONLINE -> songs.filter { s ->
-                        s.telegramFileId != null || s.neteaseId != null || s.gdriveFileId != null ||
-                                s.qqMusicMid != null || s.navidromeId != null || s.jellyfinId != null
+                    is SourceScope.Extension -> songs.filter { s ->
+                        s.extensionId == (sourceScope as SourceScope.Extension).extensionId
                     }
-
                     else -> songs
                 }
             }
@@ -409,7 +362,7 @@ fun SongPickerSelectionPane(
                     selectedSongIds = selectedSongIds,
                     albumShape = albumShape,
                     tabId = LibraryTabId.LIKED,
-                    storageFilter = storageFilter,
+                    sourceScope = sourceScope,
                     modifier = Modifier.weight(1f),
                     contentPadding = contentPadding
                 )
@@ -420,51 +373,13 @@ fun SongPickerSelectionPane(
                     selectedSongIds = selectedSongIds,
                     albumShape = albumShape,
                     tabId = LibraryTabId.SONGS,
-                    storageFilter = storageFilter,
+                    sourceScope = sourceScope,
                     modifier = Modifier.weight(1f),
                     contentPadding = contentPadding
                 )
             }
         }
     }
-}
-
-@Composable
-private fun SongPickerSearchField(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = searchQuery,
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            unfocusedTrailingIconColor = Color.Transparent,
-            focusedSupportingTextColor = Color.Transparent,
-        ),
-        onValueChange = onSearchQueryChange,
-        label = { Text(stringResource(R.string.song_picker_search_label)) },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = CircleShape,
-        singleLine = true,
-        leadingIcon = {
-            Icon(Icons.Rounded.Search, contentDescription = null)
-        },
-        trailingIcon = {
-            if (searchQuery.isNotEmpty()) {
-                IconButton(onClick = { onSearchQueryChange("") }) {
-                    Icon(Icons.Filled.Clear, null)
-                }
-            }
-        }
-    )
 }
 
 @OptIn(UnstableApi::class)
@@ -474,7 +389,7 @@ fun SongPickerPagingList(
     selectedSongIds: MutableMap<String, Boolean>,
     albumShape: androidx.compose.ui.graphics.Shape,
     tabId: LibraryTabId,
-    storageFilter: StorageFilter,
+    sourceScope: SourceScope,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 100.dp, top = 20.dp)
 ) {
@@ -515,194 +430,33 @@ fun SongPickerPagingList(
         pagedSongs.itemCount == 0 && pagedSongs.loadState.refresh is LoadState.NotLoading && pagedSongs.loadState.append.endOfPaginationReached -> {
             SongPickerEmptyState(
                 tabId = tabId,
-                storageFilter = storageFilter,
+                sourceScope = sourceScope,
                 modifier = modifier.padding(bottom = contentPadding.calculateBottomPadding())
             )
         }
-
         else -> {
-            val listState = rememberLazyListState()
-            Box(
-                modifier = modifier
-                    .padding(horizontal = 14.dp)
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = contentPadding
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        bottom = contentPadding.calculateBottomPadding(),
-                        top = contentPadding.calculateTopPadding(),
-                        start = contentPadding.calculateLeftPadding(LayoutDirection.Ltr),
-                        end = if (listState.canScrollForward || listState.canScrollBackward) 12.dp else 0.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(
-                        count = pagedSongs.itemCount,
-                        key = { index -> pagedSongs.peek(index)?.id ?: "song_picker_paged_$index" },
-                        contentType = pagedSongs.itemContentType { "song_picker_song" }
-                    ) { index ->
-                        val song = pagedSongs[index]
-                        if (song != null) {
-                            SongPickerRow(
-                                song = song,
-                                selectedSongIds = selectedSongIds,
-                                albumShape = albumShape
-                            )
-                        } else {
-                            SongPickerPlaceholderRow()
-                        }
-                    }
-
-                    if (pagedSongs.loadState.append is LoadState.Loading) {
-                        item(key = "song_picker_append_loading") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                    }
-
-                    if (pagedSongs.loadState.append is LoadState.Error) {
-                        item(key = "song_picker_append_error") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Button(onClick = { pagedSongs.retry() }) {
-                                    Text(stringResource(R.string.song_picker_load_more), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
+                items(
+                    count = pagedSongs.itemCount,
+                    key = { index -> pagedSongs[index]?.id ?: "item_$index" }
+                ) { index ->
+                    pagedSongs[index]?.let { song ->
+                        SongPickerItem(
+                            song = song,
+                            isSelected = selectedSongIds[song.id] == true,
+                            onToggle = { selectedSongIds[song.id] = it },
+                            albumShape = albumShape
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
                     }
                 }
-
-                ExpressiveScrollBar(
-                    listState = listState,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(
-                            bottom = contentPadding.calculateBottomPadding(),
-                            top = contentPadding.calculateTopPadding() + 10.dp
-                        )
-                )
             }
-        }
-    }
-}
-
-@Composable
-private fun SongPickerRow(
-    song: Song,
-    selectedSongIds: MutableMap<String, Boolean>,
-    albumShape: androidx.compose.ui.graphics.Shape
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(CircleShape)
-            .clickable {
-                val currentSelection = selectedSongIds[song.id] ?: false
-                selectedSongIds[song.id] = !currentSelection
-            }
-            .background(
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                shape = CircleShape
-            )
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = selectedSongIds[song.id] ?: false,
-            onCheckedChange = { isChecked ->
-                selectedSongIds[song.id] = isChecked
-            }
-        )
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    CircleShape
-                )
-        ) {
-            SmartImage(
-                model = song.albumArtUriString,
-                contentDescription = song.title,
-                shape = albumShape,
-                targetSize = Size(168, 168),
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                song.displayArtist,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun SongPickerPlaceholderRow() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(CircleShape)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                shape = CircleShape
-            )
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = CircleShape
-                )
-        )
-        Spacer(Modifier.width(18.dp))
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    CircleShape
-                )
-        )
-        Spacer(Modifier.width(16.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(
-                modifier = Modifier
-                    .width(132.dp)
-                    .height(14.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = CircleShape
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .width(96.dp)
-                    .height(12.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = CircleShape
-                    )
-            )
         }
     }
 }
@@ -710,70 +464,81 @@ private fun SongPickerPlaceholderRow() {
 @Composable
 fun SongPickerEmptyState(
     tabId: LibraryTabId,
-    storageFilter: StorageFilter,
+    sourceScope: SourceScope,
     modifier: Modifier = Modifier
 ) {
     val spec = when (tabId) {
-        LibraryTabId.LIKED -> when (storageFilter) {
-            StorageFilter.ALL -> Triple(R.drawable.round_favorite_24, R.string.lib_empty_liked_all_title, R.string.lib_empty_liked_all_subtitle)
-            StorageFilter.OFFLINE -> Triple(R.drawable.round_favorite_24, R.string.lib_empty_liked_offline_title, R.string.lib_empty_liked_offline_subtitle)
-            StorageFilter.ONLINE -> Triple(R.drawable.round_favorite_24, R.string.lib_empty_liked_online_title, R.string.lib_empty_liked_online_subtitle)
+        LibraryTabId.LIKED -> when (sourceScope) {
+            SourceScope.Local -> Triple(R.drawable.round_favorite_24, R.string.lib_empty_liked_offline_title, R.string.lib_empty_liked_offline_subtitle)
+            else -> Triple(R.drawable.round_favorite_24, R.string.lib_empty_liked_all_title, R.string.lib_empty_liked_all_subtitle)
         }
-        else -> when (storageFilter) {
-            StorageFilter.ALL -> Triple(R.drawable.rounded_music_off_24, R.string.lib_empty_songs_all_title, R.string.lib_empty_songs_all_subtitle)
-            StorageFilter.OFFLINE -> Triple(R.drawable.rounded_music_off_24, R.string.lib_empty_songs_offline_title, R.string.lib_empty_songs_offline_subtitle)
-            StorageFilter.ONLINE -> Triple(R.drawable.rounded_music_off_24, R.string.lib_empty_songs_online_title, R.string.lib_empty_songs_online_subtitle)
+        else -> when (sourceScope) {
+            SourceScope.Local -> Triple(R.drawable.rounded_music_off_24, R.string.lib_empty_songs_offline_title, R.string.lib_empty_songs_offline_subtitle)
+            else -> Triple(R.drawable.rounded_music_off_24, R.string.lib_empty_songs_all_title, R.string.lib_empty_songs_all_subtitle)
         }
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(32.dp)
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
-                tonalElevation = 2.dp
-            ) {
-                Box(
-                    modifier = Modifier.size(56.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = spec.first),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = stringResource(spec.second),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(spec.third),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Icon(
+                painter = painterResource(spec.first),
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(spec.second),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = stringResource(spec.third),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
         }
     }
+}
+
+@Composable
+fun SongPickerSearchField(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = onSearchQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        placeholder = { Text(stringResource(R.string.song_picker_search_placeholder)) },
+        leadingIcon = { Icon(Icons.Rounded.Search, null) },
+        trailingIcon = {
+            if (searchQuery.isNotEmpty()) {
+                IconButton(onClick = { onSearchQueryChange("") }) {
+                    Icon(painterResource(R.drawable.rounded_close_24), null)
+                }
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent
+        )
+    )
 }
 
 @Composable
@@ -782,100 +547,116 @@ fun SongPickerList(
     isLoading: Boolean,
     selectedSongIds: MutableMap<String, Boolean>,
     albumShape: androidx.compose.ui.graphics.Shape,
-    searchQuery: String = "",
+    searchQuery: String,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(bottom = 100.dp, top = 20.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     if (isLoading) {
-        Box(
-            modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else if (filteredSongs.isEmpty()) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(horizontal = 28.dp)
-                .padding(bottom = contentPadding.calculateBottomPadding()),
-            contentAlignment = Alignment.Center
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = stringResource(R.string.search_no_results_for, searchQuery),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
-                    tonalElevation = 2.dp
-                ) {
+            items(filteredSongs, key = { it.id }) { song ->
+                SongPickerItem(
+                    song = song,
+                    isSelected = selectedSongIds[song.id] == true,
+                    onToggle = { selectedSongIds[song.id] = it },
+                    albumShape = albumShape
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SongPickerItem(
+    song: Song,
+    isSelected: Boolean,
+    onToggle: (Boolean) -> Unit,
+    albumShape: androidx.compose.ui.graphics.Shape
+) {
+    ListItem(
+        modifier = Modifier.clickable { onToggle(!isSelected) },
+        headlineContent = {
+            Text(
+                text = song.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        },
+        supportingContent = {
+            Text(
+                text = song.artist,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        leadingContent = {
+            Box(contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(song.albumArtUriString)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(albumShape),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_music_placeholder),
+                    error = painterResource(R.drawable.ic_music_placeholder)
+                )
+                if (isSelected) {
                     Box(
-                        modifier = Modifier.size(56.dp),
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.3f), albumShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.rounded_search_24),
+                            imageVector = Icons.Rounded.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = if (searchQuery.isNotBlank())
-                            stringResource(R.string.search_no_results_for_query, searchQuery)
-                        else
-                            stringResource(R.string.search_no_results_found),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
-        }
-    } else {
-        val listState = rememberLazyListState()
-        Box(
-            modifier = modifier
-                .padding(horizontal = 14.dp)
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    bottom = contentPadding.calculateBottomPadding(),
-                    top = contentPadding.calculateTopPadding(),
-                    start = contentPadding.calculateLeftPadding(LayoutDirection.Ltr),
-                    end = if (listState.canScrollForward || listState.canScrollBackward) 12.dp else 0.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(filteredSongs, key = { it.id }) { song ->
-                    SongPickerRow(
-                        song = song,
-                        selectedSongIds = selectedSongIds,
-                        albumShape = albumShape
-                    )
-                }
-            }
-
-            ExpressiveScrollBar(
-                listState = listState,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(
-                        bottom = contentPadding.calculateBottomPadding(),
-                        top = contentPadding.calculateTopPadding() + 10.dp
-                    )
+        },
+        trailingContent = {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = onToggle,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
             )
-        }
-    }
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent
+        )
+    )
+}
+
+@Composable
+private fun IconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+    androidx.compose.material3.IconButton(onClick = onClick, content = content)
 }

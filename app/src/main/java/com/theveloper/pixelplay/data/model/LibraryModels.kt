@@ -14,7 +14,8 @@ data class Album(
     val dateAdded: Long,
     val albumArtUriString: String?,
     val songCount: Int,
-    val albumArtist: String? = null
+    val albumArtist: String? = null,
+    val extensionId: String? = null
 ) : Parcelable {
     companion object {
         fun empty() = Album(
@@ -25,7 +26,8 @@ data class Album(
             year = 0,
             albumArtUriString = null,
             songCount = 0,
-            albumArtist = null
+            albumArtist = null,
+            extensionId = null
         )
     }
 }
@@ -37,7 +39,8 @@ data class Artist(
     val name: String,
     val songCount: Int,
     val imageUrl: String? = null, // Deezer artist image URL (from API)
-    val customImageUri: String? = null // User-defined custom artist image (local file path)
+    val customImageUri: String? = null, // User-defined custom artist image (local file path)
+    val extensionId: String? = null
 ) : Parcelable {
     companion object {
         fun empty() = Artist(
@@ -45,7 +48,8 @@ data class Artist(
             name = "",
             songCount = 0,
             imageUrl = null,
-            customImageUri = null
+            customImageUri = null,
+            extensionId = null
         )
     }
 

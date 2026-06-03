@@ -211,7 +211,7 @@ fun AppNavigation(
                     SettingsScreen(
                         navController = navController,
                         playerViewModel = playerViewModel,
-                        onNavigationIconClick = {
+                        onBack = {
                             navController.popBackStack()
                         }
                     )
@@ -364,7 +364,7 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    MashupScreen()
+                    MashupScreen(onNavigateBack = { navController.popBackStack() })
                 }
             }
             composable(
@@ -590,6 +590,54 @@ fun AppNavigation(
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(
+                Screen.Extensions.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    com.theveloper.pixelplay.presentation.screens.ExtensionsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenExtensionSettings = { extensionId ->
+                            navController.navigate(Screen.ExtensionSettings.createRoute(extensionId))
+                        },
+                        paddingValues = paddingValues
+                    )
+                }
+            }
+            composable(
+                route = Screen.ExtensionSettings.route,
+                arguments = listOf(navArgument("extensionId") { type = NavType.StringType }),
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) { backStackEntry ->
+                val extensionId = backStackEntry.arguments?.getString("extensionId")
+                if (extensionId != null) {
+                    ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                        com.theveloper.pixelplay.presentation.screens.ExtensionSettingsScreen(
+                            extensionId = extensionId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                }
+            }
+            composable(
+                Screen.Downloads.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    com.theveloper.pixelplay.presentation.screens.DownloadsManagerScreen(
                         onBack = { navController.popBackStack() }
                     )
                 }

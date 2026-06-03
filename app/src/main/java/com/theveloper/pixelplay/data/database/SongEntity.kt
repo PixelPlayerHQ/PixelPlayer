@@ -22,6 +22,7 @@ object SourceType {
     const val QQMUSIC = 4
     const val NAVIDROME = 5
     const val JELLYFIN = 6
+    const val EXTENSION = 100
 
     /** Derive source type from a content URI string (fallback for migration / conversion). */
     fun fromContentUri(uri: String): Int = when {
@@ -31,6 +32,7 @@ object SourceType {
         uri.startsWith("qqmusic://") -> QQMUSIC
         uri.startsWith("navidrome://") -> NAVIDROME
         uri.startsWith("jellyfin://") -> JELLYFIN
+        uri.startsWith("extension:") -> EXTENSION
         else -> LOCAL
     }
 }
@@ -49,6 +51,7 @@ object SourceType {
         Index(value = ["date_added"], unique = false),
         Index(value = ["duration"], unique = false),
         Index(value = ["source_type"], unique = false),
+        Index(value = ["extension_id"], unique = false),
         Index(value = ["parent_directory_path", "source_type", "album_id"], unique = false),
         Index(value = ["parent_directory_path", "source_type", "id"], unique = false)
     ],
@@ -95,7 +98,8 @@ data class SongEntity(
     @ColumnInfo(name = "telegram_chat_id") val telegramChatId: Long? = null,
     @ColumnInfo(name = "telegram_file_id") val telegramFileId: Int? = null,
     @ColumnInfo(name = "artists_json") val artistsJson: String? = null,
-    @ColumnInfo(name = "source_type", defaultValue = "0") val sourceType: Int = SourceType.LOCAL
+    @ColumnInfo(name = "source_type", defaultValue = "0") val sourceType: Int = SourceType.LOCAL,
+    @ColumnInfo(name = "extension_id") val extensionId: String? = null
 )
 
 private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
@@ -147,7 +151,8 @@ private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
         } else null,
         mimeType = this.mimeType,
         bitrate = this.bitrate,
-        sampleRate = this.sampleRate
+        sampleRate = this.sampleRate,
+        extensionId = this.extensionId
     )
 }
 
@@ -239,7 +244,8 @@ fun Song.toEntity(filePathFromMediaStore: String, parentDirFromMediaStore: Strin
         mimeType = this.mimeType,
         bitrate = this.bitrate,
         sampleRate = this.sampleRate,
-        sourceType = SourceType.fromContentUri(this.contentUriString)
+        sourceType = if (this.extensionId != null) SourceType.EXTENSION else SourceType.fromContentUri(this.contentUriString),
+        extensionId = this.extensionId
     )
 }
 
@@ -278,6 +284,7 @@ fun Song.toEntityWithoutPaths(): SongEntity {
         mimeType = this.mimeType,
         bitrate = this.bitrate,
         sampleRate = this.sampleRate,
-        sourceType = SourceType.fromContentUri(this.contentUriString)
+        sourceType = if (this.extensionId != null) SourceType.EXTENSION else SourceType.fromContentUri(this.contentUriString),
+        extensionId = this.extensionId
     )
 }

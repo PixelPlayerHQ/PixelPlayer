@@ -77,7 +77,7 @@ fun LibrarySongsTab(
     getSelectionIndex: (String) -> Int? = { null },
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
     onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
-    storageFilter: StorageFilter = StorageFilter.ALL,
+    currentSourceScope: com.theveloper.pixelplay.data.model.SourceScope = com.theveloper.pixelplay.data.model.SourceScope.All,
     hasCurrentSong: Boolean = false
 ) {
     val listState = rememberLazyListState()
@@ -279,7 +279,7 @@ fun LibrarySongsTab(
         songs.itemCount == 0 && refreshState is LoadState.NotLoading && reachedEndOfPagination -> {
             LibraryExpressiveEmptyState(
                 tabId = LibraryTabId.SONGS,
-                storageFilter = storageFilter,
+                currentSourceScope = currentSourceScope,
                 bottomBarHeight = bottomBarHeight
             )
         }

@@ -3,29 +3,45 @@ package com.theveloper.pixelplay.di
 import javax.inject.Qualifier
 
 /**
- * Qualifier for Deezer Retrofit instance.
+ * Custom Dagger/Hilt qualifiers used throughout the application.
  */
+
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class DeezerRetrofit
+annotation class AppScope
 
-/**
- * Qualifier for Fast OkHttpClient (Short timeouts).
- */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class FastOkHttpClient
-
-/**
- * Qualifier for Gson instance configured for backup serialization.
- */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class BackupGson
 
-/**
- * Qualifier for application-lifetime coroutine scope.
- */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class AppScope
+annotation class ExtensionHost
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class FastOkHttpClient
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class NeteaseGson
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class QqMusicGson
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class NavidromeGson
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class JellyfinGson
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class DeezerRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class GoogleDriveGson

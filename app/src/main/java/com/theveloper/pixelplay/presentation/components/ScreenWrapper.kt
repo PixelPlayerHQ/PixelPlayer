@@ -143,14 +143,14 @@ fun ScreenWrapper(
         content()
 
         // Dim Layer Overlay
-        // Always composed with alpha-driven visibility instead of a conditional node.
-        // Conditionally adding/removing this Box when dimAlpha crosses 0 added a node to
-        // the composition tree mid-transition and contributed to the outgoing-screen flash.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = dimAlpha }
-                .background(Color.Black)
-        )
+        // Conditionally composed based on targetDim to ensure no touch blocking when inactive.
+        if (targetDim > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = dimAlpha }
+                    .background(Color.Black)
+            )
+        }
     }
 }

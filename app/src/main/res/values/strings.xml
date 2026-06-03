@@ -242,7 +242,7 @@
     <string name="batch_edit_mixed_values">(Mixed values)</string>
     <string name="batch_edit_optional">(Optional - leave empty to skip)</string>
     <string name="batch_edit_success">Successfully updated %d songs</string>
-    <string name="batch_edit_partial_success">Updated %d of %d songs. Some files could not be edited.</string>
+    <string name="batch_edit_partial_success">Updated %1$d of %2$d songs. Some files could not be edited.</string>
     <string name="batch_edit_failed">Failed to update songs</string>
 
     <!-- Batch Edit Cover Art -->
@@ -251,4 +251,18 @@
     <string name="batch_edit_set_cover_art">Set Cover Art for All</string>
     <string name="batch_edit_remove_all_art">Remove All Cover Art</string>
     <string name="batch_edit_multiple_covers">(Multiple different covers)</string>
+
+    <!-- Downloads -->
+    <string name="settings_downloads_title">Downloads</string>
+    <string name="settings_downloads_subtitle">Manage your offline tracks and queue</string>
+
+    <string name="player_locate_switching_to_all">Switching to \"All Songs\" to locate track</string>
+    <string name="player_locate_switching_to_scope">Switching to %1$s to locate track</string>
+    <string name="presentation_batch_d_library_source">Library Source</string>
+    <string name="presentation_batch_d_extensions_title">Extensions</string>
+    <string name="presentation_batch_d_mashup_subtitle">Blend your favorite tracks into a unique session.</string>
+    <string name="presentation_batch_d_mashup_start">Start Mashup</string>
+    <string name="presentation_batch_d_mashup_select_song">Select a song</string>
+    <string name="song_picker_search_placeholder">Search or filter songs…</string>
+    <string name="search_no_results_for">No results for \"%1$s\"</string>
 </resources>

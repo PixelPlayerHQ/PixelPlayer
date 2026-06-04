@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <string name="library_error_loading_songs">Error loading songs</string>
-    <string name="library_error_loading_albums">Error loading albums</string>
-    <string name="library_error_loading_artists">Error loading artists</string>
-    <string name="library_retry">Retry</string>
+  
     <string
         name="library_error_loading_albums"
     >Erreur lors du chargement des albums</string>

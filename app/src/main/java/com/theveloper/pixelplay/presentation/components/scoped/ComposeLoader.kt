@@ -94,7 +94,7 @@ fun rememberSmoothProgress(
             if (!isVisible || !isPlaying) {
                 val initialPos = latestPositionProvider()
                 snapshotFlow {
-                    latestIsVisible && latestIsPlayingProvider() || latestPositionProvider() != initialPos
+                    latestIsVisible && (latestIsPlayingProvider() || latestPositionProvider() != initialPos)
                 }.first { it }
 
                 sampleNow()

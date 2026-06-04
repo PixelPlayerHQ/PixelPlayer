@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +69,7 @@ fun WavySliderExpressive(
     thumbColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
 
     isPlaying: Boolean = true,
+    isVisible: Boolean = true,
     strokeWidth: Dp = 5.dp,
     thumbRadius: Dp = 8.dp,
     trackEdgePadding: Dp = thumbRadius,
@@ -137,7 +139,10 @@ fun WavySliderExpressive(
 
     val dynamicGapSize = remember {
         derivedStateOf {
-            currentHalfWidth.value + 4.dp
+            val fraction = thumbInteractionFraction
+            val idleGap = 6.dp
+            val draggingGap = currentHalfWidth.value + 1.2.dp
+            idleGap + (draggingGap - idleGap) * fraction
         }
     }
 
@@ -227,25 +232,31 @@ fun WavySliderExpressive(
             },
         contentAlignment = Alignment.Center
     ) {
-        LinearWavyProgressIndicator(
-            progress = { renderedNormalizedProgress.floatValue },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = trackEdgePadding.coerceAtLeast(0.dp))
-                // Decorative layer: avoid duplicate semantics updates from the visual track.
-                .clearAndSetSemantics { },
-            color = activeTrackColor,
-            trackColor = inactiveTrackColor,
-            stroke = stroke,
-            trackStroke = stroke,
-            gapSize = dynamicGapSize.value * (1.0f + 0.1573f * animatedAmplitude * animatedAmplitude),
-            stopSize = 3.dp,
-            amplitude = { progress -> if (progress > 0f) animatedAmplitude else 0f },
-            wavelength = wavelength,
-            waveSpeed = waveSpeed
-        )
+        if (isVisible) {
+            LinearWavyProgressIndicator(
+                progress = { renderedNormalizedProgress.floatValue },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = trackEdgePadding.coerceAtLeast(0.dp))
+                    // Decorative layer: avoid duplicate semantics updates from the visual track.
+                    .clearAndSetSemantics { },
+                color = activeTrackColor,
+                trackColor = inactiveTrackColor,
+                stroke = stroke,
+                trackStroke = stroke,
+                gapSize = 2f * dynamicGapSize.value * (1.0f + 0.1573f * animatedAmplitude * animatedAmplitude),
+                stopSize = 3.dp,
+                amplitude = { progress -> if (progress > 0f) animatedAmplitude else 0f },
+                wavelength = wavelength,
+                waveSpeed = waveSpeed
+            )
+        } else {
+            Spacer(modifier = Modifier.fillMaxWidth().height(containerHeight))
+        }
+
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+            if (!isVisible) return@Canvas
             val edgePaddingPx = trackEdgePaddingPx.coerceIn(0f, size.width / 2f)
             val trackStart = edgePaddingPx
             val trackEnd = size.width - edgePaddingPx

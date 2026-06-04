@@ -1818,6 +1818,7 @@ private fun PlayerProgressBarSection(
                     inactiveTrackColor = inactiveTrackColor,
                     interactionSource = interactionSource,
                     isPlaying = shouldAnimateWavyProgress,
+                    isVisible = isVisible,
                     trackEdgePadding = progressSectionHorizontalInset
                 )
             }
@@ -1845,6 +1846,7 @@ private fun EfficientSlider(
     inactiveTrackColor: Color,
     interactionSource: MutableInteractionSource,
     isPlaying: Boolean,
+    isVisible: Boolean,
     trackEdgePadding: Dp
 ) {
     val haptics = LocalHapticFeedback.current
@@ -1871,6 +1873,7 @@ private fun EfficientSlider(
         inactiveTrackColor = inactiveTrackColor,
         thumbColor = thumbColor,
         isPlaying = isPlaying,
+        isVisible = isVisible,
         trackEdgePadding = trackEdgePadding,
         semanticsLabel = "Playback position",
         modifier = Modifier

@@ -75,6 +75,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -217,6 +220,34 @@ private fun PlayerContent(
                 }
             ),
     ) {
+
+        if (!isAmbient && albumArt != null) {
+            Image(
+                bitmap = albumArt.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.45f),
+                    //.blur(12.dp),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.55f to Color.Transparent,
+                                0.80f to palette.gradientTop.copy(alpha = 0.45f),
+                                1f to palette.gradientBottom.copy(alpha = 0.85f),
+                            ),
+                        ),
+                    ),
+            )
+        }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),

@@ -303,32 +303,35 @@ private fun PerformanceReportCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onGenerate,
+            enabled = !isGenerating
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        if (report == null) R.string.device_capabilities_report_generate
+                        else R.string.device_capabilities_report_regenerate
+                    )
+                )
+            }
+        }
+
         Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = onGenerate,
-                enabled = !isGenerating
-            ) {
-                if (isGenerating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text(
-                        text = stringResource(
-                            if (report == null) R.string.device_capabilities_report_generate
-                            else R.string.device_capabilities_report_regenerate
-                        )
-                    )
-                }
-            }
-
             if (report != null) {
                 OutlinedButton(
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         clipboardManager.setText(AnnotatedString(report))
                         Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
@@ -344,6 +347,7 @@ private fun PerformanceReportCard(
                 }
 
                 OutlinedButton(
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         val sendIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"

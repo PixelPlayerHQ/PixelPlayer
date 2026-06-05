@@ -937,80 +937,65 @@ fun CoverArtCropperDialog(
                             .size(cropSide)
                             .align(Alignment.Center)
                             .clip(RoundedCornerShape(32.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .padding(12.dp)
+                            .background(MaterialTheme.colorScheme.surfaceDim)
+                            .clipToBounds()
+                            .capturable(controller = captureController)
+                            .transformable(transformableState)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(28.dp))
-                                .background(MaterialTheme.colorScheme.surfaceDim)
-                                .clipToBounds()
-                        ) {
-                            when {
-                                isLoading -> {
-                                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                                }
+                        when {
+                            isLoading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
 
-                                loadError != null -> {
-                                    Text(
-                                        text = loadError!!,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .padding(16.dp),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
+                            loadError != null -> {
+                                Text(
+                                    text = loadError!!,
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .padding(16.dp)
+                                )
+                            }
 
-                                 loadedBitmap != null -> {
-                                    val bitmap = loadedBitmap!!
-                                    val baseScale = maxOf(containerSize / bitmap.width, containerSize / bitmap.height)
-                                    val displayWidth = with(LocalDensity.current) { (bitmap.width * baseScale).toDp() }
-                                    val displayHeight = with(LocalDensity.current) { (bitmap.height * baseScale).toDp() }
+                            loadedBitmap != null -> {
+                                val bitmap = loadedBitmap!!
+                                val baseScale = maxOf(containerSize / bitmap.width, containerSize / bitmap.height)
+                                val displayWidth = with(LocalDensity.current) { (bitmap.width * baseScale).toDp() }
+                                val displayHeight = with(LocalDensity.current) { (bitmap.height * baseScale).toDp() }
+                                
+                                Image(
+                                    bitmap = loadedBitmap!!,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .requiredSize(displayWidth, displayHeight)
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                            translationX = offset.x
+                                            translationY = offset.y
+                                        }
+                                )
 
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(28.dp))
-                                            .background(MaterialTheme.colorScheme.surface)
-                                            .clipToBounds()
-                                            .capturable(controller = captureController)
-                                            .transformable(transformableState)
-                                    ) {
-                                        Image(
-                                            bitmap = bitmap,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .requiredSize(displayWidth, displayHeight)
-                                                .graphicsLayer {
-                                                    scaleX = scale
-                                                    scaleY = scale
-                                                    translationX = offset.x
-                                                    translationY = offset.y
-                                                }
+                                Canvas(modifier = Modifier.matchParentSize()) {
+                                    val step = size.width / 3f
+                                    for (index in 1 until 3) {
+                                        val lineOffset = step * index
+                                        drawLine(
+                                            color = gridColor,
+                                            start = Offset(lineOffset, 0f),
+                                            end = Offset(lineOffset, size.height),
+                                            strokeWidth = 2f
+                                        )
+                                        drawLine(
+                                            color = gridColor,
+                                            start = Offset(0f, lineOffset),
+                                            end = Offset(size.width, lineOffset),
+                                            strokeWidth = 2f
                                         )
                                     }
-
-                                    Canvas(modifier = Modifier.matchParentSize()) {
-                                        val step = size.width / 3f
-                                        for (index in 1 until 3) {
-                                            val lineOffset = step * index
-                                            drawLine(
-                                                color = gridColor,
-                                                start = Offset(lineOffset, 0f),
-                                                end = Offset(lineOffset, size.height),
-                                                strokeWidth = 2f
-                                            )
-                                            drawLine(
-                                                color = gridColor,
-                                                start = Offset(0f, lineOffset),
-                                                end = Offset(size.width, lineOffset),
-                                                strokeWidth = 2f
-                                            )
-                                        }
-                                        drawRect(color = gridColor, style = Stroke(width = 3f))
-                                    }
+                                    drawRect(color = gridColor, style = Stroke(width = 3f))
                                 }
                             }
                         }

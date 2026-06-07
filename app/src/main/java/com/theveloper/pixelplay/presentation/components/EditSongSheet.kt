@@ -939,7 +939,6 @@ fun CoverArtCropperDialog(
                             .clip(RoundedCornerShape(32.dp))
                             .background(MaterialTheme.colorScheme.surfaceDim)
                             .clipToBounds()
-                            .capturable(controller = captureController)
                             .transformable(transformableState)
                     ) {
                         when {
@@ -964,19 +963,27 @@ fun CoverArtCropperDialog(
                                 val displayWidth = with(LocalDensity.current) { (bitmap.width * baseScale).toDp() }
                                 val displayHeight = with(LocalDensity.current) { (bitmap.height * baseScale).toDp() }
                                 
-                                Image(
-                                    bitmap = loadedBitmap!!,
-                                    contentDescription = null,
+                                Box(
                                     modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .requiredSize(displayWidth, displayHeight)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            translationX = offset.x
-                                            translationY = offset.y
-                                        }
-                                )
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceDim)
+                                        .clipToBounds()
+                                        .capturable(controller = captureController)
+                                ) {
+                                    Image(
+                                        bitmap = loadedBitmap!!,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .requiredSize(displayWidth, displayHeight)
+                                            .graphicsLayer {
+                                                scaleX = scale
+                                                scaleY = scale
+                                                translationX = offset.x
+                                                translationY = offset.y
+                                            }
+                                    )
+                                }
 
                                 Canvas(modifier = Modifier.matchParentSize()) {
                                     val step = size.width / 3f

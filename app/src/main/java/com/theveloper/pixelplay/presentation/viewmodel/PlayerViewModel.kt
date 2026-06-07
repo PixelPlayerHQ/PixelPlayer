@@ -1495,7 +1495,7 @@ class PlayerViewModel @Inject constructor(
         allSongsFlow,
         favoriteSongIds
     ) { songs, favs ->
-        songs.filter { favs.contains(it.id) }.take(50)
+        songs.filter { favs.contains(it.id) }.take(5000)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         // --- CONSOLIDATED UI BRIDGES FOR ALL 4 FEATURES ---
     
@@ -1503,22 +1503,26 @@ class PlayerViewModel @Inject constructor(
     val favoriteSongs: StateFlow<List<Song>> = combine(
         allSongsFlow,
         favoriteSongIds
-    ) { songs, favs -> songs.filter { favs.contains(it.id) }.take(50) }
+    ) { songs, favs -> songs.filter { favs.contains(it.id) }.take(5000) }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 2. Recently Added
     val recentlyAddedSongs: StateFlow<List<Song>> = allSongsFlow
-        .map { songs -> songs.sortedByDescending { it.dateAdded }.take(50) }
+        .map { songs -> songs.sortedByDescending { it.dateAdded }.take(5000) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 3. Recently Played
-    val recentlyPlayedSongs: StateFlow<List<Song>> = playbackHistory
-        .map { history -> history.take(50) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // 3. Recently Played 
+    val recentlyPlayedSongs: StateFlow<List<Song>> = combine(
+        playbackHistory,
+        libraryStateHolder.allSongsById
+    ) { history, songsById ->
+        history.mapNotNull { entry -> songsById[entry.songId] }.take(5000)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+      
 
     // 4. Most Played (Using stats tracker if available, otherwise fallback to recent)
     val mostPlayedSongs: StateFlow<List<Song>> = allSongsFlow
-        .map { songs -> songs.take(50) } 
+        .map { songs -> songs.take(5000) } 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
 

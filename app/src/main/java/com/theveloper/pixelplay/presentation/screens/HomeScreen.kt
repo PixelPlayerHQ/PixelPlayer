@@ -491,12 +491,13 @@ fun HomeScreen(
                         )
                     }
                 }
-                // --- NEW CUSTOM CATEGORIES ---
+                                // --- NEW CUSTOM CATEGORIES ---
                 item { MusicCategoryRow(title = "Recently Added") }
                 item { MusicCategoryRow(title = "Recently Played") }
                 item { MusicCategoryRow(title = "Most Played") }
                 item { MusicCategoryRow(title = "Favorites") }
                 // -----------------------------
+                
 
 
 

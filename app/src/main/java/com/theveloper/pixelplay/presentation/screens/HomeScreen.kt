@@ -491,6 +491,15 @@ fun HomeScreen(
                         )
                     }
                 }
+                // --- NEW CUSTOM CATEGORIES ---
+                item { MusicCategoryRow(title = "Recently Added") }
+                item { MusicCategoryRow(title = "Recently Played") }
+                item { MusicCategoryRow(title = "Most Played") }
+                item { MusicCategoryRow(title = "Favorites") }
+                // -----------------------------
+
+
+
             }
         }
         Box(
@@ -885,3 +894,25 @@ private fun rememberYourMixTitleStyle(): TextStyle {
         )
     }
 }
+// --- NEW COMPONENT BLUEPRINT ---
+@Composable
+fun MusicCategoryRow(title: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(horizontal = 16.dp)
+                .background(Color.Gray.copy(alpha = 0.2f), shape = RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Connecting to database...")
+        }
+    }
+}
+

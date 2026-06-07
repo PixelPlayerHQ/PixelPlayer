@@ -149,6 +149,11 @@ fun HomeScreen(
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+        val recentlyAdded by playerViewModel.recentlyAddedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val recentlyPlayed by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val mostPlayed by playerViewModel.mostPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val favorites by playerViewModel.favoriteSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    
 
     val usesFallbackHomeMix = remember(curatedYourMixSongs, dailyMixSongs) {
         curatedYourMixSongs.isEmpty() && dailyMixSongs.isEmpty()
@@ -897,22 +902,35 @@ private fun rememberYourMixTitleStyle(): TextStyle {
 }
 // --- NEW COMPONENT BLUEPRINT ---
 @Composable
-fun MusicCategoryRow(title: String) {
+fun MusicCategoryRow(
+    title: String, 
+    songs: List<Song>, 
+    onSongClick: (Song) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .padding(horizontal = 16.dp)
-                .background(Color.Gray.copy(alpha = 0.2f), shape = RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Connecting to database...")
+            items(songs.size) { index ->
+                val song = songs[index]
+                Card(
+                    modifier = Modifier.size(100.dp).clickable { onSongClick(song) },
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    SmartImage(
+                        model = song.albumArtUriString,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
         }
     }
 }

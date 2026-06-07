@@ -496,11 +496,27 @@ fun HomeScreen(
                         )
                     }
                 }
-                                // --- NEW CUSTOM CATEGORIES ---
-                item { MusicCategoryRow(title = "Recently Added") }
-                item { MusicCategoryRow(title = "Recently Played") }
-                item { MusicCategoryRow(title = "Most Played") }
-                item { MusicCategoryRow(title = "Favorites") }
+// --- CONNECTED CUSTOM CATEGORIES --- 
+item { 
+    MusicCategoryRow(title = "Recently Added", songs = recentlyAdded) { song -> 
+        playerViewModel.showAndPlaySong(song, recentlyAdded, "Recently Added") 
+    } 
+}
+item { 
+    MusicCategoryRow(title = "Recently Played", songs = recentlyPlayed) { song -> 
+        playerViewModel.showAndPlaySong(song, recentlyPlayed, "Recently Played") 
+    } 
+}
+item { 
+    MusicCategoryRow(title = "Most Played", songs = mostPlayed) { song -> 
+        playerViewModel.showAndPlaySong(song, mostPlayed, "Most Played") 
+    } 
+}
+item { 
+    MusicCategoryRow(title = "Favorites", songs = favorites) { song -> 
+        playerViewModel.showAndPlaySong(song, favorites, "Favorites") 
+    } 
+}
                 // -----------------------------
                 
 

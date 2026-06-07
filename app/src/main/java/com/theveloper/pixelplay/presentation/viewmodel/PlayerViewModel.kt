@@ -1488,6 +1488,14 @@ class PlayerViewModel @Inject constructor(
     // Library State - delegated to LibraryStateHolder
     // Favorites now use paginated flow from LibraryStateHolder (DB-level sort & filter)
     val favoritesPagingFlow = libraryStateHolder.favoritesPagingFlow
+        // --- CUSTOM UI BRIDGES ---
+    val customFavoriteSongs: StateFlow<List<Song>> = combine(
+        allSongsFlow,
+        favoriteSongIds
+    ) { songs, favs ->
+        songs.filter { favs.contains(it.id) }.take(50)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
 
     // Daily mix state is now managed by DailyMixStateHolder
     val dailyMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.dailyMixSongs

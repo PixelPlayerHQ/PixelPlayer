@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -225,51 +226,54 @@ fun ExpressiveScrollBar(
     dragLabelSize: Dp = 40.dp,
     dragLabelGap: Dp = 10.dp
 ) {
+    if (!LocalShowScrollbar.current) return
+
+    val canScrollForward by remember(listState, gridState) { derivedStateOf { listState?.canScrollForward ?: gridState?.canScrollForward ?: false } }
+    val canScrollBackward by remember(listState, gridState) { derivedStateOf { listState?.canScrollBackward ?: gridState?.canScrollBackward ?: false } }
+    val canScroll = canScrollForward || canScrollBackward
+
     val listMetricsTracker = remember(listState) { AxisObservationTracker() }
     val gridMetricsTracker = remember(gridState) { AxisObservationTracker() }
-    var isPressed by remember { mutableStateOf(false) }
-    var isDragging by remember { mutableStateOf(false) }
-    var dragProgress by remember { mutableFloatStateOf(-1f) }
-    var pendingScrollIndex by remember { mutableIntStateOf(-1) }
-    var retainedDragLabel by remember { mutableStateOf<String?>(null) }
-    val displayedProgress = remember { Animatable(0f) }
-    var hasSyncedDisplayedProgress by remember { mutableStateOf(false) }
-
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceVariantColor = MaterialTheme.colorScheme.secondaryContainer
-    val innerIcon = Icons.Rounded.UnfoldMore
     val expandedIndicatorWidth = (indicatorExpandedWidth + indicatorExpandedWidthBoost).coerceAtLeast(thickness)
-    val indicatorRightCornerRadiusPx = with(LocalDensity.current) { indicatorRightCornerRadius.toPx() }
-
-    val isInteracting = isPressed || isDragging
-    
-    val animatedWidth by animateDpAsState(
-        targetValue = if (isInteracting) expandedIndicatorWidth else thickness,
-        animationSpec = tween(durationMillis = 200),
-        label = "WidthAnimation"
-    )
-    
-    val iconAlpha by animateFloatAsState(
-        targetValue = if (isInteracting) 1f else 0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "IconAlpha"
-    )
 
     BoxWithConstraints(
         modifier = modifier
             .fillMaxHeight()
-            .width(expandedIndicatorWidth + paddingEnd)
+            .width(if (canScroll) expandedIndicatorWidth + paddingEnd else 0.dp)
     ) {
+        if (!canScroll) return@BoxWithConstraints
+
+        var isPressed by remember(listState, gridState) { mutableStateOf(false) }
+        var isDragging by remember(listState, gridState) { mutableStateOf(false) }
+        var dragProgress by remember(listState, gridState) { mutableFloatStateOf(-1f) }
+        var pendingScrollIndex by remember(listState, gridState) { mutableIntStateOf(-1) }
+        var retainedDragLabel by remember(listState, gridState) { mutableStateOf<String?>(null) }
+        val displayedProgress = remember(listState, gridState) { Animatable(0f) }
+        var hasSyncedDisplayedProgress by remember(listState, gridState) { mutableStateOf(false) }
+
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val surfaceVariantColor = MaterialTheme.colorScheme.secondaryContainer
+        val innerIcon = Icons.Rounded.UnfoldMore
+        val indicatorRightCornerRadiusPx = with(LocalDensity.current) { indicatorRightCornerRadius.toPx() }
+
+        val isInteracting = isPressed || isDragging
+        
+        val animatedWidth by animateDpAsState(
+            targetValue = if (isInteracting) expandedIndicatorWidth else thickness,
+            animationSpec = tween(durationMillis = 200),
+            label = "WidthAnimation"
+        )
+        
+        val iconAlpha by animateFloatAsState(
+            targetValue = if (isInteracting) 1f else 0f,
+            animationSpec = tween(durationMillis = 200),
+            label = "IconAlpha"
+        )
         val density = LocalDensity.current
         val constraintsMaxWidth = maxWidth
         val constraintsMaxHeight = maxHeight
         val coarseJumpThresholdPx = with(density) { 16.dp.toPx() }
         val smoothJumpMinDistancePx = with(density) { 10.dp.toPx() }
-
-        val canScrollForward by remember { derivedStateOf { listState?.canScrollForward ?: gridState?.canScrollForward ?: false } }
-        val canScrollBackward by remember { derivedStateOf { listState?.canScrollBackward ?: gridState?.canScrollBackward ?: false } }
-        
-        if (!canScrollForward && !canScrollBackward) return@BoxWithConstraints
 
         fun getScrollStats(): ScrollMetrics {
             val totalItemsCount: Int
@@ -433,7 +437,7 @@ fun ExpressiveScrollBar(
             )
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(listState, gridState) {
             snapshotFlow { pendingScrollIndex }
                 .distinctUntilChanged()
                 .collectLatest { index ->

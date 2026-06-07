@@ -90,6 +90,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.theveloper.pixelplay.presentation.screens.TabAnimation
 import com.theveloper.pixelplay.presentation.viewmodel.DirectoryEntry
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.utils.StorageInfo
 import java.io.File
 
@@ -396,7 +397,7 @@ fun FileExplorerContent(
                                     ),
                                 contentPadding = PaddingValues(
                                     bottom = 24.dp,
-                                    end = if (listState.canScrollForward || listState.canScrollBackward) 24.dp else 0.dp
+                                    end = if (LocalShowScrollbar.current && (listState.canScrollForward || listState.canScrollBackward)) 24.dp else 0.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
                                 state = listState

@@ -240,6 +240,7 @@ constructor(
         // ReplayGain
         val REPLAYGAIN_ENABLED = booleanPreferencesKey("replaygain_enabled")
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
+        val SHOW_SCROLLBAR = booleanPreferencesKey("show_scrollbar")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -789,6 +790,17 @@ constructor(
     suspend fun setReplayGainUseAlbumGain(useAlbumGain: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.REPLAYGAIN_USE_ALBUM_GAIN] = useAlbumGain
+        }
+    }
+
+    val showScrollbarFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.SHOW_SCROLLBAR] ?: true
+        }
+
+    suspend fun setShowScrollbar(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_SCROLLBAR] = enabled
         }
     }
 

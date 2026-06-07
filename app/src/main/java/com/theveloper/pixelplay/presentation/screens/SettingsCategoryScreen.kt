@@ -85,6 +85,7 @@ import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonDefaults
@@ -559,6 +560,13 @@ fun SettingsCategoryScreen(
                                     checked = uiState.disableBlurAllOver,
                                     onCheckedChange = { settingsViewModel.setDisableBlurAllOver(it) },
                                     leadingIcon = { Icon(Icons.Rounded.BlurOff, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.setcat_show_scrollbar_title),
+                                    subtitle = stringResource(R.string.setcat_show_scrollbar_subtitle),
+                                    checked = uiState.showScrollbar,
+                                    onCheckedChange = { settingsViewModel.setShowScrollbar(it) },
+                                    leadingIcon = { Icon(Icons.Rounded.UnfoldMore, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
 

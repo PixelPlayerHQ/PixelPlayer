@@ -242,6 +242,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.LoadState
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.presentation.components.LibrarySortBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import com.theveloper.pixelplay.data.service.wear.PhoneWatchTransferState
@@ -3059,9 +3060,10 @@ fun LibraryFoldersTab(
                         }
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
+                            val showScrollbar = LocalShowScrollbar.current && (listState.canScrollForward || listState.canScrollBackward)
                             LazyColumn(
                                 modifier = Modifier
-                                    .padding(start = 12.dp, end = if (listState.canScrollForward || listState.canScrollBackward) 22.dp else 12.dp)
+                                    .padding(start = 12.dp, end = if (showScrollbar) 22.dp else 12.dp)
                                     .fillMaxSize()
                                     .clip(
                                         RoundedCornerShape(
@@ -3075,7 +3077,8 @@ fun LibraryFoldersTab(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 contentPadding = PaddingValues(
                                     bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap,
-                                    top = 0.dp                            )
+                                    top = 0.dp
+                                )
                             ) {
                                 if (showPlaylistCards) {
                                     items(itemsToShow, key = { it.path }, contentType = { "folder_card" }) { folder ->

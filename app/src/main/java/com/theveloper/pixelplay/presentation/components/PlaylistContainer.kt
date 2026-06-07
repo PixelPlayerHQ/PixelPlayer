@@ -88,6 +88,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistUiState
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistSelectionStateHolder
 import com.theveloper.pixelplay.utils.formatSongCount
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import androidx.compose.foundation.combinedClickable
 import kotlinx.coroutines.flow.map
 
@@ -268,7 +269,7 @@ fun PlaylistItems(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
-                .padding(start = 12.dp, end = if (listState.canScrollForward || listState.canScrollBackward) 22.dp else 12.dp, bottom = 6.dp)
+                .padding(start = 12.dp, end = if (LocalShowScrollbar.current && (listState.canScrollForward || listState.canScrollBackward)) 22.dp else 12.dp, bottom = 6.dp)
                 .fillMaxSize()
                 .clip(
                     RoundedCornerShape(

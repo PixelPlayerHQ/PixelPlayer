@@ -109,7 +109,8 @@ data class SettingsUiState(
     val minTracksPerAlbum: Int = 1,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
-    val isSafeTokenLimitEnabled: Boolean = true
+    val isSafeTokenLimitEnabled: Boolean = true,
+    val showScrollbar: Boolean = true
 )
 
 data class FailedSongInfo(
@@ -168,7 +169,8 @@ private sealed interface SettingsUiUpdate {
         val immersiveLyricsTimeout: Long,
         val animatedLyricsBlurEnabled: Boolean,
         val animatedLyricsBlurStrength: Float,
-        val disableBlurAllOver: Boolean
+        val disableBlurAllOver: Boolean,
+        val showScrollbar: Boolean
     ) : SettingsUiUpdate
 }
 
@@ -562,7 +564,8 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.immersiveLyricsTimeoutFlow,
                 userPreferencesRepository.animatedLyricsBlurEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurStrengthFlow,
-                userPreferencesRepository.disableBlurAllOverFlow
+                userPreferencesRepository.disableBlurAllOverFlow,
+                userPreferencesRepository.showScrollbarFlow
             ) { values ->
                 SettingsUiUpdate.Group2(
                     keepPlayingInBackground = values[0] as Boolean,
@@ -582,7 +585,8 @@ class SettingsViewModel @Inject constructor(
                     immersiveLyricsTimeout = values[14] as Long,
                     animatedLyricsBlurEnabled = values[15] as Boolean,
                     animatedLyricsBlurStrength = values[16] as Float,
-                    disableBlurAllOver = values[17] as Boolean
+                    disableBlurAllOver = values[17] as Boolean,
+                    showScrollbar = values[18] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -604,7 +608,8 @@ class SettingsViewModel @Inject constructor(
                         immersiveLyricsTimeout = update.immersiveLyricsTimeout,
                         animatedLyricsBlurEnabled = update.animatedLyricsBlurEnabled,
                         animatedLyricsBlurStrength = update.animatedLyricsBlurStrength,
-                        disableBlurAllOver = update.disableBlurAllOver
+                        disableBlurAllOver = update.disableBlurAllOver,
+                        showScrollbar = update.showScrollbar
                     )
                 }
             }
@@ -836,6 +841,12 @@ class SettingsViewModel @Inject constructor(
     fun setShowPlayerFileInfo(show: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setShowPlayerFileInfo(show)
+        }
+    }
+
+    fun setShowScrollbar(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setShowScrollbar(enabled)
         }
     }
 

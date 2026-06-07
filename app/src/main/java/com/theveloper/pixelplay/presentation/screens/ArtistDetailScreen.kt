@@ -71,6 +71,7 @@ import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.SmartImageCompactListTargetSize
@@ -282,8 +283,10 @@ fun ArtistDetailScreen(
                             .forEach { staleKey -> expandedSections.remove(staleKey) }
                     }
 
-                    val showScrollBar by remember {
+                    val isScrollbarEnabled = LocalShowScrollbar.current
+                    val showScrollBar by remember(isScrollbarEnabled) {
                         derivedStateOf {
+                            isScrollbarEnabled &&
                             collapseFraction > 0.95f &&
                                 (lazyListState.canScrollForward || lazyListState.canScrollBackward)
                         }
@@ -390,7 +393,7 @@ fun ArtistDetailScreen(
 
                     }
 
-                    if (collapseFraction > 0.95f) {
+                    if (showScrollBar) {
                         ExpressiveScrollBar(
                             listState = lazyListState,
                             modifier = Modifier

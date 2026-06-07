@@ -58,6 +58,7 @@ import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
+import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.presentation.components.GenreSortBottomSheet
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImageCompactListTargetSize
@@ -129,8 +130,10 @@ fun GenreDetailScreen(
             1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)).coerceIn(0f, 1f)
         }
     }
-    val showScrollBar by remember {
+    val isScrollbarEnabled = LocalShowScrollbar.current
+    val showScrollBar by remember(isScrollbarEnabled) {
         derivedStateOf {
+            isScrollbarEnabled &&
             collapseFraction > 0.95f &&
                 (lazyListState.canScrollForward || lazyListState.canScrollBackward)
         }

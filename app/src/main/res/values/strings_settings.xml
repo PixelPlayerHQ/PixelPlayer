@@ -136,6 +136,10 @@
     <string
         name="setcat_disable_blur_all_over_subtitle"
     >Turn off blur effects across the app to save battery and resources.</string>
+    <string name="setcat_show_scrollbar_title">Show Scrollbar</string>
+    <string
+        name="setcat_show_scrollbar_subtitle"
+    >Display lateral scrollbar on music lists for quick scrolling</string>
     <string name="setcat_now_playing">Now Playing</string>
     <string name="setcat_player_theme_label">Player Theme</string>
     <string

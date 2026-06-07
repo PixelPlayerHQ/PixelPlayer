@@ -24,6 +24,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import androidx.core.graphics.ColorUtils
 
 val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
+val LocalShowScrollbar = staticCompositionLocalOf { true }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

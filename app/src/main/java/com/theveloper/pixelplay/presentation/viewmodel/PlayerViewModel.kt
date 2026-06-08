@@ -111,6 +111,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -793,6 +794,13 @@ class PlayerViewModel @Inject constructor(
         return resolvePlaybackQueueFromSortedIds(sortedIds)
     }
 
+    suspend fun getSongsForCurrentFavoriteSelection(): List<Song> {
+        val sortOption = playerUiState.value.currentFavoriteSortOption
+        val storageFilter = playerUiState.value.currentStorageFilter
+        val sortedIds = musicRepository.getFavoriteSongIdsSorted(sortOption, storageFilter)
+        return resolvePlaybackQueueFromSortedIds(sortedIds)
+    }
+
     private fun launchLatestFullQueuePlayback(
         song: Song,
         queueName: String,
@@ -1007,12 +1015,45 @@ class PlayerViewModel @Inject constructor(
         stablePlayerState
             .map { it.currentSong?.albumArtUriString?.takeIf { uri -> uri.isNotBlank() } }
             .distinctUntilChanged()
-            .onEach { artworkUri ->
+            // mapLatest cancels in-flight extraction for songs that are skipped over during a
+            // rapid next/previous burst, so only the latest song's palette is computed. Combined
+            // with the neighbor preloading below, the latest song is usually already a cache hit,
+            // so the color resolves immediately instead of after a backlog of intermediate songs.
+            .mapLatest { artworkUri ->
                 themeStateHolder.extractAndGenerateColorScheme(
                     albumArtUriAsUri = artworkUri?.toUri(),
                     currentSongUriString = artworkUri,
                     isPreload = false
                 )
+            }
+            .launchIn(viewModelScope)
+
+        // Preload neighbor album-art palettes so a skip lands on an already-cached color scheme
+        // (instant memory-cache hit) and the color animation starts in step with the carousel
+        // instead of trailing it. ensureAlbumColorScheme runs off-thread (IO -> Default) and
+        // dedups in-flight work, so this adds no main-thread cost. Bounded to ±radius neighbors.
+        combine(
+            stablePlayerState.map { it.currentMediaItemIndex }.distinctUntilChanged(),
+            queueFlow
+        ) { index, queue -> index to queue }
+            // Collapse rapid skip bursts: mapLatest cancels the pending delay whenever the index
+            // changes again within the window, so we only quantize neighbor palettes once the user
+            // settles on a song — never for every intermediate song flicked past. Keeps the heavy
+            // Celebi work off the critical path during a burst.
+            .mapLatest { pair ->
+                kotlinx.coroutines.delay(220)
+                pair
+            }
+            .onEach { (index, queue) ->
+                if (index !in queue.indices) return@onEach
+                val radius = 1
+                for (offset in -radius..radius) {
+                    if (offset == 0) continue
+                    queue.getOrNull(index + offset)
+                        ?.albumArtUriString
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { themeStateHolder.ensureAlbumColorScheme(it) }
+                }
             }
             .launchIn(viewModelScope)
 

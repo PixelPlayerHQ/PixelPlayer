@@ -239,6 +239,18 @@ fun HomeScreen(
     val currentSong by remember(playerViewModel.stablePlayerState) {
         playerViewModel.stablePlayerState.map { it.currentSong }
     }.collectAsStateWithLifecycle(initialValue = null)
+        // --- INSTANT RECENTLY PLAYED FIX ---
+    val instantRecentlyPlayed = remember(currentSong, recentlyPlayed) {
+        val list = recentlyPlayed.toMutableList()
+        currentSong?.let { song ->
+            list.removeAll { it.id == song.id }
+            list.add(0, song)
+        }
+        list
+    }
+    // -----------------------------------
+
+
 
     // 3) Observe shuffle state for sync
     val isShuffleEnabled by remember(playerViewModel.stablePlayerState) {
@@ -496,28 +508,42 @@ fun HomeScreen(
                         )
                     }
                 }
-// --- CONNECTED CUSTOM CATEGORIES --- 
-item { 
-    MusicCategoryRow(title = "Recently Added", songs = recentlyAdded) { song -> 
-        playerViewModel.showAndPlaySong(song, recentlyAdded, "Recently Added") 
-    } 
-}
-item { 
-    MusicCategoryRow(title = "Recently Played", songs = recentlyPlayed) { song -> 
-        playerViewModel.showAndPlaySong(song, recentlyPlayed, "Recently Played") 
-    } 
-}
-item { 
-    MusicCategoryRow(title = "Most Played", songs = mostPlayed) { song -> 
-        playerViewModel.showAndPlaySong(song, mostPlayed, "Most Played") 
-    } 
-}
-item { 
-    MusicCategoryRow(title = "Favorites", songs = favorites) { song -> 
-        playerViewModel.showAndPlaySong(song, favorites, "Favorites") 
-    } 
-}
-                // -----------------------------
+                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES ---
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Recently Added", 
+                        songs = recentlyAdded, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, recentlyAdded, "Recently Added") },
+                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyAdded.route) }
+                    ) 
+                }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Recently Played", 
+                        songs = instantRecentlyPlayed, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, instantRecentlyPlayed, "Recently Played") },
+                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
+                    ) 
+                }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Most Played", 
+                        songs = mostPlayed, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, mostPlayed, "Most Played") },
+                        onViewAllClick = { /* Add navigation if needed */ } 
+                    ) 
+                }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Favorites", 
+                        songs = favorites, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, favorites, "Favorites") },
+                        onViewAllClick = { /* Add navigation if needed */ } 
+                    ) 
+                }
+                // ------------------------------------------------
+
+
                 
 
 
@@ -916,35 +942,148 @@ private fun rememberYourMixTitleStyle(): TextStyle {
         )
     }
 }
-// --- NEW COMPONENT BLUEPRINT ---
+// --- ADVANCED MATERIAL 3 EXPRESSIVE UI COMPONENTS ---
+
 @Composable
-fun MusicCategoryRow(
-    title: String, 
-    songs: List<Song>, 
-    onSongClick: (Song) -> Unit
+fun AdvancedSongGridItem(
+    song: Song,
+    onClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        androidx.compose.foundation.lazy.LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(songs.size) { index ->
-                val song = songs[index]
-                Card(
-                    modifier = Modifier.size(100.dp).clickable { onSongClick(song) },
-                    shape = RoundedCornerShape(8.dp)
+            Card(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                SmartImage(
+                    model = song.albumArtUriString,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.displayArtist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdvancedExpressiveCategoryContainer(
+    title: String,
+    songs: List<Song>,
+    onSongClick: (Song) -> Unit,
+    onViewAllClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        // Section Header with Arrow Navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onViewAllClick() }
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                contentDescription = "View All",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // Content Area (Empty State OR Dynamic Horizontal Grid)
+        if (songs.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .padding(horizontal = 16.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(24.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    SmartImage(
-                        model = song.albumArtUriString,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = "No recent plays or data in $title",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        text = "Play more songs to fill this timeline.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        } else {
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Creates a beautifully organized grid layout inside horizontal scrolling
+                val chunks = songs.chunked(2)
+                items(chunks.size) { chunkIndex ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        chunks[chunkIndex].forEach { song ->
+                            AdvancedSongGridItem(
+                                song = song,
+                                onClick = { onSongClick(song) }
+                            )
+                        }
+                    }
                 }
             }
         }

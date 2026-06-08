@@ -753,6 +753,49 @@ private val BottomNavEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 private val MAIN_ROOT_TRANSITION_SPEC =
     tween<IntOffset>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION, easing = BottomNavEasing)
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootEnterTransition(
+    fromRoute: String?,
+    toRoute: String?,
+    fallback: EnterTransition
+): EnterTransition {
+    val direction = mainRootDirection(fromRoute, toRoute) ?: return fallback
+    return when (direction) {
+        MainRootDirection.FORWARD -> {
+            slideInHorizontally(
+                animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+                initialOffsetX = { (it * 0.5f).toInt() }
+            ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
+        }
+        MainRootDirection.BACKWARD -> {
+            slideInHorizontally(
+                animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+                initialOffsetX = { -(it * 0.5f).toInt() }
+            ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
+        }
+    }
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootExitTransition(
+    fromRoute: String?,
+    toRoute: String?,
+    fallback: ExitTransition
+): ExitTransition {
+    val direction = mainRootDirection(fromRoute, toRoute) ?: return fallback
+    return when (direction) {
+        MainRootDirection.FORWARD -> {
+            slideOutHorizontally(
+                animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+                targetOffsetX = { -(it * 0.5f).toInt() }
+            ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
+        }
+        MainRootDirection.BACKWARD -> {
+            slideOutHorizontally(
+                animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+                targetOffsetX = { (it * 0.5f).toInt() }
+            ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
+        }
+    }
+}
 
 private val MAIN_ROOT_FADE_SPEC =
     tween<Float>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION / 2, easing = BottomNavEasing)

@@ -45,7 +45,7 @@ fun DynamicCategoryScreen(
 ) {
     var selectedFilter by remember { mutableStateOf(TimeFilter.WEEK_TO_DATE) }
 
-    // REAL VIEWMODEL FILTERING
+    // Real ViewModel Filtering Logic
     val filteredSongs = remember(baseSongs, selectedFilter) {
         playerViewModel.filterSongsByTime(baseSongs, selectedFilter)
     }
@@ -60,7 +60,7 @@ fun DynamicCategoryScreen(
     )
 }
 
-// 3. Perfect Material 3 UI (Matching your Screenshot)
+// 3. Complete UI Implementation (Material 3 Expressive Look)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedFilteredListScreen(
@@ -105,26 +105,25 @@ fun AdvancedFilteredListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Large Screen Title
+            // Large Bold Screen Title
             Text(
                 text = title,
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp)
             )
 
-            // Horizontal Filter Chips (Material 3 Expressive Theming)
+            // Horizontal Filter Chips
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(TimeFilter.entries) { filter ->
                     val isSelected = selectedFilter == filter
                     Surface(
                         modifier = Modifier.clickable { onFilterSelected(filter) },
-                        shape = RoundedCornerShape(24.dp), // Perfect Pill Shape
-                        // Dynamic Material Theming
+                        shape = RoundedCornerShape(24.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         border = if (!isSelected) BorderStroke(1.2.dp, MaterialTheme.colorScheme.outlineVariant) else null
                     ) {
@@ -133,19 +132,18 @@ fun AdvancedFilteredListScreen(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)
                         )
                     }
                 }
             }
 
-            // Content Area (Empty State or List)
+            // Content Area (Empty State or Song List)
             if (songs.isEmpty()) {
-                // Empty State Card (Screenshot match)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(24.dp)
@@ -170,9 +168,9 @@ fun AdvancedFilteredListScreen(
                     }
                 }
             } else {
-                // Populated Vertical Song List
+                // Fixed PaddingValues here to prevent compilation candidate errors
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(songs.size) { index ->

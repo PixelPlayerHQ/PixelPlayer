@@ -73,6 +73,105 @@ import DelimiterConfigScreen
 import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
 import com.theveloper.pixelplay.presentation.navigation.Screen // <-- এই লাইনটি এখানে যোগ করুন
 import android.annotation.SuppressLint
+package com.theveloper.pixelplay.presentation.navigation
+
+import DelimiterConfigScreen
+import com.theveloper.pixelplay.presentation.navigation.Screen
+import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
+import android.annotation.SuppressLint
+import androidx.annotation.OptIn
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
+import androidx.compose.ui.unit.IntOffset
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.theveloper.pixelplay.data.preferences.LaunchTab
+import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.presentation.screens.AlbumDetailScreen
+import com.theveloper.pixelplay.presentation.screens.AccountsScreen
+import com.theveloper.pixelplay.presentation.screens.ArtistDetailScreen
+import com.theveloper.pixelplay.presentation.screens.ArtistSettingsScreen
+import com.theveloper.pixelplay.presentation.screens.DailyMixScreen
+import com.theveloper.pixelplay.presentation.screens.EditTransitionScreen
+import com.theveloper.pixelplay.presentation.screens.EasterEggScreen
+import com.theveloper.pixelplay.presentation.screens.ExperimentalSettingsScreen
+import com.theveloper.pixelplay.presentation.screens.GenreDetailScreen
+import com.theveloper.pixelplay.presentation.screens.HomeScreen
+import com.theveloper.pixelplay.presentation.screens.LibraryScreen
+import com.theveloper.pixelplay.presentation.screens.MashupScreen
+import com.theveloper.pixelplay.presentation.screens.NavBarCornerRadiusScreen
+import com.theveloper.pixelplay.presentation.screens.PaletteStyleSettingsScreen
+import com.theveloper.pixelplay.presentation.screens.PlaylistDetailScreen
+import com.theveloper.pixelplay.presentation.screens.RecentlyPlayedScreen
+import com.theveloper.pixelplay.presentation.screens.AboutScreen
+import com.theveloper.pixelplay.presentation.screens.SearchScreen
+import com.theveloper.pixelplay.presentation.screens.StatsScreen
+import com.theveloper.pixelplay.presentation.screens.SettingsScreen
+import com.theveloper.pixelplay.presentation.screens.SettingsCategoryScreen
+import com.theveloper.pixelplay.presentation.screens.EqualizerScreen
+import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
+import kotlinx.coroutines.flow.first
+import com.theveloper.pixelplay.presentation.components.ScreenWrapper
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
+import androidx.compose.animation.AnimatedContentTransitionScope
+
+@OptIn(UnstableApi::class)
+@SuppressLint("UnrememberedGetBackStackEntry")
+@Composable
+fun AppNavigation(
+    playerViewModel: PlayerViewModel,
+    navController: NavHostController,
+    paddingValues: PaddingValues,
+    userPreferencesRepository: UserPreferencesRepository,
+    onSearchBarActiveChange: (Boolean) -> Unit,
+    onOpenSidebar: () -> Unit
+) {
+    // ... (আপনার নেভিগেশন গ্রাফ এবং কম্পোজেবলগুলো অপরিবর্তিত থাকবে)
+    // নিশ্চিত করুন যে এখানে কোনো অতিরিক্ত বা মিসিং ব্র্যাকেট নেই।
+    // (আপনার দেওয়া টেক্সট ফাইল অনুযায়ী পুরো গ্রাফটি এখানে আগের মতোই থাকবে)
+}
+
+// ট্রানজিশন হেল্পার ফাংশনগুলো
+private fun mainRootRouteIndex(route: String?): Int? = when (route) {
+    Screen.Home.route -> 0
+    Screen.Search.route -> 1
+    Screen.Library.route -> 2
+    else -> null
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootEnterTransition(
+    fromRoute: String?,
+    toRoute: String?,
+    fallback: EnterTransition
+): EnterTransition = when (mainRootDirection(fromRoute, toRoute)) {
+    // ... (লজিক অক্ষুন্ন থাকবে)
+    null -> fallback
+}
+
 ...
 
 

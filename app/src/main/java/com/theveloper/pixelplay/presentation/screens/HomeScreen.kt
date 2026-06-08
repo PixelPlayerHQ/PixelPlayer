@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Card
@@ -122,7 +123,6 @@ import androidx.compose.ui.res.stringResource
 
 private const val HomeLoadingPlaceholderMinDurationMillis = 1200L
 
-// Modern HomeScreen with collapsible top bar and staggered grid layout
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,7 +138,6 @@ fun HomeScreen(
     onOpenSidebar: () -> Unit
 ) {
     val context = LocalContext.current
-    // DETECTAR MODO BENCHMARK
     val isBenchmarkMode = remember {
         (context as? android.app.Activity)?.intent?.getBooleanExtra("is_benchmark", false) ?: false
     }
@@ -149,6 +148,10 @@ fun HomeScreen(
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val recentlyAdded by playerViewModel.recentlyAddedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val recentlyPlayed by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val mostPlayed by playerViewModel.mostPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val favorites by playerViewModel.favoriteSongs.collectAsStateWithLifecycle(initialValue = emptyList())
 
     val usesFallbackHomeMix = remember(curatedYourMixSongs, dailyMixSongs) {
         curatedYourMixSongs.isEmpty() && dailyMixSongs.isEmpty()
@@ -160,6 +163,7 @@ fun HomeScreen(
             else -> homeMixPreviewSongs
         }
     }
+   
     var homePlaceholderRefreshGeneration by rememberSaveable { mutableIntStateOf(0) }
     var hasHomeLoadingMinimumElapsed by rememberSaveable(homePlaceholderRefreshGeneration) {
         mutableStateOf(false)
@@ -197,7 +201,7 @@ fun HomeScreen(
             maxItems = 64
         )
     }
-    // Keep the visible Home snapshot stable and only refresh it once the screen is off-screen.
+
     var recentlyPlayedSongs by rememberSaveable { mutableStateOf(latestRecentlyPlayedSongs) }
     val latestRecentlyPlayedSongsState = rememberUpdatedState(latestRecentlyPlayedSongs)
 
@@ -230,19 +234,27 @@ fun HomeScreen(
 
     val yourMixSong: String = "Today's Mix for you"
 
-    // 2) Observar sólo el currentSong (o null) para saber si mostrar padding
     val currentSong by remember(playerViewModel.stablePlayerState) {
         playerViewModel.stablePlayerState.map { it.currentSong }
     }.collectAsStateWithLifecycle(initialValue = null)
 
-    // 3) Observe shuffle state for sync
+    // --- INSTANT RECENTLY PLAYED FIX ---
+    val instantRecentlyPlayed = remember(currentSong, recentlyPlayed) {
+        val list = recentlyPlayed.toMutableList()
+        currentSong?.let { song ->
+            list.removeAll { it.id == song.id }
+            list.add(0, song)
+        }
+        list
+    }
+    // -----------------------------------
+
     val isShuffleEnabled by remember(playerViewModel.stablePlayerState) {
         playerViewModel.stablePlayerState
             .map { it.isShuffleEnabled }
             .distinctUntilChanged()
     }.collectAsStateWithLifecycle(initialValue = false)
 
-    // Padding inferior si hay canción en reproducción
     val bottomPadding = if (currentSong != null) MiniPlayerHeight else 0.dp
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
     val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
@@ -255,7 +267,6 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState()
     val betaSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
-    LocalContext.current
 
     val homeStatsOverview by statsViewModel.homeOverview.collectAsStateWithLifecycle()
 
@@ -266,9 +277,6 @@ fun HomeScreen(
         derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > scrollThresholdPx }
     }
 
-    // Persist the scroll position across navigation away/back. The Stats card and other
-    // conditional sections can shift indices while data re-emits when returning, which
-    // would otherwise leave the list scrolled to the wrong place or jump to the top.
     var savedScrollIndex by rememberSaveable { mutableIntStateOf(0) }
     var savedScrollOffset by rememberSaveable { mutableIntStateOf(0) }
     var needsScrollRestore by rememberSaveable { mutableStateOf(false) }
@@ -300,11 +308,8 @@ fun HomeScreen(
         needsScrollRestore = false
     }
 
-    // Drawer state for sidebar
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val shouldShowCleanInstallDisclaimer =
-        settingsUiState.beta05CleanInstallDisclaimerDismissed == false &&
-            !cleanInstallDisclaimerDismissedThisSession
+    val shouldShowCleanInstallDisclaimer = settingsUiState.beta05CleanInstallDisclaimerDismissed == false && !cleanInstallDisclaimerDismissedThisSession
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -326,21 +331,20 @@ fun HomeScreen(
                          showStreamingProviderSheet = true
                     },
                     onMenuClick = {
-                        // onOpenSidebar() // Disabled
+                         // onOpenSidebar() // Disabled
                     },
                     isScrolled = isScrolledPastThreshold.value
                 )
             }
         ) { innerPadding ->
-            LazyColumn(
+             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = paddingValuesParent.calculateBottomPadding()
-                            + 38.dp + bottomPadding
+                    bottom = paddingValuesParent.calculateBottomPadding() + 38.dp + bottomPadding
                 ),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
@@ -433,26 +437,26 @@ fun HomeScreen(
                                 navController.navigateSafely(Screen.DailyMixScreen.route)
                             },
                             onNavigateToAlbum = { song ->
-                                navController.navigateSafelyReplacing(
+                                 navController.navigateSafelyReplacing(
                                     route = Screen.AlbumDetail.createRoute(song.albumId),
                                     patternToPop = Screen.AlbumDetail.route
                                 )
                             },
                             onNavigateToArtist = { song ->
-                                navController.navigateSafelyReplacing(
+                                 navController.navigateSafelyReplacing(
                                     route = Screen.ArtistDetail.createRoute(song.artistId),
                                     patternToPop = Screen.ArtistDetail.route
                                 )
                             },
                             onNavigateToGenre = { song ->
-                                song.genre?.let {
+                                 song.genre?.let {
                                     navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
                                 }
                             },
                             playerViewModel = playerViewModel
                         )
                     }
-                }
+                 }
 
                 if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
                     item(
@@ -490,8 +494,43 @@ fun HomeScreen(
                             onClick = { navController.navigateSafely(Screen.Stats.route) }
                         )
                     }
+               }
+                                
+                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES ---
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Recently Added", 
+                        songs = recentlyAdded, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, recentlyAdded, "Recently Added") },
+                        onViewAllClick = { navController.navigateSafely("recently_added_route") } 
+                    ) 
                 }
-            }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Recently Played", 
+                        songs = instantRecentlyPlayed, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, instantRecentlyPlayed, "Recently Played") },
+                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
+                    ) 
+                }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Most Played", 
+                        songs = mostPlayed, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, mostPlayed, "Most Played") },
+                        onViewAllClick = { navController.navigateSafely("most_played_route") } 
+                    ) 
+                }
+                item { 
+                    AdvancedExpressiveCategoryContainer(
+                        title = "Favorites", 
+                        songs = favorites, 
+                        onSongClick = { playerViewModel.showAndPlaySong(it, favorites, "Favorites") },
+                        onViewAllClick = { navController.navigateSafely("favorites_route") } 
+                    ) 
+                }
+                // -------------------------------------------------------------------
+             }
         }
         Box(
             modifier = Modifier
@@ -508,24 +547,22 @@ fun HomeScreen(
                         )
                     )
                 )
-        ) {
-
-        }
+        ) {}
     }
     if (showOptionsBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showOptionsBottomSheet = false },
             sheetState = sheetState
         ) {
-            HomeOptionsBottomSheet(
+             HomeOptionsBottomSheet(
                 onNavigateToMashup = {
                     scope.launch {
                         sheetState.hide()
                     }.invokeOnCompletion {
-                        if (!sheetState.isVisible) {
+                       if (!sheetState.isVisible) {
                             showOptionsBottomSheet = false
                             navController.navigateSafely(Screen.DJSpace.route)
-                        }
+                       }
                     }
                 }
             )
@@ -542,8 +579,7 @@ fun HomeScreen(
     if (showBetaInfoBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBetaInfoBottomSheet = false },
-            sheetState = betaSheetState,
-            //contentWindowInsets = { WindowInsets.statusBars.only(WindowInsets.statusBars) }
+            sheetState = betaSheetState
         ) {
             BetaInfoBottomSheet()
         }
@@ -554,21 +590,21 @@ fun HomeScreen(
         val isNavidromeLoggedIn by navidromeViewModel.isLoggedIn.collectAsStateWithLifecycle()
         val isJellyfinLoggedIn by jellyfinViewModel.isLoggedIn.collectAsStateWithLifecycle()
         StreamingProviderSheet(
-            onDismissRequest = { showStreamingProviderSheet = false },
+             onDismissRequest = { showStreamingProviderSheet = false },
             isNeteaseLoggedIn = isNeteaseLoggedIn,
             onNavigateToNeteaseDashboard = {
                 navController.navigateSafely(Screen.NeteaseDashboard.route)
             },
             isQqMusicLoggedIn = isQqMusicLoggedIn,
             onNavigateToQqMusicDashboard = {
-                navController.navigateSafely(Screen.QqMusicDashboard.route)
+                 navController.navigateSafely(Screen.QqMusicDashboard.route)
             },
             isNavidromeLoggedIn = isNavidromeLoggedIn,
             onNavigateToNavidromeDashboard = {
                 navController.navigateSafely(Screen.NavidromeDashboard.route)
             },
             isJellyfinLoggedIn = isJellyfinLoggedIn,
-            onNavigateToJellyfinDashboard = {
+             onNavigateToJellyfinDashboard = {
                 navController.navigateSafely(Screen.JellyfinDashboard.route)
             }
         )
@@ -577,7 +613,7 @@ fun HomeScreen(
         Beta05CleanInstallDisclaimerDialog(
             onDismiss = { dontShowAgain ->
                 cleanInstallDisclaimerDismissedThisSession = true
-                if (dontShowAgain) {
+                 if (dontShowAgain) {
                     settingsViewModel.setBeta05CleanInstallDisclaimerDismissed(true)
                 }
             }
@@ -628,61 +664,61 @@ private fun YourMixEmptyPlaceholder(
                     cornerRadiusBR = 28.dp,
                     smoothnessAsPercentTL = 60,
                     cornerRadiusBL = 28.dp,
-                    smoothnessAsPercentBR = 60,
+                     smoothnessAsPercentBR = 60,
                     cornerRadiusTR = 28.dp,
                     smoothnessAsPercentBL = 60,
                 ),
                 color = colors.secondaryContainer,
-                contentColor = colors.onSecondaryContainer
+                 contentColor = colors.onSecondaryContainer
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
+                         contentDescription = null,
                         modifier = Modifier.size(34.dp)
                     )
                 }
             }
 
-            Column(
+             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = stringResource(R.string.home_empty_placeholder_title),
-                    style = MaterialTheme.typography.titleLarge,
+                     style = MaterialTheme.typography.titleLarge,
                     color = colors.onSurface,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = stringResource(R.string.home_empty_placeholder_subtitle),
+                     text = stringResource(R.string.home_empty_placeholder_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
-                )
+                 )
             }
 
             FilledTonalButton(
                 onClick = onRefresh,
                 shape = AbsoluteSmoothCornerShape(
                     cornerRadiusTL = 22.dp,
-                    smoothnessAsPercentTR = 60,
+                     smoothnessAsPercentTR = 60,
                     cornerRadiusBR = 22.dp,
                     smoothnessAsPercentTL = 60,
                     cornerRadiusBL = 22.dp,
-                    smoothnessAsPercentBR = 60,
+                     smoothnessAsPercentBR = 60,
                     cornerRadiusTR = 22.dp,
                     smoothnessAsPercentBL = 60,
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Refresh,
+                     imageVector = Icons.Rounded.Refresh,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.home_empty_placeholder_refresh))
+                 Text(text = stringResource(R.string.home_empty_placeholder_refresh))
             }
         }
     }
@@ -697,7 +733,6 @@ fun YourMixHeader(
 ) {
     val buttonCorners = 68.dp
     val colors = MaterialTheme.colorScheme
-
     val titleStyle = rememberYourMixTitleStyle()
 
     Box(
@@ -710,24 +745,21 @@ fun YourMixHeader(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 48.dp, start = 12.dp)
-        ) {
-            // Your Mix Title
+         ) {
             Text(
                 text = stringResource(R.string.home_your_mix_title),
                 style = titleStyle,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
+                 modifier = Modifier
             )
 
-            // Artist/Song subtitle
             Text(
                 text = song,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                 modifier = Modifier.padding(start = 8.dp)
             )
         }
-        // Play Button - color changes based on shuffle state
         LargeExtendedFloatingActionButton(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -737,26 +769,24 @@ fun YourMixHeader(
             contentColor = if (isShuffleEnabled) colors.onPrimary else colors.onTertiaryContainer,
             shape = AbsoluteSmoothCornerShape(
                 cornerRadiusTL = buttonCorners,
-                smoothnessAsPercentTR = 60,
+                 smoothnessAsPercentTR = 60,
                 cornerRadiusBR = buttonCorners,
                 smoothnessAsPercentTL = 60,
                 cornerRadiusBL = buttonCorners,
                 smoothnessAsPercentBR = 60,
                 cornerRadiusTR = buttonCorners,
-                smoothnessAsPercentBL = 60,
+                 smoothnessAsPercentBL = 60,
             )
         ) {
             Icon(
                 painter = painterResource(R.drawable.rounded_shuffle_24),
                 contentDescription = stringResource(R.string.cd_shuffle_play),
-                modifier = Modifier.size(36.dp)
+                 modifier = Modifier.size(36.dp)
             )
         }
     }
 }
 
-
-// SongListItem (modificado para aceptar parámetros individuales)
 @Composable
 fun SongListItemFavs(
     modifier: Modifier = Modifier,
@@ -781,14 +811,14 @@ fun SongListItemFavs(
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
-            modifier = Modifier
+             modifier = Modifier
                 .padding(12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                modifier = Modifier
+                 modifier = Modifier
                     .weight(0.9f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -798,40 +828,39 @@ fun SongListItemFavs(
                     contentScale = ContentScale.Crop,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.size(48.dp)
-                )
+                 )
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleMedium,
+                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
                         color = contentColor,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
+                     )
                     Text(
                         text = artist, style = MaterialTheme.typography.bodyMedium,
                         color = contentColor.copy(alpha = 0.7f),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             Spacer(Modifier.width(16.dp))
             if (isCurrentSong) {
-                PlayingEqIcon(
+                 PlayingEqIcon(
                     modifier = Modifier
                         .weight(0.1f)
                         .padding(start = 8.dp)
-                        .size(width = 18.dp, height = 16.dp), // similar al tamaño del ícono
+                     .size(width = 18.dp, height = 16.dp),
                     color = colors.primary,
-                    isPlaying = isPlaying  // o conectalo a tu estado real de reproducción
+                    isPlaying = isPlaying
                 )
-            }
+             }
         }
     }
 }
 
-// Wrapper Composable for SongListItemFavs to isolate state observation
-@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun SongListItemFavsWrapper(
     song: Song,
@@ -839,15 +868,11 @@ fun SongListItemFavsWrapper(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Collect the stablePlayerState once
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
-
-    // Derive isThisSongPlaying using remember
     val isThisSongPlaying = remember(song.id, stablePlayerState.currentSong?.id, stablePlayerState.isPlaying) {
         song.id == stablePlayerState.currentSong?.id
     }
 
-    // Call the presentational composable
     SongListItemFavs(
         modifier = modifier,
         cardCorners = 0.dp,
@@ -860,28 +885,219 @@ fun SongListItemFavsWrapper(
     )
 }
 
-
 @OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberYourMixTitleStyle(): TextStyle {
-    return remember {
+     return remember {
         TextStyle(
             fontFamily = FontFamily(
                 Font(
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(636),
+                         FontVariation.weight(636),
                         FontVariation.width(152f),
                         FontVariation.Setting("ROND", 50f),
                         FontVariation.Setting("XTRA", 520f),
-                        FontVariation.Setting("YOPQ", 90f),
+                         FontVariation.Setting("YOPQ", 90f),
                         FontVariation.Setting("YTLC", 505f)
                     )
                 )
             ),
             fontWeight = FontWeight(760),
-            fontSize = 64.sp,
+             fontSize = 64.sp,
             lineHeight = 62.sp
         )
+    }
+}
+
+// --- FINAL PREMIUM MATERIAL 3 UI COMPONENTS (MATCHING SCREENSHOT) ---
+
+@Composable
+fun AdvancedSongGridItem(
+    song: Song,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .width(260.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                modifier = Modifier.size(42.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                 SmartImage(
+                    model = song.albumArtUriString,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                 )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f),
+                 verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                 Text(
+                    text = song.displayArtist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                    maxLines = 1,
+                     overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+// --- FINAL PREMIUM MATERIAL 3 UI COMPONENTS (MATCHING SCREENSHOT) ---
+
+@Composable
+fun AdvancedSongGridItem(
+    song: Song,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .width(260.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                modifier = Modifier.size(42.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                 SmartImage(
+                    model = song.albumArtUriString,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                 )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f),
+                 verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                 Text(
+                    text = song.displayArtist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                    maxLines = 1,
+                     overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdvancedExpressiveCategoryContainer(
+    title: String,
+    songs: List<Song>,
+    onSongClick: (Song) -> Unit,
+    onViewAllClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
+        Row(
+             modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                 style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Surface(
+                 modifier = Modifier
+                    .size(40.dp)
+                    .clickable { onViewAllClick() },
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowForward,
+                        contentDescription = "View All",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+             }
+        }
+
+        if (songs.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                     .padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = "No songs available in this section yet.",
+                     style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                 horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val chunks = songs.chunked(3)
+                items(chunks.size) { chunkIndex ->
+                     Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        chunks[chunkIndex].forEach { song ->
+                             AdvancedSongGridItem(
+                                song = song,
+                                onClick = { onSongClick(song) }
+                             )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

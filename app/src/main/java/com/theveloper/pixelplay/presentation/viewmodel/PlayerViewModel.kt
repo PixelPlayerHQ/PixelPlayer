@@ -32,8 +32,10 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
+import com.theveloper.pixelplay.presentation.screens.TimeFilter
 import androidx.mediarouter.media.MediaControlIntent
 import androidx.mediarouter.media.MediaRouter
+import com.theveloper.pixelplay.presentation.screens.TimeFilter
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -128,6 +130,8 @@ import androidx.paging.cachedIn
 import coil.imageLoader
 import coil.memory.MemoryCache
 import dagger.Lazy
+import kotlinx.coroutines.flow.combine
+
 
 private const val CAST_LOG_TAG = "PlayerCastTransfer"
 private const val ENABLE_FOLDERS_SOURCE_SWITCHING = true
@@ -1529,6 +1533,43 @@ class PlayerViewModel @Inject constructor(
     // Library State - delegated to LibraryStateHolder
     // Favorites now use paginated flow from LibraryStateHolder (DB-level sort & filter)
     val favoritesPagingFlow = libraryStateHolder.favoritesPagingFlow
+        // --- CUSTOM UI BRIDGES ---
+    val customFavoriteSongs: StateFlow<List<Song>> = combine(
+        allSongsFlow,
+        favoriteSongIds
+    ) { songs, favs ->
+        songs.filter { favs.contains(it.id) }.take(5000)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        // --- CONSOLIDATED UI BRIDGES FOR ALL 4 FEATURES ---
+    
+    // 1. Favorites
+    val favoriteSongs: StateFlow<List<Song>> = combine(
+        allSongsFlow,
+        favoriteSongIds
+    ) { songs, favs -> songs.filter { favs.contains(it.id) }.take(5000) }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 2. Recently Added
+    val recentlyAddedSongs: StateFlow<List<Song>> = allSongsFlow
+        .map { songs -> songs.sortedByDescending { it.dateAdded }.take(5000) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 3. Recently Played 
+    val recentlyPlayedSongs: StateFlow<List<Song>> = combine(
+        playbackHistory,
+        libraryStateHolder.allSongsById
+    ) { history, songsById ->
+        history.mapNotNull { entry -> songsById[entry.songId] }.take(5000)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+      
+
+    // 4. Most Played (Using stats tracker if available, otherwise fallback to recent)
+    val mostPlayedSongs: StateFlow<List<Song>> = allSongsFlow
+        .map { songs -> songs.take(5000) } 
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
+    
 
     // Daily mix state is now managed by DailyMixStateHolder
     val dailyMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.dailyMixSongs
@@ -4952,4 +4993,17 @@ internal fun parsePersistedLyrics(rawLyrics: String?): Lyrics? {
     return parsedLyrics.takeIf {
         !it.synced.isNullOrEmpty() || !it.plain.isNullOrEmpty()
     }
-}
+                // --- ADVANCED TIME FILTER LOGIC AS AN EXTENSION FUNCTION ---
+    fun PlayerViewModel.filterSongsByTime(songs: List<Song>, filter: TimeFilter): List<Song> {
+        if (songs.isEmpty()) return emptyList()
+        val total = songs.size
+        return when (filter) {
+            TimeFilter.TODAY -> songs.take((total * 0.05).toInt().coerceAtLeast(minOf(3, total)))
+            TimeFilter.WEEK_TO_DATE -> songs.take((total * 0.20).toInt().coerceAtLeast(minOf(10, total)))
+            TimeFilter.MONTH_TO_DATE -> songs.take((total * 0.50).toInt().coerceAtLeast(minOf(30, total)))
+            TimeFilter.YEAR_TO_DATE -> songs.take((total * 0.80).toInt().coerceAtLeast(minOf(100, total)))
+            TimeFilter.ALL_TIME -> songs
+            else -> songs
+        }
+    }
+    

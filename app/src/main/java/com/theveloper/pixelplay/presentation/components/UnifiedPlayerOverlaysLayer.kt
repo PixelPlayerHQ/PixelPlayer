@@ -216,16 +216,13 @@ internal fun UnifiedPlayerSongInfoLayer(
                         contextSongs = currentPlaybackQueueProvider(),
                         queueName = currentQueueSourceNameProvider()
                     )
-                    onDismissSongInfo()
                 },
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(liveSong)
-                    onDismissSongInfo()
                     Toast.makeText(context, context.getString(R.string.toast_added_to_queue), Toast.LENGTH_SHORT).show()
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(liveSong)
-                    onDismissSongInfo()
                     Toast.makeText(context, context.getString(R.string.toast_playing_next), Toast.LENGTH_SHORT).show()
                 },
                 onAddToPlayList = {

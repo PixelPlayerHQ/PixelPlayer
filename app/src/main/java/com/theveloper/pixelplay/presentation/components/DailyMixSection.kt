@@ -119,15 +119,12 @@ fun DailyMixSection(
                     queueName = dailyMixQueueName,
                     isVoluntaryPlay = false
                 )
-                showSongInfoSheet = false
             },
             onAddToQueue = {
                 playerViewModel.addSongToQueue(song)
-                showSongInfoSheet = false
             },
             onAddNextToQueue = {
                 playerViewModel.addSongNextToQueue(song)
-                showSongInfoSheet = false
             },
             onAddToPlayList = {
                 showPlaylistBottomSheet = true

@@ -186,15 +186,12 @@ fun DailyMixScreen(
             onDismiss = { showSongInfoSheet = false },
             onPlaySong = {
                 playerViewModel.showAndPlaySong(song, dailyMixSongs, dailyMixTitle, isVoluntaryPlay = false)
-                showSongInfoSheet = false
             },
             onAddToQueue = {
                 playerViewModel.addSongToQueue(song)
-                showSongInfoSheet = false
             },
             onAddNextToQueue = {
                 playerViewModel.addSongNextToQueue(song)
-                showSongInfoSheet = false
             },
             onAddToPlayList = {
                 showPlaylistBottomSheet = true;

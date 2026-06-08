@@ -455,15 +455,12 @@ fun SearchScreen(
                 onDismiss = { showSongInfoBottomSheet = false },
                 onPlaySong = {
                     playerViewModel.showAndPlaySong(currentSong)
-                    showSongInfoBottomSheet = false
                 },
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(currentSong)
-                    showSongInfoBottomSheet = false
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(currentSong)
-                    showSongInfoBottomSheet = false
                 },
                 onAddToPlayList = {
                     showPlaylistBottomSheet = true;

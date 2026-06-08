@@ -489,16 +489,13 @@ fun GenreDetailScreen(
                         onDismiss = { showSongOptionsSheet = null },
                         onPlaySong = {
                             playerViewModel.showAndPlaySong(song, uiState.sortedSongs, genreDisplayName)
-                            showSongOptionsSheet = null
                         },
                         onAddToQueue = {
                             playerViewModel.addSongToQueue(song)
-                            showSongOptionsSheet = null
                             playerViewModel.sendToast(toastAddedToQueue)
                         },
                         onAddNextToQueue = {
                             playerViewModel.addSongNextToQueue(song)
-                            showSongOptionsSheet = null
                             playerViewModel.sendToast(toastPlayingNext)
                         },
                         onAddToPlayList = {

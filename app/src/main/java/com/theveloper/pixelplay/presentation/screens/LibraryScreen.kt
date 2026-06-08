@@ -1867,16 +1867,13 @@ fun LibraryScreen(
                 onDismiss = { showSongInfoBottomSheet = false },
                 onPlaySong = {
                     playerViewModel.showAndPlaySong(currentSong)
-                    showSongInfoBottomSheet = false
                 },
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(currentSong) // Assumes such a method exists or will be added
-                    showSongInfoBottomSheet = false
                     playerViewModel.sendToast(context.getString(R.string.toast_added_to_queue))
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(currentSong)
-                    showSongInfoBottomSheet = false
                     playerViewModel.sendToast(context.getString(R.string.toast_playing_next))
                 },
                 onAddToPlayList = {

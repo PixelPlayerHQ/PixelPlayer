@@ -288,15 +288,12 @@ fun RecentlyPlayedScreen(
                     if (queueSongs.isNotEmpty()) {
                         playerViewModel.playSongs(queueSongs, song, queueRecentlyPlayed)
                     }
-                    showSongInfoBottomSheet = false
                 },
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(song)
-                    showSongInfoBottomSheet = false
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(song)
-                    showSongInfoBottomSheet = false
                 },
                 onAddToPlayList = {
                     showPlaylistBottomSheet = true

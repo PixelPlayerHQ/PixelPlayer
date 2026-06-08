@@ -977,16 +977,13 @@ fun PlaylistDetailScreen(
                 onDismiss = { showSongInfoBottomSheet = false },
                 onPlaySong = {
                     playerViewModel.showAndPlaySong(currentSong)
-                    showSongInfoBottomSheet = false
                 },
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(currentSong) // Assumes such a method exists or will be added
-                    showSongInfoBottomSheet = false
                     playerViewModel.sendToast(toastAddedToQueue)
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(currentSong)
-                    showSongInfoBottomSheet = false
                     playerViewModel.sendToast(toastPlayingNext)
                 },
                 onAddToPlayList = {

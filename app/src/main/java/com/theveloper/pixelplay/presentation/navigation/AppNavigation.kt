@@ -305,7 +305,8 @@ fun AppNavigation(
                     )
                 }
             }
-                    composable(
+                    // 1. Recently Played Screen Route
+        composable(
             Screen.RecentlyPlayed.route,
             enterTransition = { enterTransition() },
             exitTransition = { exitTransition() },
@@ -313,7 +314,6 @@ fun AppNavigation(
             popExitTransition = { popExitTransition() },
         ) {
             val recentlyPlayedSongs by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
-            
             ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                 com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
                     title = "Recently Played",
@@ -325,6 +325,74 @@ fun AppNavigation(
                     }
                 )
             }
+        }
+
+        // 2. Recently Added Screen Route
+        composable(
+            "recently_added_route",
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { popEnterTransition() },
+            popExitTransition = { popExitTransition() },
+        ) {
+            val recentlyAddedSongs by playerViewModel.recentlyAddedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+            ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
+                    title = "Recently Added",
+                    baseSongs = recentlyAddedSongs,
+                    playerViewModel = playerViewModel,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song -> 
+                        playerViewModel.showAndPlaySong(song, recentlyAddedSongs, "Recently Added") 
+                    }
+                )
+            }
+        }
+
+        // 3. Most Played Screen Route
+        composable(
+            "most_played_route",
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { popEnterTransition() },
+            popExitTransition = { popExitTransition() },
+        ) {
+            val mostPlayedSongs by playerViewModel.mostPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+            ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
+                    title = "Most Played",
+                    baseSongs = mostPlayedSongs,
+                    playerViewModel = playerViewModel,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song -> 
+                        playerViewModel.showAndPlaySong(song, mostPlayedSongs, "Most Played") 
+                    }
+                )
+            }
+        }
+
+        // 4. Favorites Screen Route
+        composable(
+            "favorites_route",
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { popEnterTransition() },
+            popExitTransition = { popExitTransition() },
+        ) {
+            val favoriteSongs by playerViewModel.favoriteSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+            ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
+                    title = "Favorites",
+                    baseSongs = favoriteSongs,
+                    playerViewModel = playerViewModel,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song -> 
+                        playerViewModel.showAndPlaySong(song, favoriteSongs, "Favorites") 
+                    }
+                )
+            }
+        }
+        
                     }
                     
             composable(

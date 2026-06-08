@@ -611,68 +611,7 @@ fun AppNavigation(
                 popEnterTransition = { popEnterTransition() },
                 popExitTransition = { popExitTransition() },
             ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DeviceCapabilitiesScreen(
-                        navController = navController,
-                        playerViewModel = playerViewModel
-                    )
-                }
-            }
-            composable(
-                Screen.NeteaseDashboard.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable(
-                Screen.QqMusicDashboard.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.qqmusic.dashboard.QqMusicDashboardScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable(
-                Screen.NavidromeDashboard.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.navidrome.dashboard.NavidromeDashboardScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable(
-                Screen.JellyfinDashboard.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
-        }
-    }
-}
+    
 
 private fun String.toRoute(): String = when (this) {
     LaunchTab.SEARCH -> Screen.Search.route

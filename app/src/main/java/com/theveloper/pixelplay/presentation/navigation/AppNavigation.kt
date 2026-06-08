@@ -1,7 +1,6 @@
 package com.theveloper.pixelplay.presentation.navigation
 
 import DelimiterConfigScreen
-import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
 import android.annotation.SuppressLint
 import androidx.annotation.OptIn
@@ -50,6 +49,7 @@ import com.theveloper.pixelplay.presentation.screens.NavBarCornerRadiusScreen
 import com.theveloper.pixelplay.presentation.screens.PaletteStyleSettingsScreen
 import com.theveloper.pixelplay.presentation.screens.PlaylistDetailScreen
 import com.theveloper.pixelplay.presentation.screens.RecentlyPlayedScreen
+
 import com.theveloper.pixelplay.presentation.screens.AboutScreen
 import com.theveloper.pixelplay.presentation.screens.SearchScreen
 import com.theveloper.pixelplay.presentation.screens.StatsScreen
@@ -60,107 +60,12 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.flow.first
 import com.theveloper.pixelplay.presentation.components.ScreenWrapper
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
-import androidx.compose.animation.AnimatedContentTransitionScope
 
-@OptIn(UnstableApi::class)
-@SuppressLint("UnrememberedGetBackStackEntry")
-@Composable
-fun AppNavigation(
-    playerViewModel: PlayerViewModel,
-    navController: NavHostController,
-    paddingValues: PaddingValues,
-    userPreferencesRepository: UserPreferencesRepository,
-    onSearchBarActiveChange: (Boolean) -> Unit,
-    onOpenSidebar: () -> Unit
-) {
-    var startDestination by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        startDestination = userPreferencesRepository.launchTabFlow
-            .first()
-            .toRoute()
-    }
-
-    startDestination?.let { initialRoute ->
-        NavHost(
-            navController = navController,
-            startDestination = initialRoute
-        ) {
-            composable(
-                Screen.Home.route,
-                enterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, enterTransition()) },
-                exitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, exitTransition()) },
-                popEnterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, popEnterTransition()) },
-                popExitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, popExitTransition()) },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    HomeScreen(navController, paddingValues, playerViewModel, onOpenSidebar)
-                }
-            }
-            composable(
-                Screen.Search.route,
-                enterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, enterTransition()) },
-                exitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, exitTransition()) },
-                popEnterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, popEnterTransition()) },
-                popExitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, popExitTransition()) },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    SearchScreen(paddingValues, playerViewModel, navController, onSearchBarActiveChange)
-                }
-            }
-            composable(
-                Screen.Library.route,
-                enterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, enterTransition()) },
-                exitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, exitTransition()) },
-                popEnterTransition = { mainRootEnterTransition(initialState.destination.route, targetState.destination.route, popEnterTransition()) },
-                popExitTransition = { mainRootExitTransition(initialState.destination.route, targetState.destination.route, popExitTransition()) },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    LibraryScreen(navController, playerViewModel)
-                }
-            }
-            composable(
-                Screen.Settings.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    SettingsScreen(navController, playerViewModel, onNavigationIconClick = { navController.popBackStack() })
-                }
-            }
-            composable(
-                Screen.Accounts.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    AccountsScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onOpenNeteaseDashboard = { navController.navigateSafely(Screen.NeteaseDashboard.route) },
-                        onOpenQqMusicDashboard = { navController.navigateSafely(Screen.QqMusicDashboard.route) },
-                        onOpenNavidromeDashboard = { navController.navigateSafely(Screen.NavidromeDashboard.route) },
-                        onOpenJellyfinDashboard = { navController.navigateSafely(Screen.JellyfinDashboard.route) }
-                    )
-                }
-            }
-            composable(
-                route = Screen.SettingsCategory.route,
-                arguments = listOf(navArgument("categoryId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) { backStackEntry ->
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    val categoryId = backStackEntry.arguments?.getString("categoryId")
-                    if (categoryId != null) {
-                        SettingsCategoryScreen(categoryId, navController, playerViewModel, onBackClick = { navController.popBackStack() })
+                            categoryId = categoryId,
+                            navController = navController,
+                            playerViewModel = playerViewModel,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
                 }
             }
@@ -172,7 +77,10 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    PaletteStyleSettingsScreen(playerViewModel, onBackClick = { navController.popBackStack() })
+                    PaletteStyleSettingsScreen(
+                        playerViewModel = playerViewModel,
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
             }
             composable(
@@ -183,7 +91,11 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    ExperimentalSettingsScreen(navController, playerViewModel, onNavigationIconClick = { navController.popBackStack() })
+                    ExperimentalSettingsScreen(
+                        navController = navController,
+                        playerViewModel = playerViewModel,
+                        onNavigationIconClick = { navController.popBackStack() }
+                    )
                 }
             }
             composable(
@@ -194,163 +106,36 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    DailyMixScreen(playerViewModel, navController)
-                }
-            }
-            composable(
-                Screen.RecentlyPlayed.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                val recentlyPlayedSongs by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
-                        title = "Recently Played",
-                        baseSongs = recentlyPlayedSongs,
+                    DailyMixScreen(
                         playerViewModel = playerViewModel,
-                        onBackClick = { navController.popBackStack() },
-                        onSongClick = { song -> playerViewModel.showAndPlaySong(song, recentlyPlayedSongs, "Recently Played") }
+                        navController = navController
                     )
                 }
             }
-            composable(
-                "recently_added_route",
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                val recentlyAddedSongs by playerViewModel.recentlyAddedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
-                        title = "Recently Added",
-                        baseSongs = recentlyAddedSongs,
-                        playerViewModel = playerViewModel,
-                        onBackClick = { navController.popBackStack() },
-                        onSongClick = { song -> playerViewModel.showAndPlaySong(song, recentlyAddedSongs, "Recently Added") }
-                    )
-                }
-            }
-            composable(
-                "most_played_route",
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                val mostPlayedSongs by playerViewModel.mostPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
-                        title = "Most Played",
-                        baseSongs = mostPlayedSongs,
-                        playerViewModel = playerViewModel,
-                        onBackClick = { navController.popBackStack() },
-                        onSongClick = { song -> playerViewModel.showAndPlaySong(song, mostPlayedSongs, "Most Played") }
-                    )
-                }
-            }
-            composable(
-                "favorites_route",
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                val favoriteSongs by playerViewModel.favoriteSongs.collectAsStateWithLifecycle(initialValue = emptyList())
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
-                        title = "Favorites",
-                        baseSongs = favoriteSongs,
-                        playerViewModel = playerViewModel,
-                        onBackClick = { navController.popBackStack() },
-                        onSongClick = { song -> playerViewModel.showAndPlaySong(song, favoriteSongs, "Favorites") }
-                    )
-                }
-            }
-            composable(
-                Screen.Stats.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    StatsScreen(navController)
-                }
-            }
-            composable(
-                route = Screen.PlaylistDetail.route,
-                arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) { backStackEntry ->
-                val playlistId = backStackEntry.arguments?.getString("playlistId")
-                val playlistViewModel: PlaylistViewModel = hiltViewModel()
-                if (playlistId != null) {
-                    ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                        PlaylistDetailScreen(playlistId, playerViewModel, playlistViewModel, { navController.popBackStack() }, { navController.popBackStack() }, navController)
+                    // 1. Recently Played Screen Route
+        composable(
+            Screen.RecentlyPlayed.route,
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { popEnterTransition() },
+            popExitTransition = { popExitTransition() },
+        ) {
+            val recentlyPlayedSongs by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+            ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
+                    title = "Recently Played",
+                    baseSongs = recentlyPlayedSongs,
+                    playerViewModel = playerViewModel,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song -> 
+                        playerViewModel.showAndPlaySong(song, recentlyPlayedSongs, "Recently Played") 
                     }
-                }
+                )
             }
-            composable(
-                Screen.DJSpace.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    MashupScreen()
-                }
-            }
-            composable(
-                route = Screen.GenreDetail.route,
-                arguments = listOf(navArgument("genreId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) { backStackEntry ->
-                val genreId = backStackEntry.arguments?.getString("genreId")
-                if (genreId != null) {
-                    ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                        GenreDetailScreen(navController, genreId, playerViewModel)
-                    }
-                } else {
-                    Text(stringResource(R.string.nav_error_genre_id_missing), modifier = Modifier)
-                }
-            }
-            composable(
-                route = Screen.AlbumDetail.route,
-                arguments = listOf(navArgument("albumId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) { backStackEntry ->
-                val albumId = backStackEntry.arguments?.getString("albumId")
-                if (albumId != null) {
-                    ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                        AlbumDetailScreen(albumId, navController, playerViewModel)
-                    }
-                }
-            }
-            composable(
-                route = Screen.ArtistDetail.route,
-                arguments = listOf(navArgument("artistId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) { backStackEntry ->
-                val artistId = backStackEntry.arguments?.getString("artistId")
-                if (artistId != null) {
-                    ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                        ArtistDetailScreen(artistId, navController, playerViewModel)
+        }
+
+                                    playerViewModel = playerViewModel
+                        )
                     }
                 }
             }
@@ -367,14 +152,17 @@ fun AppNavigation(
             }
             composable(
                 route = Screen.EditTransition.route,
-                arguments = listOf(navArgument("playlistId") { type = NavType.StringType; nullable = true }),
+                arguments = listOf(navArgument("playlistId") {
+                    type = NavType.StringType
+                    nullable = true
+                }),
                 enterTransition = { enterTransition() },
                 exitTransition = { exitTransition() },
                 popEnterTransition = { popEnterTransition() },
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    EditTransitionScreen(navController)
+                    EditTransitionScreen(navController = navController)
                 }
             }
             composable(
@@ -385,7 +173,11 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    AboutScreen(navController, playerViewModel, { navController.popBackStack() })
+                    AboutScreen(
+                        navController = navController,
+                        viewModel = playerViewModel,
+                        onNavigationIconClick = { navController.popBackStack() }
+                    )
                 }
             }
             composable(
@@ -396,7 +188,10 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    EasterEggScreen(playerViewModel, { navController.popBackStack() })
+                    EasterEggScreen(
+                        viewModel = playerViewModel,
+                        onNavigationIconClick = { navController.popBackStack() },
+                    )
                 }
             }
             composable(
@@ -407,7 +202,7 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    ArtistSettingsScreen(navController)
+                    ArtistSettingsScreen(navController = navController)
                 }
             }
             composable(
@@ -418,7 +213,7 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    DelimiterConfigScreen(navController)
+                    DelimiterConfigScreen(navController = navController)
                 }
             }
             composable(
@@ -429,7 +224,7 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    WordDelimiterConfigScreen(navController)
+                    WordDelimiterConfigScreen(navController = navController)
                 }
             }
             composable(
@@ -440,7 +235,10 @@ fun AppNavigation(
                 popExitTransition = { popExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    EqualizerScreen(navController, playerViewModel)
+                    EqualizerScreen(
+                        navController = navController,
+                        playerViewModel = playerViewModel
+                    )
                 }
             }
             composable(
@@ -450,52 +248,76 @@ fun AppNavigation(
                 popEnterTransition = { popEnterTransition() },
                 popExitTransition = { popExitTransition() },
             ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    com.theveloper.pixelplay.presentation.screens.DeviceCapabilitiesScreen(navController, playerViewModel)
-                }
-            }
-        }
-    }
-}
 
-private fun String.toRoute(): String = when (this) {
+                private fun String.toRoute(): String = when (this) {
     LaunchTab.SEARCH -> Screen.Search.route
     LaunchTab.LIBRARY -> Screen.Library.route
     else -> Screen.Home.route
 }
 
-private enum class MainRootDirection { FORWARD, BACKWARD }
-private const val BOTTOM_NAV_TRANSITION_DURATION = 380
-private val BottomNavEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
-private val MAIN_ROOT_TRANSITION_SPEC = tween<IntOffset>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION, easing = BottomNavEasing)
-private val MAIN_ROOT_FADE_SPEC = tween<Float>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION / 2, easing = BottomNavEasing)
+private enum class MainRootDirection {
+    FORWARD,
+    BACKWARD
+}
 
-private fun mainRootDirection(fromRoute: String?, toRoute: String?): MainRootDirection? {
+// Base duration for bottom-nav switches at 1x — at 0.5x system scale = ~190 ms.
+private const val BOTTOM_NAV_TRANSITION_DURATION = 380
+
+// MD3 Expressive easing for bottom-nav switches
+private val BottomNavEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+private val MAIN_ROOT_TRANSITION_SPEC =
+    tween<IntOffset>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION, easing = BottomNavEasing)
+
+private val MAIN_ROOT_FADE_SPEC =
+    tween<Float>(durationMillis = BOTTOM_NAV_TRANSITION_DURATION / 2, easing = BottomNavEasing)
+
+private fun mainRootDirection(
+    fromRoute: String?,
+    toRoute: String?
+): MainRootDirection? {
     val fromIndex = mainRootRouteIndex(fromRoute) ?: return null
     val toIndex = mainRootRouteIndex(toRoute) ?: return null
     if (fromIndex == toIndex) return null
     return if (toIndex > fromIndex) MainRootDirection.FORWARD else MainRootDirection.BACKWARD
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootEnterTransition(fromRoute: String?, toRoute: String?, fallback: EnterTransition): EnterTransition {
-    val direction = mainRootDirection(fromRoute, toRoute) ?: return fallback
-    return when (direction) {
-        MainRootDirection.FORWARD -> slideInHorizontally(animationSpec = MAIN_ROOT_TRANSITION_SPEC, initialOffsetX = { (it * 0.5f).toInt() }) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
-        MainRootDirection.BACKWARD -> slideInHorizontally(animationSpec = MAIN_ROOT_TRANSITION_SPEC, initialOffsetX = { -(it * 0.5f).toInt() }) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
+private fun mainRootEnterTransition(
+    fromRoute: String?,
+    toRoute: String?,
+    fallback: EnterTransition
+): EnterTransition = when (mainRootDirection(fromRoute, toRoute)) {
+    MainRootDirection.FORWARD -> {
+        slideInHorizontally(
+            animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+            initialOffsetX = { (it * 0.5f).toInt() }
+        ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
     }
+    MainRootDirection.BACKWARD -> {
+        slideInHorizontally(
+            animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+            initialOffsetX = { -(it * 0.5f).toInt() }
+        ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
+    }
+    null -> fallback
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootExitTransition(fromRoute: String?, toRoute: String?, fallback: ExitTransition): ExitTransition {
-    val direction = mainRootDirection(fromRoute, toRoute) ?: return fallback
-    return when (direction) {
-        MainRootDirection.FORWARD -> slideOutHorizontally(animationSpec = MAIN_ROOT_TRANSITION_SPEC, targetOffsetX = { -(it * 0.5f).toInt() }) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
-        MainRootDirection.BACKWARD -> slideOutHorizontally(animationSpec = MAIN_ROOT_TRANSITION_SPEC, targetOffsetX = { (it * 0.5f).toInt() }) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
+private fun mainRootExitTransition(
+    fromRoute: String?,
+    toRoute: String?,
+    fallback: ExitTransition
+): ExitTransition = when (mainRootDirection(fromRoute, toRoute)) {
+    MainRootDirection.FORWARD -> {
+        slideOutHorizontally(
+            animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+            targetOffsetX = { -(it * 0.5f).toInt() }
+        ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
     }
-}
-
-private fun mainRootRouteIndex(route: String?): Int? = when (route) {
-    Screen.Home.route -> 0
-    Screen.Search.route -> 1
-    Screen.Library.route -> 2
-    else -> null
+    MainRootDirection.BACKWARD -> {
+        slideOutHorizontally(
+            animationSpec = MAIN_ROOT_TRANSITION_SPEC,
+            targetOffsetX = { (it * 0.5f).toInt() }
+        ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
+    }
+    null -> fallback
 }

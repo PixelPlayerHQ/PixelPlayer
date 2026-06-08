@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.presentation.navigation
 
 import DelimiterConfigScreen
+import com.theveloper.pixelplay.presentation.navigation.Screen
+
 import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
 import android.annotation.SuppressLint
 import androidx.annotation.OptIn
@@ -65,6 +67,14 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.animation.AnimatedContentTransitionScope
+package com.theveloper.pixelplay.presentation.navigation
+
+import DelimiterConfigScreen
+import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
+import com.theveloper.pixelplay.presentation.navigation.Screen // <-- এই লাইনটি এখানে যোগ করুন
+import android.annotation.SuppressLint
+...
+
 
 
 @OptIn(UnstableApi::class)
@@ -676,6 +686,12 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootEnterTrans
         ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
     }
     null -> fallback
+}
+private fun mainRootRouteIndex(route: String?): Int? = when (route) {
+    Screen.Home.route -> 0
+    Screen.Search.route -> 1
+    Screen.Library.route -> 2
+    else -> null
 }
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.mainRootExitTransition(

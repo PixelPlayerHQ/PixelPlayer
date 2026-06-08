@@ -23,8 +23,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.SmartImage
+import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 
-// 1. Defined Time Filters
+// 1. Time Filters Definition
 enum class TimeFilter(val label: String) {
     TODAY("Today"),
     WEEK_TO_DATE("Week to Date"),
@@ -33,26 +34,20 @@ enum class TimeFilter(val label: String) {
     ALL_TIME("All Time")
 }
 
-// 2. Logic Wrapper for Proper Functioning
+// 2. Dynamic Logic Wrapper connecting to ViewModel
 @Composable
 fun DynamicCategoryScreen(
     title: String,
     baseSongs: List<Song>,
+    playerViewModel: PlayerViewModel,
     onBackClick: () -> Unit,
     onSongClick: (Song) -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf(TimeFilter.WEEK_TO_DATE) }
 
-    // Simulated Database Filtering
-    // (This dynamically changes the list based on the selected chip)
+    // REAL VIEWMODEL FILTERING
     val filteredSongs = remember(baseSongs, selectedFilter) {
-        when (selectedFilter) {
-            TimeFilter.TODAY -> if (baseSongs.size > 2) baseSongs.take(2) else emptyList()
-            TimeFilter.WEEK_TO_DATE -> if (baseSongs.size > 5) baseSongs.take(5) else emptyList()
-            TimeFilter.MONTH_TO_DATE -> if (baseSongs.size > 10) baseSongs.take(10) else baseSongs
-            TimeFilter.YEAR_TO_DATE -> baseSongs
-            TimeFilter.ALL_TIME -> baseSongs
-        }
+        playerViewModel.filterSongsByTime(baseSongs, selectedFilter)
     }
 
     AdvancedFilteredListScreen(
@@ -65,7 +60,7 @@ fun DynamicCategoryScreen(
     )
 }
 
-// 3. UI Implementation (Matching your Screenshot)
+// 3. Perfect Material 3 UI (Matching your Screenshot)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedFilteredListScreen(
@@ -113,24 +108,25 @@ fun AdvancedFilteredListScreen(
             // Large Screen Title
             Text(
                 text = title,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
 
-            // Horizontal Filter Chips (Material 3 Theming)
+            // Horizontal Filter Chips (Material 3 Expressive Theming)
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(TimeFilter.entries) { filter ->
                     val isSelected = selectedFilter == filter
                     Surface(
                         modifier = Modifier.clickable { onFilterSelected(filter) },
                         shape = RoundedCornerShape(24.dp), // Perfect Pill Shape
+                        // Dynamic Material Theming
                         color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
+                        border = if (!isSelected) BorderStroke(1.2.dp, MaterialTheme.colorScheme.outlineVariant) else null
                     ) {
                         Text(
                             text = filter.label,
@@ -143,7 +139,7 @@ fun AdvancedFilteredListScreen(
                 }
             }
 
-            // Content Area
+            // Content Area (Empty State or List)
             if (songs.isEmpty()) {
                 // Empty State Card (Screenshot match)
                 Box(
@@ -151,7 +147,7 @@ fun AdvancedFilteredListScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(24.dp)
                         )
                 ) {
@@ -174,7 +170,7 @@ fun AdvancedFilteredListScreen(
                     }
                 }
             } else {
-                // Populated Vertical List
+                // Populated Vertical Song List
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)

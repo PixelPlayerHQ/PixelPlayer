@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Card
@@ -509,14 +510,15 @@ fun HomeScreen(
                     }
                 }
                 // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES ---
-                item { 
+                                item { 
                     AdvancedExpressiveCategoryContainer(
                         title = "Recently Added", 
                         songs = recentlyAdded, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, recentlyAdded, "Recently Added") },
-                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyAdded.route) }
+                        onViewAllClick = { /* No dedicated screen for this yet */ } 
                     ) 
-                }
+                                }
+                                
                 item { 
                     AdvancedExpressiveCategoryContainer(
                         title = "Recently Played", 
@@ -1028,8 +1030,9 @@ fun AdvancedExpressiveCategoryContainer(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                        Icon(
+                imageVector = Icons.Rounded.ArrowForward,
+
                 contentDescription = "View All",
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant

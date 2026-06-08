@@ -32,6 +32,7 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
+import com.theveloper.pixelplay.presentation.screens.TimeFilter
 import androidx.mediarouter.media.MediaControlIntent
 import androidx.mediarouter.media.MediaRouter
 import com.theveloper.pixelplay.presentation.screens.TimeFilter
@@ -4992,8 +4993,8 @@ internal fun parsePersistedLyrics(rawLyrics: String?): Lyrics? {
     return parsedLyrics.takeIf {
         !it.synced.isNullOrEmpty() || !it.plain.isNullOrEmpty()
     }
-            // --- ADVANCED TIME FILTER LOGIC WITH EXHAUSTIVE BRANCH ---
-    fun filterSongsByTime(songs: List<Song>, filter: TimeFilter): List<Song> {
+                // --- ADVANCED TIME FILTER LOGIC AS AN EXTENSION FUNCTION ---
+    fun PlayerViewModel.filterSongsByTime(songs: List<Song>, filter: TimeFilter): List<Song> {
         if (songs.isEmpty()) return emptyList()
         val total = songs.size
         return when (filter) {
@@ -5006,5 +5007,3 @@ internal fun parsePersistedLyrics(rawLyrics: String?): Lyrics? {
         }
     }
     
-    
-}

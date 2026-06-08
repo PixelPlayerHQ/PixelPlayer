@@ -509,16 +509,15 @@ fun HomeScreen(
                         )
                     }
                 }
-                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES ---
-                                item { 
+                                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES (SCREENSHOT STYLE) ---
+                item { 
                     AdvancedExpressiveCategoryContainer(
                         title = "Recently Added", 
                         songs = recentlyAdded, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, recentlyAdded, "Recently Added") },
-                        onViewAllClick = { /* No dedicated screen for this yet */ } 
+                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
                     ) 
-                                }
-                                
+                }
                 item { 
                     AdvancedExpressiveCategoryContainer(
                         title = "Recently Played", 
@@ -532,7 +531,7 @@ fun HomeScreen(
                         title = "Most Played", 
                         songs = mostPlayed, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, mostPlayed, "Most Played") },
-                        onViewAllClick = { /* Add navigation if needed */ } 
+                        onViewAllClick = { navController.navigateSafely(Screen.Stats.route) } 
                     ) 
                 }
                 item { 
@@ -540,11 +539,11 @@ fun HomeScreen(
                         title = "Favorites", 
                         songs = favorites, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, favorites, "Favorites") },
-                        onViewAllClick = { /* Add navigation if needed */ } 
+                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
                     ) 
                 }
-                // ------------------------------------------------
-
+                // -------------------------------------------------------------------
+                
 
                 
 
@@ -1003,6 +1002,65 @@ fun AdvancedSongGridItem(
     }
 }
 
+// --- FINAL PREMIUM MATERIAL 3 UI COMPONENTS (MATCHING SCREENSHOT) ---
+
+@Composable
+fun AdvancedSongGridItem(
+    song: Song,
+    onClick: () -> Unit
+) {
+    // Pill-shaped tinted card for each song
+    Surface(
+        modifier = Modifier
+            .width(260.dp) // Wide enough to match the screenshot
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp), // Highly rounded like a pill
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f) // Beautiful dynamic tint
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Album Art
+            Card(
+                modifier = Modifier.size(42.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                SmartImage(
+                    model = song.albumArtUriString,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Text Details
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.displayArtist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun AdvancedExpressiveCategoryContainer(
     title: String,
@@ -1010,75 +1068,70 @@ fun AdvancedExpressiveCategoryContainer(
     onSongClick: (Song) -> Unit,
     onViewAllClick: () -> Unit
 ) {
+    // Removed the outer Card to make it borderless and clean like the screenshot
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 12.dp)
     ) {
-        // Section Header with Arrow Navigation
+        // Header Row (Title + Circular Arrow Button)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onViewAllClick() }
-                .padding(horizontal = 24.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall, // Large bold title
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-                        Icon(
-                imageVector = Icons.Rounded.ArrowForward,
-
-                contentDescription = "View All",
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            
+            // Circular Arrow Button
+            Surface(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable { onViewAllClick() },
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowForward,
+                        contentDescription = "View All",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
 
-        // Content Area (Empty State OR Dynamic Horizontal Grid)
+        // Content Area
         if (songs.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .padding(horizontal = 16.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(24.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "No recent plays or data in $title",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Play more songs to fill this timeline.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
+                Text(
+                    text = "No songs available in this section yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             androidx.compose.foundation.lazy.LazyRow(
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Creates a beautifully organized grid layout inside horizontal scrolling
-                val chunks = songs.chunked(2)
+                // Stacked in 3 rows exactly like your screenshot
+                val chunks = songs.chunked(3)
                 items(chunks.size) { chunkIndex ->
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         chunks[chunkIndex].forEach { song ->
                             AdvancedSongGridItem(
@@ -1092,4 +1145,3 @@ fun AdvancedExpressiveCategoryContainer(
         }
     }
 }
-

@@ -656,6 +656,58 @@ class DualPlayerEngine @Inject constructor(
 
     fun isTransitionRunning(): Boolean = transitionRunning
 
+    fun isUsingWindowedQueue(): Boolean = activePlayerUsesWindowedQueue
+
+    fun getFullQueue(): List<MediaItem> = ensureQueueSnapshot()
+
+    fun getCurrentAbsoluteIndex(): Int {
+        if (!::playerA.isInitialized) return 0
+        val mediaItem = playerA.currentMediaItem ?: return playerA.currentMediaItemIndex.coerceAtLeast(0)
+        val snapshot = ensureQueueSnapshot()
+        val index = resolveCurrentAbsoluteIndex(mediaItem, snapshot)
+        return if (index == C.INDEX_UNSET) {
+            if (activePlayerUsesWindowedQueue) {
+                (activeWindowStartIndex + playerA.currentMediaItemIndex).coerceIn(0, (snapshot.size - 1).coerceAtLeast(0))
+            } else {
+                playerA.currentMediaItemIndex.coerceAtLeast(0)
+            }
+        } else {
+            index
+        }
+    }
+
+    fun triggerAdjacentPreResolution() {
+        if (!::playerA.isInitialized) return
+        preResolutionJob?.cancel()
+        val currentIndex = playerA.currentMediaItemIndex
+        if (currentIndex != C.INDEX_UNSET) {
+            val adjacentCloudUris = mutableListOf<Uri>()
+            if (currentIndex + 1 < playerA.mediaItemCount) {
+                playerA.getMediaItemAt(currentIndex + 1).localConfiguration?.uri?.let { uri ->
+                    if (uri.scheme in REMOTE_MEDIA_SCHEMES) adjacentCloudUris.add(uri)
+                }
+            }
+            if (currentIndex - 1 >= 0) {
+                playerA.getMediaItemAt(currentIndex - 1).localConfiguration?.uri?.let { uri ->
+                    if (uri.scheme in REMOTE_MEDIA_SCHEMES) adjacentCloudUris.add(uri)
+                }
+            }
+
+            if (adjacentCloudUris.isNotEmpty()) {
+                preResolutionJob = scope.launch {
+                    delay(600) // Wait for user to stop skipping/navigating
+                    try {
+                        for (uriToResolve in adjacentCloudUris) {
+                            resolveCloudUri(uriToResolve)
+                        }
+                    } catch (e: Exception) {
+                        Timber.tag("DualPlayerEngine").w(e, "Error during pre-resolution triggered manually")
+                    }
+                }
+            }
+        }
+    }
+
     fun getAudioSessionId(): Int = if (::playerA.isInitialized) playerA.audioSessionId else 0
 
     private var isReleased = false

@@ -229,9 +229,13 @@ class PlaybackStateHolder @Inject constructor(
             val updated = update(current)
             // Auto-populate index from MediaController if not explicitly set by the update
             if (updated.currentMediaItemIndex == -1) {
-                mediaController?.let { controller ->
-                    updated.copy(currentMediaItemIndex = controller.currentMediaItemIndex)
-                } ?: updated
+                if (dualPlayerEngine.isUsingWindowedQueue()) {
+                    updated.copy(currentMediaItemIndex = dualPlayerEngine.getCurrentAbsoluteIndex())
+                } else {
+                    mediaController?.let { controller ->
+                        updated.copy(currentMediaItemIndex = controller.currentMediaItemIndex)
+                    } ?: updated
+                }
             } else {
                 updated
             }

@@ -1,4 +1,4 @@
-package com.theveloper.pixelplay.presentation.navigation
+8package com.theveloper.pixelplay.presentation.navigation
 
 import DelimiterConfigScreen
 import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
@@ -57,6 +57,9 @@ import com.theveloper.pixelplay.presentation.screens.SettingsCategoryScreen
 import com.theveloper.pixelplay.presentation.screens.EqualizerScreen
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.compose.animation.AnimatedContentTransitionScope
+import com.theveloper.pixelplay.presentation.screens.DeviceCapabilitiesScreen
 import kotlinx.coroutines.flow.first
 import com.theveloper.pixelplay.presentation.components.ScreenWrapper
 import androidx.lifecycle.compose.collectAsStateWithLifecycle

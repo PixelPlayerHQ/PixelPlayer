@@ -305,20 +305,28 @@ fun AppNavigation(
                     )
                 }
             }
-            composable(
-                Screen.RecentlyPlayed.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
-            ) {
-                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
-                    RecentlyPlayedScreen(
-                        playerViewModel = playerViewModel,
-                        navController = navController
-                    )
-                }
+                    composable(
+            Screen.RecentlyPlayed.route,
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { popEnterTransition() },
+            popExitTransition = { popExitTransition() },
+        ) {
+            val recentlyPlayedSongs by playerViewModel.recentlyPlayedSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+            
+            ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                com.theveloper.pixelplay.presentation.screens.DynamicCategoryScreen(
+                    title = "Recently Played",
+                    baseSongs = recentlyPlayedSongs,
+                    playerViewModel = playerViewModel,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song -> 
+                        playerViewModel.showAndPlaySong(song, recentlyPlayedSongs, "Recently Played") 
+                    }
+                )
             }
+                    }
+                    
             composable(
                 Screen.Stats.route,
                 enterTransition = { enterTransition() },

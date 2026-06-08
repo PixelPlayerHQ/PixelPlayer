@@ -509,13 +509,14 @@ fun HomeScreen(
                         )
                     }
                 }
-                                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES (SCREENSHOT STYLE) ---
+                                
+                                // --- CONNECTED ADVANCED MATERIAL 3 CATEGORIES ---
                 item { 
                     AdvancedExpressiveCategoryContainer(
                         title = "Recently Added", 
                         songs = recentlyAdded, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, recentlyAdded, "Recently Added") },
-                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
+                        onViewAllClick = { navController.navigateSafely("recently_added_route") } 
                     ) 
                 }
                 item { 
@@ -531,7 +532,7 @@ fun HomeScreen(
                         title = "Most Played", 
                         songs = mostPlayed, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, mostPlayed, "Most Played") },
-                        onViewAllClick = { navController.navigateSafely(Screen.Stats.route) } 
+                        onViewAllClick = { navController.navigateSafely("most_played_route") } 
                     ) 
                 }
                 item { 
@@ -539,7 +540,7 @@ fun HomeScreen(
                         title = "Favorites", 
                         songs = favorites, 
                         onSongClick = { playerViewModel.showAndPlaySong(it, favorites, "Favorites") },
-                        onViewAllClick = { navController.navigateSafely(Screen.RecentlyPlayed.route) } 
+                        onViewAllClick = { navController.navigateSafely("favorites_route") } 
                     ) 
                 }
                 // -------------------------------------------------------------------

@@ -1,9 +1,12 @@
 package com.theveloper.pixelplay.presentation.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
@@ -21,8 +24,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.first
 
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MotionScheme
 
 // ====== TIPOS/STATE DEL CARRUSEL (wrapper para mantener compatibilidad) ======
 
@@ -35,7 +36,7 @@ fun rememberRoundedParallaxCarouselState(
 
 // ====== TU SECCIÓN: ACOPLADA AL NUEVO API ======
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumCarouselSection(
     currentSong: Song?,
@@ -66,8 +67,17 @@ fun AlbumCarouselSection(
         pageCount = { queue.size }
     )
 
-    val motionScheme = remember { MotionScheme.expressive() }
-    val carouselAnimationSpec = remember { motionScheme.defaultSpatialSpec<Float>() }
+    // Snappy, critically-damped (no-overshoot) spring for programmatic skip scrolls.
+    // The previous MotionScheme.expressive().defaultSpatialSpec was a slow, bouncy spring whose
+    // long settle tail produced many frames of per-item measure/clip work, reading as "laggy".
+    // A no-bounce spring snaps in and settles fast, matching the native feel of the open/close
+    // animation while cutting the number of expensive carousel frames.
+    val carouselAnimationSpec = remember {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    }
 
     // Calculate target size based on quality
     val targetSize = remember(albumArtQuality) {
@@ -99,12 +109,35 @@ fun AlbumCarouselSection(
         targetSize = targetSize,
         anchorIndex = effectiveTargetIndex
     )
-    var ignoreNextSettledSelectionForPage by remember { mutableStateOf<Int?>(null) }
     var programmaticScrollInProgress by remember { mutableStateOf(false) }
     var lastSettledSongId by remember { mutableStateOf(currentSong?.id) }
+
+    // Track whether the *user* is actively dragging the carousel (via the pager's interaction
+    // source) so we can tell a real swipe apart from our own programmatic skip/seek scrolls.
+    var isUserDragging by remember { mutableStateOf(false) }
+    var userDragSettlePending by remember { mutableStateOf(false) }
+    LaunchedEffect(carouselState) {
+        carouselState.pagerState.interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is DragInteraction.Start -> {
+                    isUserDragging = true
+                    userDragSettlePending = true
+                }
+                is DragInteraction.Stop, is DragInteraction.Cancel -> isUserDragging = false
+            }
+        }
+    }
+
+    // Player -> Carousel. Retargets continuously: each press cancels the in-flight animation and
+    // animates from the current position to the new target, so a rapid skip burst scrolls smoothly
+    // through the albums instead of freezing. We only ever defer to an active *user* drag — never
+    // to our own (cancelled) programmatic scroll, which is what previously caused the freeze: the
+    // effect restarted on every press and then blocked waiting for the just-cancelled scroll to go
+    // idle, so the carousel never advanced until the user stopped tapping.
     LaunchedEffect(effectiveTargetIndex, requestedTargetIndex, queue) {
-        snapshotFlow { carouselState.pagerState.isScrollInProgress }
-            .first { !it }
+        if (isUserDragging) {
+            snapshotFlow { isUserDragging }.first { !it }
+        }
         
         val currentPage = carouselState.pagerState.currentPage
         if (currentPage != effectiveTargetIndex) {
@@ -117,9 +150,6 @@ fun AlbumCarouselSection(
                 // and avoid showing the wrong item for the duration of an animation.
                 carouselState.pagerState.scrollToPage(effectiveTargetIndex)
             } else {
-                if (requestedTargetIndex != null) {
-                    ignoreNextSettledSelectionForPage = effectiveTargetIndex
-                }
                 programmaticScrollInProgress = true
                 try {
                     carouselState.animateScrollToItem(effectiveTargetIndex, animationSpec = carouselAnimationSpec)
@@ -138,11 +168,13 @@ fun AlbumCarouselSection(
             .distinctUntilChanged()
             .filter { !it }
             .collect {
+                // Only a settle that followed a real user drag changes the song. Programmatic
+                // skip/seek scrolls (and their mid-burst cancellations) must not feed back into
+                // the player — it already drove them — otherwise a rapid skip burst would fire
+                // spurious selections and fight the optimistic carousel index.
+                if (!userDragSettlePending) return@collect
+                userDragSettlePending = false
                 val settled = carouselState.pagerState.currentPage
-                if (ignoreNextSettledSelectionForPage == settled) {
-                    ignoreNextSettledSelectionForPage = null
-                    return@collect
-                }
                 if (settled != currentSongIndex) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     queue.getOrNull(settled)?.let { onSongSelected(it, settled) }

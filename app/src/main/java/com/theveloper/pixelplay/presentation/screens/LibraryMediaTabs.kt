@@ -72,6 +72,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.ui.text.style.TextOverflow
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -93,6 +94,12 @@ fun LibraryAlbumsTab(
     getSelectionIndex: (Long) -> Int? = { null },
     storageFilter: StorageFilter = StorageFilter.ALL
 ) {
+    val hasCurrentSong by remember(playerViewModel) {
+        playerViewModel.stablePlayerState
+            .map { it.currentSong != null && it.currentSong != Song.emptySong() }
+            .distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = false)
+
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
     val dummyListState = rememberLazyListState()
@@ -372,8 +379,7 @@ fun LibraryAlbumsTab(
                                     }
                                 }
                             }
-                            val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
-                            val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong())
+                            val bottomPadding = if (hasCurrentSong)
                                 bottomBarHeight + MiniPlayerHeight + 16.dp
                             else
                                 bottomBarHeight + 16.dp
@@ -444,8 +450,7 @@ fun LibraryAlbumsTab(
                                 }
                             }
 
-                            val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
-                            val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong())
+                            val bottomPadding = if (hasCurrentSong)
                                 bottomBarHeight + MiniPlayerHeight + 16.dp
                             else
                                 bottomBarHeight + 16.dp
@@ -478,6 +483,12 @@ fun LibraryArtistsTab(
     onRefresh: () -> Unit,
     storageFilter: StorageFilter = StorageFilter.ALL
 ) {
+    val hasCurrentSong by remember(playerViewModel) {
+        playerViewModel.stablePlayerState
+            .map { it.currentSong != null && it.currentSong != Song.emptySong() }
+            .distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = false)
+
     val listState = rememberLazyListState()
     val dummyListState = rememberLazyListState()
     val artistFastScrollLabelProvider = remember(artists, currentArtistSortOption) {
@@ -633,8 +644,7 @@ fun LibraryArtistsTab(
                             }
                         }
 
-                        val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
-                        val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong())
+                        val bottomPadding = if (hasCurrentSong)
                             bottomBarHeight + MiniPlayerHeight + 16.dp
                         else
                             bottomBarHeight + 16.dp

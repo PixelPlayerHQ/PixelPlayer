@@ -1,8 +1,10 @@
+// app/build.gradle.kts
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.dagger.hilt.android)
     id("kotlin-kapt")
-    id("dagger.hilt.android.plugin")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -16,16 +18,16 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // শুধুমাত্র arm64-v8a আর্কিটেকচারের জন্য
+        // Restrict to arm64-v8a for faster, smaller release builds
         ndk {
-            abiFilters "arm64-v8a"
+            abiFilters.add("arm64-v8a")
         }
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -45,22 +47,20 @@ android {
     buildFeatures {
         compose = true
     }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
-    }
 }
 
 dependencies {
-    // এখানে আপনার প্রয়োজনীয় ডিপেনডেন্সিগুলো থাকবে
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
+    // Basic essentials
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
     
-    // Hilt ও অন্যান্য প্রয়োজনীয় লাইব্রেরি
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-android-compiler:2.48")
+    // Compose BOM and UI
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    
+    // Dagger Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }

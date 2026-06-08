@@ -860,7 +860,7 @@ fun SongListItemFavs(
     }
 }
 
-@androidx.annotation.UnstableApi
+@OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun SongListItemFavsWrapper(
     song: Song,

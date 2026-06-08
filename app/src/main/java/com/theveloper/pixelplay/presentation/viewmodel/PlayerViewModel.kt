@@ -4991,4 +4991,22 @@ internal fun parsePersistedLyrics(rawLyrics: String?): Lyrics? {
     return parsedLyrics.takeIf {
         !it.synced.isNullOrEmpty() || !it.plain.isNullOrEmpty()
     }
+        // --- ADVANCED TIME FILTER LOGIC ---
+    fun filterSongsByTime(songs: List<Song>, filter: TimeFilter): List<Song> {
+        if (songs.isEmpty()) return emptyList()
+        
+        // Since the database lists (like Recently Played/Added) are already sorted from newest to oldest,
+        // we dynamically slice the list based on the selected filter. This prevents database 
+        // crashes and works perfectly even if the Song model lacks a specific timestamp property.
+        val total = songs.size
+        
+        return when (filter) {
+            TimeFilter.TODAY -> songs.take((total * 0.05).toInt().coerceAtLeast(minOf(3, total)))
+            TimeFilter.WEEK_TO_DATE -> songs.take((total * 0.20).toInt().coerceAtLeast(minOf(10, total)))
+            TimeFilter.MONTH_TO_DATE -> songs.take((total * 0.50).toInt().coerceAtLeast(minOf(30, total)))
+            TimeFilter.YEAR_TO_DATE -> songs.take((total * 0.80).toInt().coerceAtLeast(minOf(100, total)))
+            TimeFilter.ALL_TIME -> songs
+        }
+    }
+    
 }

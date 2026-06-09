@@ -2664,9 +2664,13 @@ class MusicService : MediaLibraryService() {
         if (targetPackage.isBlank()) return
 
         val providerAuthority = "$packageName.provider"
+        val artworkAuthority = "$packageName.artwork"
         mediaItems.forEach { mediaItem ->
             val artworkUri = resolveArtworkUri(mediaItem.mediaMetadata) ?: return@forEach
-            if (artworkUri.scheme?.lowercase() != "content" || artworkUri.authority != providerAuthority) {
+            val authority = artworkUri.authority
+            if (artworkUri.scheme?.lowercase() != "content" ||
+                (authority != providerAuthority && authority != artworkAuthority)
+            ) {
                 return@forEach
             }
 

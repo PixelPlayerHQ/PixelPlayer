@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +36,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,18 +47,18 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import coil.size.Size
 import com.theveloper.pixelplay.R
-import com.theveloper.pixelplay.data.model.Album
+import com.theveloper.pixelplay.data.model.Genre
 import com.theveloper.pixelplay.presentation.components.subcomps.AutoSizingTextToFill
 import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
+import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AlbumMultiSelectionOptionSheet(
-    selectedAlbums: List<Album>,
-    maxSelection: Int,
+fun GenreMultiSelectionOptionSheet(
+    selectedGenres: List<Genre>,
     onDismiss: () -> Unit,
     onPlay: () -> Unit,
     onPlayNext: () -> Unit,
@@ -80,15 +82,15 @@ fun AlbumMultiSelectionOptionSheet(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StackedAlbumCovers(
-                    albums = selectedAlbums.take(4)
+                StackedGenrePreviews(
+                    genres = selectedGenres.take(4)
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column {
                     AutoSizingTextToFill(
-                        text = stringResource(R.string.presentation_batch_g_album_sel_count, selectedAlbums.size),
+                        text = stringResource(R.string.presentation_batch_g_selection_all) + " (${selectedGenres.size})",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         fontFamily = GoogleSansRounded,
@@ -98,7 +100,7 @@ fun AlbumMultiSelectionOptionSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.presentation_batch_g_album_sel_selected),
+                        text = "Genres Selected",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = GoogleSansRounded,
@@ -111,13 +113,8 @@ fun AlbumMultiSelectionOptionSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = stringResource(R.string.presentation_batch_g_album_sel_queue_hint),
+                text = "Perform batch operations on all songs within these genres.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = stringResource(R.string.presentation_batch_g_album_sel_limit, maxSelection),
-                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
@@ -130,7 +127,7 @@ fun AlbumMultiSelectionOptionSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                AlbumSelectionActionButton(
+                GenreSelectionActionButton(
                     onClick = {
                         onPlay()
                         onDismiss()
@@ -145,13 +142,13 @@ fun AlbumMultiSelectionOptionSheet(
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.PlayArrow,
-                            contentDescription = "Play selected albums"
+                            contentDescription = "Play selected genres"
                         )
                     },
                     text = "Play"
                 )
 
-                AlbumSelectionActionButton(
+                GenreSelectionActionButton(
                     onClick = {
                         onAddToPlaylist()
                         onDismiss()
@@ -166,7 +163,7 @@ fun AlbumMultiSelectionOptionSheet(
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                            contentDescription = "Add selected albums to playlist"
+                            contentDescription = "Add selected genres to playlist"
                         )
                     },
                     text = "Playlist"
@@ -182,7 +179,7 @@ fun AlbumMultiSelectionOptionSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                AlbumSelectionActionButton(
+                GenreSelectionActionButton(
                     onClick = {
                         onPlayNext()
                         onDismiss()
@@ -197,13 +194,13 @@ fun AlbumMultiSelectionOptionSheet(
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                            contentDescription = "Play selected albums next"
+                            contentDescription = "Play selected genres next"
                         )
                     },
                     text = "Next"
                 )
 
-                AlbumSelectionActionButton(
+                GenreSelectionActionButton(
                     onClick = {
                         onAddToQueue()
                         onDismiss()
@@ -218,7 +215,7 @@ fun AlbumMultiSelectionOptionSheet(
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                            contentDescription = "Add selected albums to queue"
+                            contentDescription = "Add selected genres to queue"
                         )
                     },
                     text = "Add to Queue"
@@ -231,7 +228,7 @@ fun AlbumMultiSelectionOptionSheet(
 }
 
 @Composable
-private fun AlbumSelectionActionButton(
+private fun GenreSelectionActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: androidx.compose.material3.ButtonColors,
@@ -259,28 +256,36 @@ private fun AlbumSelectionActionButton(
 }
 
 @Composable
-private fun StackedAlbumCovers(
-    albums: List<Album>,
+private fun StackedGenrePreviews(
+    genres: List<Genre>,
     modifier: Modifier = Modifier
 ) {
     val imageSize = 64.dp
     val overlap = 30.dp
     val borderWidth = 3.dp
     val borderColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val isDark = LocalPixelPlayDarkTheme.current
 
-    val numAlbums = albums.size
-    val totalWidth = if (numAlbums == 0) 0.dp else imageSize + (imageSize - overlap) * (numAlbums - 1)
+    val numGenres = genres.size
+    val totalWidth = if (numGenres == 0) 0.dp else imageSize + (imageSize - overlap) * (numGenres - 1)
 
     Box(
         modifier = modifier.width(totalWidth),
         contentAlignment = Alignment.CenterStart
     ) {
-        albums.forEachIndexed { index, album ->
+        genres.forEachIndexed { index, genre ->
             val offsetX = index * (imageSize.value - overlap.value)
+            val themeColor = remember(genre, isDark) {
+                com.theveloper.pixelplay.ui.theme.GenreThemeUtils.getGenreThemeColor(
+                    genre = genre,
+                    isDark = isDark,
+                    fallbackGenreId = genre.id
+                )
+            }
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX.dp.roundToPx(), 0) }
-                    .zIndex((numAlbums - index).toFloat())
+                    .zIndex((numGenres - index).toFloat())
                     .size(imageSize)
                     .background(borderColor, CircleShape)
             ) {
@@ -289,14 +294,14 @@ private fun StackedAlbumCovers(
                         .fillMaxSize()
                         .padding(borderWidth)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(themeColor.container),
+                    contentAlignment = Alignment.Center
                 ) {
-                    SmartImage(
-                        model = album.albumArtUriString,
-                        contentDescription = album.title,
-                        shape = CircleShape,
-                        targetSize = Size(160, 160),
-                        modifier = Modifier.fillMaxSize()
+                    Icon(
+                        imageVector = Icons.Rounded.Album,
+                        contentDescription = null,
+                        tint = themeColor.onContainer,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }

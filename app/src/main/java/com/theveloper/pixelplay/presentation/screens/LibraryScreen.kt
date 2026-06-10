@@ -2021,6 +2021,15 @@ fun LibraryScreen(
                 playerViewModel.addSelectedAlbumsToQueue(selectedAlbums)
                 selectedAlbums = emptyList()
                 showAlbumMultiSelectionSheet = false
+            },
+            onAddToPlaylist = {
+                scope.launch {
+                    val songs = playerViewModel.getSongsForAlbums(selectedAlbums)
+                    playlistSheetSongs = songs
+                    showPlaylistBottomSheet = true
+                    selectedAlbums = emptyList()
+                    showAlbumMultiSelectionSheet = false
+                }
             }
         )
     }

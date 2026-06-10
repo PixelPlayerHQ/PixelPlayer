@@ -3,6 +3,13 @@ package com.theveloper.pixelplay.presentation.screens
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+
+import com.theveloper.pixelplay.presentation.components.MultiSelectionBottomSheet
+import com.theveloper.pixelplay.presentation.components.subcomps.SelectionActionRow
+import com.theveloper.pixelplay.presentation.components.subcomps.SelectionCountPill
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -103,6 +110,26 @@ fun GenreDetailScreen(
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
     val playlistUiState by playlistViewModel.uiState.collectAsStateWithLifecycle()
     val libraryGenres by playerViewModel.genres.collectAsStateWithLifecycle()
+    
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val multiSelectionState = playerViewModel.multiSelectionStateHolder
+    val selectedSongs by multiSelectionState.selectedSongs.collectAsStateWithLifecycle()
+    val isSelectionMode by multiSelectionState.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedSongIds by multiSelectionState.selectedSongIds.collectAsStateWithLifecycle()
+    var showMultiSelectionSheet by remember { mutableStateOf(false) }
+    var playlistSheetSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
+
+    BackHandler(enabled = isSelectionMode) {
+        multiSelectionState.clearSelection()
+    }
+
+    val onSongLongPress: (Song) -> Unit = remember(multiSelectionState, haptic) {
+        { song -> 
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            multiSelectionState.toggleSelection(song) 
+        }
+    }
     
     // Defer heavy list rendering until navigation transition settles
     var isTransitionFinished by remember { mutableStateOf(false) }
@@ -325,13 +352,19 @@ fun GenreDetailScreen(
                             )
                         }
                         is GenreDetailListItem.SongItem -> {
+                            val isSelected = selectedSongIds.contains(item.song.id)
+                            val selectionIndex = multiSelectionState.getSelectionIndex(item.song.id)
                             GenreSongItemWrapper(
                                 item = item,
                                 stablePlayerState = stablePlayerState,
                                 onSongClick = { song ->
                                     playerViewModel.showAndPlaySong(song, uiState.sortedSongs, genreDisplayName)
                                 },
-                                onMoreOptionsClick = { song -> showSongOptionsSheet = song }
+                                onMoreOptionsClick = { song -> showSongOptionsSheet = song },
+                                isSelectionMode = isSelectionMode,
+                                isSelected = isSelected,
+                                selectionIndex = selectionIndex,
+                                onLongPress = { onSongLongPress(item.song) }
                             )
                         }
                         is GenreDetailListItem.Spacer -> {
@@ -386,24 +419,65 @@ fun GenreDetailScreen(
                 collapsedContentColor = MaterialTheme.colorScheme.onSurface
             )
         
-            // FAB
+            // Selection Count Pill (Top-Center below collapsed top bar)
+            SelectionCountPill(
+                selectedCount = selectedSongs.size,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(6f)
+                    .padding(top = minTopBarHeight + 24.dp)
+            )
+
+            // FAB / SelectionActionRow (Bottom-Center or Bottom-End)
             Box(
                  modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = fabBottomPadding + 26.dp, end = 16.dp)
+                    .align(if (isSelectionMode) Alignment.BottomCenter else Alignment.BottomEnd)
+                    .padding(
+                        bottom = fabBottomPadding + if (isSelectionMode) 16.dp else 26.dp,
+                        start = if (isSelectionMode) 16.dp else 0.dp,
+                        end = 16.dp
+                    )
+                    .run {
+                        if (isSelectionMode) fillMaxWidth() else this
+                    }
                     .zIndex(10f) // Ensure FAB is above everything
             ) {
-                 MediumFloatingActionButton(
-                    onClick = { showSortSheet = true },
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    shape = AbsoluteSmoothCornerShape(24.dp, 60)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = stringResource(R.string.cd_options),
-                        modifier = Modifier.size(28.dp)
-                    )
+                if (isSelectionMode) {
+                    Card(
+                        shape = AbsoluteSmoothCornerShape(28.dp, 60),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        SelectionActionRow(
+                            selectedCount = selectedSongs.size,
+                            onSelectAll = {
+                                multiSelectionState.selectAll(uiState.songs)
+                            },
+                            onDeselect = {
+                                multiSelectionState.clearSelection()
+                            },
+                            onOptionsClick = {
+                                showMultiSelectionSheet = true
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        )
+                    }
+                } else {
+                     MediumFloatingActionButton(
+                        onClick = { showSortSheet = true },
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        shape = AbsoluteSmoothCornerShape(24.dp, 60)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = stringResource(R.string.cd_options),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
         
@@ -556,21 +630,86 @@ fun GenreDetailScreen(
                     )
                 }
 
-                if (showPlaylistBottomSheet) {
-                    com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet(
-                        playlistUiState = playlistUiState,
-                        songs = listOf(song),
-                        onDismiss = { showPlaylistBottomSheet = false },
-                        bottomBarHeight = 0.dp, // Or calculate if needed
-                        playerViewModel = playerViewModel
-                    )
-                }
             }
         
             // Loading/Error States
             if (uiState.isLoadingSongs) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
+        }
+    }
+
+    // Multi-Selection Bottom Sheet
+    if (showMultiSelectionSheet && selectedSongs.isNotEmpty()) {
+        val activity = context as? android.app.Activity
+        val favoriteIds = favoriteSongIds.toSet()
+
+        MultiSelectionBottomSheet(
+            selectedSongs = selectedSongs,
+            favoriteSongIds = favoriteIds,
+            onDismiss = { showMultiSelectionSheet = false },
+            onPlayAll = {
+                playerViewModel.playSelectedSongs(selectedSongs)
+                showMultiSelectionSheet = false
+            },
+            onAddToQueue = {
+                playerViewModel.addSelectedToQueue(selectedSongs)
+                showMultiSelectionSheet = false
+            },
+            onPlayNext = {
+                playerViewModel.addSelectedAsNext(selectedSongs)
+                showMultiSelectionSheet = false
+            },
+            onAddToPlaylist = {
+                playlistSheetSongs = selectedSongs
+                showMultiSelectionSheet = false
+                showPlaylistBottomSheet = true
+            },
+            onToggleLikeAll = { shouldLike ->
+                if (shouldLike) {
+                    playerViewModel.likeSelectedSongs(selectedSongs)
+                } else {
+                    playerViewModel.unlikeSelectedSongs(selectedSongs)
+                }
+                showMultiSelectionSheet = false
+            },
+            onShareAll = {
+                playerViewModel.shareSelectedAsZip(selectedSongs)
+                showMultiSelectionSheet = false
+            },
+            onDeleteAll = { _, onComplete ->
+                activity?.let {
+                    playerViewModel.deleteSelectedFromDevice(it, selectedSongs) {
+                        showMultiSelectionSheet = false
+                        onComplete(true)
+                    }
+                }
+            },
+            onBatchEdit = {
+                showMultiSelectionSheet = false
+            }
+        )
+    }
+
+    // Playlist Bottom Sheet (Single or Multi additions)
+    if (showPlaylistBottomSheet) {
+        val songsToAddToPlaylist = if (playlistSheetSongs.isNotEmpty()) {
+            playlistSheetSongs
+        } else {
+            showSongOptionsSheet?.let { listOf(it) } ?: emptyList()
+        }
+
+        if (songsToAddToPlaylist.isNotEmpty()) {
+            com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet(
+                playlistUiState = playlistUiState,
+                songs = songsToAddToPlaylist,
+                onDismiss = {
+                    showPlaylistBottomSheet = false
+                    playlistSheetSongs = emptyList()
+                },
+                bottomBarHeight = systemNavBarInset,
+                playerViewModel = playerViewModel
+            )
         }
     }
 }
@@ -864,7 +1003,11 @@ fun GenreSongItemWrapper(
     item: com.theveloper.pixelplay.presentation.viewmodel.GenreDetailListItem.SongItem,
     stablePlayerState: StablePlayerState,
     onSongClick: (Song) -> Unit,
-    onMoreOptionsClick: (Song) -> Unit
+    onMoreOptionsClick: (Song) -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    selectionIndex: Int? = null,
+    onLongPress: () -> Unit = {}
 ) {
     val song = item.song
     val isFirstInAlbum = item.isFirstInAlbum
@@ -916,7 +1059,11 @@ fun GenreSongItemWrapper(
                  showAlbumArt = false,
                  customShape = songItemShape,
                  onClick = { onSongClick(song) },
-                 onMoreOptionsClick = onMoreOptionsClick
+                 onMoreOptionsClick = onMoreOptionsClick,
+                 isSelected = isSelected,
+                 selectionIndex = selectionIndex,
+                 isSelectionMode = isSelectionMode,
+                 onLongPress = onLongPress
              )
              
              if (isLastInAlbum) Spacer(Modifier.height(8.dp))

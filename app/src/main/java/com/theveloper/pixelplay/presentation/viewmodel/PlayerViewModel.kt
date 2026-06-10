@@ -4082,6 +4082,78 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
+    suspend fun getSongsForGenres(genres: List<Genre>): List<Song> {
+        return withContext(Dispatchers.IO) {
+            genres.flatMap { genre ->
+                musicRepository.getMusicByGenre(genre.name).first()
+            }.distinctBy { it.id }
+        }
+    }
+
+    suspend fun getSongsForAlbums(albums: List<Album>): List<Song> {
+        return resolveSelectedAlbumSongs(albums).songs
+    }
+
+    fun playSelectedGenres(genres: List<Genre>) {
+        if (genres.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val songs = getSongsForGenres(genres)
+                if (songs.isNotEmpty()) {
+                    playSongs(songs, songs.first(), "Selected Genres")
+                    _isSheetVisible.value = true
+                } else {
+                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Error playing selected genres", e)
+                _toastEvents.emit("Could not play selected genres")
+            }
+        }
+    }
+
+    fun addSelectedGenresToQueue(genres: List<Genre>) {
+        if (genres.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val songs = getSongsForGenres(genres)
+                if (songs.isNotEmpty()) {
+                    songs.forEach { addSongToQueue(it) }
+                    val n = songs.size
+                    _toastEvents.emit(
+                        context.resources.getQuantityString(R.plurals.n_songs_added_to_queue, n, n),
+                    )
+                } else {
+                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Error adding selected genres to queue", e)
+                _toastEvents.emit("Could not add selected genres to queue")
+            }
+        }
+    }
+
+    fun addSelectedGenresAsNext(genres: List<Genre>) {
+        if (genres.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val songs = getSongsForGenres(genres)
+                if (songs.isNotEmpty()) {
+                    songs.reversed().forEach { addSongNextToQueue(it) }
+                    val n = songs.size
+                    _toastEvents.emit(
+                        context.resources.getQuantityString(R.plurals.n_songs_will_play_next, n, n),
+                    )
+                } else {
+                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Error adding selected genres as next", e)
+                _toastEvents.emit("Could not add selected genres as next")
+            }
+        }
+    }
+
     private fun sortSongsForAlbumSelection(songs: List<Song>): List<Song> {
         return songs.sortedWith(
             compareBy<Song> { it.discNumber ?: 1 }

@@ -79,6 +79,9 @@
     <string name="search_cd_search_icon">검색</string>
     <string name="search_cd_clear_search_query">검색어 지우기</string>
     <string name="search_recent_searches">최근 검색어</string>
+    <string name="search_action_clear_all">모두 지우기</string>
+    <string name="search_cd_search_history_icon">기록</string>
+    <string name="search_cd_delete_search_history_item">검색 기록 항목 삭제</string>
     <string name="search_cd_no_results">결과 없음</string>
     <string name="search_no_results_for_query">\"%1$s\"에 대한 결과가 없습니다</string>
     <string name="search_nothing_found">검색 결과가 없습니다</string>

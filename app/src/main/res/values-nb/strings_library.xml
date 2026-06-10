@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Ingen sanger å blande.</string>
     <string name="player_view_model_queue_name_selected_albums">Valgte album</string>
     <string name="player_view_model_no_playable_songs_in_albums">Ingen spillbare sanger funnet i valgte album</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Ingen spillbare sanger funnet i valgte sjangere</string>
     <string name="player_view_model_only_first_n_albums_queued">Bare de første %1$d albumene ble lagt i kø</string>
     <string name="player_view_model_albums_queued_format">%1$d album i kø (%2$d sanger)</string>
     <string name="player_view_model_could_not_queue_albums">Kunne ikke legge valgte album i kø</string>

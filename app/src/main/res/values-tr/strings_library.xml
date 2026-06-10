@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Karıştırılacak şarkı yok.</string>
     <string name="player_view_model_queue_name_selected_albums">Seçilen Albümler</string>
     <string name="player_view_model_no_playable_songs_in_albums">Seçilen albümlerde oynatılabilir şarkı bulunamadı</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Seçilen türlerde oynatılabilir şarkı bulunamadı</string>
     <string name="player_view_model_only_first_n_albums_queued">Yalnızca ilk %1$d albüm kuyruğa alındı</string>
     <string name="player_view_model_albums_queued_format">%1$d albüm kuyruğa alındı (%2$d şarkı)</string>
     <string name="player_view_model_could_not_queue_albums">Seçilen albümler kuyruğa alınamadı</string>

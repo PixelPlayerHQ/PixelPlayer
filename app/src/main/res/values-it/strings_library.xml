@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Nessun brano da riprodurre in ordine casuale.</string>
     <string name="player_view_model_queue_name_selected_albums">Album selezionati</string>
     <string name="player_view_model_no_playable_songs_in_albums">Nessun brano riproducibile trovato negli album selezionati</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Nessun brano riproducibile trovato nei generi selezionati</string>
     <string name="player_view_model_only_first_n_albums_queued">Solo i primi %1$d album sono stati aggiunti alla coda</string>
     <string name="player_view_model_albums_queued_format">%1$d album aggiunti alla coda (%2$d brani)</string>
     <string name="player_view_model_could_not_queue_albums">Impossibile aggiungere alla coda gli album selezionati</string>

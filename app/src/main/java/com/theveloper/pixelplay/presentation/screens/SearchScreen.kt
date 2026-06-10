@@ -522,7 +522,7 @@ fun SearchScreen(
                                             if (remaining <= 0) {
                                                 playerViewModel.sendToast(
                                                     context.getString(
-                                                        R.string.presentation_batch_d_max_albums_selection,
+                                                        R.string.library_toast_max_albums_selection,
                                                         MAX_ALBUM_MULTI_SELECTION
                                                     )
                                                 )
@@ -604,7 +604,7 @@ fun SearchScreen(
                                             } else if (selectedAlbums.size >= MAX_ALBUM_MULTI_SELECTION) {
                                                 playerViewModel.sendToast(
                                                     context.getString(
-                                                        R.string.presentation_batch_d_max_albums_selection,
+                                                        R.string.library_toast_max_albums_selection,
                                                         MAX_ALBUM_MULTI_SELECTION
                                                     )
                                                 )
@@ -618,7 +618,7 @@ fun SearchScreen(
                                             } else if (selectedAlbums.size >= MAX_ALBUM_MULTI_SELECTION) {
                                                 playerViewModel.sendToast(
                                                     context.getString(
-                                                        R.string.presentation_batch_d_max_albums_selection,
+                                                        R.string.library_toast_max_albums_selection,
                                                         MAX_ALBUM_MULTI_SELECTION
                                                     )
                                                 )
@@ -962,13 +962,13 @@ fun SearchHistoryList(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                stringResource(R.string.recent_searches),
+                stringResource(R.string.search_recent_searches),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             if (historyItems.isNotEmpty()) {
                 TextButton(onClick = onClearAllHistory) {
-                    Text(stringResource(R.string.clear_all), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(stringResource(R.string.search_action_clear_all), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -1007,7 +1007,7 @@ fun SearchHistoryListItem(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Icon(
                 imageVector = Icons.Rounded.History,
-                contentDescription = stringResource(R.string.cd_search_history_icon),
+                contentDescription = stringResource(R.string.search_cd_search_history_icon),
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1022,7 +1022,7 @@ fun SearchHistoryListItem(
         IconButton(onClick = { onHistoryDelete(item.query) }) {
             Icon(
                 imageVector = Icons.Rounded.DeleteForever,
-                contentDescription = stringResource(R.string.cd_delete_search_history_item),
+                contentDescription = stringResource(R.string.search_cd_delete_search_history_item),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }

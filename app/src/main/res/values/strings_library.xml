@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">No songs to shuffle.</string>
     <string name="player_view_model_queue_name_selected_albums">Selected Albums</string>
     <string name="player_view_model_no_playable_songs_in_albums">No playable songs found in selected albums</string>
+    <string name="player_view_model_no_playable_songs_in_genres">No playable songs found in selected genres</string>
     <string name="player_view_model_only_first_n_albums_queued">Only the first %1$d albums were queued</string>
     <string name="player_view_model_albums_queued_format">%1$d albums queued (%2$d songs)</string>
     <string name="player_view_model_could_not_queue_albums">Could not queue selected albums</string>

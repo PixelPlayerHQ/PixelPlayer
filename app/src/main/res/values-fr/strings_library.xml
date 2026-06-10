@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Aucune chanson à lire en mode aléatoire.</string>
     <string name="player_view_model_queue_name_selected_albums">Albums sélectionnés</string>
     <string name="player_view_model_no_playable_songs_in_albums">Aucune chanson lisible trouvée dans les albums sélectionnés</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Aucune chanson lisible trouvée dans les genres sélectionnés</string>
     <string name="player_view_model_only_first_n_albums_queued">Seuls les %1$d premiers albums ont été mis en file d\'attente</string>
     <string name="player_view_model_albums_queued_format">%1$d albums mis en file d\'attente (%2$d chansons)</string>
     <string name="player_view_model_could_not_queue_albums">Impossible de mettre en file d\'attente les albums sélectionnés</string>

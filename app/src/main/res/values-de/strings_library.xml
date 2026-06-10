@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Keine Songs zum Mischen.</string>
     <string name="player_view_model_queue_name_selected_albums">Ausgewählte Alben</string>
     <string name="player_view_model_no_playable_songs_in_albums">Keine abspielbaren Songs in den gewählten Alben</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Keine abspielbaren Songs in den gewählten Genres</string>
     <string name="player_view_model_only_first_n_albums_queued">Nur die ersten %1$d Alben wurden hinzugefügt</string>
     <string name="player_view_model_albums_queued_format">%1$d Alben in der Queue (%2$d Songs)</string>
     <string name="player_view_model_could_not_queue_albums">Alben konnten nicht zur Queue hinzugefügt werden</string>

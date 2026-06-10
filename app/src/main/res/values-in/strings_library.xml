@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Tidak ada lagu untuk diacak.</string>
     <string name="player_view_model_queue_name_selected_albums">Album Terpilih</string>
     <string name="player_view_model_no_playable_songs_in_albums">Tidak ditemukan lagu yang dapat diputar di album terpilih</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Tidak ditemukan lagu yang dapat diputar di genre terpilih</string>
     <string name="player_view_model_only_first_n_albums_queued">Hanya %1$d album pertama yang dimasukkan ke antrean</string>
     <string name="player_view_model_albums_queued_format">%1$d album dimasukkan ke antrean (%2$d lagu)</string>
     <string name="player_view_model_could_not_queue_albums">Tidak dapat memasukkan album terpilih ke antrean</string>

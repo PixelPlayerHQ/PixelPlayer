@@ -79,6 +79,9 @@
     <string name="search_cd_search_icon">Ara</string>
     <string name="search_cd_clear_search_query">Aramayı temizle</string>
     <string name="search_recent_searches">Son aramalar</string>
+    <string name="search_action_clear_all">Tümünü temizle</string>
+    <string name="search_cd_search_history_icon">Geçmiş</string>
+    <string name="search_cd_delete_search_history_item">Arama geçmişi öğesini sil</string>
     <string name="search_cd_no_results">Sonuç yok</string>
     <string name="search_no_results_for_query">\"%1$s\" için sonuç bulunamadı</string>
     <string name="search_nothing_found">Hiçbir şey bulunamadı</string>

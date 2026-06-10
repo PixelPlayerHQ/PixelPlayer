@@ -90,7 +90,7 @@ fun GenreMultiSelectionOptionSheet(
 
                 Column {
                     AutoSizingTextToFill(
-                        text = stringResource(R.string.presentation_batch_g_selection_all) + " (${selectedGenres.size})",
+                        text = stringResource(R.string.library_selection_all) + " (${selectedGenres.size})",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         fontFamily = GoogleSansRounded,

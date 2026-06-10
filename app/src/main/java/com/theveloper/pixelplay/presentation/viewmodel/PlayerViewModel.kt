@@ -4103,7 +4103,7 @@ class PlayerViewModel @Inject constructor(
                     playSongs(songs, songs.first(), "Selected Genres")
                     _isSheetVisible.value = true
                 } else {
-                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                    _toastEvents.emit(context.getString(R.string.player_view_model_no_playable_songs_in_genres))
                 }
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "Error playing selected genres", e)
@@ -4121,10 +4121,10 @@ class PlayerViewModel @Inject constructor(
                     songs.forEach { addSongToQueue(it) }
                     val n = songs.size
                     _toastEvents.emit(
-                        context.resources.getQuantityString(R.plurals.n_songs_added_to_queue, n, n),
+                        context.resources.getQuantityString(R.plurals.player_view_model_n_songs_added_to_queue, n, n),
                     )
                 } else {
-                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                    _toastEvents.emit(context.getString(R.string.player_view_model_no_playable_songs_in_genres))
                 }
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "Error adding selected genres to queue", e)
@@ -4142,10 +4142,10 @@ class PlayerViewModel @Inject constructor(
                     songs.reversed().forEach { addSongNextToQueue(it) }
                     val n = songs.size
                     _toastEvents.emit(
-                        context.resources.getQuantityString(R.plurals.n_songs_will_play_next, n, n),
+                        context.resources.getQuantityString(R.plurals.player_view_model_n_songs_will_play_next, n, n),
                     )
                 } else {
-                    _toastEvents.emit(context.getString(R.string.player_no_playable_songs_in_genres))
+                    _toastEvents.emit(context.getString(R.string.player_view_model_no_playable_songs_in_genres))
                 }
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "Error adding selected genres as next", e)

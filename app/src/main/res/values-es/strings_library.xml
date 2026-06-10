@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">No hay canciones para el modo aleatorio.</string>
     <string name="player_view_model_queue_name_selected_albums">Álbumes seleccionados</string>
     <string name="player_view_model_no_playable_songs_in_albums">No se encontraron canciones reproducibles en los álbumes seleccionados</string>
+    <string name="player_view_model_no_playable_songs_in_genres">No se encontraron canciones reproducibles en los géneros seleccionados</string>
     <string name="player_view_model_only_first_n_albums_queued">Solo se han puesto en cola los primeros %1$d álbumes</string>
     <string name="player_view_model_albums_queued_format">%1$d álbumes en cola (%2$d canciones)</string>
     <string name="player_view_model_could_not_queue_albums">No se pudieron poner en cola los álbumes seleccionados</string>

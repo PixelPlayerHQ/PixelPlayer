@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">셔플할 곡이 없습니다.</string>
     <string name="player_view_model_queue_name_selected_albums">선택된 앨범</string>
     <string name="player_view_model_no_playable_songs_in_albums">선택된 앨범에 재생할 수 있는 곡이 없습니다</string>
+    <string name="player_view_model_no_playable_songs_in_genres">선택된 장르에 재생할 수 있는 곡이 없습니다</string>
     <string name="player_view_model_only_first_n_albums_queued">처음 %1$d개의 앨범만 대기열에 추가되었습니다</string>
     <string name="player_view_model_albums_queued_format">%1$d개의 앨범 대기열 추가 (%2$d곡)</string>
     <string name="player_view_model_could_not_queue_albums">선택된 앨범을 대기열에 추가할 수 없습니다</string>

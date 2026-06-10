@@ -79,6 +79,9 @@
     <string name="search_cd_search_icon">Cerca</string>
     <string name="search_cd_clear_search_query">Cancella ricerca</string>
     <string name="search_recent_searches">Ricerche recenti</string>
+    <string name="search_action_clear_all">Cancella tutto</string>
+    <string name="search_cd_search_history_icon">Cronologia</string>
+    <string name="search_cd_delete_search_history_item">Elimina elemento della cronologia delle ricerche</string>
     <string name="search_cd_no_results">Nessun risultato</string>
     <string name="search_no_results_for_query">Nessun risultato per \"%1$s\"</string>
     <string name="search_nothing_found">Nessun risultato trovato</string>

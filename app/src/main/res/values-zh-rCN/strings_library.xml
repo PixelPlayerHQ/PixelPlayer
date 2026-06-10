@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">没有可供随机播放的歌曲。</string>
     <string name="player_view_model_queue_name_selected_albums">选定的专辑</string>
     <string name="player_view_model_no_playable_songs_in_albums">在选定的专辑中未找到可播放的歌曲</string>
+    <string name="player_view_model_no_playable_songs_in_genres">在选定的流派中未找到可播放的歌曲</string>
     <string name="player_view_model_only_first_n_albums_queued">仅前 %1$d 张专辑已加入队列</string>
     <string name="player_view_model_albums_queued_format">已将 %1$d 张专辑加入队列（共 %2$d 首歌曲）</string>
     <string name="player_view_model_could_not_queue_albums">无法将选定的专辑加入队列</string>

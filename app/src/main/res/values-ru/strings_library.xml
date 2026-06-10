@@ -463,6 +463,7 @@
     <string name="player_view_model_no_songs_to_shuffle">Нет треков для перемешивания.</string>
     <string name="player_view_model_queue_name_selected_albums">Выбранные альбомы</string>
     <string name="player_view_model_no_playable_songs_in_albums">В выбранных альбомах не найдено воспроизводимых треков</string>
+    <string name="player_view_model_no_playable_songs_in_genres">В выбранных жанрах не найдено воспроизводимых треков</string>
     <string name="player_view_model_only_first_n_albums_queued">В очередь добавлены только первые %1$d альбомов</string>
     <string name="player_view_model_albums_queued_format">Добавлено в очередь: %1$d альбомов (%2$d треков)</string>
     <string name="player_view_model_could_not_queue_albums">Не удалось добавить выбранные альбомы в очередь</string>

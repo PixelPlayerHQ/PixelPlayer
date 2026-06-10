@@ -6,6 +6,11 @@
     <string name="app_name_change_message">Kami telah mengubah nama aplikasi kami dari PixelPlay menjadi PixelPlayer karena masalah terkait merek dagang. Teruslah mendengarkan!</string>
     <string name="app_name_change_do_not_show_again">Jangan tampilkan lagi</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">Beranda</string>
+    <string name="nav_bar_search">Cari</string>
+    <string name="nav_bar_library">Pustaka</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">Izin Khusus Diperlukan</string>
     <string name="all_files_access_description">Untuk mengedit metadata lagu (file .mp3), PixelPlayer memerlukan akses khusus ke semua file. Ini memungkinkan kami untuk mengubah tag lagu secara langsung. Mohon berikan izin ini di layar berikutnya untuk mengaktifkan pengeditan metadata.</string>

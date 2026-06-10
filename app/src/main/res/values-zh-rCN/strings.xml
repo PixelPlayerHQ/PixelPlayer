@@ -6,6 +6,11 @@
     <string name="app_name_change_message">由于商标相关问题，我们将应用名称从 PixelPlay 更改为 PixelPlayer。请继续享受音乐！</string>
     <string name="app_name_change_do_not_show_again">不再显示</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">首页</string>
+    <string name="nav_bar_search">搜索</string>
+    <string name="nav_bar_library">音乐库</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">需要特殊权限</string>
     <string name="all_files_access_description">为了编辑歌曲信息（.mp3 文件），PixelPlayer 需要访问所有文件的特殊权限。这将允许我们直接修改曲目标签。请在下一界面授予此权限以开启信息编辑功能。</string>

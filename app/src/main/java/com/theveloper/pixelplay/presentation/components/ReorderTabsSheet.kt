@@ -215,7 +215,12 @@ fun ReorderTabsSheet(
                                             modifier = Modifier.draggableHandle()
                                         )
                                         Spacer(modifier = Modifier.width(16.dp))
-                                        Text(text = tab, style = MaterialTheme.typography.bodyLarge)
+                                        Text(
+                                            text = LibraryTabId.fromStableKey(tab)
+                                                ?.let { stringResource(it.labelRes) }
+                                                ?: tab,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
                                     }
                                 }
                             }

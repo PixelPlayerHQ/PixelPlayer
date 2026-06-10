@@ -6,6 +6,11 @@
     <string name="app_name_change_message">Hemos cambiado el nombre de nuestra app de PixelPlay a PixelPlayer debido a un problema de marca registrada. ¡Sigue reproduciendo!</string>
     <string name="app_name_change_do_not_show_again">No volver a mostrar</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">Inicio</string>
+    <string name="nav_bar_search">Buscar</string>
+    <string name="nav_bar_library">Biblioteca</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">Permiso especial requerido</string>
     <string name="all_files_access_description">Para poder editar los metadatos de tus canciones (archivos .mp3), PixelPlayer necesita un permiso especial de acceso a todos los archivos. Esto nos permitirá modificar las etiquetas de tus pistas directamente. Por favor, concede este permiso en la siguiente pantalla para habilitar la edición de metadatos.</string>

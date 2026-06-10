@@ -6,6 +6,14 @@
     <string name="library_tabs_sheet_subtitle">Hopp direkte til en fane eller endre rekkefølgen.</string>
     <string name="library_reorder_tabs_label">Endre fanerekkefølge</string>
 
+    <!-- Library Tab Names -->
+    <string name="library_tab_songs">Sanger</string>
+    <string name="library_tab_albums">Albumer</string>
+    <string name="library_tab_artists">Artister</string>
+    <string name="library_tab_playlists">Spillelister</string>
+    <string name="library_tab_folders">Mapper</string>
+    <string name="library_tab_liked">Likte</string>
+
     <!-- Library Toasts -->
     <string name="library_toast_playlist_created">Spilleliste opprettet</string>
     <string name="library_toast_set_ai_provider_api_key_first">Angi API-nøkkel for AI-leverandøren først</string>
@@ -185,6 +193,47 @@
     <string name="multi_selection_albums_selected">valgt</string>
     <string name="multi_selection_albums_selected_limit">Grense: %1$d album per valg.</string>
     <string name="multi_selection_albums_queue_hint">Kø og avspilling følger valgrekkefølgen din.</string>
+
+    <!-- Sort Option Display Names -->
+    <string name="sort_display_default_order">Standardrekkefølge</string>
+    <string name="sort_display_title_az">Tittel (A–Å)</string>
+    <string name="sort_display_title_za">Tittel (Å–A)</string>
+    <string name="sort_display_artist">Artist</string>
+    <string name="sort_display_artist_za">Artist (Å–A)</string>
+    <string name="sort_display_album">Album</string>
+    <string name="sort_display_album_za">Album (Å–A)</string>
+    <string name="sort_display_date_added">Dato lagt til</string>
+    <string name="sort_display_date_added_oldest">Dato lagt til (eldste først)</string>
+    <string name="sort_display_duration">Varighet</string>
+    <string name="sort_display_duration_shortest">Varighet (korteste først)</string>
+    <string name="sort_display_release_year">Utgivelsesår</string>
+    <string name="sort_display_release_year_oldest">Utgivelsesår (eldste først)</string>
+    <string name="sort_display_fewest_songs">Færrest sanger</string>
+    <string name="sort_display_most_songs">Flest sanger</string>
+    <string name="sort_display_name_az">Navn (A–Å)</string>
+    <string name="sort_display_name_za">Navn (Å–A)</string>
+    <string name="sort_display_num_songs_most">Antall sanger (flest)</string>
+    <string name="sort_display_num_songs_fewest">Antall sanger (færrest)</string>
+    <string name="sort_display_date_created">Dato opprettet</string>
+    <string name="sort_display_date_created_oldest">Dato opprettet (eldste først)</string>
+    <string name="sort_display_date_liked">Dato likt</string>
+    <string name="sort_display_date_liked_oldest">Dato likt (eldste først)</string>
+    <string name="sort_display_fewest_subfolders">Færrest undermapper</string>
+    <string name="sort_display_most_subfolders">Flest undermapper</string>
+
+    <!-- Sort Option Method Labels -->
+    <string name="sort_method_title">Tittel</string>
+    <string name="sort_method_artist">Artist</string>
+    <string name="sort_method_album">Album</string>
+    <string name="sort_method_date_added">Dato lagt til</string>
+    <string name="sort_method_duration">Varighet</string>
+    <string name="sort_method_release_year">Utgivelsesår</string>
+    <string name="sort_method_song_count">Antall sanger</string>
+    <string name="sort_method_name">Navn</string>
+    <string name="sort_method_num_songs">Antall sanger</string>
+    <string name="sort_method_date_created">Dato opprettet</string>
+    <string name="sort_method_date_liked">Dato likt</string>
+    <string name="sort_method_subfolder_count">Antall undermapper</string>
 
     <!-- LibrarySortBottomSheet -->
     <string name="library_sort_source">Kilde</string>

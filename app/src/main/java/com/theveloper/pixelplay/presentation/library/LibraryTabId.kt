@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.library
 
+import androidx.annotation.StringRes
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.SortOption
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -11,11 +13,13 @@ import kotlinx.serialization.json.Json
 enum class LibraryTabId(
     val stableKey: String,
     val label: String,
+    @StringRes val labelRes: Int,
     val sortOptions: List<SortOption>
 ) {
     Songs(
         stableKey = "SONGS",
         label = "SONGS",
+        labelRes = R.string.library_tab_songs,
         sortOptions = listOf(
             SortOption.SongTitleAZ,
             SortOption.SongTitleZA,
@@ -32,6 +36,7 @@ enum class LibraryTabId(
     Albums(
         stableKey = "ALBUMS",
         label = "ALBUMS",
+        labelRes = R.string.library_tab_albums,
         sortOptions = listOf(
             SortOption.AlbumTitleAZ,
             SortOption.AlbumTitleZA,
@@ -45,6 +50,7 @@ enum class LibraryTabId(
     Artists(
         stableKey = "ARTIST",
         label = "ARTIST",
+        labelRes = R.string.library_tab_artists,
         sortOptions = listOf(
             SortOption.ArtistNameAZ,
             SortOption.ArtistNameZA,
@@ -55,6 +61,7 @@ enum class LibraryTabId(
     Playlists(
         stableKey = "PLAYLISTS",
         label = "PLAYLISTS",
+        labelRes = R.string.library_tab_playlists,
         sortOptions = listOf(
             SortOption.PlaylistNameAZ,
             SortOption.PlaylistNameZA,
@@ -65,6 +72,7 @@ enum class LibraryTabId(
     Folders(
         stableKey = "FOLDERS",
         label = "FOLDERS",
+        labelRes = R.string.library_tab_folders,
         sortOptions = listOf(
             SortOption.FolderNameAZ,
             SortOption.FolderNameZA,
@@ -77,6 +85,7 @@ enum class LibraryTabId(
     Liked(
         stableKey = "LIKED",
         label = "LIKED",
+        labelRes = R.string.library_tab_liked,
         sortOptions = listOf(
             SortOption.LikedSongTitleAZ,
             SortOption.LikedSongTitleZA,

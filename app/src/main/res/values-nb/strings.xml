@@ -6,6 +6,11 @@
     <string name="app_name_change_message">Vi har endret appens navn fra PixelPlay til PixelPlayer på grunn av et varemerkeproblem. Fortsett spillingen!</string>
     <string name="app_name_change_do_not_show_again">Ikke vis igjen</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">Hjem</string>
+    <string name="nav_bar_search">Søk</string>
+    <string name="nav_bar_library">Bibliotek</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">Spesiell tillatelse kreves</string>
     <string name="all_files_access_description">For å redigere sang-metadata (.mp3-filer) trenger PixelPlayer spesiell tilgang til alle filer. Dette lar oss endre spor-tagger direkte. Vennligst gi denne tillatelsen på neste skjerm for å aktivere redigering av metadata.</string>

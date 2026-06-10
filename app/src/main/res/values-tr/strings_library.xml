@@ -6,6 +6,14 @@
     <string name="library_tabs_sheet_subtitle">Doğrudan herhangi bir sekmeye atlayın veya onları yeniden sıralayın.</string>
     <string name="library_reorder_tabs_label">Sekmeleri yeniden sırala</string>
 
+    <!-- Library Tab Names -->
+    <string name="library_tab_songs">Şarkılar</string>
+    <string name="library_tab_albums">Albümler</string>
+    <string name="library_tab_artists">Sanatçılar</string>
+    <string name="library_tab_playlists">Çalma Listeleri</string>
+    <string name="library_tab_folders">Klasörler</string>
+    <string name="library_tab_liked">Beğenilenler</string>
+
     <!-- Library Toasts -->
     <string name="library_toast_playlist_created">Çalma listesi başarıyla oluşturuldu</string>
     <string name="library_toast_set_ai_provider_api_key_first">Önce yapay zeka sağlayıcınızın API anahtarını ayarlayın</string>
@@ -185,6 +193,47 @@
     <string name="multi_selection_albums_selected">seçildi</string>
     <string name="multi_selection_albums_selected_limit">Sınır: seçim başına %1$d albüm.</string>
     <string name="multi_selection_albums_queue_hint">Kuyruğa ekle ve oynat, seçim sıranıza göre davranır.</string>
+
+    <!-- Sort Option Display Names -->
+    <string name="sort_display_default_order">Varsayılan Sıralama</string>
+    <string name="sort_display_title_az">Başlık (A-Z)</string>
+    <string name="sort_display_title_za">Başlık (Z-A)</string>
+    <string name="sort_display_artist">Sanatçı</string>
+    <string name="sort_display_artist_za">Sanatçı (Z-A)</string>
+    <string name="sort_display_album">Albüm</string>
+    <string name="sort_display_album_za">Albüm (Z-A)</string>
+    <string name="sort_display_date_added">Ekleme Tarihi</string>
+    <string name="sort_display_date_added_oldest">Ekleme Tarihi (Önce en eski)</string>
+    <string name="sort_display_duration">Süre</string>
+    <string name="sort_display_duration_shortest">Süre (Önce en kısa)</string>
+    <string name="sort_display_release_year">Yayın Yılı</string>
+    <string name="sort_display_release_year_oldest">Yayın Yılı (Önce en eski)</string>
+    <string name="sort_display_fewest_songs">En Az Şarkı</string>
+    <string name="sort_display_most_songs">En Çok Şarkı</string>
+    <string name="sort_display_name_az">Ad (A-Z)</string>
+    <string name="sort_display_name_za">Ad (Z-A)</string>
+    <string name="sort_display_num_songs_most">Şarkı Sayısı (En çok)</string>
+    <string name="sort_display_num_songs_fewest">Şarkı Sayısı (En az)</string>
+    <string name="sort_display_date_created">Oluşturulma Tarihi</string>
+    <string name="sort_display_date_created_oldest">Oluşturulma Tarihi (Önce en eski)</string>
+    <string name="sort_display_date_liked">Beğenilme Tarihi</string>
+    <string name="sort_display_date_liked_oldest">Beğenilme Tarihi (Önce en eski)</string>
+    <string name="sort_display_fewest_subfolders">En Az Alt Klasör</string>
+    <string name="sort_display_most_subfolders">En Çok Alt Klasör</string>
+
+    <!-- Sort Option Method Labels -->
+    <string name="sort_method_title">Başlık</string>
+    <string name="sort_method_artist">Sanatçı</string>
+    <string name="sort_method_album">Albüm</string>
+    <string name="sort_method_date_added">Ekleme Tarihi</string>
+    <string name="sort_method_duration">Süre</string>
+    <string name="sort_method_release_year">Yayın Yılı</string>
+    <string name="sort_method_song_count">Şarkı Sayısı</string>
+    <string name="sort_method_name">Ad</string>
+    <string name="sort_method_num_songs">Şarkı Sayısı</string>
+    <string name="sort_method_date_created">Oluşturulma Tarihi</string>
+    <string name="sort_method_date_liked">Beğenilme Tarihi</string>
+    <string name="sort_method_subfolder_count">Alt Klasör Sayısı</string>
 
     <!-- LibrarySortBottomSheet-->
     <string name="library_sort_source">Kaynak</string>

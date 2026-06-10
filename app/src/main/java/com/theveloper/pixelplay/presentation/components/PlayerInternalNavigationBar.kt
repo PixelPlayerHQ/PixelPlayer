@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -135,27 +136,28 @@ private fun PlayerInternalNavigationItemsRow(
             } else {
                 item.iconResId
             }
-            val iconLambda: @Composable () -> Unit = remember(iconPainterResId, item.label) {
+            val localizedLabel = stringResource(id = item.labelResId)
+            val iconLambda: @Composable () -> Unit = remember(iconPainterResId, localizedLabel) {
                 {
                     Icon(
                         painter = painterResource(id = iconPainterResId),
-                        contentDescription = item.label
+                        contentDescription = localizedLabel
                     )
                 }
             }
-            val selectedIconLambda: @Composable () -> Unit = remember(iconPainterResId, item.label) {
+            val selectedIconLambda: @Composable () -> Unit = remember(iconPainterResId, localizedLabel) {
                 {
                     Icon(
                         painter = painterResource(id = iconPainterResId),
-                        contentDescription = item.label
+                        contentDescription = localizedLabel
                     )
                 }
             }
             val labelLambda: (@Composable () -> Unit)? = if (compactMode) {
                 null
             } else {
-                remember(item.label) {
-                    { Text(item.label) }
+                remember(localizedLabel) {
+                    { Text(localizedLabel) }
                 }
             }
             val onClickLambda: () -> Unit = remember(item.screen.route, navController, scope) {
@@ -209,7 +211,7 @@ private fun PlayerInternalNavigationItemsRow(
                 icon = iconLambda,
                 selectedIcon = selectedIconLambda,
                 label = labelLambda,
-                contentDescription = item.label,
+                contentDescription = localizedLabel,
                 alwaysShowLabel = true,
                 selectedIconColor = selectedColor,
                 unselectedIconColor = unselectedColor,

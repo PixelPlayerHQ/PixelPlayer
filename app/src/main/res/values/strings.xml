@@ -6,6 +6,11 @@
     <string name="app_name_change_message">We have changed our app\'s name from PixelPlay to PixelPlayer due to a trademark-related issue. Keep playing!</string>
     <string name="app_name_change_do_not_show_again">Do not show again</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">Home</string>
+    <string name="nav_bar_search">Search</string>
+    <string name="nav_bar_library">Library</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">Special Permission Required</string>
     <string name="all_files_access_description">To edit song metadata (.mp3 files), PixelPlayer needs special access to all files. This allows us to modify track tags directly. Please grant this permission on the next screen to enable metadata editing.</string>

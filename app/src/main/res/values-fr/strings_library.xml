@@ -6,6 +6,14 @@
     <string name="library_tabs_sheet_subtitle">Accédez directement à n\'importe quel onglet ou réorganisez-les.</string>
     <string name="library_reorder_tabs_label">Réorganiser les onglets</string>
 
+    <!-- Library Tab Names -->
+    <string name="library_tab_songs">Chansons</string>
+    <string name="library_tab_albums">Albums</string>
+    <string name="library_tab_artists">Artistes</string>
+    <string name="library_tab_playlists">Playlists</string>
+    <string name="library_tab_folders">Dossiers</string>
+    <string name="library_tab_liked">Favoris</string>
+
     <!-- Library Toasts -->
     <string name="library_toast_playlist_created">Playlist créée avec succès</string>
     <string name="library_toast_set_ai_provider_api_key_first">Configurez d\'abord votre clé API de fournisseur d\'IA</string>
@@ -185,6 +193,47 @@
     <string name="multi_selection_albums_selected">sélectionné(s)</string>
     <string name="multi_selection_albums_selected_limit">Limite : %1$d albums par sélection.</string>
     <string name="multi_selection_albums_queue_hint">La file d\'attente + lecture respecte l\'ordre de votre sélection.</string>
+
+    <!-- Sort Option Display Names -->
+    <string name="sort_display_default_order">Ordre par défaut</string>
+    <string name="sort_display_title_az">Titre (A-Z)</string>
+    <string name="sort_display_title_za">Titre (Z-A)</string>
+    <string name="sort_display_artist">Artiste</string>
+    <string name="sort_display_artist_za">Artiste (Z-A)</string>
+    <string name="sort_display_album">Album</string>
+    <string name="sort_display_album_za">Album (Z-A)</string>
+    <string name="sort_display_date_added">Date d\'ajout</string>
+    <string name="sort_display_date_added_oldest">Date d\'ajout (la plus ancienne en premier)</string>
+    <string name="sort_display_duration">Durée</string>
+    <string name="sort_display_duration_shortest">Durée (la plus courte en premier)</string>
+    <string name="sort_display_release_year">Année de sortie</string>
+    <string name="sort_display_release_year_oldest">Année de sortie (la plus ancienne en premier)</string>
+    <string name="sort_display_fewest_songs">Moins de chansons</string>
+    <string name="sort_display_most_songs">Plus de chansons</string>
+    <string name="sort_display_name_az">Nom (A-Z)</string>
+    <string name="sort_display_name_za">Nom (Z-A)</string>
+    <string name="sort_display_num_songs_most">Nombre de chansons (le plus élevé)</string>
+    <string name="sort_display_num_songs_fewest">Nombre de chansons (le moins élevé)</string>
+    <string name="sort_display_date_created">Date de création</string>
+    <string name="sort_display_date_created_oldest">Date de création (la plus ancienne en premier)</string>
+    <string name="sort_display_date_liked">Date d\'ajout aux favoris</string>
+    <string name="sort_display_date_liked_oldest">Date d\'ajout aux favoris (la plus ancienne en premier)</string>
+    <string name="sort_display_fewest_subfolders">Moins de sous-dossiers</string>
+    <string name="sort_display_most_subfolders">Plus de sous-dossiers</string>
+
+    <!-- Sort Option Method Labels -->
+    <string name="sort_method_title">Titre</string>
+    <string name="sort_method_artist">Artiste</string>
+    <string name="sort_method_album">Album</string>
+    <string name="sort_method_date_added">Date d\'ajout</string>
+    <string name="sort_method_duration">Durée</string>
+    <string name="sort_method_release_year">Année de sortie</string>
+    <string name="sort_method_song_count">Nombre de chansons</string>
+    <string name="sort_method_name">Nom</string>
+    <string name="sort_method_num_songs">Nombre de chansons</string>
+    <string name="sort_method_date_created">Date de création</string>
+    <string name="sort_method_date_liked">Date d\'ajout aux favoris</string>
+    <string name="sort_method_subfolder_count">Nombre de sous-dossiers</string>
 
     <!-- LibrarySortBottomSheet-->
     <string name="library_sort_source">Source</string>

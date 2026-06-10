@@ -6,6 +6,11 @@
     <string name="app_name_change_message">Ticari marka kaynaklı bir sorun nedeniyle uygulamamızın adını PixelPlay\'den PixelPlayer olarak değiştirdik. Keyifli dinlemeler!</string>
     <string name="app_name_change_do_not_show_again">Bir daha gösterme</string>
 
+    <!-- Navigation Bar Labels -->
+    <string name="nav_bar_home">Ana Sayfa</string>
+    <string name="nav_bar_search">Ara</string>
+    <string name="nav_bar_library">Kitaplık</string>
+
     <!-- All files access dialog-->
     <string name="all_files_access_title">Özel İzin Gerekiyor</string>
     <string name="all_files_access_description">Şarkı meta verilerini (.mp3 dosyalarını) düzenlemek için PixelPlayer\'ın tüm dosyalara özel erişim sağlaması gerekir. Bu, parça etiketlerini doğrudan değiştirmemize olanak tanır. Meta veri düzenlemeyi etkinleştirmek için lütfen sonraki ekranda bu izni verin.</string>

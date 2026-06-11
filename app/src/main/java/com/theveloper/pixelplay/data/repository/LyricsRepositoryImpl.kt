@@ -533,6 +533,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
             // Strategy 4: Aggressive fallback - remove artist and trim title at separators
             if (results.isEmpty()) {
+                 // Include common CJK/Unicode separators: \uFF0D (fullwidth hyphen-minus), \u00B7 (middle dot), \u30FB (katakana middle dot)
                  val separators = charArrayOf('-', ',', '(', ')', '$', '#', ':', '%', '\uFF0D', '\u00B7', '\u30FB')
                  val index = cleanTitle.indexOfAny(separators)
                  if (index != -1) {

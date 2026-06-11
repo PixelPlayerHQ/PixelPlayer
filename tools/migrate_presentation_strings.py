@@ -33,6 +33,8 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ('contentDescription = "Play/Pause"', 'contentDescription = stringResource(R.string.mashup_cd_play_pause)'),
     ('contentDescription = "Song Cover"', 'contentDescription = stringResource(R.string.cd_song_cover)'),
     ('Text("Delete")', 'Text(stringResource(R.string.delete_action))'),
+    # Legacy literals found in some source files; keep these explicit Spanish matches
+    # so the migration reliably rewrites them to localized string resources.
     ('contentDescription = "Limpiar"', 'contentDescription = stringResource(R.string.cd_clear_search_query)'),
     ('contentDescription = "Buscar"', 'contentDescription = stringResource(R.string.cd_search_icon)'),
 ]
@@ -56,11 +58,9 @@ def insert_imports(text: str) -> str:
             insert_at = i + 1
     to_add = []
     if needs_string_resource(text):
-        if STRING_IMPORT not in text:
-            to_add.append(STRING_IMPORT + "\n")
+        to_add.append(STRING_IMPORT + "\n")
     if needs_r_import(text):
-        if R_IMPORT not in text:
-            to_add.append(R_IMPORT + "\n")
+        to_add.append(R_IMPORT + "\n")
     if not to_add:
         return text
     return "".join(lines[:insert_at] + to_add + lines[insert_at:])

@@ -247,6 +247,24 @@ class PlayerViewModelTest {
         // Ensure manual executor for main thread to prevent RejectedExecutionException
         // We already mocked ContextCompat.getMainExecutor above.
         
+        // Real dispatch holder wired to the same mocks the ViewModel uses, so the
+        // existing end-to-end playback tests keep exercising the moved logic.
+        val playbackDispatchStateHolder = PlaybackDispatchStateHolder(
+            mockMusicRepository,
+            mockUserPreferencesRepository,
+            mockDualPlayerEngine,
+            mockAppShortcutManager,
+            mockSyncManager,
+            mockExternalMediaStateHolder,
+            mockPlaybackStateHolder,
+            mockQueueStateHolder,
+            mockLibraryStateHolder,
+            mockCastStateHolder,
+            mockCastTransferStateHolder,
+            mockConnectivityStateHolder,
+            mockThemeStateHolder,
+            mockContext
+        )
         playerViewModel = PlayerViewModel(
             mockContext,
             mockMusicRepository,
@@ -255,7 +273,6 @@ class PlayerViewModelTest {
             mockThemePreferencesRepository,
             mockSyncManager,
             mockDualPlayerEngine,
-            mockAppShortcutManager,
             mockTelegramCacheManagerProvider,
             mockListeningStatsTracker,
             mockDailyMixStateHolder,
@@ -276,10 +293,10 @@ class PlayerViewModelTest {
             mockCastTransferStateHolder,
             mockMetadataEditStateHolder,
             mockSongRemovalStateHolder,
-            mockExternalMediaStateHolder,
             mockThemeStateHolder,
             mockMultiSelectionStateHolder,
             mockPlaylistSelectionStateHolder,
+            playbackDispatchStateHolder,
             sessionToken,
             mockMediaControllerFactory
         )

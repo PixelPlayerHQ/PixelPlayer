@@ -163,17 +163,6 @@
     <string name="settings_app_language_title">لغة التطبيق</string>
     <string name="settings_app_language_subtitle">اختر اللغة المستخدمة في واجهة التطبيق بكاملها.</string>
     <string name="settings_language_system">افتراضية النظام</string>
-    <string name="settings_language_english">English (الإنجليزية)</string>
-    <string name="settings_language_spanish">Español (الإسبانية)</string>
-    <string name="settings_language_german">Deutsch (الألمانية)</string>
-    <string name="settings_language_french">Français (الفرنسية)</string>
-    <string name="settings_language_russian">Русский (الروسية)</string>
-    <string name="settings_language_chinese">简体中文 (الصينية المبسطة)</string>
-    <string name="settings_language_indonesian">Bahasa Indonesia (الإندونيسية)</string>
-    <string name="settings_language_italian">Italiano (الإيطالية)</string>
-    <string name="settings_language_korean">Korean (الكورية)</string>
-    <string name="settings_language_norwegian_bokmal">Norwegian (النرويجية بوكمول)</string>
-    <string name="settings_language_turkish">Türkçe (التركية)</string>
     <string name="settings_app_theme_title">مظهر التطبيق</string>
     <string name="settings_app_theme_subtitle">التنقل بين المظهر الفاتح، الداكن، أو تتبع النظام.</string>
     <string name="settings_theme_light">المظهر الفاتح</string>

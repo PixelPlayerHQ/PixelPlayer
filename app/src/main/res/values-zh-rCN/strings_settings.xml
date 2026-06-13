@@ -163,17 +163,6 @@
     <string name="settings_app_language_title">应用语言</string>
     <string name="settings_app_language_subtitle">选择应用界面的语言。</string>
     <string name="settings_language_system">跟随系统</string>
-    <string name="settings_language_english">英语</string>
-    <string name="settings_language_spanish">西班牙语</string>
-    <string name="settings_language_german">德语</string>
-    <string name="settings_language_french">法语</string>
-    <string name="settings_language_russian">俄语</string>
-    <string name="settings_language_chinese">简体中文</string>
-    <string name="settings_language_indonesian">印尼语</string>
-    <string name="settings_language_italian">意大利语</string>
-    <string name="settings_language_korean">韩语</string>
-    <string name="settings_language_norwegian_bokmal">挪威语（Bokmål）</string>
-    <string name="settings_language_turkish">土耳其语</string>
     <string name="settings_app_theme_title">应用主题</string>
     <string name="settings_app_theme_subtitle">在浅色、深色之间切换，或跟随系统外观。</string>
     <string name="settings_theme_light">浅色主题</string>

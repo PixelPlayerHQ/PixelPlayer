@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>Localization: Spanish, French, Russian, Simplified Chinese, Indonesian, Italian</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Google Drive integration with player lifecycle management.</item>
+        <item>Batch song metadata editing (tags and cover art).</item>
+        <item>AI lyrics translation with customizable Wear OS preferences.</item>
+        <item>Lag diagnostic tool and multi-selection on Search screen.</item>
+        <item>Arabic &amp; Turkish support, with localized http URL local-network options.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Drastic battery saving (audio offload and UI polling gates).</item>
+        <item>Optimized queue management (faster insertions and explicit indexing).</item>
+        <item>Material 3 Expressive motion animations for transition screens.</item>
+        <item>Refactored library synchronization via throttled scanning.</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Resolved stuttering/skipping playback lags and buffering issues.</item>
+        <item>Fixed external song deletion sync and metadata consistency.</item>
+        <item>Fixed memory issues, crashes, and layout glitches on Wear OS and phone.</item>
+    </string-array>
 </resources>

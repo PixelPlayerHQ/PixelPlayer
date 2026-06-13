@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Telegram login -->
+    <string name="telegram_login_title">تسجيل الدخول إلى Telegram</string>
+    <string name="telegram_edit_number_chip">أنت تقوم بتعديل رقمك الآن. إرسال الرمز مجدداً سيحل محل الرمز السابق.</string>
+    <string name="telegram_working">جاري العمل…</string>
+    <string name="telegram_status_initializing">جاري تهيئة Telegram…</string>
+    <string name="telegram_status_logging_out">جاري تسجيل الخروج…</string>
+    <string name="telegram_status_closing">جاري إغلاق الجلسة…</string>
+    <string name="telegram_status_closed">تم إغلاق الجلسة. أعد فتح تسجيل الدخول للمتابعة.</string>
+    <string name="telegram_status_preparing">جاري تحضير جلسة Telegram آمنة…</string>
+    <string name="telegram_status_waiting">بانتظار استجابة Telegram…</string>
+    <string name="telegram_connect">ربط Telegram</string>
+    <string name="telegram_connect_subtitle">قم بربط حساب Telegram لبث الموسيقى مباشرة من قنواتك ومحادثاتك.</string>
+    <string name="telegram_phone_number_title">رقم الهاتف</string>
+    <string name="telegram_phone_number_subtitle">أدخل رقم Telegram الخاص بك. يمكنك العودة وتعديله لاحقاً.</string>
+    <string name="telegram_phone_number_hint">رقم الهاتف</string>
+    <string name="telegram_phone_country_placeholder">1</string>
+    <string name="telegram_phone_local_placeholder">5551234567</string>
+    <string name="telegram_send_code">إرسال الرمز</string>
+    <string name="telegram_verification_code_title">رمز التحقق</string>
+    <string name="telegram_verification_code_subtitle">أدخل الرمز الذي وصلك من Telegram. إذا كان الرقم خاطئاً، عد للخلف لتعديله.</string>
+    <string name="telegram_code_field_label">الرمز</string>
+    <string name="telegram_code_placeholder">12345</string>
+    <string name="telegram_edit_phone">تعديل الهاتف</string>
+    <string name="telegram_resend_code">إعادة إرسال الرمز</string>
+    <string name="telegram_verify_code">التحقق من الرمز</string>
+    <string name="telegram_two_step_password_title">التحقق بخطوتين (كلمة المرور)</string>
+    <string name="telegram_two_step_password_subtitle">أدخل كلمة مرور Telegram الخاصة بك. لا يزال بإمكانك العودة لتصحيح رقمك.</string>
+    <string name="telegram_password_label">كلمة المرور</string>
+    <string name="telegram_verify_password">التحقق من كلمة المرور</string>
+    <string name="telegram_please_wait">يرجى الانتظار…</string>
+
+    <!-- Telegram dashboard -->
+    <string name="telegram_channels_title">قنوات Telegram</string>
+    <string name="telegram_add_channel_fab">إضافة قناة</string>
+    <string name="telegram_public_channel_fallback">قناة Telegram عامة</string>
+    <string name="telegram_syncing">جاري المزامنة</string>
+    <string name="telegram_sync_now">المزامنة الآن</string>
+    <string name="telegram_cd_collapse_topics">طي المواضيع</string>
+    <string name="telegram_cd_show_topics">إظهار المواضيع</string>
+    <string name="telegram_cd_channel_options">خيارات القناة</string>
+    <string name="telegram_topics_heading">المواضيع</string>
+    <string name="telegram_syncing_channel">جاري مزامنة القناة</string>
+    <string name="telegram_updating_songs_from_telegram">جاري تحديث الأغاني من Telegram</string>
+    <string name="telegram_fetch_latest_songs">جلب أحدث الأغاني من هذه القناة</string>
+    <string name="telegram_remove_channel">إزالة القناة</string>
+    <string name="telegram_remove_channel_subtitle">إيقاف المزامنة وحذف الأغاني المخزنة مؤقتاً</string>
+    <string name="telegram_remove_channel_confirm_title">حذف القناة؟</string>
+    <string name="telegram_remove_channel_confirm_body">ستتوقف مزامنة %1$s وسيتم حذف جميع الأغاني المخزنة مؤقتاً من هذه القناة.</string>
+    <string name="telegram_remove_channel_confirm_action">إزالة</string>
+    <string name="telegram_no_channels_synced">لم يتم مزامنة أي قنوات بعد</string>
+    <string name="telegram_no_channels_body">أضف قنوات Telegram عامة لمزامنة\nمكتبتك الموسيقية</string>
+    <string name="telegram_add_channel_button">إضافة قناة</string>
+    <string name="telegram_never_synced">لم تُزامن مطلقاً</string>
+    <string name="telegram_synced_relative">تمت المزامنة %1$s</string>
+
+    <!-- Telegram channel search -->
+    <string name="telegram_add_channel_sheet_title">إضافة قناة</string>
+    <string name="telegram_add_channel_sheet_subtitle">ابحث عن قناة Telegram عامة لمزامنة موسيقاها</string>
+    <string name="telegram_channel_search_placeholder">اسم_القناة@ أو الرابط</string>
+    <string name="telegram_searching">جاري البحث…</string>
+    <string name="telegram_search_channel_title">البحث عن قناة</string>
+    <string name="telegram_search_channel_body">أدخل اسم المستخدم لقناة عامة أو الرابط الخاص بها\nلمزامنة ملفاتها الصوتية</string>
+
+    <plurals name="telegram_n_songs">
+        <item quantity="zero">لا توجد أغانٍ</item>
+        <item quantity="one">أغنية واحدة (%d)</item>
+        <item quantity="two">أغنيتان (%d)</item>
+        <item quantity="few">%d أغانٍ</item>
+        <item quantity="many">%d أغنية</item>
+        <item quantity="other">%d أغنية</item>
+    </plurals>
+    <plurals name="telegram_n_topics">
+        <item quantity="zero">لا توجد مواضيع</item>
+        <item quantity="one">موضوع واحد (%d)</item>
+        <item quantity="two">موضوعان (%d)</item>
+        <item quantity="few">%d مواضيع</item>
+        <item quantity="many">%d موضوعاً</item>
+        <item quantity="other">%d موضوع</item>
+    </plurals>
+
+    <!-- Subsonic/Navidrome dashboard -->
+    <string name="subsonic_dashboard_title">Subsonic</string>
+    <string name="subsonic_dashboard_quick_actions_subtitle">إدارة خوادم Navidrome وAirsonic والخوادم الأخرى المتوافقة مع Subsonic.</string>
+
+    <!-- Jellyfin dashboard -->
+    <string name="jellyfin_dashboard_playlists_empty_hint">اضغط على مزامنة لجلب قوائم تشغيل Jellyfin الخاصة بك</string>
+    <string name="jellyfin_dashboard_quick_actions_subtitle">إدارة اتصال خادم Jellyfin الخاص بك.</string>
+
+    <!-- Google Drive dashboard -->
+    <string name="gdrive_dashboard_music_folders">مجلدات الموسيقى</string>
+    <string name="gdrive_dashboard_add_folder_hint">اضغط على + لإضافة مجلد Drive</string>
+    <string name="gdrive_dashboard_no_folders_yet">لا توجد مجلدات مضافة بعد</string>
+    <string name="gdrive_dashboard_folders_synced_count">تمت مزامنة %1$d مجلدات</string>
+    <string name="gdrive_cd_add_folder">إضافة مجلد</string>
+
+    <!-- QQ Music dashboard -->
+    <string name="qqmusic_select_playlist_type_title">اختر نوع قائمة التشغيل</string>
+    <string name="qqmusic_choose_playlists_to_sync">اختر قوائم التشغيل لمزامنتها:</string>
+    <string name="qqmusic_all_playlists">جميع قوائم التشغيل</string>
+    <string name="qqmusic_created_and_collected">المنشأة والمجمعة</string>
+    <string name="qqmusic_created_playlists">قوائم التشغيل المنشأة</string>
+    <string name="qqmusic_collected_playlists">قوائم التشغيل المجمعة</string>
+
+    <!-- Cloud dashboard generic -->
+    <string name="cloud_dashboard_playlists_synced_count">تمت مزامنة %1$d قائمة تشغيل</string>
+    <string name="cloud_dashboard_title_playlists">قوائم التشغيل</string>
+    <string name="cloud_dashboard_action_sync">مزامنة</string>
+    <string name="cloud_dashboard_playlists_empty_title">لم يتم مزامنة أي قوائم تشغيل بعد</string>
+    <string name="cloud_dashboard_playlists_empty_hint">اضغط على مزامنة لجلب قوائم التشغيل الخاصة بك</string>
+    <string name="cloud_dashboard_quick_actions">إجراءات سريعة</string>
+    <string name="cloud_dashboard_action_sync_library">مزامنة المكتبة</string>
+    <string name="cloud_dashboard_action_disconnect">إلغاء الاتصال</string>
+    <string name="cloud_dashboard_song_count">%1$d أغنية</string>
+
+    <!-- Cloud sync status -->
+    <string name="cloud_sync_status_syncing">جاري المزامنة</string>
+    <string name="cloud_sync_status_syncing_library">جاري مزامنة المكتبة…</string>
+    <string name="cloud_sync_status_fetching_playlists">جاري جلب قوائم التشغيل…</string>
+    <string name="cloud_sync_status_syncing_playlist_format">جاري مزامنة قائمة التشغيل: %1$s</string>
+    <string name="cloud_sync_status_updating_local">جاري تحديث المكتبة المحلية…</string>
+    <string name="cloud_sync_status_sync_complete">اكتملت المزامنة</string>
+    <string name="cloud_sync_status_fetching_albums">جاري جلب قائمة الألبومات…</string>
+    <string name="cloud_sync_status_fetching_songs_from_format">جاري جلب الأغاني من %1$s…</string>
+    <string name="cloud_sync_status_saving_songs_format">جاري حفظ %1$d أغنية في قاعدة البيانات…</string>
+    <string name="cloud_sync_status_no_songs_found">لا توجد أغانٍ في المكتبة</string>
+    <string name="cloud_sync_status_library_sync_complete">اكتملت مزامنة المكتبة</string>
+    <string name="cloud_sync_status_syncing_ellipsis">جاري المزامنة…</string>
+    <string name="cloud_sync_error_with_message_format">خطأ: %1$s</string>
+
+    <!-- Cloud content descriptions -->
+    <string name="cloud_cd_sync">مزامنة</string>
+    <string name="cloud_cd_sync_all">مزامنة الكل</string>
+    <string name="cloud_cd_logout">تسجيل الخروج</string>
+    <string name="cloud_cd_sync_all_playlists">مزامنة جميع قوائم التشغيل</string>
+    <string name="cloud_cd_user_avatar">الصورة الشخصية للمستخدم</string>
+
+    <!-- No internet -->
+    <string name="no_internet_dialog_title">لا يوجد اتصال بالإنترنت</string>
+    <string name="no_internet_dialog_message">يتطلب هذا المحتوى اتصالاً بالإنترنت. يرجى التحقق من إعدادات الشبكة والمحاولة مجدداً.</string>
+    <string name="offline_screen_title">أنت غير متصل بالإنترنت</string>
+    <string name="offline_screen_message">يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً للوصول إلى هذا المحتوى.</string>
+
+    <!-- Cloud Authentication & Login Shared Strings -->
+    <string name="auth_connect_action">اتصال</string>
+    <string name="auth_connecting_msg">جاري الاتصال…</string>
+    <string name="auth_details_subtitle">أدخل رابط الخادم (URL) وبيانات اعتماد الحساب.</string>
+    <string name="auth_details_title">تفاصيل الاتصال</string>
+    <string name="auth_hide_pwd_action">إخفاء كلمة المرور</string>
+    <string name="auth_password_label">كلمة المرور</string>
+    <string name="auth_password_placeholder">أدخل كلمة المرور</string>
+    <string name="auth_prefill_http_action">ملء تلقائي لـ //:http</string>
+    <string name="auth_server_url_label">رابط الخادم (URL)</string>
+    <string name="auth_show_pwd_action">إظهار كلمة المرور</string>
+    <string name="auth_telegram_title">Telegram</string>
+    <string name="auth_username_label">اسم المستخدم</string>
+    <string name="auth_username_placeholder">admin</string>
+    <string name="auth_welcome_toast">مرحباً، %1$s!</string>
+
+    <!-- Subsonic / Navidrome Auth -->
+    <string name="auth_navidrome_footer_msg">متوافق مع Navidrome وGonic وAirsonic والخوادم الأخرى المتوافقة مع Subsonic</string>
+    <string name="auth_navidrome_info_msg">يدعم خوادم Navidrome وAirsonic وGonic وAmpache والخوادم الأخرى المتوافقة مع واجهة برمجة تطبيقات Subsonic.</string>
+    <string name="auth_navidrome_password_hint">كلمة مرور التطبيق (App password) تعمل أيضاً إذا كان خادمك يدعمها.</string>
+    <string name="auth_navidrome_prefill_https_action">ملء تلقائي لـ //:https</string>
+    <string name="auth_navidrome_subtitle">اتصل بخادم الموسيقى المستضاف ذاتياً</string>
+    <string name="auth_navidrome_title">Navidrome</string>
+    <string name="auth_navidrome_url_hint">استخدم عنوان الخادم الكامل الذي يبدأ بـ //:https.</string>
+    <string name="auth_navidrome_url_placeholder">https://music.example.com</string>
+    <string name="auth_navidrome_username_hint">هذا هو اسم حسابك على Subsonic أو Navidrome.</string>
+    <string name="auth_subsonic_navidrome_title">Subsonic / Navidrome</string>
+    <string name="auth_subsonic_title">Subsonic</string>
+
+    <!-- Jellyfin Auth -->
+    <string name="auth_jellyfin_connect_subtitle">أدخل رابط خادم Jellyfin وبيانات اعتماد الحساب.</string>
+    <string name="auth_jellyfin_footer_msg">يتصل بخوادم Jellyfin لبث مكتبتك الموسيقية</string>
+    <string name="auth_jellyfin_info_msg">يتصل بخوادم Jellyfin. يتم دعم كل من HTTP وHTTPS للوصول عبر الشبكة المحلية.</string>
+    <string name="auth_jellyfin_logo_cd">شعار Jellyfin</string>
+    <string name="auth_jellyfin_password_hint">كلمة المرور لحساب Jellyfin الخاص بك.</string>
+    <string name="auth_jellyfin_subtitle">اتصل بخادم وسائط Jellyfin الخاص بك</string>
+    <string name="auth_jellyfin_title">Jellyfin</string>
+    <string name="auth_jellyfin_url_hint">الرابط الكامل لخادم Jellyfin الخاص بك، شاملاً منفذ الاتصال (Port).</string>
+    <string name="auth_jellyfin_url_placeholder">http://192.168.1.100:8096</string>
+    <string name="auth_jellyfin_username_hint">اسم المستخدم لحساب Jellyfin الخاص بك.</string>
+
+    <!-- Google Drive Auth -->
+    <string name="auth_gdrive_connect_subtitle">بث ملفات الموسيقى مباشرة من حساب Google Drive الخاص بك</string>
+    <string name="auth_gdrive_connect_title">ربط Google Drive</string>
+    <string name="auth_gdrive_connected_toast">تم توصيل Google Drive بنجاح!</string>
+    <string name="auth_gdrive_create_action">إنشاء مجلد \"PixelPlayer Music\"</string>
+    <string name="auth_gdrive_create_subtitle">أنشئ مجلداً جديداً هنا للموسيقى الخاصة بك</string>
+    <string name="auth_gdrive_empty_msg">لا توجد مجلدات هنا</string>
+    <string name="auth_gdrive_open_cd">فتح المجلد</string>
+    <string name="auth_gdrive_select_subtitle">اختر أو أنشئ مجلداً لاستخدامه كمصدر للموسيقى الخاصة بك</string>
+    <string name="auth_gdrive_select_title">اختر مجلد الموسيقى</string>
+    <string name="auth_gdrive_setup_msg">جاري إعداد Google Drive…</string>
+    <string name="auth_gdrive_signin_action">تسجيل الدخول باستخدام Google</string>
+    <string name="auth_gdrive_title">Google Drive</string>
+    <string name="auth_gdrive_use_action">استخدام</string>
+
+    <!-- Web Login Shared/Generic -->
+    <string name="auth_cookies_unreadable_error">تعذر قراءة ملفات تعريف الارتباط (Cookies) الخاصة بالجلسة.</string>
+    <string name="auth_done_action">تم</string>
+    <string name="auth_exit_action">خروج</string>
+    <string name="auth_no_cookies_error">لم يتم العثور على ملفات تعريف الارتباط. سجل الدخول أولاً.</string>
+    <string name="auth_page_slow_msg">تستغرق الصفحة وقتاً طويلاً للتحميل. استخدم التحديث أو جرب شبكة أخرى.</string>
+    <string name="auth_plus_label">+</string>
+    <string name="auth_saving_msg">جاري الحفظ…</string>
+    <string name="auth_stay_action">بقاء</string>
+    <string name="auth_timeout_toast">انتهت مهلة تحميل الصفحة. يمكنك إعادة المحاولة دون فقدان تقدمك.</string>
+    <string name="auth_web_back_cd">رجوع للخلف في الويب</string>
+    <string name="auth_web_exit_msg">يمكنك العودة لاحقاً. سيتم تجاهل حالة الصفحة الحالية عند الإغلاق.</string>
+    <string name="auth_web_forward_cd">تقدم للأمام في الويب</string>
+    <string name="auth_web_refresh_cd">تحديث</string>
+    <string name="auth_web_retry_action">إعادة المحاولة</string>
+    <string name="auth_web_home_cd">فتح الصفحة الرئيسية</string>
+    <string name="auth_webview_failed_error">فشل تحميل WebView.</string>
+
+    <!-- NetEase Web Login -->
+    <string name="auth_netease_cookie_error">فشل في قراءة ملفات تعريف ارتباط NetEase: %1$s</string>
+    <string name="auth_netease_exit_title">الخروج من تسجيل دخول NetEase؟</string>
+    <string name="auth_netease_http_error">خطأ HTTP %1$d أثناء تحميل NetEase.</string>
+    <string name="auth_netease_incomplete_error">لم يتم رصد تسجيل الدخول بعد. أكمل تسجيل الدخول إلى NetEase قبل الضغط على "تم".</string>
+    <string name="auth_netease_login_title">تسجيل الدخول إلى NetEase Music</string>
+    <string name="auth_netease_security_msg">ملاحظة أمان: يتم إدخال كلمة المرور الخاصة بك فقط داخل صفحات ويب NetEase. يقوم PixelPlayer بحفظ ملفات تعريف ارتباط الجلسة (MUSIC_U) لمزامنة مكتبتك الموسيقية.</string>
+    <string name="auth_netease_title">NetEase Music</string>
+
+    <!-- QQ Music Web Login -->
+    <string name="auth_qq_cookie_error">فشل في قراءة ملفات تعريف ارتباط QQ Music: %1$s</string>
+    <string name="auth_qq_exit_title">الخروج من تسجيل دخول QQ Music؟</string>
+    <string name="auth_qq_http_error">خطأ HTTP %1$d أثناء تحميل QQ Music.</string>
+    <string name="auth_qq_incomplete_error">لم يتم رصد تسجيل الدخول بعد. أكمل تسجيل الدخول إلى QQ Music قبل الضغط على "تم".</string>
+    <string name="auth_qq_login_title">تسجيل الدخول إلى QQ Music</string>
+    <string name="auth_qq_security_msg">ملاحظة أمان: يتم إدخال كلمة المرور الخاصة بك فقط داخل صفحات ويب QQ Music. يقوم PixelPlayer بحفظ ملفات تعريف ارتباط الجلسة (Cookies) لمزامنة مكتبتك الموسيقية.</string>
+    <string name="auth_qq_title">QQ Music</string>
+</resources>

@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>Lokalisering: Spansk, Fransk, Russisk, Forenklet kinesisk, Indonesisk, Italiensk</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Google Drive-integrasjon med spillerens livssyklushåndtering.</item>
+        <item>Masseredigering av sangmetadata (tagger og coverbilde).</item>
+        <item>AI-sangtekstoversettelse med tilpassbare Wear OS-preferanser.</item>
+        <item>Diagnoseverktøy for forsinkelse og flervalg på søkeskjermen.</item>
+        <item>Støtte for arabisk &amp; tyrkisk, med lokaliserte http URL-alternativer for lokalt nettverk.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Drastisk batterisparing (lydoffload og UI-pollingporter).</item>
+        <item>Optimalisert køhåndtering (raskere innsettinger og eksplisitt indeksering).</item>
+        <item>Material 3 Expressive-bevegelsesanimasjoner for overgangsskjermer.</item>
+        <item>Refaktorert biblioteksynkronisering via begrenset skanning.</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Løst hakking/hopping under avspilling og bufferproblemer.</item>
+        <item>Fikset synkronisering av sletting av eksterne sanger og konsistens i metadata.</item>
+        <item>Fikset minneproblemer, krasj og layoutfeil på Wear OS og telefon.</item>
+    </string-array>
 </resources>

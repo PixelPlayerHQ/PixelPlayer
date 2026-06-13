@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>Lokalisasi: Spanish, French, Russian, Simplified Chinese, Indonesia, Italian</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Integrasi Google Drive dengan manajemen siklus hidup pemutar.</item>
+        <item>Pengeditan metadata lagu massal (tag dan gambar sampul).</item>
+        <item>Terjemahan lirik AI dengan preferensi Wear OS yang dapat disesuaikan.</item>
+        <item>Alat diagnosis lag dan multi-seleksi di layar Pencarian.</item>
+        <item>Dukungan bahasa Arab &amp; Turki, dengan opsi jaringan lokal URL HTTP yang dilokalkan.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Penghematan baterai drastis (offload audio dan gerbang polling UI).</item>
+        <item>Manajemen antrean yang dioptimalkan (penyisipan lebih cepat dan pengindeksan eksplisit).</item>
+        <item>Animasi gerakan Material 3 Expressive untuk layar transisi.</item>
+        <item>Refaktor sinkronisasi pustaka melalui pemindaian terbatasi (throttled).</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Menyelesaikan lag pemutaran yang tersendat/terlompat dan masalah buffering.</item>
+        <item>Memperbaiki sinkronisasi penghapusan lagu eksternal dan konsistensi metadata.</item>
+        <item>Memperbaiki masalah memori, crash, dan gangguan tata letak pada Wear OS dan ponsel.</item>
+    </string-array>
 </resources>

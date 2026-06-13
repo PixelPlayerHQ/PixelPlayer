@@ -192,7 +192,7 @@
     <string name="multi_selection_albums_count_upper">%1$d ALBUM</string>
     <string name="multi_selection_albums_selected">terpilih</string>
     <string name="multi_selection_albums_selected_limit">Batas: %1$d album per pilihan.</string>
-    <string name="multi_selection_albums_queue_hint">Antrekan + putar menghormati urutan pilihan Anda.</string>
+    <string name="multi_selection_albums_queue_hint">Antrekan + putar berdasarkan urutan pilihan Anda.</string>
     <string name="multi_selection_genres_count_upper">%1$d GENRE</string>
     <string name="multi_selection_genres_selected">terpilih</string>
     <string name="multi_selection_genres_queue_hint">Lakukan operasi batch pada semua lagu dalam genre ini.</string>
@@ -499,7 +499,7 @@
     <string name="playlist_view_model_export_failed">Gagal mengekspor: %1$s</string>
     <string name="playlist_view_model_export_folder_display">Musik/Ekspor PixelPlayer</string>
     <string name="playlist_view_model_ai_gemini_key_required">Silakan konfigurasi API key Gemini Anda di Pengaturan.</string>
-    <string name="playlist_view_model_restored_toast">Daftar putar dipulihkan</string>
+    <string name="playlist_view_model_restored_toast">Playlist dipulihkan</string>
     <plurals name="playlist_view_model_sharing_message">
         <item quantity="one">Membagikan %d playlist</item>
         <item quantity="other">Membagikan %d playlist</item>

@@ -9,9 +9,9 @@
     <string name="topbar_cloud_streaming_subtitle">Bulut hesaplarınızdan müzik akışı yapın</string>
 
     <!-- BetaInfoBottomSheet -->
-    <string name="beta_sheet_version">Beta 0.7.0</string>
+    <string name="beta_sheet_version">Beta 0.7.5</string>
     <string name="beta_sheet_letter">β</string>
-    <string name="beta_sheet_welcome_title">PixelPlayer 0.7.0-beta\'ya Hoş Geldiniz</string>
+    <string name="beta_sheet_welcome_title">PixelPlayer 0.7.5-beta\'ya Hoş Geldiniz</string>
     <string name="beta_sheet_welcome_body">Hata, çökme veya deneysel özellikler içerebilecek bir beta yapısı kullanıyorsunuz. Sorunları bildirerek geliştirmemize yardımcı olun.</string>
     <string name="beta_sheet_expect_title">Ne beklemeli</string>
     <string name="beta_sheet_expect_1">Beklenmedik hatalar, çökmeler veya tamamlanmamış özellikler olabilir.</string>

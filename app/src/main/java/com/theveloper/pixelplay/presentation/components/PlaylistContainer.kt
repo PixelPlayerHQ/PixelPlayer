@@ -135,6 +135,7 @@ fun PlaylistContainer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+<<<<<<< Updated upstream
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
@@ -171,6 +172,38 @@ fun PlaylistContainer(
                             textAlign = TextAlign.Center
                         )
                     }
+=======
+                    SineWaveLine(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .padding(horizontal = 8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                        alpha = 0.95f,
+                        strokeWidth = 3.dp,
+                        amplitude = 4.dp,
+                        wavesDensity = 7.6f,
+                        phase = 0f
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Icon(
+                        Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.presentation_batch_e_no_playlist_created),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.presentation_batch_e_new_playlist_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+>>>>>>> Stashed changes
                 }
             }
         } else {

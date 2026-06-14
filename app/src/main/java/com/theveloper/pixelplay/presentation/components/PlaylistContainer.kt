@@ -86,6 +86,7 @@ import com.theveloper.pixelplay.utils.formatSongCount
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import androidx.compose.ui.text.style.TextAlign
+import com.theveloper.pixelplay.presentation.components.subcomps.SineWaveLine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -135,7 +136,6 @@ fun PlaylistContainer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-<<<<<<< Updated upstream
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
@@ -172,7 +172,6 @@ fun PlaylistContainer(
                             textAlign = TextAlign.Center
                         )
                     }
-=======
                     SineWaveLine(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -203,7 +202,6 @@ fun PlaylistContainer(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
->>>>>>> Stashed changes
                 }
             }
         } else {

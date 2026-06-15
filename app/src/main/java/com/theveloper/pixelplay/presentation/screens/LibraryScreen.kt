@@ -1772,7 +1772,7 @@ fun LibraryScreen(
                 playerViewModel.clearAiPlaylistError()
                 showCreateAiPlaylistDialog = true
             } else {
-                Toast.makeText(context, context.getString(R.string.library_toast_set_gemini_api_key_first), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.library_toast_set_ai_provider_api_key_first), Toast.LENGTH_SHORT).show()
             }
         },
         onCreate = { name, imageUri, color, icon, songIds, cropScale, cropPanX, cropPanY, shapeType, d1, d2, d3, d4, smartRuleKey ->

@@ -498,7 +498,10 @@ class PlayerViewModel @Inject constructor(
         aiPreferencesRepository.nvidiaApiKey,
         aiPreferencesRepository.kimiApiKey,
         aiPreferencesRepository.glmApiKey,
-        aiPreferencesRepository.openaiApiKey
+        aiPreferencesRepository.openaiApiKey,
+        aiPreferencesRepository.ollamaApiKey,
+        aiPreferencesRepository.customApiKey,
+        aiPreferencesRepository.openrouterApiKey
     ) { values ->
         val provider = values[0]
         val gemini = values[1]
@@ -509,7 +512,11 @@ class PlayerViewModel @Inject constructor(
         val kimi = values[6]
         val glm = values[7]
         val openai = values[8]
+        val ollama = values[9]
+        val custom = values[10]
+        val openrouter = values[11]
         when (provider) {
+            "GEMINI" -> gemini.isNotBlank()
             "DEEPSEEK" -> deepseek.isNotBlank()
             "GROQ" -> groq.isNotBlank()
             "MISTRAL" -> mistral.isNotBlank()
@@ -517,7 +524,10 @@ class PlayerViewModel @Inject constructor(
             "KIMI" -> kimi.isNotBlank()
             "GLM" -> glm.isNotBlank()
             "OPENAI" -> openai.isNotBlank()
-            else -> gemini.isNotBlank()
+            "OPENROUTER" -> openrouter.isNotBlank()
+            "OLLAMA" -> ollama.isNotBlank()
+            "CUSTOM" -> custom.isNotBlank()
+            else -> false
         }
     }.distinctUntilChanged()
         .stateIn(

@@ -25,6 +25,7 @@
     <string name="library_cd_watch_transfer">Watch transfer</string>
     <string name="library_cd_open_settings">Settings</string>
     <string name="library_tab_edit">Edit</string>
+    <string name="library_cd_reorder_tabs">Reorder tabs</string>
     <string name="library_cd_expand_tab_menu">Expand menu</string>
 
     <!-- Library Multi-Selection & Folders -->

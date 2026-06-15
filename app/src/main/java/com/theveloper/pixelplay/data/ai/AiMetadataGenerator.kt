@@ -17,7 +17,7 @@ data class SongMetadata(
 )
 
 class AiMetadataGenerator @Inject constructor(
-    private val aiOrchestrator: AiOrchestrator,
+    private val aiHandler: AiHandler,
     private val json: Json
 ) {
     private fun cleanJson(jsonString: String): String {
@@ -45,7 +45,7 @@ class AiMetadataGenerator @Inject constructor(
             </task>
             """.trimIndent()
 
-            val responseText = aiOrchestrator.generateContent(fullPrompt, AiSystemPromptType.METADATA)
+            val responseText = aiHandler.generateContent(fullPrompt, AiSystemPromptType.METADATA)
             if (responseText.isBlank()) {
                 Timber.e("AI returned an empty or null response.")
                 return Result.failure(Exception("AI returned an empty response."))

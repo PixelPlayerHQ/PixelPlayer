@@ -41,7 +41,7 @@ class AiPreferencesRepository @Inject constructor(
         fun getSystemPrompt(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_system_prompt")
     }
 
-    // Generic accessors for AiOrchestrator
+    // Generic accessors for AiHandler
     fun getApiKey(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)]?.trim() ?: "" }
 

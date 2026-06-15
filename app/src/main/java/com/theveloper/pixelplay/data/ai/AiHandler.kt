@@ -19,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AiOrchestrator @Inject constructor(
+class AiHandler @Inject constructor(
     private val preferencesRepo: AiPreferencesRepository,
     private val clientFactory: AiClientFactory,
     private val cacheDao: AiCacheDao,
@@ -235,7 +235,7 @@ class AiOrchestrator @Inject constructor(
                             )
                         )
                     }.onFailure { error ->
-                        Timber.tag("AiOrchestrator").e(error, "Failed to persist AI usage")
+                        Timber.tag("AiHandler").e(error, "Failed to persist AI usage")
                     }
                 }
 
@@ -244,7 +244,7 @@ class AiOrchestrator @Inject constructor(
             } catch (e: Exception) {
                 // AI Optimization: Robust failover logic—if one provider fails, we log and try the next in the chain
                 val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
-                Timber.tag("AiOrchestrator").w(e, "Provider ${provider.name} failed: ${failure.message}")
+                Timber.tag("AiHandler").w(e, "Provider ${provider.name} failed: ${failure.message}")
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
                 // Trigger cooldown only on provider-level outages and account problems.
                 if (failure.shouldCooldown()) {
@@ -268,7 +268,7 @@ class AiOrchestrator @Inject constructor(
                 "AI generation failed after trying ${failedProviders.size} providers:\n${failedProviders.joinToString("\n• ", prefix = "• ")}"
         }
         
-        Timber.tag("AiOrchestrator").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
+        Timber.tag("AiHandler").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
         throw Exception(errorMessage)
     }
 }

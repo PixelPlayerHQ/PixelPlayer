@@ -25,7 +25,6 @@
     <string name="library_cd_watch_transfer">Watch transfer</string>
     <string name="library_cd_open_settings">Settings</string>
     <string name="library_tab_edit">Edit</string>
-    <string name="library_cd_reorder_tabs">Reorder tabs</string>
     <string name="library_cd_expand_tab_menu">Expand menu</string>
 
     <!-- Library Multi-Selection & Folders -->
@@ -255,6 +254,10 @@
     <string name="reorder_tabs_reset_dialog_body">Reset tab order to the default?</string>
     <string name="reorder_tabs_reordering">Reordering tabs…</string>
     <string name="reorder_tabs_cd_drag_handle">Drag handle</string>
+    <string name="reorder_tabs_visible_section">Visible Tabs</string>
+    <string name="reorder_tabs_hidden_section">Removed Tabs</string>
+    <string name="reorder_tabs_cd_remove_tab">Remove tab</string>
+    <string name="reorder_tabs_cd_add_tab">Add tab</string>
 
     <!-- PlayerArtistPickerBottomSheet -->
     <string name="artist_picker_title">Pick an Artist</string>

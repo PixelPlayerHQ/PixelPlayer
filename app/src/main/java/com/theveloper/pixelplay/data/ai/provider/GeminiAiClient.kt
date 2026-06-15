@@ -25,12 +25,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         private const val DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-        // Markers for models that cannot perform text chat generation. These are the
-        // only things we filter out — every other model the API returns is selectable.
-        private val NON_CHAT_MARKERS = listOf(
-            "embedding", "aqa", "imagen", "image-generation",
-            "tts", "audio", "veo", "vision-only", "learnlm-embedding"
-        )
+
     }
 
     private val httpClient = OkHttpClient.Builder()
@@ -260,8 +255,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     }
 
     private fun isNonChatModel(modelName: String): Boolean {
-        val lower = modelName.lowercase()
-        return NON_CHAT_MARKERS.any { lower.contains(it) }
+        return !UnifiedModelFilter.isModelUsableForChat(modelName)
     }
 
     private fun getDefaultModels(): List<String> {

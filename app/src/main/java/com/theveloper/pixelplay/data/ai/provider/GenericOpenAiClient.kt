@@ -140,9 +140,7 @@ class GenericOpenAiClient(
                 
                 val responseBody = response.body.string()
                 val modelsResponse = json.decodeFromString<ModelsResponse>(responseBody)
-                modelsResponse.data.map { it.id }.filter { 
-                    !it.contains("whisper") && !it.contains("embed") && !it.contains("tts")
-                }
+                modelsResponse.data.map { it.id }.let { UnifiedModelFilter.filterChatModels(it) }
             } catch (e: Exception) {
                 listOf(defaultModelId)
             }

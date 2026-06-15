@@ -501,8 +501,6 @@ fun UnifiedPlayerSheetV2(
 
     val queuePredictiveBackProgress = remember { Animatable(0f) }
     var queuePredictiveBackSwipeEdge by remember { mutableStateOf<Int?>(null) }
-    val playerContentPredictiveBackProgress = remember { Animatable(0f) }
-    var playerContentPredictiveBackSwipeEdge by remember { mutableStateOf<Int?>(null) }
 
     val sheetOverlayState = rememberSheetOverlayState(
         density = density,
@@ -821,6 +819,7 @@ fun UnifiedPlayerSheetV2(
                                 )
                                 queuePredictiveBackSwipeEdge = null
                             }
+
                         }
                     } catch (_: kotlin.coroutines.cancellation.CancellationException) {
                         scope.launch {
@@ -835,62 +834,6 @@ fun UnifiedPlayerSheetV2(
             } else {
                 BackHandler(enabled = isQueueVisible && !internalIsKeyboardVisible) {
                     sheetActionHandlers.animateQueueSheet(false)
-                }
-            }
-            val playerContentExpansionPredictiveBackEnabled by remember(
-                showPlayerContentArea,
-                currentSheetContentState,
-                isQueueVisible,
-                castSheetState.showCastSheet,
-                internalIsKeyboardVisible,
-                playerContentExpansionFraction
-            ) {
-                derivedStateOf {
-                    showPlayerContentArea &&
-                        currentSheetContentState == PlayerSheetState.EXPANDED &&
-                        !isQueueVisible &&
-                        !castSheetState.showCastSheet &&
-                        !internalIsKeyboardVisible &&
-                        playerContentExpansionFraction.value > 0.00001f
-                }
-            }
-
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                PredictiveBackHandler(enabled = playerContentExpansionPredictiveBackEnabled) { progressFlow ->
-                    try {
-                        val startingExpansionFraction = playerContentExpansionFraction.value
-                        progressFlow.collect { backEvent ->
-                            playerContentPredictiveBackSwipeEdge = backEvent.swipeEdge
-                            playerContentPredictiveBackProgress.snapTo(backEvent.progress)
-                            val contractedFraction = ((1f - backEvent.progress) * startingExpansionFraction).coerceIn(0f, 1f)
-                            playerViewModel.playerContentExpansionFraction.snapTo(contractedFraction)
-                        }
-                        scope.launch {
-                            launch {
-                                playerViewModel.collapsePlayerSheet()
-                            }
-                            launch {
-                                playerContentPredictiveBackProgress.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = tween(ANIMATION_DURATION_MS)
-                                )
-                                playerContentPredictiveBackSwipeEdge = null
-                                playerViewModel.playerContentExpansionFraction.snapTo(0f)
-                            }
-                        }
-                    } catch (_: kotlin.coroutines.cancellation.CancellationException) {
-                        scope.launch {
-                            playerContentPredictiveBackProgress.animateTo(
-                                targetValue = 0f,
-                                animationSpec = tween(ANIMATION_DURATION_MS)
-                            )
-                            playerContentPredictiveBackSwipeEdge = null
-                            playerViewModel.playerContentExpansionFraction.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(ANIMATION_DURATION_MS)
-                            )
-                        }
-                    }
                 }
             }
 

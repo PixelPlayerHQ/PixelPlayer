@@ -22,9 +22,24 @@ class AiClientFactory @Inject constructor() {
         
         return when (provider) {
             AiProvider.GEMINI -> GeminiAiClient(apiKey)
-            AiProvider.DEEPSEEK -> DeepSeekAiClient(apiKey)
-            AiProvider.GROQ -> GroqAiClient(apiKey)
-            AiProvider.MISTRAL -> MistralAiClient(apiKey)
+            AiProvider.DEEPSEEK -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.deepseek.com",
+                defaultModelId = "deepseek-chat",
+                providerName = "DeepSeek"
+            )
+            AiProvider.GROQ -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.groq.com/openai/v1",
+                defaultModelId = "llama-3.1-8b-instant",
+                providerName = "Groq"
+            )
+            AiProvider.MISTRAL -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.mistral.ai/v1",
+                defaultModelId = "mistral-large-latest",
+                providerName = "Mistral"
+            )
             AiProvider.NVIDIA -> GenericOpenAiClient(
                 apiKey = apiKey,
                 baseUrl = "https://integrate.api.nvidia.com/v1",

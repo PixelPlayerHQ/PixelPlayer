@@ -163,17 +163,6 @@
     <string name="settings_app_language_title">Uygulama Dili</string>
     <string name="settings_app_language_subtitle">Uygulama arayüzünde kullanılacak dili seçin.</string>
     <string name="settings_language_system">Sistem varsayılanı</string>
-    <string name="settings_language_english">İngilizce</string>
-    <string name="settings_language_spanish">Español</string>
-    <string name="settings_language_german">Almanca</string>
-    <string name="settings_language_french">Fransızca</string>
-    <string name="settings_language_russian">Rusça</string>
-    <string name="settings_language_chinese">Basitleştirilmiş Çince</string>
-    <string name="settings_language_indonesian">Endonezce</string>
-    <string name="settings_language_italian">İtalyanca</string>
-    <string name="settings_language_korean">Korece</string>
-    <string name="settings_language_norwegian_bokmal">Norveççe (Bokmål)</string>
-    <string name="settings_language_turkish">Türkçe</string>
     <string name="settings_app_theme_title">Uygulama Teması</string>
     <string name="settings_app_theme_subtitle">Açık, koyu tema arasında geçiş yapın veya sistem görünümünü takip edin.</string>
     <string name="settings_theme_light">Açık Tema</string>

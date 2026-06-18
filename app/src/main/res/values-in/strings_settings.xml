@@ -159,17 +159,6 @@
     <string name="settings_app_language_title">Bahasa Aplikasi</string>
     <string name="settings_app_language_subtitle">Pilih bahasa yang digunakan di seluruh antarmuka aplikasi.</string>
     <string name="settings_language_system">Default sistem</string>
-    <string name="settings_language_english">Inggris</string>
-    <string name="settings_language_spanish">Spanyol</string>
-    <string name="settings_language_german">Jerman</string>
-    <string name="settings_language_french">Prancis</string>
-    <string name="settings_language_russian">Rusia</string>
-    <string name="settings_language_chinese">Tionghoa (Sederhana)</string>
-    <string name="settings_language_indonesian">Indonesia</string>
-    <string name="settings_language_italian">Italia</string>
-    <string name="settings_language_korean">Korea</string>
-    <string name="settings_language_norwegian_bokmal">Norwegia (Bokmål)</string>
-    <string name="settings_language_turkish">Turki</string>
     <string name="settings_app_theme_title">Tema Aplikasi</string>
     <string name="settings_app_theme_subtitle">Beralih antara terang, gelap, atau ikuti tampilan sistem.</string>
     <string name="settings_theme_light">Tema Terang</string>

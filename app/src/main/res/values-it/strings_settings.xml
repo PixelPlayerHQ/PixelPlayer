@@ -163,17 +163,6 @@
     <string name="settings_app_language_title">Lingua app</string>
     <string name="settings_app_language_subtitle">Scegli la lingua usata nell\'interfaccia dell\'app.</string>
     <string name="settings_language_system">Predefinita sistema</string>
-    <string name="settings_language_english">Inglese</string>
-    <string name="settings_language_spanish">Spagnolo</string>
-    <string name="settings_language_german">Tedesco</string>
-    <string name="settings_language_french">Francese</string>
-    <string name="settings_language_russian">Russo</string>
-    <string name="settings_language_chinese">Cinese semplificato</string>
-    <string name="settings_language_indonesian">Indonesiano</string>
-    <string name="settings_language_italian">Italiano</string>
-    <string name="settings_language_korean">Coreano</string>
-    <string name="settings_language_norwegian_bokmal">Norvegese (Bokmål)</string>
-    <string name="settings_language_turkish">Turco</string>
     <string name="settings_app_theme_title">Tema app</string>
     <string name="settings_app_theme_subtitle">Passa tra chiaro, scuro o segui l\'aspetto di sistema.</string>
     <string name="settings_theme_light">Tema chiaro</string>

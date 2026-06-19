@@ -12,8 +12,8 @@ class GenericOpenAiClient(
     override val providerName: String = "OpenAI"
 ) : OpenAiCompatibleClient(apiKey) {
 
-    override val defaultModel: String get() = defaultModelId
-    override val defaultModels: List<String> get() = listOf(defaultModelId)
+    override val providerDefaultModel: String get() = defaultModelId
+    override val providerDefaultModels: List<String> get() = listOf(defaultModelId)
 
     override fun decorateRequest(builder: Request.Builder): Request.Builder {
         if (providerName.equals("OpenRouter", ignoreCase = true)) {

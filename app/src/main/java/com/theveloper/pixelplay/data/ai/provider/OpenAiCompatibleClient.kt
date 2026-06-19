@@ -20,8 +20,8 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
 
     protected abstract val providerName: String
     protected abstract val baseUrl: String
-    protected abstract val defaultModel: String
-    protected abstract val defaultModels: List<String>
+    protected abstract val providerDefaultModel: String
+    protected abstract val providerDefaultModels: List<String>
 
     @Serializable
     protected data class ChatMessage(val role: String, val content: String)
@@ -67,7 +67,7 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
         temperature: Float
     ): String {
         return withContext(Dispatchers.IO) {
-            val resolvedModel = model.ifBlank { defaultModel }
+            val resolvedModel = model.ifBlank { providerDefaultModel }
             val messagesList = mutableListOf<ChatMessage>()
             if (systemPrompt.isNotBlank()) {
                 messagesList.add(ChatMessage(role = "system", content = systemPrompt))
@@ -135,7 +135,7 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
 
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        return@withContext defaultModels
+                        return@withContext providerDefaultModels
                     }
 
                     val responseBody = response.body.string()
@@ -143,7 +143,7 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
                     filterModels(modelsResponse.data.map { it.id })
                 }
             } catch (e: Exception) {
-                defaultModels
+                providerDefaultModels
             }
         }
     }
@@ -164,5 +164,5 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
         }
     }
 
-    override fun getDefaultModel(): String = defaultModel
+    override fun getDefaultModel(): String = providerDefaultModel
 }

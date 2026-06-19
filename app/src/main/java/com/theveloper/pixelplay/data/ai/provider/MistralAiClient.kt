@@ -4,8 +4,8 @@ class MistralAiClient(apiKey: String) : OpenAiCompatibleClient(apiKey) {
 
     override val providerName = "Mistral"
     override val baseUrl = "https://api.mistral.ai/v1"
-    override val defaultModel = "mistral-large-latest"
-    override val defaultModels = listOf(
+    override val providerDefaultModel = "mistral-large-latest"
+    override val providerDefaultModels = listOf(
         "mistral-large-latest",
         "mistral-small-latest",
         "open-mixtral-8x22b",

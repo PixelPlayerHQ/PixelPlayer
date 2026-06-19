@@ -2072,10 +2072,13 @@ fun LibraryScreen(
     }
 
     if (showReorderTabsSheet) {
+        val hiddenTabs by playerViewModel.hiddenLibraryTabsFlow.collectAsStateWithLifecycle()
         ReorderTabsSheet(
-            tabs = tabTitles,
-            onReorder = { newOrder ->
+            visibleTabs = tabTitles,
+            hiddenTabs = hiddenTabs,
+            onSave = { newOrder, newHidden ->
                 playerViewModel.saveLibraryTabsOrder(newOrder)
+                playerViewModel.saveLibraryHiddenTabs(newHidden)
             },
             onReset = {
                 playerViewModel.resetLibraryTabsOrder()

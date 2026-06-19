@@ -129,6 +129,7 @@ class UserPreferencesRepository @Inject constructor(
         // Transition
         val GLOBAL_TRANSITION_SETTINGS = stringPreferencesKey("global_transition_settings_json")
         val LIBRARY_TABS_ORDER = stringPreferencesKey("library_tabs_order")
+        val LIBRARY_HIDDEN_TABS = stringSetPreferencesKey("library_hidden_tabs")
         val IS_FOLDER_FILTER_ACTIVE = booleanPreferencesKey("is_folder_filter_active")
         val IS_FOLDERS_PLAYLIST_VIEW = booleanPreferencesKey("is_folders_playlist_view")
         val SHOW_TELEGRAM_CLOUD_PLAYLISTS = booleanPreferencesKey("show_telegram_cloud_playlists")
@@ -873,8 +874,18 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.LIBRARY_TABS_ORDER] = order }
     }
 
+    val libraryHiddenTabsFlow: Flow<Set<String>> =
+        pref { it[PreferencesKeys.LIBRARY_HIDDEN_TABS] ?: emptySet() }
+
+    suspend fun setLibraryHiddenTabs(hiddenTabs: Set<String>) {
+        dataStore.edit { it[PreferencesKeys.LIBRARY_HIDDEN_TABS] = hiddenTabs }
+    }
+
     suspend fun resetLibraryTabsOrder() {
-        dataStore.edit { it.remove(PreferencesKeys.LIBRARY_TABS_ORDER) }
+        dataStore.edit {
+            it.remove(PreferencesKeys.LIBRARY_TABS_ORDER)
+            it.remove(PreferencesKeys.LIBRARY_HIDDEN_TABS)
+        }
     }
 
     suspend fun migrateTabOrder() {

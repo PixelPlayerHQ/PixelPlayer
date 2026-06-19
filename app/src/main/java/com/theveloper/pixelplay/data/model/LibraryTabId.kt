@@ -19,6 +19,7 @@ enum class LibraryTabId(
     LIKED("LIKED", "LIKED", R.string.library_tab_liked, SortOption.LikedSongDateLiked);
 
     companion object {
+        val defaultOrder: List<LibraryTabId> = entries.toList()
         fun fromStorageKey(key: String): LibraryTabId =
             entries.firstOrNull { it.storageKey == key } ?: SONGS
     }

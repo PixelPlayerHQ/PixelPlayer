@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -53,7 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import android.view.HapticFeedbackConstants
 import com.theveloper.pixelplay.R
-import com.theveloper.pixelplay.presentation.library.LibraryTabId
+import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.performAppCompatHapticFeedback
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -63,21 +66,25 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ReorderTabsSheet(
-    tabs: List<String>,
-    onReorder: (List<String>) -> Unit,
+    visibleTabs: List<String>,
+    hiddenTabs: List<String>,
+    onSave: (visible: List<String>, hidden: Set<String>) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
-    var localTabs by remember { mutableStateOf(tabs) }
+    var localVisibleTabs by remember { mutableStateOf(visibleTabs) }
+    var localHiddenTabs by remember { mutableStateOf(hiddenTabs) }
 
-    LaunchedEffect(tabs) {
-        localTabs = tabs
+    LaunchedEffect(visibleTabs, hiddenTabs) {
+        localVisibleTabs = visibleTabs
+        localHiddenTabs = hiddenTabs
     }
 
     if (showResetDialog) {
@@ -89,7 +96,7 @@ fun ReorderTabsSheet(
                 TextButton(
                     onClick = {
                         onReset()
-                        localTabs = tabs
+                        // Local state will be updated by the LaunchedEffect when visibleTabs/hiddenTabs change via VM
                         showResetDialog = false
                     }
                 ) {
@@ -114,15 +121,30 @@ fun ReorderTabsSheet(
 
     val reorderableState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            localTabs = localTabs.toMutableList().apply {
-                add(to.index, removeAt(from.index))
+            val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+            val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+
+            // Only move if both items are in the visible section
+            if (fromKey.startsWith("v_") && toKey.startsWith("v_")) {
+                val fromId = fromKey.removePrefix("v_")
+                val toId = toKey.removePrefix("v_")
+
+                val fromIdx = localVisibleTabs.indexOf(fromId)
+                val toIdx = localVisibleTabs.indexOf(toId)
+
+                if (fromIdx != -1 && toIdx != -1) {
+                    localVisibleTabs = localVisibleTabs.toMutableList().apply {
+                        add(toIdx, removeAt(fromIdx))
+                    }
+                    // Haptic feedback on reorder
+                    performAppCompatHapticFeedback(
+                        view,
+                        appHapticsConfig,
+                        HapticFeedbackConstants.CLOCK_TICK,
+                        HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                    )
+                }
             }
-            // Haptic feedback on reorder
-            performAppCompatHapticFeedback(
-                view,
-                appHapticsConfig,
-                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-            )
         },
         lazyListState = listState
     )
@@ -152,13 +174,13 @@ fun ReorderTabsSheet(
             floatingActionButton = {
                 FloatingToolBar(
                     modifier = Modifier,
-                    onReset = { showResetDialog = true }, // This will now trigger the dialog
+                    onReset = { showResetDialog = true },
                     onDismiss = onDismiss,
                     onClick = {
                         scope.launch {
                             isLoading = true
-                            delay(700) // Simulate network/db operation
-                            onReorder(localTabs)
+                            delay(400) // Visual confirmation
+                            onSave(localVisibleTabs, localHiddenTabs.toSet())
                             isLoading = false
                             onDismiss()
                         }
@@ -183,11 +205,12 @@ fun ReorderTabsSheet(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp),
+                        contentPadding = PaddingValues(bottom = 150.dp, top = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(localTabs, key = { it }) { tab ->
-                            ReorderableItem(reorderableState, key = tab) { isDragging ->
+
+                        items(localVisibleTabs, key = { "v_$it" }) { tab ->
+                            ReorderableItem(reorderableState, key = "v_$tab") { isDragging ->
                                 LaunchedEffect(isDragging) {
                                     if (isDragging) {
                                         performAppCompatHapticFeedback(
@@ -201,12 +224,13 @@ fun ReorderTabsSheet(
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .height(60.dp)
                                         .clip(CircleShape),
                                     shadowElevation = if (isDragging) 4.dp else 0.dp,
                                     color = MaterialTheme.colorScheme.surfaceContainerLowest
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
@@ -216,11 +240,111 @@ fun ReorderTabsSheet(
                                         )
                                         Spacer(modifier = Modifier.width(16.dp))
                                         Text(
-                                            text = LibraryTabId.fromStableKey(tab)
-                                                ?.let { stringResource(it.labelRes) }
-                                                ?: tab,
-                                            style = MaterialTheme.typography.bodyLarge
+                                            text = LibraryTabId.fromStorageKey(tab)
+                                                .let { stringResource(it.titleRes) },
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.weight(1f)
                                         )
+
+                                        if (localVisibleTabs.size > 2) {
+                                            Surface(
+                                                onClick = {
+                                                    performAppCompatHapticFeedback(
+                                                        view,
+                                                        appHapticsConfig,
+                                                        HapticFeedbackConstants.CLOCK_TICK,
+                                                        HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                                    )
+                                                    localVisibleTabs = localVisibleTabs.filter { it != tab }
+                                                    localHiddenTabs = localHiddenTabs + tab
+                                                },
+                                                modifier = Modifier.size(36.dp),
+                                                shape = AbsoluteSmoothCornerShape(12.dp, 60),
+                                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Clear,
+                                                        contentDescription = stringResource(R.string.reorder_tabs_cd_remove_tab),
+                                                        tint = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            Spacer(modifier = Modifier.width(36.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (localHiddenTabs.isNotEmpty()) {
+                            item(key = "h_hidden") {
+                                Text(
+                                    text = stringResource(R.string.reorder_tabs_hidden_section),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontFamily = GoogleSansRounded,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp),
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+
+                            items(localHiddenTabs, key = { "h_$it" }) { tab ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(60.dp)
+                                        .clip(CircleShape),
+                                    color = MaterialTheme.colorScheme.surfaceContainerLowest
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DragIndicator,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                        )
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(
+                                            text = LibraryTabId.fromStorageKey(tab)
+                                                .let { stringResource(it.titleRes) },
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Surface(
+                                            onClick = {
+                                                performAppCompatHapticFeedback(
+                                                    view,
+                                                    appHapticsConfig,
+                                                    HapticFeedbackConstants.CLOCK_TICK,
+                                                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                                                )
+                                                localHiddenTabs = localHiddenTabs.filter { it != tab }
+                                                localVisibleTabs = localVisibleTabs + tab
+                                            },
+                                            modifier = Modifier.size(36.dp),
+                                            shape = AbsoluteSmoothCornerShape(12.dp, 60),
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Add,
+                                                    contentDescription = stringResource(R.string.reorder_tabs_cd_add_tab),
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -266,7 +390,7 @@ fun FloatingToolBar(
         ) {
             IconButton(
                 modifier = Modifier.align(Alignment.CenterVertically),
-                onClick = onReset // This now calls the lambda from the parent
+                onClick = onReset
             ) {
                 Icon(
                     painter = painterResource(R.drawable.outline_restart_alt_24),

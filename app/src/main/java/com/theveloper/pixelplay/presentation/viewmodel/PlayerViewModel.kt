@@ -1059,19 +1059,46 @@ class PlayerViewModel @Inject constructor(
             initialValue = 0 // Default to Songs tab
         )
 
-    val libraryTabsFlow: StateFlow<List<String>> = userPreferencesRepository.libraryTabsOrderFlow
-        .map { orderJson ->
-            if (orderJson != null) {
-                try {
-                    Json.decodeFromString<List<String>>(orderJson)
-                } catch (e: Exception) {
-                    listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
-                }
-            } else {
-                listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
+    val libraryTabsFlow: StateFlow<List<String>> = combine(
+        userPreferencesRepository.libraryTabsOrderFlow,
+        userPreferencesRepository.libraryHiddenTabsFlow
+    ) { orderJson, hiddenTabs ->
+        val allTabsInOrder = if (orderJson != null) {
+            try {
+                Json.decodeFromString<List<String>>(orderJson)
+            } catch (e: Exception) {
+                LibraryTabId.defaultOrder.map { it.storageKey }
             }
+        } else {
+            LibraryTabId.defaultOrder.map { it.storageKey }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED"))
+
+        // Ensure all available tabs are present (e.g. new tabs from app updates)
+        val availableKeys = LibraryTabId.defaultOrder.map { it.storageKey }
+        val mergedOrder = (allTabsInOrder + availableKeys).distinct()
+
+        mergedOrder.filter { it !in hiddenTabs }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryTabId.defaultOrder.map { it.storageKey })
+
+    val hiddenLibraryTabsFlow: StateFlow<List<String>> = combine(
+        userPreferencesRepository.libraryTabsOrderFlow,
+        userPreferencesRepository.libraryHiddenTabsFlow
+    ) { orderJson, hiddenTabs ->
+        val allTabsInOrder = if (orderJson != null) {
+            try {
+                Json.decodeFromString<List<String>>(orderJson)
+            } catch (e: Exception) {
+                LibraryTabId.defaultOrder.map { it.storageKey }
+            }
+        } else {
+            LibraryTabId.defaultOrder.map { it.storageKey }
+        }
+
+        val availableKeys = LibraryTabId.defaultOrder.map { it.storageKey }
+        val mergedOrder = (allTabsInOrder + availableKeys).distinct()
+
+        mergedOrder.filter { it in hiddenTabs }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _loadedTabs = MutableStateFlow(emptySet<String>())
     private var lastBlockedDirectories: Set<String>? = null
@@ -2803,6 +2830,12 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             val orderJson = Json.encodeToString(tabs)
             userPreferencesRepository.saveLibraryTabsOrder(orderJson)
+        }
+    }
+
+    fun saveLibraryHiddenTabs(hiddenTabs: Set<String>) {
+        viewModelScope.launch {
+            userPreferencesRepository.setLibraryHiddenTabs(hiddenTabs)
         }
     }
 

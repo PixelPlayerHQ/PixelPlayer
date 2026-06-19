@@ -12,6 +12,7 @@ enum class AppLanguage(val tag: String, val nativeName: String, @StringRes val l
     FRENCH("fr", "Français", null),
     INDONESIAN("in", "Bahasa Indonesia", null),
     ITALIAN("it", "Italiano", null),
+    JAPANESE("ja", "日本語", null),
     KOREAN("ko", "한국어", null),
     NORWEGIAN_BOKMAL("nb", "Norsk bokmål", null),
     RUSSIAN("ru", "Русский", null),

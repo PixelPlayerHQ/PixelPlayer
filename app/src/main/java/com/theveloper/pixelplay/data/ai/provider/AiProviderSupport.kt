@@ -88,7 +88,9 @@ internal object AiProviderSupport {
             AiProvider.OPENROUTER,
             AiProvider.NVIDIA,
             AiProvider.KIMI,
-            AiProvider.GLM
+            AiProvider.GLM,
+            AiProvider.OLLAMA,
+            AiProvider.CUSTOM
         )
 
         return buildList {

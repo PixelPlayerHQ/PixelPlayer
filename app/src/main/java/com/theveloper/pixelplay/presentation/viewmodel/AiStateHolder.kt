@@ -4,10 +4,8 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
-import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
-import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.provider.AiProviderException
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
@@ -30,12 +28,11 @@ import javax.inject.Singleton
 class AiStateHolder @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiPlaylistGenerator: AiPlaylistGenerator,
-    private val aiMetadataGenerator: AiMetadataGenerator,
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
     private val notificationManager: AiNotificationManager,
-    private val aiOrchestrator: com.theveloper.pixelplay.data.ai.AiOrchestrator
+    private val aiHandler: com.theveloper.pixelplay.data.ai.AiHandler
 ) {
     // State
     // AI State Management: Observables for tracking background generation progress
@@ -44,12 +41,6 @@ class AiStateHolder @Inject constructor(
 
     private val _isGeneratingAiPlaylist = MutableStateFlow(false)
     val isGeneratingAiPlaylist = _isGeneratingAiPlaylist.asStateFlow()
-
-    private val _isGeneratingMetadata = MutableStateFlow(false)
-    val isGeneratingMetadata = _isGeneratingMetadata.asStateFlow()
-
-    private val _aiMetadataSuccess = MutableStateFlow(false)
-    val aiMetadataSuccess = _aiMetadataSuccess.asStateFlow()
 
     private val _aiSuccess = MutableStateFlow(false)
     val aiSuccess = _aiSuccess.asStateFlow()
@@ -63,10 +54,6 @@ class AiStateHolder @Inject constructor(
     private var _lastPlaylistPrompt: String? = null
     private var _lastMinLength: Int = 5
     private var _lastMaxLength: Int = 15
-
-    // Metadata Retry Cache: Stores parameters for the last metadata generation
-    private var _lastMetadataSong: Song? = null
-    private var _lastMetadataFields: List<String>? = null
 
     private var scope: CoroutineScope? = null
     private var allSongsProvider: (suspend () -> List<Song>)? = null
@@ -111,7 +98,6 @@ class AiStateHolder @Inject constructor(
         _showAiPlaylistSheet.value = false
         _aiError.value = null
         _aiSuccess.value = false
-        _aiMetadataSuccess.value = false
         _isGeneratingAiPlaylist.value = false
         _aiStatus.value = null
     }
@@ -120,16 +106,6 @@ class AiStateHolder @Inject constructor(
         // Safe retry using cached prompt and length constraints
         val prompt = _lastPlaylistPrompt ?: return
         generateAiPlaylist(prompt, _lastMinLength, _lastMaxLength)
-    }
-
-    fun retryLastMetadataGeneration() {
-        // Safe retry for metadata using cached song and requested fields
-        val song = _lastMetadataSong ?: return
-        val fields = _lastMetadataFields ?: return
-        
-        scope?.launch {
-            generateAiMetadata(song, fields)
-        }
     }
 
     fun clearAiPlaylistError() {
@@ -308,62 +284,31 @@ class AiStateHolder @Inject constructor(
         }
     }
 
-    /**
-     * Fetches AI-generated metadata (tags, genre, lyrics) for a specific song.
-     * Updates internal success and error states for UI feedback.
-     */
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        _lastMetadataSong = song
-        _lastMetadataFields = fields
-        
-        _isGeneratingMetadata.value = true
-        _aiMetadataSuccess.value = false
-        _aiError.value = null
-        
-        return try {
-            val result = aiMetadataGenerator.generate(song, fields)
-            if (result.isSuccess) {
-                _aiMetadataSuccess.value = true
-                notificationManager.showCompletion("Metadata Enhanced", "Applied tags and genre refinements.")
-            } else {
-                result.exceptionOrNull()?.let {
-                    _aiError.value = resolveAiErrorMessage(it)
-                    notificationManager.showCompletion("Metadata Error", "Check your AI configuration.")
-                }
-            }
-            result
-        } catch (e: Exception) {
-            _aiError.value = resolveAiErrorMessage(e)
-            Result.failure(e)
-        } finally {
-            _isGeneratingMetadata.value = false
-        }
-    }
-
     suspend fun translateLyrics(lyricsText: String): Result<String> {
         return try {
             val targetLanguage = context.resources.configuration.locales[0].displayLanguage
             val prompt = """
-Translate the provided song lyrics into $targetLanguage.
+<task>Translate song lyrics into $targetLanguage.</task>
 
-Keep every timestamp exactly unchanged.
+<rules>
+- Preserve ALL timestamps [mm:ss.xx] exactly — never modify, merge, or drop them.
+- Output TWO lines per original line: the original, then the translation with the same timestamp.
+- NEVER add explanations, labels, numbering, section headers, or formatting.
+- NEVER remove, merge, split, or reorder lines.
+- If lyrics are ALREADY mostly in $targetLanguage, output ONLY: ALREADY_IN_TARGET_LANGUAGE
+</rules>
 
-If the lyrics are ALREADY mostly in $targetLanguage, output ONLY the exact phrase "ALREADY_IN_TARGET_LANGUAGE" without any other text.
+<format>
+[original timestamp] original text
+[same timestamp] translated text
+</format>
 
-For each original line, output the original line first, then on the next line output the $targetLanguage translation with the same timestamp.
-
-Do not add any extra text, explanations, numbering, labels, or formatting.
-Do not remove, merge, split, or reorder lines.
-
-Output only:
-[timestamp] original text
-[timestamp] translated text
-
-Lyrics to translate:
+<lyrics>
 $lyricsText
+</lyrics>
             """.trimIndent()
             
-            val response = aiOrchestrator.generateContent(
+            val response = aiHandler.generateContent(
                 prompt = prompt,
                 type = AiSystemPromptType.GENERAL,
                 temperature = 0.1f

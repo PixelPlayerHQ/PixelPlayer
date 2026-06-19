@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.theveloper.pixelplay.data.backup.model.BackupHistoryEntry
 import com.theveloper.pixelplay.di.BackupGson
+import timber.log.Timber
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -30,7 +31,8 @@ class BackupHistoryRepository @Inject constructor(
         if (json != null) {
             try {
                 gson.fromJson<List<BackupHistoryEntry>>(json, listType)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to parse backup history")
                 emptyList()
             }
         } else {
@@ -68,7 +70,8 @@ class BackupHistoryRepository @Inject constructor(
         val json = preferences[BACKUP_HISTORY_KEY] ?: return emptyList()
         return try {
             gson.fromJson(json, listType)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to read backup history")
             emptyList()
         }
     }

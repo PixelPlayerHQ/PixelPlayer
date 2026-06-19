@@ -1,8 +1,7 @@
 package com.theveloper.pixelplay.data.jellyfin.model
 
-import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
+import com.theveloper.pixelplay.utils.ServerUrlUtils
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 data class JellyfinCredentials(
     val serverUrl: String,
@@ -29,35 +28,11 @@ data class JellyfinCredentials(
         get() = !accessToken.isNullOrBlank() && !userId.isNullOrBlank()
 
     val normalizedHttpUrlOrNull: HttpUrl?
-        get() {
-            val trimmed = serverUrl.trim().trimEnd('/')
-            // Auto-prepend https:// if no scheme is provided
-            val withScheme = if (!trimmed.startsWith("http://", ignoreCase = true) &&
-                !trimmed.startsWith("https://", ignoreCase = true)
-            ) {
-                "https://$trimmed"
-            } else {
-                trimmed
-            }
-            return withScheme.toHttpUrlOrNull()
-        }
+        get() = ServerUrlUtils.normalizeHttpUrl(serverUrl)
 
     val normalizedServerUrl: String
-        get() = normalizedHttpUrlOrNull?.toString()?.trimEnd('/') ?: serverUrl.trim().trimEnd('/')
+        get() = ServerUrlUtils.normalizeServerUrl(serverUrl)
 
-    fun connectionValidationError(): String? {
-        val parsed = normalizedHttpUrlOrNull
-            ?: return "Invalid server URL format"
-
-        if (parsed.username.isNotEmpty() || parsed.password.isNotEmpty()) {
-            return "Server URL must not contain embedded credentials"
-        }
-
-        // Warn about cleartext HTTP on public hosts
-        if (!parsed.isHttps && !CloudStreamSecurity.isLocalOrPrivateHost(parsed.host)) {
-            return "Use https:// for remote Jellyfin servers. HTTP is only allowed for local network addresses."
-        }
-
-        return null
-    }
+    fun connectionValidationError(): String? =
+        ServerUrlUtils.connectionValidationError(serverUrl, "Jellyfin")
 }

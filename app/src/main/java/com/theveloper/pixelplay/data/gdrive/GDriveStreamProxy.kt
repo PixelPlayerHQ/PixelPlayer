@@ -51,10 +51,10 @@ class GDriveStreamProxy @Inject constructor(
         )
     }
 
-    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
-    private var actualPort: Int = 0
+    @Volatile private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
+    @Volatile private var actualPort: Int = 0
     private val proxyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var startJob: Job? = null
+    @Volatile private var startJob: Job? = null
 
     fun isReady(): Boolean = actualPort > 0
 

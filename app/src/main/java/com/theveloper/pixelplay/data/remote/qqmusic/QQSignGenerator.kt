@@ -118,7 +118,8 @@ class QQSignGenerator(private val context: Context) {
         if (raw == null || raw == "null" || raw.isBlank()) return null
         return try {
             if (raw.startsWith('"')) JSONArray("[$raw]").getString(0) else raw
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to decode evaluate result")
             raw
         }
     }

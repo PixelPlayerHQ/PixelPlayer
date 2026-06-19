@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import timber.log.Timber
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
@@ -759,9 +760,8 @@ abstract class PixelPlayDatabase : RoomDatabase() {
 
             try {
                 db.execSQL("ALTER TABLE songs ADD COLUMN date_added INTEGER NOT NULL DEFAULT 0")
-            } catch (_: Exception) {
-                // Some restored databases report the right version but still carry
-                // a drifted songs table. If ALTER TABLE did not stick, rebuild it.
+            } catch (e: Exception) {
+                Timber.w(e, "ALTER TABLE songs ADD date_added failed; will recreate table")
             }
 
             if ("date_added" !in getTableColumns(db, "songs")) {
@@ -1133,8 +1133,8 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             if ("disc_number" !in columns) {
                 try {
                     db.execSQL("ALTER TABLE songs ADD COLUMN disc_number INTEGER DEFAULT null")
-                } catch (_: Exception) {
-                    // Restored/drifted databases may already contain a partially applied column.
+                } catch (e: Exception) {
+                    Timber.w(e, "ALTER TABLE songs ADD disc_number failed; may already exist")
                 }
             }
 

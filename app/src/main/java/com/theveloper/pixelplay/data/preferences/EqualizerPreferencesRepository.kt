@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,7 +45,8 @@ class EqualizerPreferencesRepository @Inject constructor(
         if (modeString != null) {
             try {
                 EqualizerViewMode.valueOf(modeString)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to parse equalizer view mode")
                 EqualizerViewMode.SLIDERS
             }
         } else {
@@ -71,7 +73,8 @@ class EqualizerPreferencesRepository @Inject constructor(
                     decoded.isEmpty() -> List(10) { 0 }
                     else -> decoded + List(10 - decoded.size) { 0 }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to parse equalizer custom bands")
                 List(10) { 0 }
             }
         } else {
@@ -120,7 +123,8 @@ class EqualizerPreferencesRepository @Inject constructor(
         if (jsonString != null) {
             try {
                 json.decodeFromString<List<EqualizerPreset>>(jsonString)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to parse custom presets")
                 emptyList()
             }
         } else {
@@ -133,7 +137,8 @@ class EqualizerPreferencesRepository @Inject constructor(
         if (jsonString != null) {
             try {
                 json.decodeFromString<List<String>>(jsonString)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to parse pinned presets")
                 EqualizerPreset.ALL_PRESETS.map { it.name }
             }
         } else {

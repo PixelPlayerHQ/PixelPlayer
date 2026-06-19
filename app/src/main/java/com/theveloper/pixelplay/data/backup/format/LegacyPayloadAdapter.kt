@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import timber.log.Timber
 import com.theveloper.pixelplay.data.backup.model.BackupManifest
 import com.theveloper.pixelplay.data.backup.model.BackupModuleInfo
 import com.theveloper.pixelplay.data.backup.model.DeviceInfo
@@ -120,7 +121,7 @@ class LegacyPayloadAdapter @Inject constructor() {
             } else {
                 1
             }
-        } catch (_: Exception) { 0 }
+        } catch (e: Exception) { Timber.w(e, "Failed to count legacy backup entries"); 0 }
     }
 
     private fun sha256(data: ByteArray): String {

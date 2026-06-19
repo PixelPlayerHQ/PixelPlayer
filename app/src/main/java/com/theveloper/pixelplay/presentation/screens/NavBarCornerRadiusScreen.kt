@@ -342,13 +342,13 @@ fun NavBarCornerRadiusContent(
                     } else {
                         AbsoluteSmoothCornerShape(
                             cornerRadiusTL = 10.dp,
-                            smoothnessAsPercentBL = 60,
-                            cornerRadiusTR = 10.dp,
-                            smoothnessAsPercentBR = 60,
-                            cornerRadiusBR = sliderValue.dp,
                             smoothnessAsPercentTL = 60,
+                            cornerRadiusTR = 10.dp,
+                            smoothnessAsPercentTR = 60,
                             cornerRadiusBL = sliderValue.dp,
-                            smoothnessAsPercentTR = 60
+                            smoothnessAsPercentBL = 60,
+                            cornerRadiusBR = sliderValue.dp,
+                            smoothnessAsPercentBR = 60
                         )
                     }
                 ) {

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top Bar -->
+    <string name="topbar_beta_letter">β</string>
+    <string name="topbar_beta_label">تجريبي</string>
+    <string name="topbar_cd_cloud_streaming">البث السحابي</string>
+    <string name="topbar_cd_changelog">سجل التغييرات</string>
+    <string name="topbar_cloud_streaming_title">البث السحابي</string>
+    <string name="topbar_cloud_streaming_subtitle">بث الموسيقى من حساباتك السحابية</string>
+
+    <!-- BetaInfoBottomSheet -->
+    <string name="beta_sheet_version">الإصدار التجريبي 0.7.5</string>
+    <string name="beta_sheet_letter">β</string>
+    <string name="beta_sheet_welcome_title">مرحباً بك في PixelPlayer 0.7.5-beta</string>
+    <string name="beta_sheet_welcome_body">أنت تستخدم بناءً تجريبياً قد يحتوي على أخطاء، أو حالات توقف مفاجئ، أو ميزات تجريبية. ساعدنا في التحسين من خلال الإبلاغ عن المشكلات.</string>
+    <string name="beta_sheet_expect_title">ماذا تتوقع</string>
+    <string name="beta_sheet_expect_1">قد تحدث أخطاء، توقفات مفاجئة، أو ميزات غير مكتملة بشكل غير متوقع.</string>
+    <string name="beta_sheet_expect_2">بعض الميزات قد تتغير أو تُزال دون إشعار مسبق.</string>
+    <string name="beta_sheet_expect_3">قد تكون النسخ التجريبية غير مستقرة مقارنة بالإصدارات الرسمية.</string>
+    <string name="beta_sheet_expect_4">تحقق دائماً من التحديثات sebelum الإبلاغ عن مشكلة معروفة.</string>
+    <string name="beta_sheet_expect_summary">ما يمكن أن تغيره، تعلبه أو تحسنه النسخ التجريبية أثناء الاختبار.</string>
+    <string name="beta_sheet_github_title">اختصار مشكلات GitHub</string>
+    <string name="beta_sheet_github_body">ابحث أولاً، ثم افتح تقريراً مركزاً للأخطاء، التوقفات المفاجئة، الطلبات، أو الاستفسارات.</string>
+    <string name="beta_sheet_open_issues">فتح المشكلات الحالية</string>
+    <string name="beta_sheet_report_bug">الإبلاغ عن مشكلة أو توقف مفاجئ</string>
+    <string name="beta_sheet_report_body">شاركنا خطوات إعادة إنتاج المشكلة، النتائج المتوقعة، النتائج الفعلية، وتفاصيل جهازك/نظام التشغيل.</string>
+    <string name="beta_sheet_report_title">كيفية الإبلاغ</string>
+    <string name="beta_sheet_report_summary">قائمة مراجعة سريعة قبل فتح تذكرة مشكلة جديدة.</string>
+    <string name="beta_sheet_before_title">قبل فتح تذكرة مشكلة</string>
+    <string name="beta_sheet_before_1">ابحث في المشكلات المفتوحة والمغلقة الحالية لتجنب التكرار.</string>
+    <string name="beta_sheet_before_2">حدث إلى آخر إصدار من PixelPlayer وتأكد من استمرار حدوث المشكلة.</string>
+    <string name="beta_sheet_before_3">أعد تشغيل التطبيق وتأكد من بقاء المشكلة قائمّة.</string>
+    <string name="beta_sheet_before_4">حاول تكرار حدوث المشكلة واكتب الخطوات الدقيقة لذلك.</string>
+    <string name="beta_sheet_issue_type_title">ما هو نوع المشكلة؟</string>
+    <string name="beta_sheet_issue_type_bug">تقرير خطأ برمي (Bug): شيء ما يتصرف بشكل غير صحيح.</string>
+    <string name="beta_sheet_issue_type_feature">طلب ميزة: إضافة ميزة جديدة أو تحسين.</string>
+    <string name="beta_sheet_issue_type_question">سؤال: استخدم قسم المناقشات إذا كان مفعلاً، أو افتح تذكرة بعلامة سؤال.</string>
+    <string name="beta_sheet_bug_title">تقرير خطأ برمجى</string>
+    <string name="beta_sheet_bug_summary_text">انسخ هذه الحقول عندما يتصرف شيء ما بشكل غير صحيح أو يتوقف فجأة.</string>
+    <string name="beta_sheet_bug_template_title">تقرير خطأ</string>
+    <string name="beta_sheet_bug_summary">ملخص قصير:</string>
+    <string name="beta_sheet_bug_expected">السلوك المتوقع:</string>
+    <string name="beta_sheet_bug_actual">السلوك الحالي:</string>
+    <string name="beta_sheet_bug_steps">خطوات التشغيل/إعادة الإنتاج: 1. 2. 3.</string>
+    <string name="beta_sheet_bug_frequency">كم مرة يحدث ذلك؟ دائماً / أحياناً / نادراً.</string>
+    <string name="beta_sheet_bug_screenshot">لقطة شاشة / فيديو: إن وجد.</string>
+    <string name="beta_sheet_bug_logs">السجلات / تتبع الكومة (Stack trace): إن وجد.</string>
+    <string name="beta_sheet_env_title">البيئة البرمجية</string>
+    <string name="beta_sheet_env_version">إصدار PixelPlayer:</string>
+    <string name="beta_sheet_env_source">مصدر التثبيت: إصدار GitHub، بناء تصحيح خطأ، بناء ليلي، إلخ.</string>
+    <string name="beta_sheet_env_android">إصدار أندرويد:</string>
+    <string name="beta_sheet_env_device">موديل الجهاز:</string>
+    <string name="beta_sheet_env_extra">سياق إضافي: استخدام بطاقة SD، إعدادات خاصة، أذونات، إلخ.</string>
+    <string name="beta_sheet_feature_title">طلب ميزة جديد</string>
+    <string name="beta_sheet_feature_summary">انسخ هذه الحقول عندما ترغب في طلب ميزة جديدة أو تحسين.</string>
+    <string name="beta_sheet_feature_problem">بيان المشكلة: ما هي المشكلة التي تحاول حلها؟</string>
+    <string name="beta_sheet_feature_solution">الحل المقترح: كيف يجب أن تعمل الميزة؟</string>
+    <string name="beta_sheet_feature_alternatives">البدائل المدروسة: هل توجد أي مقاربات أخرى؟</string>
+    <string name="beta_sheet_feature_scope">النطاق: ما هي الشاشات أو التدفقات المتأثرة؟</string>
+    <string name="beta_sheet_feature_mockup">نموذج مبدئي (Mockup) أو صورة مرجعية إن وجدت.</string>
+    <string name="beta_sheet_quality_title">العناوين، الخصوصية والنطاق</string>
+    <string name="beta_sheet_quality_summary">اجعل التقرير سهلاً للفرز وآمناً للمشاركة.</string>
+    <string name="beta_sheet_title_examples_title">عناوين جيدة للمشكلات</string>
+    <string name="beta_sheet_title_example_1">معادل الصوت: مؤشر الإزاحة يتغير عند تبديل تبويب التفضيلات</string>
+    <string name="beta_sheet_title_example_2">البحث: قائمة السجل لا تظهر عند الاستعلام الفارغ</string>
+    <string name="beta_sheet_title_example_3">ميزة: إضافة خيار فرز قائمة التشغيل حسب "المضافة حديثاً"</string>
+    <string name="beta_sheet_avoid_title">يرجى تجنب</string>
+    <string name="beta_sheet_avoid_1">التقارير العامة مثل "إنه لا يعمل".</string>
+    <string name="beta_sheet_avoid_2">جمع مشكلات متعددة غير مترابطة في تذكرة واحدة.</string>
+    <string name="beta_sheet_avoid_3">السجلات أو لقطات الشاشة غير المظللة التي تحتوي على بيانات خاصة.</string>
+    <string name="beta_sheet_privacy_title">ملاحظة الخصوصية</string>
+    <string name="beta_sheet_privacy_body">قبل نشر السجلات، لقطات الشاشة، أو الفيديوهات، قم بإزالة أي معلومات شخصية أو خاصة.</string>
+    <string name="beta_sheet_nightly_title">البناء الليلي (Nightly builds)</string>
+    <string name="beta_sheet_nightly_summary">كيف تختلف البناءات الليلية عن الإصدارات الرسمية، وماذا تضمن عندما تتعطل.</string>
+    <string name="beta_sheet_nightly_body">يتم إنشاء البناءات الليلية من آخر التزامات برمجية (Commit)، وقد تحتوي على تغييرات غير مكتملة، أخطاء مؤقتة، أو تراجعات في الأداء. إنها تجريبية أكثر من الإصدارات الرسمية.</string>
+    <string name="beta_sheet_nightly_access">يمكنك الوصول إليها من ملحقات سير عمل GitHub Actions الخاصة بالمستودع إن وجدت.</string>
+    <string name="beta_sheet_nightly_report_title">الإبلاغ عن مشكلات البناء الليلي</string>
+    <string name="beta_sheet_nightly_report_body">عند الإبلاغ عن مشكلة من بناء ليلي، اذكر دائماً أن ذلك حدث في نسخة ليلية وليس في إصدار رسمي. يرجى تضمين تاريخ البناء، اسم أو رقم تشغيل سير العمل، أو معرف الالتزام (Commit SHA) إن أمكن. وتحقق أيضاً مما إذا كانت نفس المشكلة تحدث في أحدث إصدار رسمي.</string>
+    <string name="beta05_title">التحديث إلى Beta 0.5.0</string>
+    <string name="beta05_clean_install_title">يُوصى بتثبيت نظيف</string>
+    <string name="beta05_clean_install_body">If كنت قادماً من الإصدار التجريبي 0.5.0، فقد يتطلب هذا التحديث بيانات مكتبة جديدة بدلاً من الحالة القديمة المخزنة مؤقتاً.</string>
+    <string name="beta05_if_wrong_meta_title">إذا بدت البيانات الوصفية أو إدخالات المكتبة خاطئة</string>
+    <string name="beta05_if_wrong_meta_body">البيانات الوصفية الخاطئة للأغاني، أو عدم تطابق الفنانين أو الألبومات، أو الإدخالات التي تبدو مكررة تعني عادةً أن التثبيت النظيف هو الحل المناسب.</string>
+    <string name="beta05_dont_show">لا تظهر هذا مجدداً</string>
+    <string name="beta05_got_it">فهمت ذلك</string>
+
+    <!-- Crash report dialog -->
+    <string name="crash_report_title">عذراً! حدث خطأ ما</string>
+    <string name="crash_report_subtitle">تعطل التطبيق خلال جلستك الأخيرة. ساعدنا في إصلاح هذا من خلال مشاركة تقرير التعطل.</string>
+    <string name="crash_report_date_line">التاريخ: %1$s</string>
+    <string name="crash_report_error_label">الخطأ:</string>
+    <string name="crash_report_stack_preview_label">تتبع الكومة (معاينة):</string>
+    <string name="crash_report_clipboard_label">سجل التعطل</string>
+    <string name="crash_report_toast_log_copied">تم نسخ سجل التعطل إلى الحافظة</string>
+    <string name="crash_report_share_subject">تقرير تعطل PixelPlayer</string>
+    <string name="crash_report_share_chooser">مشاركة تقرير التعطل</string>
+
+    <!-- Home Option -->
+    <string name="home_option_dj_mashup">مزج DJ (Mashup)</string>
+
+    <!-- Your Mix -->
+    <string name="home_your_mix_title">المزيج\nالخاص بك</string>
+    <string name="home_empty_placeholder_title">لا توجد بيانات لعرضها بعد</string>
+    <string name="home_empty_placeholder_subtitle">سيظهر المزيج الخاص بك هنا عندما يجد PixelPlayer أغانٍ أو يقوم بمزامنة أحد المصادر.</string>
+    <string name="home_empty_placeholder_refresh">تحديث</string>
+
+    <!-- DailyMixSection -->
+    <string name="home_daily_mix_title">المزيج اليومي</string>
+    <string name="home_daily_mix_subtitle">بناءً على تاريخ الاستماع</string>
+    <string name="home_daily_mix_action_see_all">تحقق من كامل المزيج اليومي</string>
+    <string name="home_daily_mix_queue_name">المزيج اليومي (Daily Mix)</string>
+
+    <!-- DailyMixScreen -->
+    <string name="daily_mix_title">المزيج اليومي</string>
+    <plurals name="daily_mix_songs_dot_duration">
+        <item quantity="zero">لا توجد أغانٍ • %2$s</item>
+        <item quantity="one">أغنية واحدة • %2$s</item>
+        <item quantity="two">أغنيتان • %2$s</item>
+        <item quantity="few">%1$d أغانٍ • %2$s</item>
+        <item quantity="many">%1$d أغنية • %2$s</item>
+        <item quantity="other">%1$d أغنية • %2$s</item>
+    </plurals>
+    <string name="daily_mix_action_play_it">تشغيل</string>
+    <string name="daily_mix_cd_ai_playlist_generator">صانع قوائم التشغيل بالذكاء الاصطناعي</string>
+
+    <!-- DailyMixMenu -->
+    <string name="daily_mix_how_title">كيف يتم بناء المزيج اليومي الخاص بك</string>
+    <string name="daily_mix_how_body">يتم بناء المزيج اليومي الخاص بك (Daily Mix) بناءً على أغانيك المفضلة والأكثر تشغيلاً. نقوم أيضاً بإضافة مسارات من فنانين وأنواع موسيقية تحبها لتتمكن من اكتشاف موسيقى جديدة.</string>
+    <string name="daily_mix_prompt_label">أخبر الذكاء الاصطناعي بما تود الاستماع إليه اليوم</string>
+    <string name="daily_mix_cost_hint">نحن نستخدم عينة صغيرة للحفاظ على انخفاض استهلاك البيانات والتكلفة</string>
+    <string name="daily_mix_updating">جاري التحديث…</string>
+    <string name="daily_mix_update">تحديث المزيج اليومي</string>
+
+    <!-- AIPlaylistSheet -->
+    <string name="ai_playlist_headline_perfect">منسقة بشكل مثالي</string>
+    <string name="ai_playlist_headline_daily_mix">المزيج اليومي</string>
+    <string name="ai_playlist_subtitle_journey_ready">رحلتك الصوتية جاهزة الآن</string>
+    <string name="ai_playlist_subtitle_generator">صانع قوائم التشغيل بالذكاء الاصطناعي</string>
+    <string name="ai_playlist_description">صف الأجواء أو الحالة المزاجية أو النشاط، ودع الذكاء الاصطناعي يتولى تنسيق قائمة التشغيل المثالية من مكتبتك.</string>
+    <string name="ai_playlist_section_size">حجم قائمة التشغيل</string>
+    <string name="ai_playlist_min_songs">الحد الأدنى للأغاني</string>
+    <string name="ai_playlist_max_songs">الحد الأقصى للأغاني</string>
+    <string name="ai_playlist_prompt_placeholder">مثال: أجواء مسائية هادئة، طاقة حماسية للتمارين…</string>
+    <string name="ai_playlist_tap_to_retry">انقر لإعادة المحاولة</string>
+    <string name="ai_playlist_status_default">تم توليف رحلتك الصوتية!</string>
+    <string name="ai_playlist_ready_to_play">جاهز للتشغيل</string>
+    <string name="ai_playlist_generating">جاري الإنشاء…</string>
+    <string name="ai_playlist_generate">إنشاء قائمة التشغيل</string>
+
+    <!-- RecentlyPlayedSection -->
+    <string name="home_recently_played_title">المشغلة حديثاً</string>
+
+    <!-- RecentlyPlayedScreen -->
+    <string name="recently_played_title">المشغلة حديثاً</string>
+    <string name="recently_played_action_play_latest">تشغيل الأحدث</string>
+    <string name="recently_played_empty_title">لا توجد أغانٍ مشغلة مؤخراً في %1$s</string>
+    <string name="recently_played_empty_subtitle">قم بتغيير النطاق الزمني أو تشغيل المزيد من الأغاني لملء هذا الجدول الزمني.</string>
+    <string name="recently_played_queue_name">المشغلة حديثاً</string>
+    <string name="recently_played_date_today">اليوم</string>
+    <string name="recently_played_date_yesterday">أمس</string>
+
+    <!-- StatsOverviewCard -->
+    <string name="home_stats_overview_title">إحصائيات الاستماع</string>
+    <string name="home_stats_overview_total_plays">إجمالي التشغيل</string>
+    <string name="home_stats_overview_avg_per_day">المعدل يومياً</string>
+    <string name="home_stats_overview_top_track">المسار الأعلى</string>
+    <string name="home_stats_overview_top_track_line">%1$s • %2$d تشغيل</string>
+
+    <!-- StatsScreen -->
+    <string name="stats_title">إحصائيات الاستماع</string>
+    <string name="stats_cd_refresh">تحديث إحصائيات الاستماع</string>
+    <string name="stats_range_today">اليوم</string>
+    <string name="stats_range_week_to_date">الأسبوع الحالي</string>
+    <string name="stats_range_month_to_date">الشهر الحالي</string>
+    <string name="stats_range_year_to_date">السنة الحالية</string>
+    <string name="stats_range_all_time">كل الأوقات</string>
+    <string name="stats_hero_listening">الاستماع</string>
+    <string name="stats_hero_plays">مرات التشغيل</string>
+    <string name="stats_section_listening_timeline">الخط الزمني للاستماع</string>
+    <string name="stats_timeline_metric_listening_time">وقت الاستماع</string>
+    <string name="stats_timeline_metric_listening_time_desc">إجمالي وقت الاستماع الذي تم تسجيله في النطاق المحدد.</string>
+    <string name="stats_timeline_metric_play_count">عدد مرات التشغيل</string>
+    <string name="stats_timeline_metric_play_count_desc">عدد الجلسات التي أكملتها لكل شريحة زمنية.</string>
+    <string name="stats_timeline_metric_avg_session">معدل الجلسة</string>
+    <string name="stats_timeline_metric_avg_session_desc">متوسط مدة الاستماع لكل شريحة زمنية.</string>
+    <string name="stats_timeline_support_day">مقسمة إلى فترات مدتها 4 ساعات للكشف عن إيقاعك اليومي.</string>
+    <string name="stats_timeline_support_week">تسهل الأشرطة اليومية مقارنة عادات الاستماع من أسبوع لآخر.</string>
+    <string name="stats_timeline_support_month">توضح الأشرطة الأسبوعية اتجاهات الشهر وتطورها.</string>
+    <string name="stats_timeline_support_year">تظهر الأشرطة الشهرية التغيرات الموسمية على مدار السنة.</string>
+    <string name="stats_timeline_support_all">تختصر الأشرطة السنوية كامل تاريخ الاستماع الخاص بك.</string>
+    <string name="stats_empty_no_timeline_title">لا توجد بيانات استماع بعد</string>
+    <string name="stats_empty_no_timeline_subtitle">اضغط على زر التشغيل لبدء بناء خطك الزمني للاستماع</string>
+    <string name="stats_rhythm_daily">الإيقاع اليومي</string>
+    <string name="stats_rhythm_weekly">الإيقاع الأسبوعي</string>
+    <string name="stats_rhythm_monthly">الإيقاع الشهري</string>
+    <string name="stats_rhythm_year">نظرة عامة على السنة</string>
+    <string name="stats_rhythm_all_time">التطور على مر الوقت</string>
+    <string name="stats_grouped_4h">مجمعة في شرائح مدتها 4 ساعات</string>
+    <string name="stats_grouped_dow">مجمعة حسب أيام الأسبوع</string>
+    <string name="stats_grouped_week_of_month">مجمعة حسب أسبوع الشهر</string>
+    <string name="stats_grouped_by_month">مجمعة حسب الشهر</string>
+    <string name="stats_grouped_by_year">مجمعة حسب السنة</string>
+    <string name="stats_peak_segment">شريحة الذروة</string>
+    <string name="stats_n_plays">%1$d تشغيل</string>
+    <string name="stats_em_dash">—</string>
+    <string name="stats_section_top_categories">الفئات الأعلى</string>
+    <string name="stats_top_categories_subtitle">قارن بين طرق استماعك عبر الأنواع الموسيقية، الفنانين، الألبومات، والأغاني.</string>
+    <string name="stats_dim_genre">النوع</string>
+    <string name="stats_dim_artist">الفنان</string>
+    <string name="stats_dim_album">الألبوم</string>
+    <string name="stats_dim_song">الأغنية</string>
+    <string name="stats_card_listening_by_genre">الاستماع حسب النوع</string>
+    <string name="stats_card_listening_by_artist">الاستماع حسب الفنان</string>
+    <string name="stats_card_listening_by_album">الاستماع حسب الألبوم</string>
+    <string name="stats_card_listening_by_song">الاستماع حسب الأغنية</string>
+    <string name="stats_plays_artists">%1$d تشغيل • %2$d فنان</string>
+    <string name="stats_plays_tracks">%1$d تشغيل • %2$d مسار</string>
+    <string name="stats_empty_no_category_title">لا توجد بيانات فئات بعد</string>
+    <string name="stats_empty_no_category_subtitle">اضغط على زر التشغيل لإظهار أهم فئات الاستماع لديك</string>
+    <string name="stats_section_listening_habits">عادات الاستماع</string>
+    <string name="stats_empty_no_habits_title">لا توجد عادات استماع بعد</string>
+    <string name="stats_empty_no_habits_subtitle">سنقوم بإظهار عادات الاستماع الخاصة بك بمجرد أن نتعرف على ذوقك بشكل أفضل.</string>
+    <string name="stats_habit_total_sessions">إجمالي الجلسات</string>
+    <string name="stats_habit_avg_session">معدل الجلسة</string>
+    <string name="stats_habit_longest_session">أطول جلسة</string>
+    <string name="stats_habit_sessions_per_day">جلسة/يوم</string>
+    <string name="stats_habit_most_active_day">اليوم الأكثر نشاطاً</string>
+    <string name="stats_habit_no_playback_yet">لم يتم التشغيل بعد</string>
+    <string name="stats_habit_peak_timeline_slot">فترة الذروة الزمنية</string>
+    <string name="stats_section_top_artists">أبرز الفنانين</string>
+    <string name="stats_empty_no_artists_title">لا يوجد فنانون بارزون</string>
+    <string name="stats_empty_no_artists_subtitle">استمر في الاستماع وسيظهر فنانوك المفضلون هنا.</string>
+    <string name="stats_avatar_placeholder">?</string>
+    <string name="stats_ranked_artist">%1$d. %2$s</string>
+    <string name="stats_section_top_albums">أبرز الألبومات</string>
+    <string name="stats_empty_no_albums_title">لا توجد ألبومات بارزة</string>
+    <string name="stats_empty_no_albums_subtitle">الألبومات التي تعيد الاستماع إليها كثيراً ستظهر هنا.</string>
+    <string name="stats_ranked_album">%1$d. %2$s</string>
+    <string name="stats_track_concentration_title">تركيز المسارات</string>
+    <string name="stats_track_concentration_subtitle">كيفية توزيع وقت استماعك على المسارات الأعلى لديك.</string>
+    <string name="stats_empty_no_concentration_title">لا توجد بيانات تركيز بعد</string>
+    <string name="stats_empty_no_concentration_subtitle">قم بتشغيل المزيد من المسارات لترى مدى تركيز استماعك.</string>
+    <string name="stats_slice_top_1">الأعلى 1</string>
+    <string name="stats_slice_top_2_3">الأعلى 2-3</string>
+    <string name="stats_slice_others">الأخرى</string>
+    <string name="stats_percent">%1$d%%</string>
+    <string name="stats_listening_concentration_title">تركيز الاستماع</string>
+    <string name="stats_top_three_share_line">أعلى 3 مسارات تمثل %1$d%% من إجمالي وقت استماعك.</string>
+    <string name="stats_avg_plays_per_track">معدل التشغيل/المسار</string>
+    <string name="stats_unique_tracks">المسارات الفريدة</string>
+    <string name="stats_top_three_share_label">حصة أعلى 3</string>
+    <string name="stats_tracks_in_range_title">المسارات في هذا النطاق</string>
+    <string name="stats_tracks_in_range_subtitle">المسارات الأكثر تشغيلاً في النطاق الزمني المحدد.</string>
+    <string name="stats_empty_no_tracks_title">لا توجد مسارات بارزة</string>
+    <string name="stats_empty_no_tracks_subtitle">استمع إلى مفضلاتك لرؤيتها مميزة هنا.</string>
+    <string name="stats_collapse_tracks">طي المسارات</string>
+    <string name="stats_show_all_tracks">إظهار كل المسارات</string>
+
+    <!-- Time and Duration Formatting -->
+    <string name="duration_hours_minutes_long">%1$d س %2$02d د</string>
+    <string name="duration_minutes_long">%1$d د</string>
+    <string name="duration_hours_minutes_medium">%1$d س %2$02d د</string>
+    <string name="duration_hours_medium">%1$d س</string>
+    <string name="duration_minutes_medium">%1$d د</string>
+    <string name="duration_seconds_medium">%1$d ث</string>
+    <string name="duration_hours_minutes_short">%1$dس %2$02dد</string>
+    <string name="duration_hours_short">%1$dس</string>
+    <string name="duration_minutes_short">%1$dد</string>
+    <string name="duration_seconds_short">%1$dث</string>
+    <string name="time_ago_never">أبداً</string>
+    <string name="time_ago_just_now">الآن</string>
+    <string name="time_ago_day_singular">منذ يوم واحد</string>
+    <string name="time_ago_days_plural">منذ %1$d أيام</string>
+    <string name="time_ago_hour_singular">منذ ساعة واحدة</string>
+    <string name="time_ago_hours_plural">منذ %1$d ساعات</string>
+    <string name="time_ago_minute_singular">منذ دقيقة واحدة</string>
+    <string name="time_ago_minutes_plural">منذ %1$d دقائق</string>
+    <string name="song_count_singular">%1$d أغنية</string>
+    <string name="song_count_plural">%1$d أغانٍ</string>
+    <string name="stats_week_label">الأسبوع %1$d</string>
+</resources>

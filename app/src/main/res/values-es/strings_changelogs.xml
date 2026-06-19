@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>Localización: Español, francés, ruso, chino simplificado, indonesio, italiano</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Integración de Google Drive con gestión del ciclo de vida del reproductor.</item>
+        <item>Edición por lotes de metadatos de canciones (etiquetas y carátulas).</item>
+        <item>Traducción de letras por IA con preferencias personalizables de Wear OS.</item>
+        <item>Herramienta de diagnóstico de retraso y selección múltiple en la pantalla de búsqueda.</item>
+        <item>Soporte para árabe y turco, con opciones de red local de URL http localizadas.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Ahorro drástico de batería (descarga de audio y puertas de sondeo de interfaz de usuario).</item>
+        <item>Gestión de cola optimizada (inserciones más rápidas e indexación explícita).</item>
+        <item>Animaciones de movimiento expresivas de Material 3 para pantallas de transición.</item>
+        <item>Refactorización de la sincronización de la biblioteca mediante escaneo limitado.</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Se resolvieron los retrasos de reproducción (saltos/tartamudeos) y problemas de almacenamiento en búfer.</item>
+        <item>Se corrigió la sincronización de eliminación de canciones externas y la consistencia de metadatos.</item>
+        <item>Se corrigieron problemas de memoria, cierres inesperados y fallos de diseño en Wear OS y teléfono.</item>
+    </string-array>
 </resources>

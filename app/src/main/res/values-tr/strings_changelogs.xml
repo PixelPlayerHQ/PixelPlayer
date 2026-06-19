@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>Yerelleştirme: İspanyolca, Fransızca, Rusça, Basitleştirilmiş Çince, Endonezce, İtalyanca</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Oynatıcı yaşam döngüsü yönetimiyle Google Drive entegrasyonu.</item>
+        <item>Toplu şarkı meta verisi düzenleme (etiketler ve kapak resmi).</item>
+        <item>Özelleştirilebilir Wear OS tercihleriyle yapay zeka şarkı sözü çevirisi.</item>
+        <item>Arama ekranında gecikme teşhis aracı ve çoklu seçim.</item>
+        <item>Yerelleştirilmiş http URL yerel ağ seçenekleriyle Arapça &amp; Türkçe desteği.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Büyük pil tasarrufu (ses aktarımı ve kullanıcı arayüzü yoklama geçitleri).</item>
+        <item>Optimize edilmiş kuyruk yönetimi (daha hızlı eklemeler ve açık dizin oluşturma).</item>
+        <item>Geçiş ekranları için Material 3 Ekspresif hareket animasyonları.</item>
+        <item>Sınırlandırılmış tarama yoluyla kütüphane senkronizasyonu yeniden yapılandırıldı.</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Oynatmada takılma/atlama gecikmeleri ve arabelleğe alma sorunları çözüldü.</item>
+        <item>Harici şarkı silme senkronizasyonu ve meta veri tutarlılığı düzeltildi.</item>
+        <item>Wear OS ve telefonda bellek sorunları, çökmeler ve düzen hataları düzeltildi.</item>
+    </string-array>
 </resources>

@@ -129,4 +129,22 @@
     <string-array name="changelog_070_added">
         <item>本地化：西班牙语、法语、俄语、简体中文、印度尼西亚语、意大利语</item>
     </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Google Drive 集成，支持播放器生命周期管理。</item>
+        <item>批量编辑歌曲元数据（标签和封面）。</item>
+        <item>AI 歌词翻译，支持自定义 Wear OS 偏好设置。</item>
+        <item>搜索界面新增卡顿诊断工具和多选功能。</item>
+        <item>支持阿拉伯语和土耳其语，并提供本地化 http URL 局域网选项。</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>大幅省电（音频卸载和 UI 轮询门槛）。</item>
+        <item>优化队列管理（更快的插入和显式索引）。</item>
+        <item>适用于过渡界面的 Material 3 表达性运动动画。</item>
+        <item>通过限制扫描频率重构媒体库同步。</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>解决了播放卡顿/跳音延迟和缓冲问题。</item>
+        <item>修复了外部歌曲删除同步和元数据一致性问题。</item>
+        <item>修复了 Wear OS 和手机上的内存问题、崩溃和布局异常。</item>
+    </string-array>
 </resources>

@@ -9,9 +9,9 @@
     <string name="topbar_cloud_streaming_subtitle">从您的云端账户串流音乐</string>
 
     <!-- BetaInfoBottomSheet -->
-    <string name="beta_sheet_version">Beta 0.7.0</string>
+    <string name="beta_sheet_version">Beta 0.7.5</string>
     <string name="beta_sheet_letter">β</string>
-    <string name="beta_sheet_welcome_title">欢迎使用 PixelPlayer 0.7.0-beta</string>
+    <string name="beta_sheet_welcome_title">欢迎使用 PixelPlayer 0.7.5-beta</string>
     <string name="beta_sheet_welcome_body">您正在使用的是可能包含错误、崩溃或实验性功能的测试版本。请报告问题以帮助我们改进。</string>
     <string name="beta_sheet_expect_title">预期情况</string>
     <string name="beta_sheet_expect_1">可能会意外出现错误、崩溃或未完成的功能。</string>

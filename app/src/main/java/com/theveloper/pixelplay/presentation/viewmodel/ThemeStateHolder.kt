@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.net.Uri
 import android.content.ComponentCallbacks2
 import android.os.Trace
+import timber.log.Timber
 import androidx.compose.ui.graphics.Color
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
@@ -181,8 +182,8 @@ class ThemeStateHolder @Inject constructor(
                     paletteStyle = currentPaletteStyle,
                     colorAccuracyLevel = currentPaletteAccuracy
                 )
-            } catch (_: Exception) {
-                // Ignore or log
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to generate color scheme for %s", uriString)
             } finally {
                 val targets = synchronized(pendingAlbumColorSchemeLock) {
                     pendingAlbumColorSchemeTargets.remove(uriString)?.toList().orEmpty()

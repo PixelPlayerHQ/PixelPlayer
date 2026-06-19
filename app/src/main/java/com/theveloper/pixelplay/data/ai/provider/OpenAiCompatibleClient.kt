@@ -58,7 +58,7 @@ abstract class OpenAiCompatibleClient(private val apiKey: String) : AiClient {
 
     protected open fun decorateRequest(builder: Request.Builder): Request.Builder = builder
 
-    protected open fun filterModels(models: List<String>): List<String> = models
+    internal open fun filterModels(models: List<String>): List<String> = models
 
     override suspend fun generateContent(
         model: String,

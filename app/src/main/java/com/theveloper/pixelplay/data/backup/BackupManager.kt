@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.backup
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import timber.log.Timber
 import com.theveloper.pixelplay.data.backup.format.BackupReader
 import com.theveloper.pixelplay.data.backup.format.BackupWriter
 import com.theveloper.pixelplay.data.backup.history.BackupHistoryRepository
@@ -66,7 +67,7 @@ class BackupManager @Inject constructor(
             // Build manifest
             val packageInfo = try {
                 context.packageManager.getPackageInfo(context.packageName, 0)
-            } catch (_: Exception) { null }
+            } catch (e: Exception) { Timber.w(e, "Failed to get package info"); null }
 
             val manifest = BackupManifest(
                 schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
@@ -183,8 +184,8 @@ class BackupManager @Inject constructor(
                         appVersion = plan.manifest.appVersion
                     )
                 )
-            } catch (_: Exception) {
-                // Non-critical; don't fail restore because of history persistence
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to persist restore history entry")
             }
         }
 

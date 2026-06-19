@@ -613,7 +613,8 @@ class QqMusicRepository @Inject constructor(
             val result = String(decoded, Charsets.UTF_8)
             // Verify the decoded result contains actual readable text
             if (result.isNotBlank() && !result.contains('\u0000')) result else input
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to decode base64 artist name")
             input
         }
     }

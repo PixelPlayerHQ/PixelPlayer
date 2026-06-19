@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.database
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import timber.log.Timber
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.theveloper.pixelplay.data.model.ArtistRef
@@ -171,7 +172,8 @@ private fun parseArtistsJson(json: String?): List<ArtistRef> {
                 isPrimary = obj.optBoolean("primary", false)
             )
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Timber.w(e, "Failed to parse artist refs JSON")
         emptyList()
     }
 }

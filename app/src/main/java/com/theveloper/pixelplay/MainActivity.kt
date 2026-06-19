@@ -87,6 +87,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 
 import androidx.compose.ui.unit.Dp
@@ -152,6 +154,14 @@ import com.theveloper.pixelplay.presentation.utils.AppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.NoOpHapticFeedback
 import com.theveloper.pixelplay.utils.CrashLogData
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.HazeMaterials
 import javax.annotation.concurrent.Immutable
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -191,6 +201,12 @@ class MainActivity : ComponentActivity() {
 
     private val requestAllFilesAccessLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
         // Handle the result in onResume
+    }
+
+    companion object {
+        val LocalHazeState = staticCompositionLocalOf<HazeState> {
+            error("No HazeState provided")
+        }
     }
 
     @CallSuper
@@ -681,7 +697,7 @@ class MainActivity : ComponentActivity() {
         val scopedHapticFeedback = remember(platformHapticFeedback, appHapticsConfig.enabled) {
             if (appHapticsConfig.enabled) platformHapticFeedback else NoOpHapticFeedback
         }
-
+        val hazeState = remember { HazeState() }
         val systemNavBarInset = sanitizeNavigationBarBottomInset(
             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         )
@@ -774,7 +790,8 @@ class MainActivity : ComponentActivity() {
 
         CompositionLocalProvider(
             LocalAppHapticsConfig provides appHapticsConfig,
-            LocalHapticFeedback provides scopedHapticFeedback
+            LocalHapticFeedback provides scopedHapticFeedback,
+            LocalHazeState provides hazeState
         ) {
             AppSidebarDrawer(
                 drawerState = drawerState,
@@ -903,6 +920,7 @@ class MainActivity : ComponentActivity() {
                                     bottomBarPadding = bottomBarPadding,
                                     onSearchIconDoubleTap = onSearchIconDoubleTap,
                                     modifier = Modifier.fillMaxSize()
+                                        .hazeEffect(state = LocalHazeState.current, style = HazeMaterials.ultraThin())
                                 )
                             }
                         }
@@ -948,6 +966,7 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+//                                .hazeSource(hazeState)
                                 .graphicsLayer {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                         if (disableBlurAllOver) {
@@ -1008,7 +1027,8 @@ class MainActivity : ComponentActivity() {
                             hideMiniPlayer = shouldHideMiniPlayer,
                             containerHeight = containerHeight,
                             navController = navController,
-                            isNavBarHidden = isNavBarEffectivelyHidden
+                            isNavBarHidden = isNavBarEffectivelyHidden,
+                            hazeState = LocalHazeState.current
                         )
 
                         val dismissUndoBarSlice by remember {
@@ -1041,7 +1061,8 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(MiniPlayerHeight)
-                                    .padding(horizontal = 14.dp),
+                                    .padding(horizontal = 14.dp)
+                                    .hazeEffect(state = LocalHazeState.current, style = HazeMaterials.regular()),
                                 onUndo = onUndoDismissPlaylist,
                                 onClose = onCloseDismissUndoBar,
                                 durationMillis = dismissUndoBarSlice.durationMillis

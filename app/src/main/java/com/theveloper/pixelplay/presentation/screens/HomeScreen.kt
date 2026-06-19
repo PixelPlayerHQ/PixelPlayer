@@ -119,6 +119,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
+import dev.chrisbanes.haze.hazeSource
 
 private const val HomeLoadingPlaceholderMinDurationMillis = 1200L
 
@@ -336,7 +338,8 @@ fun HomeScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(MaterialTheme.colorScheme.background)
+                    .hazeSource(LocalHazeState.current),
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     bottom = paddingValuesParent.calculateBottomPadding()

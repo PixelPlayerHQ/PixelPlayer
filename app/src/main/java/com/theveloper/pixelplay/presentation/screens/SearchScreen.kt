@@ -148,6 +148,8 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
+import dev.chrisbanes.haze.hazeSource
 
 private const val MAX_ALBUM_MULTI_SELECTION = 6
 
@@ -309,7 +311,7 @@ fun SearchScreen(
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().hazeSource(LocalHazeState.current)
         ) {
             Row(
                 modifier = Modifier

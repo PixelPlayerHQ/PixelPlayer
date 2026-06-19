@@ -298,6 +298,8 @@ dependencies {
         exclude(group = "androidx.compose.runtime")
         exclude(group = "androidx.compose.ui")
     }
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
 
     // Projects
     implementation(project(":shared"))

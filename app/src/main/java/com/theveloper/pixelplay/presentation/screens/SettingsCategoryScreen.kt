@@ -395,7 +395,9 @@ fun SettingsCategoryScreen(
 
     Box(
         modifier =
-            Modifier.nestedScroll(nestedScrollConnection).fillMaxSize()
+            Modifier
+                .nestedScroll(nestedScrollConnection)
+                .fillMaxSize()
     ) {
         val currentTopBarHeightDp = with(density) { topBarHeight.value.toDp() }
         
@@ -703,6 +705,21 @@ fun SettingsCategoryScreen(
                                         leadingIcon = { Icon(Icons.Rounded.Timer, null, tint = MaterialTheme.colorScheme.secondary) }
                                     )
                                 }
+
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_hide_controls_button_title),
+                                    subtitle = stringResource(R.string.settings_hide_controls_button_subtitle),
+                                    checked = !uiState.controlsButtonEnabled,
+                                    onCheckedChange = { settingsViewModel.setControlsButtonEnabled(!it) },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_lyrics_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                )
+
                             }
 
                             SettingsSubsection(
@@ -1276,7 +1293,7 @@ fun SettingsCategoryScreen(
             Box(modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                   awaitPointerEventScope {
+                    awaitPointerEventScope {
                         while (true) {
                             awaitPointerEvent()
                         }

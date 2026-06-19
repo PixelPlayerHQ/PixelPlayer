@@ -4,16 +4,16 @@
     <string name="app_tagline">مشغل موسيقى</string>
     <string name="app_name_change_title">تغيير اسم التطبيق</string>
     <string name="app_name_change_message">لقد قمنا بتغيير اسم تطبيقنا من PixelPlay إلى PixelPlayer بسبب مشكلة تتعلق بالعلامة التجارية. استمتع بالاستماع!</string>
-    <string name="app_name_change_do_not_show_again">لا تظهره مرة أخرى</string>
+    <string name="app_name_change_do_not_show_again">لا تظهر هذه الرسالة مجدداً</string>
 
     <!-- Navigation Bar Labels -->
     <string name="nav_bar_home">الرئيسية</string>
-    <string name="nav_bar_search">البحث</string>
+    <string name="nav_bar_search">بحث</string>
     <string name="nav_bar_library">المكتبة</string>
 
     <!-- All files access dialog-->
     <string name="all_files_access_title">مطلوب إذن خاص</string>
-    <string name="all_files_access_description">لتعديل البيانات الوصفية للأغاني (ملفات .mp3)، يحتاج PixelPlayer إلى صلاحية وصول خاصة لجميع الملفات. يتيح لنا هذا تعديل علامات المسارات الصوتية مباشرة. يرجى منح هذا الإذن في الشاشة التالية لتفعيل تعديل البيانات الوصفية.</string>
+    <string name="all_files_access_description">لتعديل البيانات الوصفية للأغاني (ملفات .mp3)، يحتاج PixelPlayer إلى وصول خاص إلى جميع الملفات. يتيح لنا هذا تعديل علامات المسارات الصوتية مباشرة. يرجى منح هذا الإذن في الشاشة التالية لتفعيل تعديل البيانات الوصفية.</string>
     <string name="grant_permission_button">منح الإذن</string>
 
     <!-- External Player -->
@@ -22,38 +22,38 @@
     <string name="external_action_open_full_player">فتح المشغل الكامل</string>
 
     <!-- App Shortcuts -->
-    <string name="shortcut_shuffle_short">تشغيل عشوائي</string>
-    <string name="shortcut_shuffle_long">تشغيل عشوائي لجميع الأغاني</string>
-    <string name="tile_shuffle_all">تشغيل عشوائي للكل</string>
-    <string name="tile_last_playlist">آخر قائمة تشغيل</string>
+    <string name="shortcut_shuffle_short">خلط</string>
+    <string name="shortcut_shuffle_long">خلط جميع الأغاني</string>
+    <string name="tile_shuffle_all">خلط الكل</string>
+    <string name="tile_last_playlist">قائمة التشغيل الأخيرة</string>
     <string name="tile_last_playlist_unavailable">لا توجد قائمة تشغيل متاحة لفتحها</string>
 
     <!-- Playstore Announcement -->
     <string name="playstore_dialog_action_open">فتح متجر Play</string>
     <string name="playstore_dialog_action_continue_beta">متابعة النسخة التجريبية</string>
-    <string name="playstore_dialog_link_pending">سيتم تفعيل رابط متجر Play من تكوين GitHub.</string>
-    <string name="playstore_dialog_title">PixelPlayer متاح الآن على Google Play</string>
-    <string name="playstore_dialog_body">استخدم القناة المستقرة على Google Play للحصول على التحديثات الرسمية بينما نبقي البناء التجريبي نشطاً.</string>
+    <string name="playstore_dialog_link_pending">سيتم تفعيل رابط متجر Play من إعدادات GitHub.</string>
+    <string name="playstore_dialog_title">تطبيق PixelPlayer متاح الآن على Google Play</string>
+    <string name="playstore_dialog_body">استخدم القناة المستقرة على Google Play للحصول على تحديثات الإصدارات الرسمية، بينما سنبقي على نسخ البيتا التجريبية نشطة.</string>
     <string name="playstore_dialog_app_name">PixelPlayer</string>
     <string name="playstore_dialog_release_announcement">إعلان الإصدار</string>
     <string name="playstore_dialog_coming_soon">قريباً</string>
 
     <!-- Brick breaker -->
-    <string name="easter_egg_thank_you">شكراً لك على استخدام PixelPlayer!</string>
+    <string name="easter_egg_thank_you">شكراً لاستخدامك PixelPlayer!</string>
     <string name="brick_high">أعلى %1$d</string>
     <string name="brick_cd_close">إغلاق</string>
     <string name="brick_stat_score">النتيجة</string>
-    <string name="brick_stat_lvl">المستوى %1$d</string>
-    <string name="brick_stat_lives">القلوب</string>
+    <string name="brick_stat_lvl">مستوى %1$d</string>
+    <string name="brick_stat_lives">الأرواح</string>
     <string name="brick_level_complete">اكتمل المستوى!</string>
     <string name="brick_game_over">انتهت اللعبة</string>
     <string name="brick_score_line">النتيجة: %1$d</string>
     <string name="brick_try_again">المحاولة مجدداً؟</string>
     <string name="brick_next_level">المستوى التالي</string>
     <string name="brick_restart">إعادة تشغيل اللعبة</string>
-    <string name="brick_tap_relaunch">اضغط لإعادة الإطلاق</string>
+    <string name="brick_tap_relaunch">انقر لإعادة الإطلاق</string>
     <string name="brick_play_random">تشغيل موسيقى عشوائية</string>
-    <string name="brick_title">كسارة الطوب</string>
+    <string name="brick_title">تحطيم الطوب</string>
     <string name="brick_high_score">أعلى نتيجة  %1$d</string>
     <string name="brick_play">لعب</string>
     <string name="brick_drag_paddle">اسحب لتحريك المضرب</string>
@@ -65,11 +65,11 @@
 
     <!-- Common Text & Labels -->
     <string name="common_back">رجوع</string>
-    <string name="common_ok">موافق</string>
+    <string name="common_ok">حسناً</string>
     <string name="common_cancel">إلغاء</string>
     <string name="common_dismiss">تجاهل</string>
     <string name="common_error">خطأ</string>
-    <string name="common_search">البحث</string>
+    <string name="common_search">بحث</string>
     <string name="common_clear_search">مسح البحث</string>
     <string name="common_all">الكل</string>
     <string name="common_confirm">تأكيد</string>
@@ -86,7 +86,7 @@
     <string name="common_done">تم</string>
     <string name="common_reset">إعادة تعيين</string>
     <string name="common_apply">تطبيق</string>
-    <string name="common_shuffle">خلط عشوائي</string>
+    <string name="common_shuffle">خلط</string>
     <string name="common_copy">نسخ</string>
     <string name="common_share">مشاركة</string>
     <string name="common_undo">تراجع</string>
@@ -96,10 +96,10 @@
     <string name="common_merge">دمج</string>
     <string name="common_rename">إعادة تسمية</string>
     <string name="common_create">إنشاء</string>
-    <string name="common_lyrics">كلمات الأغنية</string>
+    <string name="common_lyrics">كلمات الأغاني</string>
     <string name="common_settings">الإعدادات</string>
     <string name="common_album_art">غلاف الألبوم</string>
-    <string name="common_playlist">قائمة التشغيل</string>
+    <string name="common_playlist">قائمة تشغيل</string>
     <string name="common_unknown_track">مسار مجهول</string>
     <string name="common_unknown_artist">فنان مجهول</string>
     <string name="common_unknown_album">ألبوم مجهول</string>
@@ -113,12 +113,12 @@
     <string name="common_pause">إيقاف مؤقت</string>
     <string name="common_repeat">تكرار</string>
     <string name="common_options">خيارات</string>
-    <string name="common_shuffle_play">خلط عشوائي</string>
-    <string name="common_more_options_for">مزيد من الخيارات لـ %1$s</string>
+    <string name="common_shuffle_play">تشغيل عشوائي</string>
+    <string name="common_more_options_for">المزيد من الخيارات لـ %1$s</string>
     <string name="common_expand_menu">توسيع القائمة</string>
     <string name="common_next">التالي</string>
     <string name="common_finish">إنهاء</string>
-    <string name="common_reset_defaults">إعادة تعيين للوضع الافتراضي</string>
+    <string name="common_reset_defaults">إعادة تعيين الافتراضيات</string>
     <string name="common_export_all">تصدير الكل</string>
     <string name="common_merge_all">دمج الكل</string>
     <string name="common_share_all">مشاركة الكل</string>

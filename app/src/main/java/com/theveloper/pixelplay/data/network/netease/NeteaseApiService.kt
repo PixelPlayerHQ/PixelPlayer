@@ -313,7 +313,8 @@ class NeteaseApiService @Inject constructor() {
                 resp = call()
             }
             resp
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "$TAG: retry after session warm-up failed")
             resp
         }
     }

@@ -1,8 +1,7 @@
 package com.theveloper.pixelplay.data.navidrome.model
 
+import com.theveloper.pixelplay.utils.ServerUrlUtils
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
 
 /**
  * Represents authentication credentials for a Navidrome/Subsonic server.
@@ -49,38 +48,26 @@ data class NavidromeCredentials(
      * Returns the parsed and normalized server URL, or null if it is invalid.
      */
     val normalizedHttpUrlOrNull: HttpUrl?
-        get() {
-            val trimmed = serverUrl.trim().trimEnd('/')
-            // Auto-prepend https:// if no scheme is provided
-            val withScheme = if (!trimmed.startsWith("http://", ignoreCase = true) &&
-                !trimmed.startsWith("https://", ignoreCase = true)
-            ) {
-                "https://$trimmed"
-            } else {
-                trimmed
-            }
-            return withScheme.toHttpUrlOrNull()
-        }
+        get() = ServerUrlUtils.normalizeHttpUrl(serverUrl)
 
     /**
      * Returns the normalized server URL (without trailing slash).
      */
     val normalizedServerUrl: String
-        get() = normalizedHttpUrlOrNull?.toString()?.trimEnd('/') ?: serverUrl.trim().trimEnd('/')
+        get() = ServerUrlUtils.normalizeServerUrl(serverUrl)
 
     /**
      * Returns a validation error for connection setup, or null when the URL is acceptable.
      */
     fun connectionValidationError(requireHttps: Boolean = true): String? {
-        val httpUrl = normalizedHttpUrlOrNull ?: return "Enter a valid server URL."
-        if (httpUrl.username.isNotEmpty() || httpUrl.password.isNotEmpty()) {
-            return "Server URL must not include embedded credentials."
+        if (!requireHttps) {
+            val httpUrl = normalizedHttpUrlOrNull ?: return "Enter a valid server URL."
+            if (httpUrl.username.isNotEmpty() || httpUrl.password.isNotEmpty()) {
+                return "Server URL must not include embedded credentials."
+            }
+            return null
         }
-        if (requireHttps && !httpUrl.isHttps &&
-            !CloudStreamSecurity.isLocalOrPrivateHost(httpUrl.host)
-        ) {
-            return "Use an https:// server URL for remote Navidrome/Subsonic servers. HTTP is only allowed for local network addresses."
-        }
-        return null
+        return ServerUrlUtils.connectionValidationError(serverUrl, "Navidrome/Subsonic")
+            ?.let { if (it == "Invalid server URL format") "Enter a valid server URL." else it }
     }
 }

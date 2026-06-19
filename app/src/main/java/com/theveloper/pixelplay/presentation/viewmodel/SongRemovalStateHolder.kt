@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 
 import android.app.Activity
 import android.content.IntentSender
+import timber.log.Timber
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
@@ -92,7 +93,8 @@ class SongRemovalStateHolder @Inject constructor(
 
                 dialog.show()
                 userChoice.await()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to show song removal confirmation dialog")
                 false
             }
         }

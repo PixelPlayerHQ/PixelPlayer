@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import java.io.OutputStreamWriter
 import android.content.Context
+import timber.log.Timber
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
@@ -246,7 +247,7 @@ class PlaylistViewModel @Inject constructor(
                             PlaylistSongsOrderMode.Manual -> songsList
                         }
 
-                        // La actualización del UI se hace en el hilo principal
+                        // Update UI on the main thread
                         _uiState.update {
                             it.copy(
                                 currentPlaylistDetails = playlist,
@@ -268,8 +269,7 @@ class PlaylistViewModel @Inject constructor(
                                 currentPlaylistDetails = null,
                                 currentPlaylistSongs = emptyList()
                             )
-                        } // Mantener isLoading en false
-                        // Opcional: podrías establecer un error o un estado específico de "no encontrado"
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -615,7 +615,7 @@ class PlaylistViewModel @Inject constructor(
                     // Optional: Delete old file if it was a local file managed by us
                     currentPlaylist.coverImageUri?.let { oldPath ->
                         if (oldPath.contains("playlist_cover_")) {
-                            try { File(oldPath).delete() } catch (e: Exception) {}
+                            try { File(oldPath).delete() } catch (e: Exception) { Timber.w(e, "Failed to delete old playlist cover") }
                         }
                     }
                     savedCoverPath = newPath
@@ -624,7 +624,7 @@ class PlaylistViewModel @Inject constructor(
                 // Explicitly removed
                 currentPlaylist.coverImageUri?.let { oldPath ->
                     if (oldPath.contains("playlist_cover_")) {
-                        try { File(oldPath).delete() } catch (e: Exception) {}
+                        try { File(oldPath).delete() } catch (e: Exception) { Timber.w(e, "Failed to delete old playlist cover") }
                     }
                 }
                 savedCoverPath = null

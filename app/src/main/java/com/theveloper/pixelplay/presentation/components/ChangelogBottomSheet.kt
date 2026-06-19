@@ -346,7 +346,7 @@ fun VersionBadge(
 }
 
 private fun openUrl(context: Context, url: String) {
-    val uri = try { url.toUri() } catch (_: Throwable) { url.toUri() }
+    val uri = url.toUri()
     val intent = Intent(Intent.ACTION_VIEW, uri)
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {

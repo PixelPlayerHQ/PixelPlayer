@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.utils
 
 import android.media.MediaMetadataRetriever
+import timber.log.Timber
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -40,8 +41,8 @@ object MediaMetadataRetrieverPool {
     internal fun release(retriever: MediaMetadataRetriever) {
         try {
             retriever.release()
-        } catch (_: Exception) {
-            // Ignore release errors
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to release MediaMetadataRetriever")
         } finally {
             createdCount.decrementAndGet()
         }

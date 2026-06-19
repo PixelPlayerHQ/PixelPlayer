@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import android.os.Environment
 import android.provider.MediaStore
+import timber.log.Timber
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.utils.DirectoryRuleResolver
 import com.theveloper.pixelplay.utils.StorageInfo
@@ -576,7 +577,8 @@ class FileExplorerStateHolder(
                     } catch (error: CancellationException) {
                         prefetchedDirectoryKeys.remove(targetKey)
                         throw error
-                    } catch (_: Throwable) {
+                    } catch (e: Throwable) {
+                        Timber.w(e, "Failed to prefetch directory %s", targetKey)
                         prefetchedDirectoryKeys.remove(targetKey)
                     }
                 }

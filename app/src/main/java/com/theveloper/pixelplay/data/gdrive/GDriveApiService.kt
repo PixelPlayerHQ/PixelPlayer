@@ -6,6 +6,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +33,11 @@ class GDriveApiService @Inject constructor(
 
     fun hasToken(): Boolean = !accessToken.isNullOrBlank()
 
-    fun getAuthHeader(): String = "Bearer ${accessToken ?: ""}"
+    fun getAuthHeader(): String {
+        val token = accessToken
+        require(!token.isNullOrBlank()) { "GDrive access token not set" }
+        return "Bearer $token"
+    }
 
     fun getStreamUrl(fileId: String): String {
         return "${GDriveConstants.DRIVE_API_BASE}/files/$fileId?alt=media"
@@ -94,8 +100,12 @@ class GDriveApiService @Inject constructor(
      */
     suspend fun createFolder(name: String, parentId: String = "root"): String {
         return withContext(Dispatchers.IO) {
-            val json = """{"name":"$name","mimeType":"application/vnd.google-apps.folder","parents":["$parentId"]}"""
-            val body = json.toRequestBody("application/json".toMediaType())
+            val jsonBody = JSONObject().apply {
+                put("name", name)
+                put("mimeType", "application/vnd.google-apps.folder")
+                put("parents", JSONArray().put(parentId))
+            }.toString()
+            val body = jsonBody.toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
                 .url("${GDriveConstants.DRIVE_API_BASE}/files")
@@ -103,14 +113,15 @@ class GDriveApiService @Inject constructor(
                 .post(body)
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
-            val responseBody = response.body.string()
-            Timber.d("GDriveApi createFolder: code=${response.code}, body=${responseBody.take(200)}")
+            okHttpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body.string()
+                Timber.d("GDriveApi createFolder: code=${response.code}, body=${responseBody.take(200)}")
 
-            if (!response.isSuccessful) {
-                throw Exception("Drive API error ${response.code}: $responseBody")
+                if (!response.isSuccessful) {
+                    throw Exception("Drive API error ${response.code}: $responseBody")
+                }
+                responseBody
             }
-            responseBody
         }
     }
 
@@ -136,14 +147,15 @@ class GDriveApiService @Inject constructor(
                 .post(formBody)
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
-            val responseBody = response.body.string()
-            Timber.d("GDriveApi exchangeAuthCode: code=${response.code}")
+            okHttpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body.string()
+                Timber.d("GDriveApi exchangeAuthCode: code=${response.code}")
 
-            if (!response.isSuccessful) {
-                throw Exception("Token exchange failed ${response.code}: $responseBody")
+                if (!response.isSuccessful) {
+                    throw Exception("Token exchange failed ${response.code}: $responseBody")
+                }
+                responseBody
             }
-            responseBody
         }
     }
 
@@ -168,14 +180,15 @@ class GDriveApiService @Inject constructor(
                 .post(formBody)
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
-            val responseBody = response.body.string()
-            Timber.d("GDriveApi refreshToken: code=${response.code}")
+            okHttpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body.string()
+                Timber.d("GDriveApi refreshToken: code=${response.code}")
 
-            if (!response.isSuccessful) {
-                throw Exception("Token refresh failed ${response.code}: $responseBody")
+                if (!response.isSuccessful) {
+                    throw Exception("Token refresh failed ${response.code}: $responseBody")
+                }
+                responseBody
             }
-            responseBody
         }
     }
 
@@ -194,14 +207,15 @@ class GDriveApiService @Inject constructor(
                 .get()
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
-            val responseBody = response.body.string()
-            Timber.d("GDriveApi GET ${url.take(80)}: code=${response.code}")
+            okHttpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body.string()
+                Timber.d("GDriveApi GET ${url.take(80)}: code=${response.code}")
 
-            if (!response.isSuccessful) {
-                throw Exception("Drive API error ${response.code}: $responseBody")
+                if (!response.isSuccessful) {
+                    throw Exception("Drive API error ${response.code}: $responseBody")
+                }
+                responseBody
             }
-            responseBody
         }
     }
 }

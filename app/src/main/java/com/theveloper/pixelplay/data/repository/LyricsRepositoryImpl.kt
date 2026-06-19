@@ -136,6 +136,12 @@ class LyricsRepositoryImpl @Inject constructor(
         private val BRACKETED_QUALIFIER_REGEX = Regex("""[\(\[\{\uFF08\uFF3B\uFF5B\u3010\u300E\u300C\u3014\u3008\u300A]([^)\]\}\uFF09\uFF3D\uFF5D\u3011\u300F\u300D\u3015\u3009\u300B]*)[\)\]\}\uFF09\uFF3D\uFF5D\u3011\u300F\u300D\u3015\u3009\u300B]""")
         private val FEATURE_QUALIFIER_REGEX = Regex("""\b(feat(?:uring)?|ft)\.?\b""", RegexOption.IGNORE_CASE)
         private val TITLE_SEPARATOR_REGEX = Regex("""\s*[-\u2013\u2014:\uFF0D\u00B7\u30FB]\s*""")
+        private val MASH_UP_REGEX = Regex("""\bmash\s+up\b""")
+        private val DIACRITICS_REGEX = Regex("""\p{Mn}+""")
+        private val APOSTROPHE_REGEX = Regex("""[\u2019'`]""")
+        private val NON_ALNUM_REGEX = Regex("""[^\p{L}\p{N}]+""")
+        private val WHITESPACE_COLLAPSE_REGEX = Regex("""\s+""")
+        private val LONG_LATIN_RUN_REGEX = Regex("""[A-Za-z]{10,}""")
         private val TIMING_VARIANT_KEYWORDS = setOf(
             "remix",
             "mix",
@@ -799,7 +805,7 @@ class LyricsRepositoryImpl @Inject constructor(
             .filter { it in TIMING_VARIANT_KEYWORDS }
             .toMutableSet()
 
-        if (Regex("""\bmash\s+up\b""").containsMatchIn(normalized)) {
+        if (MASH_UP_REGEX.containsMatchIn(normalized)) {
             variants += "mashup"
         }
         if ("versus" in tokens || "vs" in tokens) {
@@ -854,14 +860,14 @@ class LyricsRepositoryImpl @Inject constructor(
 
     private fun normalizeForMatch(value: String): String {
         val withoutDiacritics = Normalizer.normalize(value.lowercase(Locale.ROOT), Normalizer.Form.NFD)
-            .replace(Regex("""\p{Mn}+"""), "")
+            .replace(DIACRITICS_REGEX, "")
 
         return withoutDiacritics
             .replace("&", " and ")
-            .replace(Regex("""[\u2019'`]"""), "")
-            .replace(Regex("""[^\p{L}\p{N}]+"""), " ")
+            .replace(APOSTROPHE_REGEX, "")
+            .replace(NON_ALNUM_REGEX, " ")
             .trim()
-            .replace(Regex("""\s+"""), " ")
+            .replace(WHITESPACE_COLLAPSE_REGEX, " ")
     }
 
     private fun isUnknownArtist(value: String): Boolean =
@@ -1142,7 +1148,7 @@ class LyricsRepositoryImpl @Inject constructor(
             val text = line.line
             if (text.isBlank() || text.any { it.isWhitespace() }) continue
 
-            val hasLongLatinRun = Regex("[A-Za-z]{10,}").containsMatchIn(text)
+            val hasLongLatinRun = LONG_LATIN_RUN_REGEX.containsMatchIn(text)
             if (hasLongLatinRun) {
                 suspiciousLines += 1
                 if (suspiciousLines >= 2) return true

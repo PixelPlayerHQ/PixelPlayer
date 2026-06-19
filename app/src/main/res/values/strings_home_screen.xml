@@ -9,9 +9,9 @@
     <string name="topbar_cloud_streaming_subtitle">Stream music from your cloud accounts</string>
 
     <!-- BetaInfoBottomSheet -->
-    <string name="beta_sheet_version">Beta 0.7.0</string>
+    <string name="beta_sheet_version">Beta 0.7.5</string>
     <string name="beta_sheet_letter">β</string>
-    <string name="beta_sheet_welcome_title">Welcome to PixelPlayer 0.7.0-beta</string>
+    <string name="beta_sheet_welcome_title">Welcome to PixelPlayer 0.7.5-beta</string>
     <string name="beta_sheet_welcome_body">You\'re using a beta build that may contain bugs, crashes, or experimental features. Help us improve by reporting issues.</string>
     <string name="beta_sheet_expect_title">What to expect</string>
     <string name="beta_sheet_expect_1">Bugs, crashes, or incomplete features may occur unexpectedly.</string>

@@ -9,9 +9,9 @@
     <string name="topbar_cloud_streaming_subtitle">Diffusez de la musique depuis vos comptes cloud</string>
 
     <!-- BetaInfoBottomSheet -->
-    <string name="beta_sheet_version">Bêta 0.7.0</string>
+    <string name="beta_sheet_version">Bêta 0.7.5</string>
     <string name="beta_sheet_letter">β</string>
-    <string name="beta_sheet_welcome_title">Bienvenue dans PixelPlayer 0.7.0-bêta</string>
+    <string name="beta_sheet_welcome_title">Bienvenue dans PixelPlayer 0.7.5-bêta</string>
     <string name="beta_sheet_welcome_body">Vous utilisez une version bêta qui peut contenir des bugs, des plantages ou des fonctionnalités expérimentales. Aidez-nous à nous améliorer en signalant les problèmes.</string>
     <string name="beta_sheet_expect_title">À quoi s\'attendre</string>
     <string name="beta_sheet_expect_1">Des bugs, des plantages ou des fonctionnalités incomplètes peuvent survenir de manière inattendue.</string>

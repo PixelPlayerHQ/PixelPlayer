@@ -14,21 +14,21 @@ class AiClientFactoryTest {
     }
 
     @Test
-    fun `createClient returns DeepSeekAiClient for DEEPSEEK`() {
+    fun `createClient returns GenericOpenAiClient for DEEPSEEK`() {
         val client = factory.createClient(AiProvider.DEEPSEEK, "test-key")
-        assertThat(client).isInstanceOf(DeepSeekAiClient::class.java)
+        assertThat(client).isInstanceOf(GenericOpenAiClient::class.java)
     }
 
     @Test
-    fun `createClient returns GroqAiClient for GROQ`() {
+    fun `createClient returns GenericOpenAiClient for GROQ`() {
         val client = factory.createClient(AiProvider.GROQ, "test-key")
-        assertThat(client).isInstanceOf(GroqAiClient::class.java)
+        assertThat(client).isInstanceOf(GenericOpenAiClient::class.java)
     }
 
     @Test
-    fun `createClient returns MistralAiClient for MISTRAL`() {
+    fun `createClient returns GenericOpenAiClient for MISTRAL`() {
         val client = factory.createClient(AiProvider.MISTRAL, "test-key")
-        assertThat(client).isInstanceOf(MistralAiClient::class.java)
+        assertThat(client).isInstanceOf(GenericOpenAiClient::class.java)
     }
 
     @Test
@@ -60,24 +60,12 @@ class AiClientFactoryTest {
     }
 
     @Test
-    fun `all providers return correct default models`() {
+    fun `all providers return non-empty default model`() {
         for (provider in AiProvider.entries) {
+            if (provider == AiProvider.CUSTOM) continue
             val client = factory.createClient(provider, "test-key")
             val defaultModel = client.getDefaultModel()
             assertThat(defaultModel).isNotEmpty()
         }
-    }
-
-    @Test
-    fun `OpenAI-compatible clients inherit from OpenAiCompatibleClient`() {
-        val deepseek = factory.createClient(AiProvider.DEEPSEEK, "k")
-        val groq = factory.createClient(AiProvider.GROQ, "k")
-        val mistral = factory.createClient(AiProvider.MISTRAL, "k")
-        val generic = factory.createClient(AiProvider.OPENAI, "k")
-
-        assertThat(deepseek).isInstanceOf(OpenAiCompatibleClient::class.java)
-        assertThat(groq).isInstanceOf(OpenAiCompatibleClient::class.java)
-        assertThat(mistral).isInstanceOf(OpenAiCompatibleClient::class.java)
-        assertThat(generic).isInstanceOf(OpenAiCompatibleClient::class.java)
     }
 }

@@ -25,7 +25,7 @@
     <string name="library_cd_watch_transfer">Transferencia al reloj</string>
     <string name="library_cd_open_settings">Ajustes</string>
     <string name="library_tab_edit">Editar</string>
-    <string name="library_cd_reorder_tabs">Reorder pestañas</string>
+    <string name="library_cd_reorder_tabs">Reordenar pestañas</string>
     <string name="library_cd_expand_tab_menu">Expandir menú</string>
 
     <!-- Library Multi-Selection & Folders -->
@@ -255,6 +255,10 @@
     <string name="reorder_tabs_reset_dialog_body">¿Restablecer el orden de las pestañas al predeterminado?</string>
     <string name="reorder_tabs_reordering">Reordenando pestañas…</string>
     <string name="reorder_tabs_cd_drag_handle">Control de arrastre</string>
+    <string name="reorder_tabs_visible_section">Pestañas visibles</string>
+    <string name="reorder_tabs_hidden_section">Pestañas eliminadas</string>
+    <string name="reorder_tabs_cd_remove_tab">Eliminar pestaña</string>
+    <string name="reorder_tabs_cd_add_tab">Añadir pestaña</string>
 
     <!-- PlayerArtistPickerBottomSheet -->
     <string name="artist_picker_title">Elige un artista</string>

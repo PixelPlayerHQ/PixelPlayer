@@ -255,6 +255,10 @@
     <string name="reorder_tabs_reset_dialog_body">Reset tab order to the default?</string>
     <string name="reorder_tabs_reordering">Reordering tabs…</string>
     <string name="reorder_tabs_cd_drag_handle">Drag handle</string>
+    <string name="reorder_tabs_visible_section">Visible Tabs</string>
+    <string name="reorder_tabs_hidden_section">Removed Tabs</string>
+    <string name="reorder_tabs_cd_remove_tab">Remove tab</string>
+    <string name="reorder_tabs_cd_add_tab">Add tab</string>
 
     <!-- PlayerArtistPickerBottomSheet -->
     <string name="artist_picker_title">Pick an Artist</string>

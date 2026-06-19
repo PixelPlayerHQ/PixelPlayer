@@ -37,7 +37,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.theveloper.pixelplay.R
-import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.media.CoverArtUpdate
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Artist
@@ -163,20 +162,19 @@ private fun moveQueueIndex(index: Int, fromIndex: Int, toIndex: Int): Int {
     }
 }
 
+private data class AiUiSnapshot(
+    val showAiPlaylistSheet: Boolean,
+    val isGeneratingAiPlaylist: Boolean,
+    val aiStatus: String?,
+    val aiError: String?,
+)
+
 private data class SortOptionsSnapshot(
     val songSort: SortOption,
     val albumSort: SortOption,
     val artistSort: SortOption,
     val folderSort: SortOption,
     val favoriteSort: SortOption,
-)
-
-private data class AiUiSnapshot(
-    val showAiPlaylistSheet: Boolean,
-    val isGeneratingAiPlaylist: Boolean,
-    val aiStatus: String?,
-    val aiError: String?,
-    val isGeneratingAiMetadata: Boolean,
 )
 
 @UnstableApi
@@ -446,10 +444,6 @@ class PlayerViewModel @Inject constructor(
     val aiStatus: StateFlow<String?> = aiStateHolder.aiStatus
     val aiError: StateFlow<String?> = aiStateHolder.aiError
 
-    // AI Metadata Generation States
-    val isGeneratingAiMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
-    val aiMetadataSuccess: StateFlow<Boolean> = aiStateHolder.aiMetadataSuccess
-
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()
 
@@ -504,7 +498,10 @@ class PlayerViewModel @Inject constructor(
         aiPreferencesRepository.nvidiaApiKey,
         aiPreferencesRepository.kimiApiKey,
         aiPreferencesRepository.glmApiKey,
-        aiPreferencesRepository.openaiApiKey
+        aiPreferencesRepository.openaiApiKey,
+        aiPreferencesRepository.ollamaApiKey,
+        aiPreferencesRepository.customApiKey,
+        aiPreferencesRepository.openrouterApiKey
     ) { values ->
         val provider = values[0]
         val gemini = values[1]
@@ -515,7 +512,11 @@ class PlayerViewModel @Inject constructor(
         val kimi = values[6]
         val glm = values[7]
         val openai = values[8]
+        val ollama = values[9]
+        val custom = values[10]
+        val openrouter = values[11]
         when (provider) {
+            "GEMINI" -> gemini.isNotBlank()
             "DEEPSEEK" -> deepseek.isNotBlank()
             "GROQ" -> groq.isNotBlank()
             "MISTRAL" -> mistral.isNotBlank()
@@ -523,7 +524,10 @@ class PlayerViewModel @Inject constructor(
             "KIMI" -> kimi.isNotBlank()
             "GLM" -> glm.isNotBlank()
             "OPENAI" -> openai.isNotBlank()
-            else -> gemini.isNotBlank()
+            "OPENROUTER" -> openrouter.isNotBlank()
+            "OLLAMA" -> ollama.isNotBlank()
+            "CUSTOM" -> custom.isNotBlank()
+            else -> false
         }
     }.distinctUntilChanged()
         .stateIn(
@@ -1055,19 +1059,46 @@ class PlayerViewModel @Inject constructor(
             initialValue = 0 // Default to Songs tab
         )
 
-    val libraryTabsFlow: StateFlow<List<String>> = userPreferencesRepository.libraryTabsOrderFlow
-        .map { orderJson ->
-            if (orderJson != null) {
-                try {
-                    Json.decodeFromString<List<String>>(orderJson)
-                } catch (e: Exception) {
-                    listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
-                }
-            } else {
-                listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
+    val libraryTabsFlow: StateFlow<List<String>> = combine(
+        userPreferencesRepository.libraryTabsOrderFlow,
+        userPreferencesRepository.libraryHiddenTabsFlow
+    ) { orderJson, hiddenTabs ->
+        val allTabsInOrder = if (orderJson != null) {
+            try {
+                Json.decodeFromString<List<String>>(orderJson)
+            } catch (e: Exception) {
+                LibraryTabId.defaultOrder.map { it.storageKey }
             }
+        } else {
+            LibraryTabId.defaultOrder.map { it.storageKey }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED"))
+
+        // Ensure all available tabs are present (e.g. new tabs from app updates)
+        val availableKeys = LibraryTabId.defaultOrder.map { it.storageKey }
+        val mergedOrder = (allTabsInOrder + availableKeys).distinct()
+
+        mergedOrder.filter { it !in hiddenTabs }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryTabId.defaultOrder.map { it.storageKey })
+
+    val hiddenLibraryTabsFlow: StateFlow<List<String>> = combine(
+        userPreferencesRepository.libraryTabsOrderFlow,
+        userPreferencesRepository.libraryHiddenTabsFlow
+    ) { orderJson, hiddenTabs ->
+        val allTabsInOrder = if (orderJson != null) {
+            try {
+                Json.decodeFromString<List<String>>(orderJson)
+            } catch (e: Exception) {
+                LibraryTabId.defaultOrder.map { it.storageKey }
+            }
+        } else {
+            LibraryTabId.defaultOrder.map { it.storageKey }
+        }
+
+        val availableKeys = LibraryTabId.defaultOrder.map { it.storageKey }
+        val mergedOrder = (allTabsInOrder + availableKeys).distinct()
+
+        mergedOrder.filter { it in hiddenTabs }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _loadedTabs = MutableStateFlow(emptySet<String>())
     private var lastBlockedDirectories: Set<String>? = null
@@ -1779,25 +1810,28 @@ class PlayerViewModel @Inject constructor(
             openPlayerSheetCallback = { _isSheetVisible.value = true }
         )
 
-        // Collect AiStateHolder flows
+        // Collect AiStateHolder flows for playlist generation state
         viewModelScope.launch {
             combine(
                 aiStateHolder.showAiPlaylistSheet,
                 aiStateHolder.isGeneratingAiPlaylist,
                 aiStateHolder.aiStatus,
                 aiStateHolder.aiError,
-                aiStateHolder.isGeneratingMetadata,
-            ) { show, generating, status, error, generatingMetadata ->
+            ) { show, generating, status, error ->
                 AiUiSnapshot(
                     showAiPlaylistSheet = show,
                     isGeneratingAiPlaylist = generating,
                     aiStatus = status,
-                    aiError = error,
-                    isGeneratingAiMetadata = generatingMetadata
+                    aiError = error
                 )
             }.collect { snapshot ->
                 _playerUiState.update {
-                    it.copy(isGeneratingAiMetadata = snapshot.isGeneratingAiMetadata)
+                    it.copy(
+                        showAiPlaylistSheet = snapshot.showAiPlaylistSheet,
+                        isGeneratingAiPlaylist = snapshot.isGeneratingAiPlaylist,
+                        aiStatus = snapshot.aiStatus,
+                        aiError = snapshot.aiError
+                    )
                 }
             }
         }
@@ -2611,10 +2645,6 @@ class PlayerViewModel @Inject constructor(
         aiStateHolder.retryLastPlaylistGeneration()
     }
 
-    fun retryLastMetadataGeneration() {
-        aiStateHolder.retryLastMetadataGeneration()
-    }
-
     fun clearQueueExceptCurrent() {
         mediaController?.let { controller ->
             val currentSongIndex = controller.currentMediaItemIndex
@@ -2803,6 +2833,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun saveLibraryHiddenTabs(hiddenTabs: Set<String>) {
+        viewModelScope.launch {
+            userPreferencesRepository.setLibraryHiddenTabs(hiddenTabs)
+        }
+    }
+
     fun resetLibraryTabsOrder() {
         viewModelScope.launch {
             userPreferencesRepository.resetLibraryTabsOrder()
@@ -2884,10 +2920,6 @@ class PlayerViewModel @Inject constructor(
             )
             true
         }.getOrDefault(false)
-    }
-
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        return aiStateHolder.generateAiMetadata(song, fields)
     }
 
     private fun updateSongInStates(

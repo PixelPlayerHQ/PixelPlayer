@@ -58,15 +58,13 @@ object SourceType {
             entity = AlbumEntity::class,
             parentColumns = ["id"],
             childColumns = ["album_id"],
-            onDelete = ForeignKey.CASCADE // Si un álbum se borra, sus canciones también
+            onDelete = ForeignKey.CASCADE // Deleting an album cascades to its songs
         ),
         ForeignKey(
             entity = ArtistEntity::class,
             parentColumns = ["id"],
             childColumns = ["artist_id"],
-            onDelete = ForeignKey.SET_NULL // Si un artista se borra, el artist_id de la canción se pone a null
-                                          // o podrías elegir CASCADE si las canciones no deben existir sin artista.
-                                          // SET_NULL es más flexible si las canciones pueden ser de "Artista Desconocido".
+            onDelete = ForeignKey.SET_NULL // Nullify artist_id when artist is deleted (keeps song as "Unknown Artist")
         )
     ]
 )
@@ -77,7 +75,7 @@ data class SongEntity(
     @ColumnInfo(name = "artist_id") val artistId: Long, // Primary artist ID for backward compatibility
     @ColumnInfo(name = "album_artist") val albumArtist: String? = null, // Album artist from metadata
     @ColumnInfo(name = "album_name") val albumName: String,
-    @ColumnInfo(name = "album_id") val albumId: Long, // index = true eliminado
+    @ColumnInfo(name = "album_id") val albumId: Long,
     @ColumnInfo(name = "content_uri_string") val contentUriString: String,
     @ColumnInfo(name = "album_art_uri_string") val albumArtUriString: String?,
     @ColumnInfo(name = "duration") val duration: Long,
@@ -214,9 +212,8 @@ fun List<SongEntity>.toSongs(): List<Song> {
     return this.map { it.toSong() }
 }
 
-// El modelo Song usa id como String, pero la entidad lo necesita como Long (de MediaStore)
-// El modelo Song no tiene filePath, así que no se puede mapear desde ahí directamente.
-// filePath y parentDirectoryPath se poblarán desde MediaStore en el SyncWorker.
+// Song model uses String id but the entity needs Long (from MediaStore).
+// filePath and parentDirectoryPath are populated from MediaStore in SyncWorker.
 fun Song.toEntity(filePathFromMediaStore: String, parentDirFromMediaStore: String): SongEntity {
     return SongEntity(
         id = this.id.toLong(),
@@ -254,8 +251,7 @@ data class SongSummary(
     val duration: Long
 )
 
-// Sobrecarga o alternativa si los paths no están disponibles o no son necesarios al convertir de Modelo a Entidad
-// (menos probable que se use si la entidad siempre requiere los paths)
+// Fallback when file paths are unavailable during Song-to-Entity conversion.
 fun Song.toEntityWithoutPaths(): SongEntity {
     return SongEntity(
         id = this.id.toLong(),

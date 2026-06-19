@@ -247,7 +247,7 @@ class PlaylistViewModel @Inject constructor(
                             PlaylistSongsOrderMode.Manual -> songsList
                         }
 
-                        // La actualización del UI se hace en el hilo principal
+                        // Update UI on the main thread
                         _uiState.update {
                             it.copy(
                                 currentPlaylistDetails = playlist,
@@ -269,8 +269,7 @@ class PlaylistViewModel @Inject constructor(
                                 currentPlaylistDetails = null,
                                 currentPlaylistSongs = emptyList()
                             )
-                        } // Mantener isLoading en false
-                        // Opcional: podrías establecer un error o un estado específico de "no encontrado"
+                        }
                     }
                 }
             } catch (e: Exception) {

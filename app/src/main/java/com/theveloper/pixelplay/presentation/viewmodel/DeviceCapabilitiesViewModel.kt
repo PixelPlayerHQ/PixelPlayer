@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import timber.log.Timber
 import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
@@ -313,7 +314,8 @@ class DeviceCapabilitiesViewModel @Inject constructor(
             val instances = try {
                 codecInfo.getCapabilitiesForType(codecInfo.supportedTypes.first { it.startsWith("audio/") })
                     .maxSupportedInstances
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to get codec capabilities for %s", codecInfo.name)
                 -1
             }
 

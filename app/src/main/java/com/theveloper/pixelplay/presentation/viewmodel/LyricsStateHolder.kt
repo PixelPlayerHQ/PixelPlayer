@@ -13,6 +13,7 @@ import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.NoLyricsFoundException
 import com.theveloper.pixelplay.utils.LyricsImportSecurity
 import com.theveloper.pixelplay.utils.LyricsImportValidationResult
+import timber.log.Timber
 import com.theveloper.pixelplay.utils.LyricsUtils
 import com.theveloper.pixelplay.utils.ValidatedLyricsImport
 import java.io.File
@@ -135,7 +136,8 @@ class LyricsStateHolder @Inject constructor(
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load lyrics for song %s", song.title)
                 null
             }
 

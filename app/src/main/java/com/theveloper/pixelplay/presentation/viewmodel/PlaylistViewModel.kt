@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import java.io.OutputStreamWriter
 import android.content.Context
+import timber.log.Timber
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
@@ -615,7 +616,7 @@ class PlaylistViewModel @Inject constructor(
                     // Optional: Delete old file if it was a local file managed by us
                     currentPlaylist.coverImageUri?.let { oldPath ->
                         if (oldPath.contains("playlist_cover_")) {
-                            try { File(oldPath).delete() } catch (e: Exception) {}
+                            try { File(oldPath).delete() } catch (e: Exception) { Timber.w(e, "Failed to delete old playlist cover") }
                         }
                     }
                     savedCoverPath = newPath
@@ -624,7 +625,7 @@ class PlaylistViewModel @Inject constructor(
                 // Explicitly removed
                 currentPlaylist.coverImageUri?.let { oldPath ->
                     if (oldPath.contains("playlist_cover_")) {
-                        try { File(oldPath).delete() } catch (e: Exception) {}
+                        try { File(oldPath).delete() } catch (e: Exception) { Timber.w(e, "Failed to delete old playlist cover") }
                     }
                 }
                 savedCoverPath = null

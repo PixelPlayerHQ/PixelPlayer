@@ -309,7 +309,8 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
             contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
                 afd.length != 0L
             } ?: false
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to verify content URI accessibility")
             false
         }
     }

@@ -618,6 +618,12 @@
     <string name="about_contributors_section_title">Contributeurs open source</string>
     <string name="about_contributors_section_subtitle">Liste des contributeurs en direct de GitHub.</string>
     <string name="about_contributions_format">%1$d contrib.</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Dépôt</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Support</string>
+    <string name="about_cd_open_github_repo">Ouvrir le dépôt GitHub</string>
+    <string name="about_cd_join_telegram">Rejoindre la communauté Telegram</string>
     <string name="about_cd_open_github_profile">Ouvrir le profil GitHub</string>
     <string name="about_cd_open_telegram">Ouvrir Telegram</string>
     <string name="about_cd_contributor_avatar">Avatar de %1$s</string>

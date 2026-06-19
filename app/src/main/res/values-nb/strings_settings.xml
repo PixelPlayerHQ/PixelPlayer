@@ -622,6 +622,12 @@
     <string name="about_contributors_section_title">Bidragsytere til åpen kildekode</string>
     <string name="about_contributors_section_subtitle">Live bidragsyterliste fra GitHub.</string>
     <string name="about_contributions_format">%1$d bidrag.</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Kodelager</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Støtte</string>
+    <string name="about_cd_open_github_repo">Åpne GitHub-kodelager</string>
+    <string name="about_cd_join_telegram">Bli med i Telegram-samfunnet</string>
     <string name="about_cd_open_github_profile">Åpne GitHub-profil</string>
     <string name="about_cd_open_telegram">Åpne Telegram</string>
     <string name="about_cd_contributor_avatar">Avatar av %1$s</string>

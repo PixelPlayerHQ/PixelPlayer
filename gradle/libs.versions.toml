@@ -2,7 +2,7 @@
 accompanistDrawablepainter = "0.37.3"
 agp = "9.2.1"
 app = "1.7.0"
-googleGenai = "1.58.0"
+googleGenai = "1.59.0"
 googlePlayServicesCast = "22.3.1"
 animation = "1.11.3"
 appcompat = "1.7.1"

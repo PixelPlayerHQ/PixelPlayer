@@ -67,7 +67,9 @@ internal fun buildAlbumGroupingKeys(album: AlbumEntity): List<AlbumGroupingKey> 
 
 internal fun chooseAlbumDisplayArtist(
     songs: List<SongEntity>,
-    preferAlbumArtist: Boolean
+    preferAlbumArtist: Boolean,
+    artistDelimiters: List<String> = emptyList(),
+    wordDelimiters: List<String> = emptyList()
 ): String {
     if (songs.isEmpty()) return "Unknown Artist"
 
@@ -78,7 +80,13 @@ internal fun chooseAlbumDisplayArtist(
     )
     val trackArtist = mostCommonValue(
         songs.map { song ->
-            song.artistName.normalizeMetadataTextOrEmpty()
+            collectArtistNames(
+                rawArtistName = song.artistName,
+                title = song.title,
+                artistDelimiters = artistDelimiters,
+                wordDelimiters = wordDelimiters,
+                extractFromTitle = true
+            ).firstOrNull().normalizeMetadataTextOrEmpty()
         }
     )
 

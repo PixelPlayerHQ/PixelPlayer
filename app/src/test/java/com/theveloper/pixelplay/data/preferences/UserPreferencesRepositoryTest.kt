@@ -12,6 +12,34 @@ import java.nio.file.Files
 class UserPreferencesRepositoryTest {
 
     @Test
+    fun `default artist delimiters avoid common characters inside artist names`() {
+        assertEquals(listOf(";"), UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS)
+    }
+
+    @Test
+    fun `artistDelimitersFlow normalizes stored legacy defaults`() = runTest {
+        val tempDir = Files.createTempDirectory("user-preferences-repository-test")
+        try {
+            val repository = UserPreferencesRepository(
+                dataStore = PreferenceDataStoreFactory.create(
+                    scope = backgroundScope,
+                    produceFile = { tempDir.resolve("settings.preferences_pb").toFile() }
+                ),
+                json = Json
+            )
+
+            repository.setArtistDelimiters(listOf("/", ";", ",", "+", "&"))
+
+            assertEquals(
+                UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+                repository.artistDelimitersFlow.first()
+            )
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun `clearPreferencesExceptKeys preserves initial setup completion`() = runTest {
         val tempDir = Files.createTempDirectory("user-preferences-repository-test")
         try {

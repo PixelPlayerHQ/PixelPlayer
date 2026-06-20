@@ -1006,7 +1006,11 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     // ─── Multi-artist settings ────────────────────────────────────────────────
 
     val artistDelimitersFlow: Flow<List<String>> =
-        pref { decodeJsonPref(it, PreferencesKeys.ARTIST_DELIMITERS, DEFAULT_ARTIST_DELIMITERS) }
+        pref {
+            normalizeLegacyDefaultArtistDelimiters(
+                decodeJsonPref(it, PreferencesKeys.ARTIST_DELIMITERS, DEFAULT_ARTIST_DELIMITERS)
+            )
+        }
 
     suspend fun setArtistDelimiters(delimiters: List<String>) {
         if (delimiters.isEmpty()) return
@@ -1358,7 +1362,9 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     companion object {
         /** Default character delimiters for splitting multi-artist tags. */
-        val DEFAULT_ARTIST_DELIMITERS = listOf("/", ";", ",", "+", "&")
+        val DEFAULT_ARTIST_DELIMITERS = listOf(";")
+
+        private val LEGACY_DEFAULT_ARTIST_DELIMITERS = listOf("/", ";", ",", "+", "&")
 
         /** Default word-based delimiters matched case-insensitively with whitespace boundaries. */
         val DEFAULT_ARTIST_WORD_DELIMITERS = listOf(
@@ -1370,6 +1376,9 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     }
 
     // ─── Private utilities ────────────────────────────────────────────────────
+
+    private fun normalizeLegacyDefaultArtistDelimiters(delimiters: List<String>): List<String> =
+        if (delimiters == LEGACY_DEFAULT_ARTIST_DELIMITERS) DEFAULT_ARTIST_DELIMITERS else delimiters
 
     /** Increments [value] by 1, wrapping back to 0 on overflow. */
     private fun incrementWrapped(value: Int?) =

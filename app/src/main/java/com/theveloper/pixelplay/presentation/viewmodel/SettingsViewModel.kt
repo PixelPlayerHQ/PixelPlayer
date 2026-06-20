@@ -68,6 +68,7 @@ data class SettingsUiState(
     val launchTab: String = LaunchTab.HOME,
     val keepPlayingInBackground: Boolean = true,
     val disableCastAutoplay: Boolean = false,
+    val pauseOnVolumeZero: Boolean = false,
     val resumeOnHeadsetReconnect: Boolean = false,
     val showQueueHistory: Boolean = true,
     val isCrossfadeEnabled: Boolean = false,
@@ -154,6 +155,7 @@ private sealed interface SettingsUiUpdate {
     data class Group2(
         val keepPlayingInBackground: Boolean,
         val disableCastAutoplay: Boolean,
+        val pauseOnVolumeZero: Boolean,
         val resumeOnHeadsetReconnect: Boolean,
         val showQueueHistory: Boolean,
         val isCrossfadeEnabled: Boolean,
@@ -646,6 +648,7 @@ class SettingsViewModel @Inject constructor(
             combine<Any?, SettingsUiUpdate.Group2>(
                 userPreferencesRepository.keepPlayingInBackgroundFlow,
                 userPreferencesRepository.disableCastAutoplayFlow,
+                userPreferencesRepository.pauseOnVolumeZeroFlow,
                 userPreferencesRepository.resumeOnHeadsetReconnectFlow,
                 userPreferencesRepository.showQueueHistoryFlow,
                 userPreferencesRepository.isCrossfadeEnabledFlow,
@@ -667,29 +670,31 @@ class SettingsViewModel @Inject constructor(
                 SettingsUiUpdate.Group2(
                     keepPlayingInBackground = values[0] as Boolean,
                     disableCastAutoplay = values[1] as Boolean,
-                    resumeOnHeadsetReconnect = values[2] as Boolean,
-                    showQueueHistory = values[3] as Boolean,
-                    isCrossfadeEnabled = values[4] as Boolean,
-                    hiFiModeEnabled = values[5] as Boolean,
-                    crossfadeDuration = values[6] as Int,
-                    persistentShuffleEnabled = values[7] as Boolean,
-                    folderBackGestureNavigation = values[8] as Boolean,
-                    lyricsSourcePreference = values[9] as LyricsSourcePreference,
-                    autoScanLrcFiles = values[10] as Boolean,
-                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[11] as Set<String>),
-                    hapticsEnabled = values[12] as Boolean,
-                    immersiveLyricsEnabled = values[13] as Boolean,
-                    immersiveLyricsTimeout = values[14] as Long,
-                    animatedLyricsBlurEnabled = values[15] as Boolean,
-                    animatedLyricsBlurStrength = values[16] as Float,
-                    disableBlurAllOver = values[17] as Boolean,
-                    showScrollbar = values[18] as Boolean
+                    pauseOnVolumeZero = values[2] as Boolean,
+                    resumeOnHeadsetReconnect = values[3] as Boolean,
+                    showQueueHistory = values[4] as Boolean,
+                    isCrossfadeEnabled = values[5] as Boolean,
+                    hiFiModeEnabled = values[6] as Boolean,
+                    crossfadeDuration = values[7] as Int,
+                    persistentShuffleEnabled = values[8] as Boolean,
+                    folderBackGestureNavigation = values[9] as Boolean,
+                    lyricsSourcePreference = values[10] as LyricsSourcePreference,
+                    autoScanLrcFiles = values[11] as Boolean,
+                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[12] as Set<String>),
+                    hapticsEnabled = values[13] as Boolean,
+                    immersiveLyricsEnabled = values[14] as Boolean,
+                    immersiveLyricsTimeout = values[15] as Long,
+                    animatedLyricsBlurEnabled = values[16] as Boolean,
+                    animatedLyricsBlurStrength = values[17] as Float,
+                    disableBlurAllOver = values[18] as Boolean,
+                    showScrollbar = values[19] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
                     state.copy(
                         keepPlayingInBackground = update.keepPlayingInBackground,
                         disableCastAutoplay = update.disableCastAutoplay,
+                        pauseOnVolumeZero = update.pauseOnVolumeZero,
                         resumeOnHeadsetReconnect = update.resumeOnHeadsetReconnect,
                         showQueueHistory = update.showQueueHistory,
                         isCrossfadeEnabled = update.isCrossfadeEnabled,
@@ -962,6 +967,12 @@ class SettingsViewModel @Inject constructor(
     fun setDisableCastAutoplay(disabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDisableCastAutoplay(disabled)
+        }
+    }
+
+    fun setPauseOnVolumeZero(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setPauseOnVolumeZero(enabled)
         }
     }
 

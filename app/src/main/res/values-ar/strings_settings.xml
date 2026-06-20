@@ -303,4 +303,7 @@
     <string name="about_telegram_subtitle">الدعم</string>
     <string name="about_cd_open_github_repo">فتح مستودع GitHub</string>
     <string name="about_cd_join_telegram">الانضمام إلى مجتمع تليجرام</string>
+    <string name="settings_volume_section">مستوى الصوت</string>
+    <string name="settings_pause_on_volume_zero">إيقاف مؤقت عند وصول مستوى الصوت إلى الصفر</string>
+    <string name="settings_pause_on_volume_zero_desc">إيقاف التشغيل تلقائيًا مؤقتًا عندما يكون مستوى الصوت 0</string>
 </resources>

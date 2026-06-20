@@ -806,6 +806,16 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
+                            SettingsSubsection(title = stringResource(R.string.settings_volume_section)) {
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_pause_on_volume_zero),
+                                    subtitle = stringResource(R.string.settings_pause_on_volume_zero_desc),
+                                    checked = uiState.pauseOnVolumeZero,
+                                    onCheckedChange = { settingsViewModel.setPauseOnVolumeZero(it) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_volume_down_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
+
                             SettingsSubsection(title = stringResource(R.string.settings_headphones_section)) {
                                 SwitchSettingItem(
                                     title = stringResource(R.string.settings_headphones_resume_title),

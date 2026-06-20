@@ -632,4 +632,7 @@
     <string name="about_cd_open_telegram">Telegram 열기</string>
     <string name="about_cd_contributor_avatar">%1$s 아바타</string>
     <string name="about_cd_contributor_icon">%1$s 아이콘</string>
+    <string name="settings_volume_section">볼륨</string>
+    <string name="settings_pause_on_volume_zero">볼륨이 0이 되면 일시정지</string>
+    <string name="settings_pause_on_volume_zero_desc">볼륨이 0으로 설정되면 자동으로 재생을 일시정지합니다</string>
 </resources>

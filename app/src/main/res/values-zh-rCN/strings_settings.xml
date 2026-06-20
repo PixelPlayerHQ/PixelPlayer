@@ -632,4 +632,7 @@
     <string name="about_cd_open_telegram">打开 Telegram</string>
     <string name="about_cd_contributor_avatar">%1$s 的头像</string>
     <string name="about_cd_contributor_icon">%1$s 的图标</string>
+    <string name="settings_volume_section">音量</string>
+    <string name="settings_pause_on_volume_zero">音量为零时暂停</string>
+    <string name="settings_pause_on_volume_zero_desc">当音量设置为 0 时自动暂停播放</string>
 </resources>

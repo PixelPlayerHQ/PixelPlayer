@@ -149,7 +149,10 @@ import timber.log.Timber
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 private const val MAX_ALBUM_MULTI_SELECTION = 6
 
@@ -311,7 +314,7 @@ fun SearchScreen(
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize().hazeSource(LocalHazeState.current)
+            modifier = Modifier.fillMaxSize()
         ) {
             Row(
                 modifier = Modifier
@@ -436,7 +439,7 @@ fun SearchScreen(
                 label = "search_mode_transition"
             ) { isGenreMode ->
                 if (isGenreMode) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize().hazeSource(LocalHazeState.current)) {
                         if (isGenreSelectionMode) {
                             SelectionActionRow(
                                 selectedCount = selectedGenres.size,
@@ -497,7 +500,7 @@ fun SearchScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 16.dp).hazeSource(LocalHazeState.current)
                     ) {
                         if (anySelectionMode) {
                             val count = when {
@@ -1225,6 +1228,7 @@ fun SearchResultsList(
                                     isSelected = isSelected,
                                     selectionIndex = selectionIndex,
                                     isSelectionMode = isSelectionMode,
+                                    stablePlayerStateFlow = playerViewModel.stablePlayerState,
                                     onLongPress = { onSongLongPress(item.song) }
                                 )
                             }

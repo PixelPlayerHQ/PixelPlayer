@@ -137,7 +137,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextOverflow
 import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
-import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
+import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIconV2
 import com.theveloper.pixelplay.utils.MultiLangRomanizer
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -686,7 +686,7 @@ fun LyricsSheet(
                     }
                 )
             },
-        containerColor = containerColor,
+//        containerColor = containerColor,
         contentColor = contentColor,
         // Removed TopBar and FAB
     ) { paddingValues ->
@@ -694,7 +694,7 @@ fun LyricsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = paddingValues.calculateTopPadding())
+//                    .padding(top = paddingValues.calculateTopPadding())
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -731,7 +731,8 @@ fun LyricsSheet(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .zIndex(2f)
-                        .wrapContentWidth(),
+                        .wrapContentWidth()
+                        .padding(top = paddingValues.calculateTopPadding()),
                     label = "headerAnimation"
                 ) { song ->
                     LyricsTrackInfo(
@@ -743,19 +744,21 @@ fun LyricsSheet(
                             )
                             .clip(CircleShape)
                             .background(
-                                color = backgroundColor.copy(0.4f),
-                                shape = CircleShape
+                                color = backgroundColor.copy(0.6f),
                             )
                             .wrapContentWidth()
                             .animateContentSize(), // Animate width changes
-                        backgroundColor = backgroundColor.copy(0.4f), // Distinct solid background
-                        contentColor = onBackgroundColor,
-                        isPlaying = isPlaying
+                        backgroundColor = backgroundColor.copy(0.7f), // Distinct solid background
+                        containerColor = containerColor,
+                        contentColor = contentColor,
+                        isPlaying = isPlaying,
+                        stablePlayerStateFlow = stablePlayerStateFlow
                     )
                 }
 
                 Box(modifier = Modifier
                     .fillMaxSize()
+                    .background(containerColor)
                 ) {
                     when (showSyncedLyrics) {
                         null -> {
@@ -2014,8 +2017,10 @@ private fun LyricsTrackInfo(
     song: Song?,
     modifier: Modifier = Modifier,
     backgroundColor: Color,
+    containerColor: Color,
     contentColor: Color,
-    isPlaying: Boolean
+    isPlaying: Boolean,
+    stablePlayerStateFlow: StateFlow<StablePlayerState>
 ) {
     if (song == null) return
 
@@ -2100,12 +2105,13 @@ private fun LyricsTrackInfo(
             )
         }
 
-        PlayingEqIcon(
+        PlayingEqIconV2(
             modifier = Modifier
                 .padding(start = 8.dp, end = 18.dp)
                 .size(width = 18.dp, height = 16.dp),
-            color = contentColor,
-            isPlaying = isPlaying
+            color = containerColor,
+            isPlaying = isPlaying,
+            stablePlayerStateFlow = stablePlayerStateFlow
         )
     }
 }

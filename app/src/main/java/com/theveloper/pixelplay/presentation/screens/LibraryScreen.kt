@@ -229,7 +229,6 @@ import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDeman
 import com.theveloper.pixelplay.presentation.screens.CreatePlaylistDialog
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.PlaylistContainer
-import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import java.util.Locale
 import androidx.compose.ui.platform.LocalContext

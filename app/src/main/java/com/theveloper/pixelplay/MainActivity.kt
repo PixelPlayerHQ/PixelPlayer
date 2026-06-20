@@ -322,7 +322,9 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Surface(
-                        modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }, 
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = contentAlpha },
                         color = MaterialTheme.colorScheme.background
                     ) {
                         if (showSetupScreen == null) {
@@ -874,13 +876,21 @@ class MainActivity : ComponentActivity() {
                                         // hide and the route-based hide as a pure translation,
                                         // so child items never resize or get clipped/squished.
                                         val expansionHide = if (showPlayerContentArea) {
-                                            playerViewModel.playerContentExpansionFraction.value.coerceIn(0f, 1f)
+                                            playerViewModel.playerContentExpansionFraction.value.coerceIn(
+                                                0f,
+                                                1f
+                                            )
                                         } else {
                                             0f
                                         }
-                                        val routeHide = (1f - navBarVisibilityProgressState.value).coerceIn(0f, 1f)
+                                        val routeHide =
+                                            (1f - navBarVisibilityProgressState.value).coerceIn(
+                                                0f,
+                                                1f
+                                            )
                                         val hideFraction = maxOf(expansionHide, routeHide)
-                                        translationY = (componentHeightPx + shadowOverflowPx + bottomBarPaddingPx) * hideFraction
+                                        translationY =
+                                            (componentHeightPx + shadowOverflowPx + bottomBarPaddingPx) * hideFraction
                                         alpha = 1f
                                     }
                                     .height(navBarHeight)
@@ -889,23 +899,39 @@ class MainActivity : ComponentActivity() {
                                         // Animated corner shape resolved in the draw phase:
                                         // animating the radius re-clips this layer only — no
                                         // recomposition and no layout pass for the bar.
-                                        val fraction = playerViewModel.playerContentExpansionFraction.value
+                                        val fraction =
+                                            playerViewModel.playerContentExpansionFraction.value
                                         val safeFraction = fraction.coerceIn(0f, 1f)
                                         val topDp = when {
                                             navBarStyle == NavBarStyle.DEFAULT -> animatedDefaultTopCornerRadius.value
-                                            navBarStyle == NavBarStyle.FULL_WIDTH -> lerp(navBarCornerRadius.dp, 26.dp, safeFraction)
+                                            navBarStyle == NavBarStyle.FULL_WIDTH -> lerp(
+                                                navBarCornerRadius.dp,
+                                                26.dp,
+                                                safeFraction
+                                            )
+
                                             showPlayerContentArea -> if (fraction < 0.2f) {
-                                                lerp(navBarCornerRadius.dp, 26.dp, (fraction / 0.2f).coerceIn(0f, 1f))
+                                                lerp(
+                                                    navBarCornerRadius.dp,
+                                                    26.dp,
+                                                    (fraction / 0.2f).coerceIn(0f, 1f)
+                                                )
                                             } else {
                                                 26.dp
                                             }
+
                                             else -> navBarCornerRadius.dp
                                         }
                                         val bottomDp = when (navBarStyle) {
                                             NavBarStyle.FULL_WIDTH -> 0.dp
                                             else -> animatedNavBarCornerRadius.value
                                         }
-                                        shape = navBarShapeCache.get(this, topDp.toPx(), bottomDp.toPx(), useSmoothCorners)
+                                        shape = navBarShapeCache.get(
+                                            this,
+                                            topDp.toPx(),
+                                            bottomDp.toPx(),
+                                            useSmoothCorners
+                                        )
                                         clip = true
                                         shadowElevation = navBarElevationPx
                                     },
@@ -919,8 +945,12 @@ class MainActivity : ComponentActivity() {
                                     compactMode = navBarCompactMode,
                                     bottomBarPadding = bottomBarPadding,
                                     onSearchIconDoubleTap = onSearchIconDoubleTap,
-                                    modifier = Modifier.fillMaxSize()
-                                        .hazeEffect(state = LocalHazeState.current, style = HazeMaterials.ultraThin())
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .hazeEffect(
+                                            state = LocalHazeState.current,
+                                            style = HazeMaterials.ultraThin()
+                                        )
                                 )
                             }
                         }
@@ -973,11 +1003,16 @@ class MainActivity : ComponentActivity() {
                                             renderEffect = null
                                         } else {
                                             val expansion = expansionFractionProvider()
-                                            val fraction = (expansion * (1f - predictiveBackCollapseFraction)).coerceIn(0f, 1f)
+                                            val fraction =
+                                                (expansion * (1f - predictiveBackCollapseFraction)).coerceIn(
+                                                    0f,
+                                                    1f
+                                                )
                                             // Quantize to 2px steps: rebuild the RenderEffect only
                                             // when the blur crosses a step, reuse the cached object
                                             // every other frame.
-                                            val quantizedBlurPx = (fraction * 120f / 2f).roundToInt() * 2f
+                                            val quantizedBlurPx =
+                                                (fraction * 120f / 2f).roundToInt() * 2f
                                             renderEffect = blurEffectCache.get(quantizedBlurPx)
                                         }
                                     }
@@ -1062,7 +1097,10 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth()
                                     .height(MiniPlayerHeight)
                                     .padding(horizontal = 14.dp)
-                                    .hazeEffect(state = LocalHazeState.current, style = HazeMaterials.regular()),
+                                    .hazeEffect(
+                                        state = LocalHazeState.current,
+                                        style = HazeMaterials.regular()
+                                    ),
                                 onUndo = onUndoDismissPlaylist,
                                 onClose = onCloseDismissUndoBar,
                                 durationMillis = dismissUndoBarSlice.durationMillis

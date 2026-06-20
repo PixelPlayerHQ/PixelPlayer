@@ -47,9 +47,10 @@ jobs:
         with:
           languages: java-kotlin
           build-mode: manual
+          cache: true
   
       - name: Build with Gradle
-        run: ${{ github.workspace }}/gradlew :app:assembleDebug :wear:assembleDebug --no-daemon
+        run: ${{ github.workspace }}/gradlew :app:assembleDebug :wear:assembleDebug --no-daemon --no-build-cache
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

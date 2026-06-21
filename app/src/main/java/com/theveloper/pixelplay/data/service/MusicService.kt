@@ -93,6 +93,7 @@ import coil.size.Precision
 
 import javax.inject.Inject
 import androidx.core.net.toUri
+import com.theveloper.pixelplay.presentation.viewmodel.PlaybackStateHolder
 
 // Acciones personalizadas para compatibilidad con el widget existente
 
@@ -139,6 +140,8 @@ class MusicService : MediaLibraryService() {
 
     @Inject
     lateinit var engine: DualPlayerEngine
+    @Inject
+    lateinit var playbackStateHolder: PlaybackStateHolder
     @Inject
     lateinit var controller: TransitionController
     @Inject
@@ -413,6 +416,10 @@ class MusicService : MediaLibraryService() {
         engine.masterPlayer.addListener(playerListener)
 
         // Handle player swaps (crossfade) to keep MediaSession in sync
+        engine.setOnAmplitudeUpdateListener { amplitude ->
+            playbackStateHolder.updateAudioAmplitude(amplitude)
+        }
+
         engine.setOnPlayerAboutToBeReleasedListener { oldPlayer ->
             oldPlayer.removeListener(playerListener)
         }

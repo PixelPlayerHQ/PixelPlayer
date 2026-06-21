@@ -256,6 +256,7 @@ fun FullPlayerContent(
     val immersiveLyricsEnabled = fullPlayerSlice.immersiveLyricsEnabled
     val immersiveLyricsTimeout = fullPlayerSlice.immersiveLyricsTimeout
     val isImmersiveTemporarilyDisabled = fullPlayerSlice.isImmersiveTemporarilyDisabled
+    val controlsButtonEnabled = fullPlayerSlice.controlsButtonEnabled
     val isRemotePlaybackActive = fullPlayerSlice.isRemotePlaybackActive
     val selectedRouteName = fullPlayerSlice.selectedRouteName
     val isBluetoothEnabled = fullPlayerSlice.isBluetoothEnabled
@@ -970,6 +971,7 @@ fun FullPlayerContent(
             immersiveLyricsEnabled = immersiveLyricsEnabled,
             immersiveLyricsTimeout = immersiveLyricsTimeout,
             isImmersiveTemporarilyDisabled = isImmersiveTemporarilyDisabled,
+            controlsButtonEnabled = controlsButtonEnabled,
             onSetImmersiveTemporarilyDisabled = { playerViewModel.setImmersiveTemporarilyDisabled(it) },
             isShuffleEnabled = isShuffleEnabled,
             repeatMode = repeatMode,
@@ -1152,6 +1154,23 @@ private fun FullPlayerControlsSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            BottomToggleRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp, max = 48.dp)
+                    .padding(horizontal = 26.dp, vertical = 0.dp),
+                isShuffleEnabled = isShuffleEnabledProvider(),
+                isShuffleTransitionInProgress = shuffleTransitionInProgress,
+                repeatMode = repeatModeProvider(),
+                isFavoriteProvider = isFavoriteProvider,
+                onShuffleToggle = onShuffleToggle,
+                onRepeatToggle = onRepeatToggle,
+                onFavoriteToggle = onFavoriteToggle
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             AnimatedPlaybackControls(
                 modifier = Modifier
                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1172,22 +1191,6 @@ private fun FullPlayerControlsSection(
                 tintNextIcon = transportSkipColors.content
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            BottomToggleRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 66.dp, max = 86.dp)
-                    .padding(horizontal = 26.dp, vertical = 0.dp)
-                    .padding(bottom = 6.dp),
-                isShuffleEnabled = isShuffleEnabledProvider(),
-                isShuffleTransitionInProgress = shuffleTransitionInProgress,
-                repeatMode = repeatModeProvider(),
-                isFavoriteProvider = isFavoriteProvider,
-                onShuffleToggle = onShuffleToggle,
-                onRepeatToggle = onRepeatToggle,
-                onFavoriteToggle = onFavoriteToggle
-            )
         }
     }
 }

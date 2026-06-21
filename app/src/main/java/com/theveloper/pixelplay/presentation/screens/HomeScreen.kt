@@ -105,7 +105,6 @@ import com.theveloper.pixelplay.presentation.components.StatsOverviewCard
 import com.theveloper.pixelplay.presentation.components.resolveMainScreenBottomGradientHeight
 import com.theveloper.pixelplay.presentation.model.collectRecentlyPlayedSongIds
 import com.theveloper.pixelplay.presentation.model.mapRecentlyPlayedSongs
-import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.components.StreamingProviderSheet
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
@@ -122,6 +121,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
+import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIconV2
+import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
+import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.flow.StateFlow
 
 private const val HomeLoadingPlaceholderMinDurationMillis = 1200L
 private val HomeTabletBreakpoint = 600.dp
@@ -446,11 +450,12 @@ fun HomeScreen(
                 )
             }
         ) { innerPadding ->
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
+             BoxWithConstraints(
+                 modifier = Modifier
+                     .fillMaxSize()
+                     .background(MaterialTheme.colorScheme.background)
+                     .hazeSource(LocalHazeState.current),
+             ) {
                 val isTabletLayout = maxWidth >= HomeTabletBreakpoint
 
                 LazyColumn(
@@ -887,6 +892,7 @@ fun SongListItemFavs(
     albumArtUrl: String?,
     isPlaying: Boolean,
     isCurrentSong: Boolean,
+    stablePlayerStateFlow: StateFlow<StablePlayerState>,
     onClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -938,13 +944,14 @@ fun SongListItemFavs(
             }
             Spacer(Modifier.width(16.dp))
             if (isCurrentSong) {
-                PlayingEqIcon(
+                PlayingEqIconV2(
                     modifier = Modifier
                         .weight(0.1f)
                         .padding(start = 8.dp)
                         .size(width = 18.dp, height = 16.dp), // similar al tamaño del ícono
                     color = colors.primary,
-                    isPlaying = isPlaying  // o conectalo a tu estado real de reproducción
+                    isPlaying = isPlaying,  // o conectalo a tu estado real de reproducción
+                    stablePlayerStateFlow = stablePlayerStateFlow
                 )
             }
         }
@@ -977,6 +984,7 @@ fun SongListItemFavsWrapper(
         albumArtUrl = song.albumArtUriString,
         isPlaying = stablePlayerState.isPlaying,
         isCurrentSong = song.id == stablePlayerState.currentSong?.id,
+        stablePlayerStateFlow = playerViewModel.stablePlayerState,
         onClick = onClick
     )
 }

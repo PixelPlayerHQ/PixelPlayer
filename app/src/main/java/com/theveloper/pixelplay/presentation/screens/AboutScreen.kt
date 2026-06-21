@@ -99,6 +99,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import coil.size.Size
+import com.theveloper.pixelplay.MainActivity.Companion.LocalHazeState
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.github.GitHubContributorService
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
@@ -107,6 +108,7 @@ import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
@@ -360,7 +362,7 @@ fun AboutScreen(
                         .asPaddingValues()
                         .calculateBottomPadding() + 12.dp,
             ),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().hazeSource(LocalHazeState.current),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             item(key = "hero_card") {

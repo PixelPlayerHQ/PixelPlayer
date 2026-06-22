@@ -8,6 +8,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
@@ -15,7 +16,10 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -230,7 +234,26 @@ class MusicService : MediaLibraryService() {
     private var shouldResumeAfterHeadsetReconnect = false
     private var lastNoisyPauseRealtimeMs = 0L
     private var resumeOnHeadsetReconnectEnabled = false
+    private var pauseOnVolumeZeroEnabled = false
     private var temporaryForegroundStartedInOnCreate = false
+
+    // Observes the device's media stream volume and pauses playback when it
+    // reaches 0, if the user has enabled the "pause on volume zero" preference.
+    private val systemVolumeObserver by lazy {
+        object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                if (!pauseOnVolumeZeroEnabled) return
+                val streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                if (streamVolume == 0) {
+                    val player = mediaSession?.player ?: engine.masterPlayer
+                    if (player.isPlaying) {
+                        player.pause()
+                        Timber.tag(TAG).d("pauseOnVolumeZero: paused because system media volume reached 0")
+                    }
+                }
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "MusicService_PixelPlay"
@@ -411,6 +434,7 @@ class MusicService : MediaLibraryService() {
         syncLocalListeningStatsFromPlayer(engine.masterPlayer)
 
         engine.masterPlayer.addListener(playerListener)
+        registerSystemVolumeObserver()
 
         // Handle player swaps (crossfade) to keep MediaSession in sync
         engine.setOnPlayerAboutToBeReleasedListener { oldPlayer ->
@@ -489,6 +513,12 @@ class MusicService : MediaLibraryService() {
                 if (!enabled) {
                     clearHeadsetReconnectResume()
                 }
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.pauseOnVolumeZeroFlow.collect { enabled ->
+                pauseOnVolumeZeroEnabled = enabled
             }
         }
 
@@ -1219,6 +1249,13 @@ class MusicService : MediaLibraryService() {
     private val playerListener = object : Player.Listener {
         override fun onVolumeChanged(volume: Float) {
             replayGainProcessor.onPlayerVolumeChanged(volume)
+            if (pauseOnVolumeZeroEnabled && volume == 0f) {
+                val player = mediaSession?.player ?: engine.masterPlayer
+                if (player.isPlaying) {
+                    player.pause()
+                    Timber.tag(TAG).d("pauseOnVolumeZero: paused playback because volume reached 0")
+                }
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -1464,6 +1501,7 @@ class MusicService : MediaLibraryService() {
         widgetUpdateManager.cancel()
         castSyncCoordinator.stop()
         unregisterHeadsetReconnectMonitor()
+        unregisterSystemVolumeObserver()
         wearStatePublisher.clearState()
         replayGainProcessor.cancel()
 
@@ -1524,6 +1562,18 @@ class MusicService : MediaLibraryService() {
         }
         headsetReconnectCallback = null
         clearHeadsetReconnectResume()
+    }
+
+    private fun registerSystemVolumeObserver() {
+        contentResolver.registerContentObserver(
+            Settings.System.CONTENT_URI,
+            true,
+            systemVolumeObserver
+        )
+    }
+
+    private fun unregisterSystemVolumeObserver() {
+        runCatching { contentResolver.unregisterContentObserver(systemVolumeObserver) }
     }
 
     private fun maybeResumeAfterHeadsetReconnect() {

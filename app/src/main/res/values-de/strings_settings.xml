@@ -637,4 +637,7 @@
     <string name="about_cd_open_telegram">Telegram öffnen</string>
     <string name="about_cd_contributor_avatar">Avatar von %1$s</string>
     <string name="about_cd_contributor_icon">Icon von %1$s</string>
+    <string name="settings_volume_section">Lautstärke</string>
+    <string name="settings_pause_on_volume_zero">Pausieren, wenn Lautstärke null erreicht</string>
+    <string name="settings_pause_on_volume_zero_desc">Wiedergabe automatisch pausieren, wenn die Lautstärke auf 0 gesetzt wird</string>
 </resources>

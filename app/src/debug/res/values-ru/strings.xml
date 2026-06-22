@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PixelPlayer [D]</string>
+    <string name="settings_pause_on_volume_zero">Пауза при нулевой громкости</string>
+    <string name="settings_pause_on_volume_zero_desc">Автоматически приостанавливать воспроизведение, когда громкость равна 0</string>
+    <string name="settings_volume_section">Громкость</string>
 </resources>

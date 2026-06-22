@@ -637,4 +637,7 @@
     <string name="about_cd_open_telegram">Abrir Telegram</string>
     <string name="about_cd_contributor_avatar">Avatar de %1$s</string>
     <string name="about_cd_contributor_icon">Icono de %1$s</string>
+    <string name="settings_volume_section">Volumen</string>
+    <string name="settings_pause_on_volume_zero">Pausar cuando el volumen llegue a cero</string>
+    <string name="settings_pause_on_volume_zero_desc">Pausar automáticamente la reproducción cuando el volumen sea 0</string>
 </resources>

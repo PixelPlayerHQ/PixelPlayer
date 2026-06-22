@@ -637,4 +637,7 @@
     <string name="about_cd_open_telegram">Открыть Telegram</string>
     <string name="about_cd_contributor_avatar">Аватар %1$s</string>
     <string name="about_cd_contributor_icon">Значок %1$s</string>
+    <string name="settings_volume_section">Громкость</string>
+    <string name="settings_pause_on_volume_zero">Пауза при нулевой громкости</string>
+    <string name="settings_pause_on_volume_zero_desc">Автоматически приостанавливать воспроизведение, когда громкость равна 0</string>
 </resources>

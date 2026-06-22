@@ -125,4 +125,5 @@
     <string name="common_play_album">Albümü oynat</string>
     <string name="common_shuffle_play_album">Albümü karışık oynat</string>
     <string name="common_album_art_for_title">%1$s için albüm kapağı</string>
+
 </resources>

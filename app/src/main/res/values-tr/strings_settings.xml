@@ -637,4 +637,7 @@
     <string name="about_cd_open_telegram">Telegram\'ı aç</string>
     <string name="about_cd_contributor_avatar">%1$s avatarı</string>
     <string name="about_cd_contributor_icon">%1$s simgesi</string>
+    <string name="settings_volume_section">Ses</string>
+    <string name="settings_pause_on_volume_zero">Ses sıfıra ulaştığında duraklat</string>
+    <string name="settings_pause_on_volume_zero_desc">Ses seviyesi 0\'a ayarlandığında oynatmayı otomatik olarak duraklat</string>
 </resources>

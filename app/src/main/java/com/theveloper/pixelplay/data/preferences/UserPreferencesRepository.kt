@@ -244,6 +244,7 @@ class UserPreferencesRepository @Inject constructor(
         // ReplayGain
         val REPLAYGAIN_ENABLED = booleanPreferencesKey("replaygain_enabled")
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
+        val PAUSE_ON_VOLUME_ZERO = booleanPreferencesKey("pause_on_volume_zero")
         val SHOW_SCROLLBAR = booleanPreferencesKey("show_scrollbar")
     }
 
@@ -742,6 +743,19 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     suspend fun setReplayGainUseAlbumGain(useAlbumGain: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.REPLAYGAIN_USE_ALBUM_GAIN] = useAlbumGain
+        }
+    }
+
+    // ─── Pause on volume zero ─────────────────────────────────────────────────
+
+    val pauseOnVolumeZeroFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.PAUSE_ON_VOLUME_ZERO] ?: false
+        }
+
+    suspend fun setPauseOnVolumeZero(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PAUSE_ON_VOLUME_ZERO] = enabled
         }
     }
 

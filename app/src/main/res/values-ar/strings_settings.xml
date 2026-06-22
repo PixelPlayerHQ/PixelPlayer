@@ -297,4 +297,7 @@
     <string name="backup_history_modules_line">وحدات عدد %1$d · إصدار %2$s · إصدار المخطط البرمجي %3$d</string>
     <string name="setcat_language_korean">Korean (الكورية)</string>
     <string name="setcat_language_norwegian_bokmal">Norwegian (النرويجية بوكمول)</string>
+    <string name="settings_volume_section">مستوى الصوت</string>
+    <string name="settings_pause_on_volume_zero">إيقاف مؤقت عند وصول مستوى الصوت إلى الصفر</string>
+    <string name="settings_pause_on_volume_zero_desc">إيقاف التشغيل تلقائيًا مؤقتًا عندما يكون مستوى الصوت 0</string>
 </resources>

@@ -21,6 +21,11 @@ class PlaylistPreferencesRepository @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
     private val migrationMutex = Mutex()
+    // Serializes read-modify-write edits to playlists. Without this, concurrent edits
+    // (e.g. removing several songs in quick succession) each read the same snapshot via
+    // userPlaylistsFlow.first() and the last writer wins, silently dropping the other
+    // edits — which left the Playlists-menu song count stuck high. See issue #2391.
+    private val editMutex = Mutex()
     @Volatile
     private var migrationChecked = false
 
@@ -92,16 +97,26 @@ class PlaylistPreferencesRepository @Inject constructor(
     }
 
     suspend fun renamePlaylist(playlistId: String, newName: String) {
-        ensureMigratedIfNeeded()
-        val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
-        val updated = existing.copy(
-            name = newName,
-            lastModified = System.currentTimeMillis()
-        )
-        localPlaylistDao.upsertPlaylist(updated.toEntity())
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
+            val updated = existing.copy(
+                name = newName,
+                lastModified = System.currentTimeMillis()
+            )
+            localPlaylistDao.upsertPlaylist(updated.toEntity())
+        }
     }
 
     suspend fun updatePlaylist(playlist: Playlist) {
+        editMutex.withLock {
+            updatePlaylistLocked(playlist)
+        }
+    }
+
+    // Persists a playlist and its songs. Caller must hold [editMutex] so the
+    // surrounding read-modify-write stays atomic.
+    private suspend fun updatePlaylistLocked(playlist: Playlist) {
         ensureMigratedIfNeeded()
         val updated = playlist.copy(lastModified = System.currentTimeMillis())
         localPlaylistDao.upsertPlaylist(updated.toEntity())
@@ -109,10 +124,12 @@ class PlaylistPreferencesRepository @Inject constructor(
     }
 
     suspend fun addSongsToPlaylist(playlistId: String, songIdsToAdd: List<String>) {
-        ensureMigratedIfNeeded()
-        val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
-        val merged = (existing.songIds + songIdsToAdd).distinct()
-        updatePlaylist(existing.copy(songIds = merged))
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
+            val merged = (existing.songIds + songIdsToAdd).distinct()
+            updatePlaylistLocked(existing.copy(songIds = merged))
+        }
     }
 
     suspend fun addOrRemoveSongFromPlaylists(songId: String, playlistIds: List<String>): MutableList<String> {
@@ -137,15 +154,19 @@ class PlaylistPreferencesRepository @Inject constructor(
     }
 
     suspend fun removeSongFromPlaylist(playlistId: String, songIdToRemove: String) {
-        ensureMigratedIfNeeded()
-        val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
-        updatePlaylist(existing.copy(songIds = existing.songIds.filterNot { it == songIdToRemove }))
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
+            updatePlaylistLocked(existing.copy(songIds = existing.songIds.filterNot { it == songIdToRemove }))
+        }
     }
 
     suspend fun reorderSongsInPlaylist(playlistId: String, newSongOrderIds: List<String>) {
-        ensureMigratedIfNeeded()
-        val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
-        updatePlaylist(existing.copy(songIds = newSongOrderIds))
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            val existing = userPlaylistsFlow.first().find { it.id == playlistId } ?: return
+            updatePlaylistLocked(existing.copy(songIds = newSongOrderIds))
+        }
     }
 
     suspend fun setPlaylistSongOrderMode(playlistId: String, modeValue: String) =
@@ -177,15 +198,17 @@ class PlaylistPreferencesRepository @Inject constructor(
     }
 
     suspend fun removeSongFromAllPlaylists(songId: String) {
-        ensureMigratedIfNeeded()
-        val playlists = userPlaylistsFlow.first()
-        playlists.forEach { playlist ->
-            if (songId in playlist.songIds) {
-                updatePlaylist(
-                    playlist.copy(
-                        songIds = playlist.songIds.filterNot { it == songId }
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            val playlists = userPlaylistsFlow.first()
+            playlists.forEach { playlist ->
+                if (songId in playlist.songIds) {
+                    updatePlaylistLocked(
+                        playlist.copy(
+                            songIds = playlist.songIds.filterNot { it == songId }
+                        )
                     )
-                )
+                }
             }
         }
     }

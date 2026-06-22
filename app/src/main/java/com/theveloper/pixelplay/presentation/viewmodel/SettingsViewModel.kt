@@ -277,6 +277,52 @@ class SettingsViewModel @Inject constructor(
     val openrouterSystemPrompt: StateFlow<String> = aiPreferencesRepository.openrouterSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_OPENROUTER_SYSTEM_PROMPT)
 
+    val ollamaApiKey: StateFlow<String> = aiPreferencesRepository.ollamaApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaModel: StateFlow<String> = aiPreferencesRepository.ollamaModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val ollamaSystemPrompt: StateFlow<String> = aiPreferencesRepository.ollamaSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT)
+
+    val customApiKey: StateFlow<String> = aiPreferencesRepository.customApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val customModel: StateFlow<String> = aiPreferencesRepository.customModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val customSystemPrompt: StateFlow<String> = aiPreferencesRepository.customSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT)
+    val customBaseUrl: StateFlow<String> = aiPreferencesRepository.customBaseUrl
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val currentAiBaseUrl: StateFlow<String> = aiProvider
+        .flatMapLatest { provider ->
+            val p = AiProvider.fromString(provider)
+            if (p.hasConfigurableUrl) aiPreferencesRepository.getBaseUrl(p)
+            else flowOf("")
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    // Generation Parameters
+    val aiTemperature: StateFlow<Float> = aiPreferencesRepository.aiTemperature
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.7f)
+    val aiTopP: StateFlow<Float> = aiPreferencesRepository.aiTopP
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.95f)
+    val aiTopK: StateFlow<Int> = aiPreferencesRepository.aiTopK
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 64)
+    val aiMaxTokens: StateFlow<Int> = aiPreferencesRepository.aiMaxTokens
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 4096)
+    val aiPresencePenalty: StateFlow<Float> = aiPreferencesRepository.aiPresencePenalty
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0f)
+    val aiFrequencyPenalty: StateFlow<Float> = aiPreferencesRepository.aiFrequencyPenalty
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0f)
+
+    // Song Data Configuration
+    val aiSampleSize: StateFlow<Int> = aiPreferencesRepository.aiSampleSize
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 40)
+    val aiDigestMode: StateFlow<String> = aiPreferencesRepository.aiDigestMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "safe")
+    val aiIncludeExtendedFields: StateFlow<Boolean> = aiPreferencesRepository.aiIncludeExtendedFields
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun onAiApiKeyChange(apiKey: String) {
         viewModelScope.launch {
             val providerStr = aiProvider.value
@@ -351,6 +397,53 @@ class SettingsViewModel @Inject constructor(
             else clearModelsState("OPENROUTER")
         }
     }
+    fun onOllamaApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.OLLAMA, apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "OLLAMA")
+            else clearModelsState("OLLAMA")
+        }
+    }
+    fun onCustomApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setApiKey(AiProvider.CUSTOM, apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "CUSTOM")
+            else clearModelsState("CUSTOM")
+        }
+    }
+    fun onCustomBaseUrlChange(baseUrl: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setBaseUrl(AiProvider.CUSTOM, baseUrl)
+        }
+    }
+
+    fun onAiTemperatureChange(value: Float) {
+        viewModelScope.launch { aiPreferencesRepository.setAiTemperature(value) }
+    }
+    fun onAiTopPChange(value: Float) {
+        viewModelScope.launch { aiPreferencesRepository.setAiTopP(value) }
+    }
+    fun onAiTopKChange(value: Int) {
+        viewModelScope.launch { aiPreferencesRepository.setAiTopK(value) }
+    }
+    fun onAiMaxTokensChange(value: Int) {
+        viewModelScope.launch { aiPreferencesRepository.setAiMaxTokens(value) }
+    }
+    fun onAiPresencePenaltyChange(value: Float) {
+        viewModelScope.launch { aiPreferencesRepository.setAiPresencePenalty(value) }
+    }
+    fun onAiFrequencyPenaltyChange(value: Float) {
+        viewModelScope.launch { aiPreferencesRepository.setAiFrequencyPenalty(value) }
+    }
+    fun onAiSampleSizeChange(value: Int) {
+        viewModelScope.launch { aiPreferencesRepository.setAiSampleSize(value) }
+    }
+    fun onAiDigestModeChange(mode: String) {
+        viewModelScope.launch { aiPreferencesRepository.setAiDigestMode(mode) }
+    }
+    fun onAiIncludeExtendedFieldsChange(enabled: Boolean) {
+        viewModelScope.launch { aiPreferencesRepository.setAiIncludeExtendedFields(enabled) }
+    }
 
     fun onAiModelChange(model: String) {
         viewModelScope.launch {
@@ -368,6 +461,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GLM, model) }
     fun onOpenAiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENAI, model) }
     fun onOpenrouterModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENROUTER, model) }
+    fun onOllamaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OLLAMA, model) }
+    fun onCustomModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.CUSTOM, model) }
 
     fun onAiSystemPromptChange(prompt: String) {
         viewModelScope.launch {
@@ -385,6 +480,8 @@ class SettingsViewModel @Inject constructor(
     fun onGlmSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GLM, prompt) }
     fun onOpenAiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENAI, prompt) }
     fun onOpenrouterSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENROUTER, prompt) }
+    fun onOllamaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OLLAMA, prompt) }
+    fun onCustomSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.CUSTOM, prompt) }
 
     fun resetAiSystemPrompt() {
         viewModelScope.launch {
@@ -402,6 +499,8 @@ class SettingsViewModel @Inject constructor(
     fun resetGlmSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GLM) }
     fun resetOpenAiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENAI) }
     fun resetOpenrouterSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENROUTER) }
+    fun resetOllamaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OLLAMA) }
+    fun resetCustomSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.CUSTOM) }
 
     fun clearAiUsageData() {
         viewModelScope.launch {
@@ -1160,7 +1259,13 @@ class SettingsViewModel @Inject constructor(
                 val models = if (provider == AiProvider.GEMINI) {
                     geminiModelService.fetchAvailableModels(apiKey).getOrThrow()
                 } else {
-                    val aiClient = aiClientFactory.createClient(provider, apiKey)
+                    val baseUrl = if (provider.hasConfigurableUrl)
+                        aiPreferencesRepository.getBaseUrl(provider).first()
+                    else ""
+                    val aiClient = if (provider.hasConfigurableUrl)
+                        aiClientFactory.createClientWithUrl(provider, apiKey, baseUrl)
+                    else
+                        aiClientFactory.createClient(provider, apiKey)
                     aiClient.getAvailableModels(apiKey)
                         .map { it.trim() }
                         .filter { it.isNotBlank() }

@@ -2,8 +2,49 @@ package com.theveloper.pixelplay.data.worker
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 
 class ArtistParsingUtilsTest {
+
+    @Test
+    fun `default delimiters preserve ampersand slash comma and plus inside artist names`() {
+        assertEquals(
+            listOf("W&W"),
+            collectArtistNames(
+                rawArtistName = "W&W",
+                title = "Rave Culture",
+                artistDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+                wordDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_WORD_DELIMITERS
+            )
+        )
+        assertEquals(
+            listOf("AC/DC"),
+            collectArtistNames(
+                rawArtistName = "AC/DC",
+                title = "Back In Black",
+                artistDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+                wordDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_WORD_DELIMITERS
+            )
+        )
+        assertEquals(
+            listOf("Lost & Found"),
+            collectArtistNames(
+                rawArtistName = "Lost & Found",
+                title = "Found",
+                artistDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+                wordDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_WORD_DELIMITERS
+            )
+        )
+        assertEquals(
+            listOf("Black Country, New Road"),
+            collectArtistNames(
+                rawArtistName = "Black Country, New Road",
+                title = "Track X",
+                artistDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS,
+                wordDelimiters = UserPreferencesRepository.DEFAULT_ARTIST_WORD_DELIMITERS
+            )
+        )
+    }
 
     @Test
     fun `choosePreferredArtistName prefers media store when it contains more artists`() {

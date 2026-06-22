@@ -629,6 +629,12 @@
     <string name="about_contributors_section_title">Kontributor open source</string>
     <string name="about_contributors_section_subtitle">Daftar kontributor langsung dari GitHub.</string>
     <string name="about_contributions_format">%1$d kontrib.</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Repositori</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Dukungan</string>
+    <string name="about_cd_open_github_repo">Buka repositori GitHub</string>
+    <string name="about_cd_join_telegram">Bergabung dengan komunitas Telegram</string>
     <string name="about_cd_open_github_profile">Buka profil GitHub</string>
     <string name="about_cd_open_telegram">Buka Telegram</string>
     <string name="about_cd_contributor_avatar">Avatar %1$s</string>

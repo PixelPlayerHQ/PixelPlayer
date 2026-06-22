@@ -633,6 +633,12 @@
     <string name="about_contributors_section_title">开源贡献者</string>
     <string name="about_contributors_section_subtitle">来自 GitHub 的实时贡献者名单。</string>
     <string name="about_contributions_format">%1$d 次贡献</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">代码仓库</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">支持</string>
+    <string name="about_cd_open_github_repo">打开 GitHub 仓库</string>
+    <string name="about_cd_join_telegram">加入 Telegram 社区</string>
     <string name="about_cd_open_github_profile">打开 GitHub 个人资料</string>
     <string name="about_cd_open_telegram">打开 Telegram</string>
     <string name="about_cd_contributor_avatar">%1$s 的头像</string>

@@ -19,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AiOrchestrator @Inject constructor(
+class AiHandler @Inject constructor(
     private val preferencesRepo: AiPreferencesRepository,
     private val clientFactory: AiClientFactory,
     private val cacheDao: AiCacheDao,
@@ -60,58 +60,79 @@ class AiOrchestrator @Inject constructor(
         preferencesRepo.setModel(provider, model)
     }
 
+    private data class GenerationParams(
+        val temperature: Float,
+        val topP: Float,
+        val topK: Int,
+        val maxTokens: Int,
+        val presencePenalty: Float,
+        val frequencyPenalty: Float,
+    )
+
+    private data class GenerationResult(
+        val response: String,
+        val modelUsed: String,
+    )
+
+    private suspend fun getGenerationParams(): GenerationParams {
+        return GenerationParams(
+            temperature = preferencesRepo.aiTemperature.first(),
+            topP = preferencesRepo.aiTopP.first(),
+            topK = preferencesRepo.aiTopK.first(),
+            maxTokens = preferencesRepo.aiMaxTokens.first(),
+            presencePenalty = preferencesRepo.aiPresencePenalty.first(),
+            frequencyPenalty = preferencesRepo.aiFrequencyPenalty.first(),
+        )
+    }
+
     private suspend fun generateWithRecovery(
         provider: AiProvider,
         apiKey: String,
         systemPrompt: String,
         prompt: String,
-        temperature: Float
-    ): String {
+        temperature: Float,
+        topP: Float,
+        topK: Int,
+        maxTokens: Int,
+        presencePenalty: Float,
+        frequencyPenalty: Float,
+    ): GenerationResult {
         val client = clientFactory.createClient(provider, apiKey)
         val requestedModel = getModel(provider).ifBlank { client.getDefaultModel() }
 
-        return try {
-            // Wrap in timeout to prevent hanging requests
-            withTimeout(REQUEST_TIMEOUT_MS) {
-                client.generateContent(
-                    requestedModel,
-                    systemPrompt,
-                    prompt,
-                    temperature
+        suspend fun callWithModel(model: String): String {
+            return try {
+                withTimeout(REQUEST_TIMEOUT_MS) {
+                    client.generateContent(
+                        model, systemPrompt, prompt, temperature,
+                        topP, topK, maxTokens, presencePenalty, frequencyPenalty,
+                    )
+                }
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                throw com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.createException(
+                    providerName = provider.displayName,
+                    statusCode = null,
+                    transportMessage = "Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s. The model may be overloaded.",
+                    responseBody = null,
+                    requestedModel = model
                 )
             }
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            throw com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.createException(
-                providerName = provider.displayName,
-                statusCode = null,
-                transportMessage = "Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s. The model may be overloaded.",
-                responseBody = null,
-                requestedModel = requestedModel
-            )
+        }
+
+        return try {
+            val response = callWithModel(requestedModel)
+            GenerationResult(response, requestedModel)
         } catch (e: Exception) {
             val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(
-                provider.displayName,
-                e,
-                requestedModel
+                provider.displayName, e, requestedModel
             )
 
             val recoveredModel = recoverModelIfNeeded(
-                provider = provider,
-                apiKey = apiKey,
-                requestedModel = requestedModel,
-                client = client,
-                failure = failure
+                provider, apiKey, requestedModel, client, failure
             ) ?: throw failure
 
-            // Retry with recovered model (also with timeout)
-            withTimeout(REQUEST_TIMEOUT_MS) {
-                client.generateContent(
-                    recoveredModel,
-                    systemPrompt,
-                    prompt,
-                    temperature
-                )
-            }
+            val response = callWithModel(recoveredModel)
+            GenerationResult(response, recoveredModel)
         }
     }
 
@@ -141,48 +162,40 @@ class AiOrchestrator @Inject constructor(
         temperature: Float = 0.7f,
         context: String = ""
     ): String {
-        // Dynamic temperature adjustment if default value is used
-        val resolvedTemperature = if (temperature == 0.7f) {
-            when (type) {
-                // AI Optimization: Use low temperature for high-precision metadata to prevent hallucinations
-                AiSystemPromptType.METADATA -> 0.1f
-                AiSystemPromptType.MOOD_ANALYSIS -> 0.2f
-                // AI Optimization: Moderate temperature for tags to allow creative yet relevant descriptors
-                AiSystemPromptType.TAGGING -> 0.4f
-                // AI Optimization: Balanced temperature for playlists to ensure variety without losing cohesion
-                AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f
-                // AI Optimization: High temperature for persona-based responses to increase flair and engagement
-                AiSystemPromptType.PERSONA -> 0.85f
-                AiSystemPromptType.GENERAL -> 0.7f
-            }
-        } else temperature
+        val params = getGenerationParams()
+        val effectiveTemperature = if (params.temperature == 0.7f) {
+            if (temperature == 0.7f) {
+                when (type) {
+                    AiSystemPromptType.METADATA -> 0.1f
+                    AiSystemPromptType.MOOD_ANALYSIS -> 0.2f
+                    AiSystemPromptType.TAGGING -> 0.4f
+                    AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f
+                    AiSystemPromptType.PERSONA -> 0.85f
+                    AiSystemPromptType.GENERAL -> 0.7f
+                }
+            } else temperature
+        } else params.temperature
 
-        // Determine chain based on user preference
         val userProviderStr = preferencesRepo.aiProvider.first()
         val userProvider = AiProvider.fromString(userProviderStr)
 
-        // Generate combined prompt for hashing and execution
         val basePersona = getBasePersona(userProvider)
         val combinedSystemPrompt = promptEngine.buildPrompt(basePersona, type, context)
-        
-        // Cache entry is valid for a specific prompt + system instruction + provider
+
         val hash = (userProvider.name + combinedSystemPrompt + prompt).sha256()
 
-        // Check cache with TTL — don't serve stale results
         cacheDao.getCache(hash)?.let { cached ->
             val age = System.currentTimeMillis() - cached.timestamp
             if (age < CACHE_TTL_MS) {
                 return cached.responseJson
             }
-            // Cache expired — proceed with fresh generation
         }
 
         val providersToTry = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.buildProviderChain(userProvider)
         val failedProviders = mutableListOf<String>()
         val now = System.currentTimeMillis()
-        
+
         for (provider in providersToTry) {
-            // Skip if in cooldown
             val cooldownExpiry = providerCooldowns[provider] ?: 0L
             if (now < cooldownExpiry) {
                 failedProviders.add("${provider.name}: on cooldown (${((cooldownExpiry - now) / 1000)}s remaining)")
@@ -196,29 +209,30 @@ class AiOrchestrator @Inject constructor(
                     continue
                 }
 
-                // Use the shared base persona but specialized type rules for each provider in the chain
                 val providerPersona = getBasePersona(provider)
                 val finalSystemPrompt = promptEngine.buildPrompt(providerPersona, type, context)
 
-                val response = generateWithRecovery(
+                val result = generateWithRecovery(
                     provider = provider,
                     apiKey = apiKey,
                     systemPrompt = finalSystemPrompt,
                     prompt = prompt,
-                    temperature = resolvedTemperature
+                    temperature = effectiveTemperature,
+                    topP = params.topP,
+                    topK = params.topK,
+                    maxTokens = params.maxTokens,
+                    presencePenalty = params.presencePenalty,
+                    frequencyPenalty = params.frequencyPenalty,
                 )
 
-                // Validate response is not empty
-                if (response.isBlank()) {
+                if (result.response.isBlank()) {
                     failedProviders.add("${provider.name}: returned empty response")
                     continue
                 }
 
-                // Low-maintenance usage tracking using highly accurate proportional estimation bounds (4 chars ~ 1 token)
-                // Models with "thinking" or "reasoning" generally output 2-3x internal tokens for complex generation
                 val isThinkingModel = finalSystemPrompt.contains("think", true) || provider.name.contains("reasoning", true)
                 val estimatedPromptTokens = (finalSystemPrompt.length + prompt.length) / 4
-                val estimatedOutputTokens = response.length / 4
+                val estimatedOutputTokens = result.response.length / 4
                 val estimatedThoughtTokens = if (isThinkingModel) (estimatedOutputTokens * 1.5).toInt() else 0
 
                 appScope.launch {
@@ -227,7 +241,7 @@ class AiOrchestrator @Inject constructor(
                             AiUsageEntity(
                                 timestamp = now,
                                 provider = provider.displayName,
-                                model = provider.name,
+                                model = result.modelUsed,
                                 promptType = type.name,
                                 promptTokens = estimatedPromptTokens,
                                 outputTokens = estimatedOutputTokens,
@@ -235,16 +249,16 @@ class AiOrchestrator @Inject constructor(
                             )
                         )
                     }.onFailure { error ->
-                        Timber.tag("AiOrchestrator").e(error, "Failed to persist AI usage")
+                        Timber.tag("AiHandler").e(error, "Failed to persist AI usage")
                     }
                 }
 
-                cacheDao.insert(AiCacheEntity(promptHash = hash, responseJson = response, timestamp = System.currentTimeMillis()))
-                return response
+                cacheDao.insert(AiCacheEntity(promptHash = hash, responseJson = result.response, timestamp = System.currentTimeMillis()))
+                return result.response
             } catch (e: Exception) {
                 // AI Optimization: Robust failover logic—if one provider fails, we log and try the next in the chain
                 val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
-                Timber.tag("AiOrchestrator").w(e, "Provider ${provider.name} failed: ${failure.message}")
+                Timber.tag("AiHandler").w(e, "Provider ${provider.name} failed: ${failure.message}")
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
                 // Trigger cooldown only on provider-level outages and account problems.
                 if (failure.shouldCooldown()) {
@@ -268,7 +282,7 @@ class AiOrchestrator @Inject constructor(
                 "AI generation failed after trying ${failedProviders.size} providers:\n${failedProviders.joinToString("\n• ", prefix = "• ")}"
         }
         
-        Timber.tag("AiOrchestrator").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
+        Timber.tag("AiHandler").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
         throw Exception(errorMessage)
     }
 }

@@ -125,8 +125,6 @@ fun DailyMixScreen(
     val aiStatus by playerViewModel.aiStatus.collectAsStateWithLifecycle()
     val aiError by playerViewModel.aiError.collectAsStateWithLifecycle()
     val aiSuccess by playerViewModel.aiSuccess.collectAsStateWithLifecycle()
-    val isGeneratingAiMetadata by playerViewModel.isGeneratingAiMetadata.collectAsStateWithLifecycle()
-    val aiMetadataSuccess by playerViewModel.aiMetadataSuccess.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
 
     var showSongInfoSheet by remember { mutableStateOf(false) }
@@ -233,14 +231,7 @@ fun DailyMixScreen(
                     coverArtUpdate
                 )
             },
-            generateAiMetadata = { fields ->
-                playerViewModel.generateAiMetadata(song, fields)
-            },
-            removeFromListTrigger = removeFromListTrigger,
-            isGeneratingMetadata = isGeneratingAiMetadata,
-            aiMetadataSuccess = aiMetadataSuccess,
-            aiError = aiError,
-            onRetryMetadata = { playerViewModel.retryLastMetadataGeneration() }
+            removeFromListTrigger = removeFromListTrigger
         )
 
         if (showPlaylistBottomSheet) {

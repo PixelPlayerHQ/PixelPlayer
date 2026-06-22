@@ -916,6 +916,9 @@ fun SettingsCategoryScreen(
                             }
                         }
                         SettingsCategory.AI_INTEGRATION -> {
+                            val provider = com.theveloper.pixelplay.data.ai.provider.AiProvider.fromString(aiProvider)
+                            val currentCustomBaseUrl by settingsViewModel.customBaseUrl.collectAsStateWithLifecycle()
+
                             // AI Provider Selection
                             SettingsSubsection(title = stringResource(R.string.settings_ai_provider_section)) {
                                 ThemeSelectorItem(
@@ -949,7 +952,6 @@ fun SettingsCategoryScreen(
                             
                             // Consolidated API Key Section
                             SettingsSubsection(title = stringResource(R.string.settings_credentials_section)) {
-                                val provider = com.theveloper.pixelplay.data.ai.provider.AiProvider.fromString(aiProvider)
                                 val sourceLabel = when(provider) {
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.GEMINI -> stringResource(R.string.settings_ai_source_gemini)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.DEEPSEEK -> stringResource(R.string.settings_ai_source_deepseek)
@@ -960,6 +962,8 @@ fun SettingsCategoryScreen(
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.GLM -> stringResource(R.string.settings_ai_source_glm)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENAI -> stringResource(R.string.settings_ai_source_openai)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENROUTER -> "OpenRouter (openrouter.ai)"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OLLAMA -> "Ollama (cloud)"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.CUSTOM -> "Custom Provider"
                                 }
                                 
                                 AiApiKeyItem(
@@ -1009,15 +1013,27 @@ fun SettingsCategoryScreen(
                                             )
                                         }
                                     } else if (uiState.availableModels.isNotEmpty()) {
-                                        ThemeSelectorItem(
+                                        SearchableModelSelector(
                                             label = stringResource(R.string.settings_ai_model_title),
                                             description = stringResource(R.string.settings_ai_model_subtitle),
-                                            options = uiState.availableModels.associate { it.name to it.displayName },
-                                            selectedKey = currentAiModel.ifEmpty { uiState.availableModels.firstOrNull()?.name ?: "" },
-                                            onSelectionChanged = { settingsViewModel.onAiModelChange(it) },
+                                            models = uiState.availableModels,
+                                            selectedModelName = currentAiModel.ifEmpty { uiState.availableModels.firstOrNull()?.name ?: "" },
+                                            onModelSelected = { settingsViewModel.onAiModelChange(it) },
                                             leadingIcon = { Icon(Icons.Rounded.Science, null, tint = MaterialTheme.colorScheme.secondary) }
                                         )
                                     }
+                                }
+                            }
+
+                            // Base URL Section (only for configurable URL providers)
+                            if (provider.hasConfigurableUrl) {
+                                SettingsSubsection(title = "API Base URL") {
+                                    AiApiKeyItem(
+                                        apiKey = currentCustomBaseUrl,
+                                        onApiKeySave = { settingsViewModel.onCustomBaseUrlChange(it) },
+                                        title = "Base URL",
+                                        subtitle = "e.g. https://api.example.com/v1"
+                                    )
                                 }
                             }
 
@@ -1033,6 +1049,140 @@ fun SettingsCategoryScreen(
                                     onReset = { settingsViewModel.resetAiSystemPrompt() },
                                     title = stringResource(R.string.settings_system_prompt_title),
                                     subtitle = stringResource(R.string.settings_system_prompt_subtitle)
+                                )
+                            }
+
+                            // Generation Parameters Section
+                            SettingsSubsection(title = "Generation Parameters") {
+                                SliderSettingsItem(
+                                    label = "Temperature",
+                                    value = settingsViewModel.aiTemperature.collectAsStateWithLifecycle().value,
+                                    valueRange = 0.0f..2.0f,
+                                    steps = 20,
+                                    onValueChange = { settingsViewModel.onAiTemperatureChange(it) },
+                                    valueText = { String.format(Locale.US, "%.2f", it) }
+                                )
+                                Text(
+                                    text = "Controls randomness. Lower = more deterministic, higher = more creative.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                SliderSettingsItem(
+                                    label = "Top P",
+                                    value = settingsViewModel.aiTopP.collectAsStateWithLifecycle().value,
+                                    valueRange = 0.0f..1.0f,
+                                    steps = 20,
+                                    onValueChange = { settingsViewModel.onAiTopPChange(it) },
+                                    valueText = { String.format(Locale.US, "%.2f", it) }
+                                )
+                                Text(
+                                    text = "Nucleus sampling. Higher = more diverse tokens considered.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                SliderSettingsItem(
+                                    label = "Top K",
+                                    value = settingsViewModel.aiTopK.collectAsStateWithLifecycle().value.toFloat(),
+                                    valueRange = 1f..100f,
+                                    steps = 99,
+                                    onValueChange = { settingsViewModel.onAiTopKChange(it.toInt()) },
+                                    valueText = { it.toInt().toString() }
+                                )
+                                Text(
+                                    text = "Limits token selection to the K most likely candidates.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                SliderSettingsItem(
+                                    label = "Max Output Tokens",
+                                    value = settingsViewModel.aiMaxTokens.collectAsStateWithLifecycle().value.toFloat(),
+                                    valueRange = 128f..8192f,
+                                    steps = 63,
+                                    onValueChange = { settingsViewModel.onAiMaxTokensChange(it.toInt()) },
+                                    valueText = { it.toInt().toString() }
+                                )
+                                Text(
+                                    text = "Maximum length of the AI response. Higher = longer but more expensive.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                SliderSettingsItem(
+                                    label = "Presence Penalty",
+                                    value = settingsViewModel.aiPresencePenalty.collectAsStateWithLifecycle().value,
+                                    valueRange = -2.0f..2.0f,
+                                    steps = 40,
+                                    onValueChange = { settingsViewModel.onAiPresencePenaltyChange(it) },
+                                    valueText = { String.format(Locale.US, "%.1f", it) }
+                                )
+                                Text(
+                                    text = "Penalizes repeated topics. Positive = more diverse topics.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                SliderSettingsItem(
+                                    label = "Frequency Penalty",
+                                    value = settingsViewModel.aiFrequencyPenalty.collectAsStateWithLifecycle().value,
+                                    valueRange = -2.0f..2.0f,
+                                    steps = 40,
+                                    onValueChange = { settingsViewModel.onAiFrequencyPenaltyChange(it) },
+                                    valueText = { String.format(Locale.US, "%.1f", it) }
+                                )
+                                Text(
+                                    text = "Penalizes repeated phrases. Positive = more natural language.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                            }
+
+                            // Song Data Configuration Section
+                            SettingsSubsection(title = "Song Data Configuration") {
+                                val aiSampleSize by settingsViewModel.aiSampleSize.collectAsStateWithLifecycle()
+                                SliderSettingsItem(
+                                    label = "Sample Size",
+                                    value = aiSampleSize.toFloat(),
+                                    valueRange = 10f..120f,
+                                    steps = 11,
+                                    onValueChange = { settingsViewModel.onAiSampleSizeChange(it.toInt()) },
+                                    valueText = { "${it.toInt()} songs" }
+                                )
+                                Text(
+                                    text = "Number of songs sent to the AI for playlist generation. More = better context but higher cost.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                                ThemeSelectorItem(
+                                    label = "Digest Detail",
+                                    description = "Controls how much listening history data is included",
+                                    options = mapOf("safe" to "Concise (faster)", "full" to "Full (better quality)"),
+                                    selectedKey = settingsViewModel.aiDigestMode.collectAsStateWithLifecycle().value,
+                                    onSelectionChanged = { settingsViewModel.onAiDigestModeChange(it) },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_monitoring_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                )
+                                SwitchSettingItem(
+                                    title = "Extended Song Fields",
+                                    subtitle = "Include album, year, and genre info in song data sent to AI",
+                                    checked = settingsViewModel.aiIncludeExtendedFields.collectAsStateWithLifecycle().value,
+                                    onCheckedChange = { settingsViewModel.onAiIncludeExtendedFieldsChange(it) },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_music_note_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
                                 )
                             }
 

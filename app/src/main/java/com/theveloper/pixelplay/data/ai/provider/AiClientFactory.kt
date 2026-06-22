@@ -22,9 +22,24 @@ class AiClientFactory @Inject constructor() {
         
         return when (provider) {
             AiProvider.GEMINI -> GeminiAiClient(apiKey)
-            AiProvider.DEEPSEEK -> DeepSeekAiClient(apiKey)
-            AiProvider.GROQ -> GroqAiClient(apiKey)
-            AiProvider.MISTRAL -> MistralAiClient(apiKey)
+            AiProvider.DEEPSEEK -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.deepseek.com",
+                defaultModelId = "deepseek-chat",
+                providerName = "DeepSeek"
+            )
+            AiProvider.GROQ -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.groq.com/openai/v1",
+                defaultModelId = "llama-3.1-8b-instant",
+                providerName = "Groq"
+            )
+            AiProvider.MISTRAL -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.mistral.ai/v1",
+                defaultModelId = "mistral-large-latest",
+                providerName = "Mistral"
+            )
             AiProvider.NVIDIA -> GenericOpenAiClient(
                 apiKey = apiKey,
                 baseUrl = "https://integrate.api.nvidia.com/v1",
@@ -55,6 +70,23 @@ class AiClientFactory @Inject constructor() {
                 defaultModelId = "google/gemini-2.0-flash-lite-preview-02-05:free",
                 providerName = "OpenRouter"
             )
+            AiProvider.OLLAMA -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "https://api.ollama.ai/v1",
+                defaultModelId = "llama3",
+                providerName = "Ollama"
+            )
+            AiProvider.CUSTOM -> GenericOpenAiClient(
+                apiKey = apiKey,
+                baseUrl = "",
+                defaultModelId = "",
+                providerName = "Custom Provider"
+            )
         }
+    }
+
+    fun createClientWithUrl(provider: AiProvider, apiKey: String, baseUrl: String): AiClient {
+        val displayName = provider.displayName
+        return GenericOpenAiClient(apiKey, baseUrl.trimEnd('/'), "", displayName)
     }
 }

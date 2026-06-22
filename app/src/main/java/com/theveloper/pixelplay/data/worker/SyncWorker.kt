@@ -620,7 +620,9 @@ constructor(
              val representativeAlbumArt = songsInAlbum.firstNotNullOfOrNull { it.albumArtUriString }
              val determinedAlbumArtist = chooseAlbumDisplayArtist(
                  songs = songsInAlbum,
-                 preferAlbumArtist = groupByAlbumArtist
+                 preferAlbumArtist = groupByAlbumArtist,
+                 artistDelimiters = artistDelimiters,
+                 wordDelimiters = wordDelimiters
              )
              val determinedAlbumArtistId = resolveAlbumDisplayArtistId(
                  displayArtist = determinedAlbumArtist,

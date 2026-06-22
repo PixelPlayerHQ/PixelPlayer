@@ -641,3 +641,30 @@
     <string name="about_cd_contributor_avatar">صورة رمزية لـ %1$s</string>
     <string name="about_cd_contributor_icon">أيقونة %1$s</string>
 </resources>
+    <string name="import_backup_toolbar_title">استيراد نسخة احتياطية</string>
+    <string name="import_inspecting">جاري الفحص المعمق…</string>
+    <string name="import_browse_file">تصفح لاختيار الملف</string>
+    <string name="import_backup_hint">اختر ملف نسخة احتياطية بصيغة .pxpl لفحصه. ستتمكن من اختيار الأقسام المراد استعادتها في الخطوة التالية.</string>
+    <string name="import_recent_backups">النسخ الاحتياطية الأخيرة</string>
+    <string name="import_no_recent_title">لا توجد نسخ احتياطية حديثة</string>
+    <string name="import_no_recent_subtitle">النسخ الاحتياطية التي تم استيرادها سابقاً ستظهر هنا.</string>
+    <string name="palette_force_regenerate_title">فرض إعادة توليد لوحة ألوان الألبوم</string>
+    <string name="palette_force_regenerate_subtitle">اختر أغنية لمسح بيانات المظهر المخزنة مؤقتاً وإعادة توليد جميع أنماط الألوان من غلاف الألبوم.</string>
+    <string name="search_songs_by_title_artist_album">البحث حسب العنوان، أو الفنان، أو الألبوم</string>
+    <string name="palette_regenerating_progress">جاري إعادة توليد لوحة الألوان…</string>
+    <string name="search_no_songs_match">لا توجد أغانٍ تطابق بحثك.</string>
+    <string name="cd_remove_from_history">إزالة من السجل</string>
+    <string name="cd_clear_search">مسح البحث</string>
+    <string name="backup_history_modules_line">وحدات عدد %1$d · إصدار %2$s · إصدار المخطط البرمجي %3$d</string>
+    <string name="setcat_language_korean">Korean (الكورية)</string>
+    <string name="setcat_language_norwegian_bokmal">Norwegian (النرويجية بوكمول)</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">مستودع الكود</string>
+    <string name="about_telegram_label">تليجرام</string>
+    <string name="about_telegram_subtitle">الدعم</string>
+    <string name="about_cd_open_github_repo">فتح مستودع GitHub</string>
+    <string name="about_cd_join_telegram">الانضمام إلى مجتمع تليجرام</string>
+    <string name="settings_volume_section">مستوى الصوت</string>
+    <string name="settings_pause_on_volume_zero">إيقاف مؤقت عند وصول مستوى الصوت إلى الصفر</string>
+    <string name="settings_pause_on_volume_zero_desc">إيقاف التشغيل تلقائيًا مؤقتًا عندما يكون مستوى الصوت 0</string>
+</resources>

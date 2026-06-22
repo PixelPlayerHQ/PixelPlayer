@@ -634,8 +634,17 @@
     <string name="about_contributors_section_title">Open source contributors</string>
     <string name="about_contributors_section_subtitle">Live contributor list from GitHub.</string>
     <string name="about_contributions_format">%1$d contrib.</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Repository</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Support</string>
+    <string name="about_cd_open_github_repo">Open GitHub repository</string>
+    <string name="about_cd_join_telegram">Join Telegram community</string>
     <string name="about_cd_open_github_profile">Open GitHub profile</string>
     <string name="about_cd_open_telegram">Open Telegram</string>
     <string name="about_cd_contributor_avatar">Avatar of %1$s</string>
     <string name="about_cd_contributor_icon">Icon of %1$s</string>
+    <string name="settings_volume_section">Volume</string>
+    <string name="settings_pause_on_volume_zero">Pause when volume reaches zero</string>
+    <string name="settings_pause_on_volume_zero_desc">Automatically pause playback when the volume is set to 0</string>
 </resources>

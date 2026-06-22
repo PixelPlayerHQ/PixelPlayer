@@ -633,8 +633,17 @@
     <string name="about_contributors_section_title">Open-Source-Mitwirkende</string>
     <string name="about_contributors_section_subtitle">Aktuelle Mitwirkenden-Liste von GitHub.</string>
     <string name="about_contributions_format">%1$d Beiträge</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Repository</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Support</string>
+    <string name="about_cd_open_github_repo">GitHub-Repository öffnen</string>
+    <string name="about_cd_join_telegram">Der Telegram-Community beitreten</string>
     <string name="about_cd_open_github_profile">GitHub-Profil öffnen</string>
     <string name="about_cd_open_telegram">Telegram öffnen</string>
     <string name="about_cd_contributor_avatar">Avatar von %1$s</string>
     <string name="about_cd_contributor_icon">Icon von %1$s</string>
+    <string name="settings_volume_section">Lautstärke</string>
+    <string name="settings_pause_on_volume_zero">Pausieren, wenn Lautstärke null erreicht</string>
+    <string name="settings_pause_on_volume_zero_desc">Wiedergabe automatisch pausieren, wenn die Lautstärke auf 0 gesetzt wird</string>
 </resources>

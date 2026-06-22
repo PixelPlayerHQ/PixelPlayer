@@ -3,7 +3,7 @@ package com.theveloper.pixelplay.data.ai.provider
 /**
  * Enum representing available AI providers
  */
-enum class AiProvider(val displayName: String, val requiresApiKey: Boolean) {
+enum class AiProvider(val displayName: String, val requiresApiKey: Boolean, val hasConfigurableUrl: Boolean = false) {
     GEMINI("Google Gemini", requiresApiKey = true),
     DEEPSEEK("DeepSeek", requiresApiKey = true),
     GROQ("Groq", requiresApiKey = true),
@@ -12,7 +12,9 @@ enum class AiProvider(val displayName: String, val requiresApiKey: Boolean) {
     KIMI("Kimi (Moonshot)", requiresApiKey = true),
     GLM("Zhipu GLM", requiresApiKey = true),
     OPENAI("OpenAI", requiresApiKey = true),
-    OPENROUTER("OpenRouter", requiresApiKey = true);
+    OPENROUTER("OpenRouter", requiresApiKey = true),
+    OLLAMA("Ollama", requiresApiKey = true),
+    CUSTOM("Custom Provider", requiresApiKey = true, hasConfigurableUrl = true);
     
     companion object {
         fun fromString(value: String): AiProvider {

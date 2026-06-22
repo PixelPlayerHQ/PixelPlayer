@@ -348,15 +348,20 @@ fun TelegramDashboardScreen(
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.removeChannel(channel.chatId)
-                        channelPendingRemoval = null
-                    }) {
+                    FilledTonalButton(
+                        onClick = {
+                            viewModel.removeChannel(channel.chatId)
+                            channelPendingRemoval = null
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
                         Text(
                             text = stringResource(R.string.telegram_remove_channel_confirm_action),
                             fontFamily = GoogleSansRounded,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 },
@@ -427,8 +432,7 @@ private fun ExpressiveChannelItem(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             // ── Channel header row ──────────────────────────────────────
             Row(
@@ -486,6 +490,8 @@ private fun ExpressiveChannelItem(
                 }
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
             // ── Meta pills ──────────────────────────────────────────────
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -514,6 +520,8 @@ private fun ExpressiveChannelItem(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // ── Action buttons ──────────────────────────────────────────
             Row(
@@ -593,6 +601,7 @@ private fun ExpressiveChannelItem(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
+                    Spacer(modifier = Modifier.height(14.dp))
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)

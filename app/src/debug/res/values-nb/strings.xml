@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PixelPlayer [D]</string>
+    <string name="settings_pause_on_volume_zero">Sett på pause når volumet er null</string>
+    <string name="settings_pause_on_volume_zero_desc">Sett automatisk avspillingen på pause når volumet settes til 0</string>
+    <string name="settings_volume_section">Volum</string>
 </resources>

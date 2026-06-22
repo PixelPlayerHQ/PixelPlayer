@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PixelPlayer [D]</string>
+    <string name="settings_pause_on_volume_zero">볼륨이 0이 되면 일시정지</string>
+    <string name="settings_pause_on_volume_zero_desc">볼륨이 0으로 설정되면 자동으로 재생을 일시정지합니다</string>
+    <string name="settings_volume_section">볼륨</string>
 </resources>

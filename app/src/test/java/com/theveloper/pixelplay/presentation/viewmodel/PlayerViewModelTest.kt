@@ -180,7 +180,6 @@ class PlayerViewModelTest {
         every { mockAiStateHolder.showAiPlaylistSheet } returns MutableStateFlow(false)
         every { mockAiStateHolder.isGeneratingAiPlaylist } returns MutableStateFlow(false)
         every { mockAiStateHolder.aiError } returns MutableStateFlow<String?>(null)
-        every { mockAiStateHolder.isGeneratingMetadata } returns MutableStateFlow(false)
         every { mockAiStateHolder.initialize(any(), any(), any(), any(), any(), any()) } just runs
  
         every { mockCastStateHolder.castSession } returns _castSessionFlow

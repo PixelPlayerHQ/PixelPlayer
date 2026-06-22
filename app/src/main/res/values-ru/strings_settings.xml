@@ -633,8 +633,17 @@
     <string name="about_contributors_section_title">Участники open source</string>
     <string name="about_contributors_section_subtitle">Актуальный список участников с GitHub.</string>
     <string name="about_contributions_format">%1$d вклад.</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">Репозиторий</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">Поддержка</string>
+    <string name="about_cd_open_github_repo">Открыть репозиторий GitHub</string>
+    <string name="about_cd_join_telegram">Присоединиться к сообществу Telegram</string>
     <string name="about_cd_open_github_profile">Открыть профиль GitHub</string>
     <string name="about_cd_open_telegram">Открыть Telegram</string>
     <string name="about_cd_contributor_avatar">Аватар %1$s</string>
     <string name="about_cd_contributor_icon">Значок %1$s</string>
+    <string name="settings_volume_section">Громкость</string>
+    <string name="settings_pause_on_volume_zero">Пауза при нулевой громкости</string>
+    <string name="settings_pause_on_volume_zero_desc">Автоматически приостанавливать воспроизведение, когда громкость равна 0</string>
 </resources>

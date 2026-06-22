@@ -63,7 +63,7 @@ fun PlaylistBottomSheet(
     currentPlaylistId: String? = null
 ) {
     val playlistCreatedAndSongsAddedMessage = stringResource(R.string.playlist_sheet_created_and_songs_added)
-    val setGeminiApiKeyFirstMessage = stringResource(R.string.library_toast_set_gemini_api_key_first)
+    val setAiProviderApiKeyFirstMessage = stringResource(R.string.library_toast_set_ai_provider_api_key_first)
     val songAddedToPlaylistsMessage = stringResource(R.string.playlist_sheet_song_added_to_playlists)
     val commonSavedMessage = stringResource(R.string.common_saved)
     val saveActionText = stringResource(R.string.common_save)
@@ -214,7 +214,7 @@ fun PlaylistBottomSheet(
                             if (hasActiveAiProviderApiKey) {
                                 playerViewModel.showAiPlaylistSheet()
                             } else {
-                                playerViewModel.sendToast(setGeminiApiKeyFirstMessage)
+                                playerViewModel.sendToast(setAiProviderApiKeyFirstMessage)
                             }
                         }
                     )

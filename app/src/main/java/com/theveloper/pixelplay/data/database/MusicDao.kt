@@ -1653,6 +1653,7 @@ interface MusicDao {
             artist_id = :artistId,
             artists_json = :artistsJson,
             album_name = :album,
+            album_artist = :albumArtist,
             genre = :genre,
             track_number = :trackNumber,
             disc_number = :discNumber
@@ -1665,6 +1666,7 @@ interface MusicDao {
         artistId: Long,
         artistsJson: String?,
         album: String,
+        albumArtist: String?,
         genre: String?,
         trackNumber: Int,
         discNumber: Int?
@@ -1678,6 +1680,7 @@ interface MusicDao {
         artistId: Long,
         artistsJson: String?,
         album: String,
+        albumArtist: String?,
         genre: String?,
         trackNumber: Int,
         discNumber: Int?,
@@ -1695,6 +1698,7 @@ interface MusicDao {
             artistId = artistId,
             artistsJson = artistsJson,
             album = album,
+            albumArtist = albumArtist,
             genre = genre,
             trackNumber = trackNumber,
             discNumber = discNumber

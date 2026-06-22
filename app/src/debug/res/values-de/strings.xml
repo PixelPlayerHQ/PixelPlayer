@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PixelPlayer [D]</string>
+    <string name="settings_pause_on_volume_zero">Pausieren, wenn Lautstärke null erreicht</string>
+    <string name="settings_pause_on_volume_zero_desc">Wiedergabe automatisch pausieren, wenn die Lautstärke auf 0 gesetzt wird</string>
+    <string name="settings_volume_section">Lautstärke</string>
 </resources>

@@ -244,6 +244,7 @@ class UserPreferencesRepository @Inject constructor(
         // ReplayGain
         val REPLAYGAIN_ENABLED = booleanPreferencesKey("replaygain_enabled")
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
+        val PAUSE_ON_VOLUME_ZERO = booleanPreferencesKey("pause_on_volume_zero")
         val SHOW_SCROLLBAR = booleanPreferencesKey("show_scrollbar")
     }
 
@@ -745,6 +746,19 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         }
     }
 
+    // ─── Pause on volume zero ─────────────────────────────────────────────────
+
+    val pauseOnVolumeZeroFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.PAUSE_ON_VOLUME_ZERO] ?: false
+        }
+
+    suspend fun setPauseOnVolumeZero(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PAUSE_ON_VOLUME_ZERO] = enabled
+        }
+    }
+
     val showScrollbarFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
             preferences[PreferencesKeys.SHOW_SCROLLBAR] ?: true
@@ -995,7 +1009,11 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     // ─── Multi-artist settings ────────────────────────────────────────────────
 
     val artistDelimitersFlow: Flow<List<String>> =
-        pref { decodeJsonPref(it, PreferencesKeys.ARTIST_DELIMITERS, DEFAULT_ARTIST_DELIMITERS) }
+        pref {
+            normalizeLegacyDefaultArtistDelimiters(
+                decodeJsonPref(it, PreferencesKeys.ARTIST_DELIMITERS, DEFAULT_ARTIST_DELIMITERS)
+            )
+        }
 
     suspend fun setArtistDelimiters(delimiters: List<String>) {
         if (delimiters.isEmpty()) return
@@ -1347,7 +1365,9 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     companion object {
         /** Default character delimiters for splitting multi-artist tags. */
-        val DEFAULT_ARTIST_DELIMITERS = listOf("/", ";", ",", "+", "&")
+        val DEFAULT_ARTIST_DELIMITERS = listOf(";")
+
+        private val LEGACY_DEFAULT_ARTIST_DELIMITERS = listOf("/", ";", ",", "+", "&")
 
         /** Default word-based delimiters matched case-insensitively with whitespace boundaries. */
         val DEFAULT_ARTIST_WORD_DELIMITERS = listOf(
@@ -1359,6 +1379,9 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     }
 
     // ─── Private utilities ────────────────────────────────────────────────────
+
+    private fun normalizeLegacyDefaultArtistDelimiters(delimiters: List<String>): List<String> =
+        if (delimiters == LEGACY_DEFAULT_ARTIST_DELIMITERS) DEFAULT_ARTIST_DELIMITERS else delimiters
 
     /** Increments [value] by 1, wrapping back to 0 on overflow. */
     private fun incrementWrapped(value: Int?) =

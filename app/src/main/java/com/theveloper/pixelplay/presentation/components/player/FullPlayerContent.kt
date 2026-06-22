@@ -956,7 +956,10 @@ fun FullPlayerContent(
             onDismissLyricsSearch = { playerViewModel.resetLyricsSearchState() },
             lyricsSyncOffset = lyricsSyncOffset,
             onLyricsSyncOffsetChange = { currentSong?.id?.let { songId -> playerViewModel.setLyricsSyncOffset(songId, it) } },
-            lyricsTextStyle = MaterialTheme.typography.titleLarge,
+            // Use the platform default font (fontFamily = null) for lyrics so extended
+            // Unicode glyphs (e.g. Icelandic æ ð þ) render instead of tofu. The bundled
+            // Google Sans Rounded variable font drops these codepoints at runtime. (#2427)
+            lyricsTextStyle = MaterialTheme.typography.titleLarge.copy(fontFamily = null),
             colorScheme = LocalMaterialTheme.current,
             onBackClick = { showLyricsSheet = false },
             onSaveLyricsToFile = playerViewModel::saveLyricsToFile,

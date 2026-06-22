@@ -129,8 +129,8 @@
     <!-- LyricsSheet -->
     <string name="lyrics_title">Paroles</string>
     <string name="lyrics_loading">Chargement des paroles…</string>
-    <string name="lyrics_mode_synced">Synchronisées</string>
-    <string name="lyrics_mode_static">Statiques</string>
+    <string name="lyrics_mode_synced">Synchronisé</string>
+    <string name="lyrics_mode_static">Statique</string>
     <string name="lyrics_options">Options des paroles</string>
     <string name="lyrics_offset_minus_half">−.5</string>
     <string name="lyrics_offset_minus_point_one">−.1</string>

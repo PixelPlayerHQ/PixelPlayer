@@ -13,7 +13,10 @@ import com.theveloper.pixelplay.data.database.NeteasePlaylistEntity
 import com.theveloper.pixelplay.data.database.NeteaseSongEntity
 import com.theveloper.pixelplay.data.database.SongArtistCrossRef
 import com.theveloper.pixelplay.data.database.SongEntity
+import com.theveloper.pixelplay.data.database.SourceType
+import com.theveloper.pixelplay.data.database.serializeArtistRefs
 import com.theveloper.pixelplay.data.database.toSong
+import com.theveloper.pixelplay.data.model.ArtistRef
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.network.netease.NeteaseApiService
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
@@ -486,7 +489,7 @@ class NeteaseRepository @Inject constructor(
 
     // ─── Song URL Resolution ───────────────────────────────────────────
 
-    suspend fun getSongUrl(songId: Long, quality: String = "exhigh"): Result<String> {
+    suspend fun getSongUrl(songId: Long, quality: String = "lossless"): Result<String> {
         val now = System.currentTimeMillis()
         val lastAttempt = lastSongUrlAttemptAtMs[songId]
         if (lastAttempt != null && now - lastAttempt < songUrlRequestCooldownMs) {
@@ -507,7 +510,9 @@ class NeteaseRepository @Inject constructor(
 
         val result = withContext(Dispatchers.IO) {
             runCatching {
-                val qualityFallbacks = linkedSetOf(quality, "higher", "standard")
+                // Try the requested level first (e.g. "lossless" for SVIP accounts),
+                // then degrade gracefully so non-privileged accounts still resolve a URL.
+                val qualityFallbacks = linkedSetOf(quality, "exhigh", "higher", "standard")
                 var lastFailure: String? = null
 
                 for (level in qualityFallbacks) {
@@ -685,6 +690,14 @@ class NeteaseRepository @Inject constructor(
                 )
             }
 
+            val neteaseArtistRefs = artistNames.mapIndexed { index, artistName ->
+                ArtistRef(
+                    id = toUnifiedArtistId(artistName),
+                    name = artistName,
+                    isPrimary = index == 0
+                )
+            }
+
             val albumId = toUnifiedAlbumId(neteaseSong.albumId, neteaseSong.album)
             val albumName = neteaseSong.album.ifBlank { "Unknown Album" }
             albums.putIfAbsent(
@@ -725,7 +738,9 @@ class NeteaseRepository @Inject constructor(
                     bitrate = neteaseSong.bitrate,
                     sampleRate = null,
                     telegramChatId = null,
-                    telegramFileId = null
+                    telegramFileId = null,
+                    artistsJson = serializeArtistRefs(neteaseArtistRefs),
+                    sourceType = SourceType.NETEASE
                 )
             )
         }

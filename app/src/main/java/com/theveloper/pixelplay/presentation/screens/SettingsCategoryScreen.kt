@@ -508,33 +508,6 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
-                            SettingsSubsection(
-                                title = stringResource(R.string.settings_lyrics_management_section),
-                                addBottomSpace = false
-                            ) {
-                                ThemeSelectorItem(
-                                    label = stringResource(R.string.settings_lyrics_source_priority_title),
-                                    description = stringResource(R.string.settings_lyrics_source_priority_subtitle),
-                                    options = mapOf(
-                                        LyricsSourcePreference.EMBEDDED_FIRST.name to stringResource(R.string.settings_lyrics_embedded_first),
-                                        LyricsSourcePreference.API_FIRST.name to stringResource(R.string.settings_lyrics_online_first),
-                                        LyricsSourcePreference.LOCAL_FIRST.name to stringResource(R.string.settings_lyrics_local_first)
-                                    ),
-                                    selectedKey = uiState.lyricsSourcePreference.name,
-                                    onSelectionChanged = { key ->
-                                        settingsViewModel.setLyricsSourcePreference(
-                                            LyricsSourcePreference.fromName(key)
-                                        )
-                                    },
-                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
-                                )
-                                SettingsItem(
-                                    title = stringResource(R.string.settings_reset_imported_lyrics_title),
-                                    subtitle = stringResource(R.string.settings_reset_imported_lyrics_subtitle),
-                                    leadingIcon = { Icon(Icons.Outlined.ClearAll, null, tint = MaterialTheme.colorScheme.secondary) },
-                                    onClick = { showClearLyricsDialog = true }
-                                )
-                            }
                         }
                         SettingsCategory.APPEARANCE -> {
                             val useSmoothCorners by settingsViewModel.useSmoothCorners.collectAsStateWithLifecycle()
@@ -679,32 +652,6 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
-                            SettingsSubsection(title = stringResource(R.string.settings_lyrics_screen_section)) {
-                                SwitchSettingItem(
-                                    title = stringResource(R.string.settings_immersive_lyrics_title),
-                                    subtitle = stringResource(R.string.settings_immersive_lyrics_subtitle),
-                                    checked = uiState.immersiveLyricsEnabled,
-                                    onCheckedChange = { settingsViewModel.setImmersiveLyricsEnabled(it) },
-                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
-                                )
-
-                                if (uiState.immersiveLyricsEnabled) {
-                                    ThemeSelectorItem(
-                                        label = stringResource(R.string.settings_auto_hide_delay_title),
-                                        description = stringResource(R.string.settings_auto_hide_delay_subtitle),
-                                        options = mapOf(
-                                            "3000" to stringResource(R.string.settings_auto_hide_delay_3s),
-                                            "4000" to stringResource(R.string.settings_auto_hide_delay_4s),
-                                            "5000" to stringResource(R.string.settings_auto_hide_delay_5s),
-                                            "6000" to stringResource(R.string.settings_auto_hide_delay_6s)
-                                        ),
-                                        selectedKey = uiState.immersiveLyricsTimeout.toString(),
-                                        onSelectionChanged = { settingsViewModel.setImmersiveLyricsTimeout(it.toLong()) },
-                                        leadingIcon = { Icon(Icons.Rounded.Timer, null, tint = MaterialTheme.colorScheme.secondary) }
-                                    )
-                                }
-                            }
-
                             SettingsSubsection(
                                 title = stringResource(R.string.settings_app_navigation_section),
                                 addBottomSpace = false
@@ -732,6 +679,61 @@ fun SettingsCategoryScreen(
                                     onSelectionChanged = { settingsViewModel.setLibraryNavigationMode(it) },
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_library_music_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+                            }
+                        }
+                        SettingsCategory.LYRICS -> {
+                            SettingsSubsection(
+                                title = stringResource(R.string.settings_lyrics_management_section),
+                                addBottomSpace = false
+                            ) {
+                                ThemeSelectorItem(
+                                    label = stringResource(R.string.settings_lyrics_source_priority_title),
+                                    description = stringResource(R.string.settings_lyrics_source_priority_subtitle),
+                                    options = mapOf(
+                                        LyricsSourcePreference.EMBEDDED_FIRST.name to stringResource(R.string.settings_lyrics_embedded_first),
+                                        LyricsSourcePreference.API_FIRST.name to stringResource(R.string.settings_lyrics_online_first),
+                                        LyricsSourcePreference.LOCAL_FIRST.name to stringResource(R.string.settings_lyrics_local_first)
+                                    ),
+                                    selectedKey = uiState.lyricsSourcePreference.name,
+                                    onSelectionChanged = { key ->
+                                        settingsViewModel.setLyricsSourcePreference(
+                                            LyricsSourcePreference.fromName(key)
+                                        )
+                                    },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SettingsItem(
+                                    title = stringResource(R.string.settings_reset_imported_lyrics_title),
+                                    subtitle = stringResource(R.string.settings_reset_imported_lyrics_subtitle),
+                                    leadingIcon = { Icon(Icons.Outlined.ClearAll, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    onClick = { showClearLyricsDialog = true }
+                                )
+                            }
+
+                            SettingsSubsection(title = stringResource(R.string.settings_lyrics_screen_section)) {
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_immersive_lyrics_title),
+                                    subtitle = stringResource(R.string.settings_immersive_lyrics_subtitle),
+                                    checked = uiState.immersiveLyricsEnabled,
+                                    onCheckedChange = { settingsViewModel.setImmersiveLyricsEnabled(it) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_lyrics_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+
+                                if (uiState.immersiveLyricsEnabled) {
+                                    ThemeSelectorItem(
+                                        label = stringResource(R.string.settings_auto_hide_delay_title),
+                                        description = stringResource(R.string.settings_auto_hide_delay_subtitle),
+                                        options = mapOf(
+                                            "3000" to stringResource(R.string.settings_auto_hide_delay_3s),
+                                            "4000" to stringResource(R.string.settings_auto_hide_delay_4s),
+                                            "5000" to stringResource(R.string.settings_auto_hide_delay_5s),
+                                            "6000" to stringResource(R.string.settings_auto_hide_delay_6s)
+                                        ),
+                                        selectedKey = uiState.immersiveLyricsTimeout.toString(),
+                                        onSelectionChanged = { settingsViewModel.setImmersiveLyricsTimeout(it.toLong()) },
+                                        leadingIcon = { Icon(Icons.Rounded.Timer, null, tint = MaterialTheme.colorScheme.secondary) }
+                                    )
+                                }
                             }
                         }
                         SettingsCategory.PLAYBACK -> {
@@ -1269,6 +1271,7 @@ fun SettingsCategoryScreen(
                                                 .fillMaxWidth()
                                                 .padding(top = 8.dp, bottom = 8.dp)
                                         ) {
+                                            @Suppress("NonObservableLocale")
                                             val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
                                             val groupedUsage = recentAiUsage.groupBy { 
                                                 dateFormat.format(Date(it.timestamp)) 

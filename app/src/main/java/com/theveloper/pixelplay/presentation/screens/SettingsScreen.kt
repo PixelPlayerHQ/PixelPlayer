@@ -480,6 +480,7 @@ private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair
         when (category) {
             SettingsCategory.LIBRARY -> Color(0xFF004A77) to Color(0xFFC2E7FF) 
             SettingsCategory.APPEARANCE -> Color(0xFF7D5260) to Color(0xFFFFD8E4) 
+            SettingsCategory.LYRICS -> Color(0xFF4A1A6E) to Color(0xFFE8D0FF)
             SettingsCategory.PLAYBACK -> Color(0xFF633B48) to Color(0xFFFFD8EC) 
             SettingsCategory.BEHAVIOR -> Color(0xFF3E4C63) to Color(0xFFD7E3FF)
             SettingsCategory.AI_INTEGRATION -> Color(0xFF004F58) to Color(0xFF88FAFF) 
@@ -493,6 +494,7 @@ private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair
         when (category) {
             SettingsCategory.LIBRARY -> Color(0xFFD7E3FF) to Color(0xFF005AC1)
             SettingsCategory.APPEARANCE -> Color(0xFFFFD8E4) to Color(0xFF631835)
+            SettingsCategory.LYRICS -> Color(0xFFF0E0FF) to Color(0xFF4A1A6E)
             SettingsCategory.PLAYBACK -> Color(0xFFFFD8EC) to Color(0xFF631B4B)
             SettingsCategory.BEHAVIOR -> Color(0xFFD7E3FF) to Color(0xFF253347)
             SettingsCategory.AI_INTEGRATION -> Color(0xFFCCE8EA) to Color(0xFF004F58)

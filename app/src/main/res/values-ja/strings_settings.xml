@@ -7,6 +7,8 @@
     <string name="settings_category_appearance_subtitle">テーマ、レイアウト、ビジュアルスタイル</string>
     <string name="settings_category_playback_title">再生</string>
     <string name="settings_category_playback_subtitle">オーディオ動作、クロスフェード、バックグラウンド再生</string>
+    <string name="settings_category_lyrics_title">歌詞</string>
+    <string name="settings_category_lyrics_subtitle">優先ソース、没入型歌詞、インポート管理</string>
     <string name="settings_category_behavior_title">動作</string>
     <string name="settings_category_behavior_subtitle">ジェスチャー、触覚フィードバック、ナビゲーション動作</string>
     <string name="settings_category_ai_title">AI 連携（β）</string>
@@ -175,6 +177,8 @@
     <string name="settings_language_norwegian_bokmal">Norsk (Bokmål)</string>
     <string name="settings_language_turkish">Türkçe</string>
     <string name="settings_language_japanese">日本語</string>
+    <string name="settings_language_traditional_chinese">繁體中文</string>
+    <string name="settings_language_vietnamese">Tiếng Việt</string>
     <string name="settings_app_theme_title">アプリのテーマ</string>
     <string name="settings_app_theme_subtitle">ライト、ダーク、またはシステムに合わせるを選択します。</string>
     <string name="settings_theme_light">ライトテーマ</string>
@@ -268,6 +272,9 @@
     <string name="settings_battery_optimization_subtitle">バッテリー最適化を無効にして再生の中断を防ぎます。</string>
     <string name="settings_toast_battery_already_disabled">バッテリー最適化はすでに無効になっています</string>
     <string name="settings_toast_battery_settings_unavailable">バッテリー設定を開けませんでした</string>
+    <string name="settings_volume_section">音量</string>
+    <string name="settings_pause_on_volume_zero">音量ゼロで一時停止</string>
+    <string name="settings_pause_on_volume_zero_desc">音量がゼロのときに再生を一時停止します</string>
     <string name="settings_replaygain_section">音量ノーマライゼーション（ReplayGain）</string>
     <string name="settings_replaygain_enable_title">ReplayGain を有効化</string>
     <string name="settings_replaygain_enable_subtitle">オーディオファイルの ReplayGain メタデータを使って音量レベルを正規化します。</string>
@@ -622,6 +629,12 @@
     <string name="about_screen_title">このアプリについて</string>
     <string name="about_app_name">PixelPlayer</string>
     <string name="about_tagline">コミュニティと共に作られたオープンソースの音楽プレイヤー。</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">ソースコード、リリース、イシュー</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">コミュニティに参加、開発をフォロー</string>
+    <string name="about_cd_join_telegram">Telegram に参加</string>
+    <string name="about_cd_open_github_repo">GitHub リポジトリを開く</string>
     <string name="about_version_format">バージョン v%1$s</string>
     <string name="about_signal_open_source">オープンソース</string>
     <string name="about_signal_community_first">コミュニティファースト</string>

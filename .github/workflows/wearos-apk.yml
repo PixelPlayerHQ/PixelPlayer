@@ -30,7 +30,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build Wear OS debug APK
-        run: gradle :wear:assembleDebug
+        run: gradle :wear:assembleDebug --no-build-cache
 
       - name: Upload Wear OS APK artifact
         uses: actions/upload-artifact@v7.0.1

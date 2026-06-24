@@ -30,7 +30,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build Phone debug APK
-        run: gradle :app:assembleDebug -Ppixelplay.enableAbiSplits=true
+        run: gradle :app:assembleDebug -Ppixelplay.enableAbiSplits=true --no-build-cache
 
       - name: Verify Phone split APKs
         run: |

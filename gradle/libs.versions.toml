@@ -9,7 +9,6 @@ appcompat = "1.7.1"
 capturable = "3.0.1"
 codeview = "1.3.9"
 coilCompose = "2.7.0"
-composeDnd = "0.4.0"
 composeMaterialIcons = "1.7.8"
 composeUi = "1.11.3"
 constraintlayoutCompose = "1.1.1"
@@ -46,7 +45,6 @@ paletteKtx = "1.0.0"
 protobufJavalite = "4.35.1"
 pytorch_android = "2.1.0"
 pytorch_android_torchvision = "2.1.0"
-reorderable = "0.9.6"
 reorderables = "3.1.0"
 paging = "3.5.0"
 roomCompiler = "2.8.4"
@@ -88,7 +86,6 @@ wavySlider = "2.2.0"
 workRuntimeKtx = "2.11.2"
 composeTesting = "1.0.0-alpha03"
 timber = "5.0.1"
-generativeai = "0.9.0"
 mockk = "1.14.11"
 turbine = "1.2.1"
 truth = "1.4.5"
@@ -162,7 +159,6 @@ androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version
 capturable = { module = "dev.shreyaspatil:capturable", version.ref = "capturable" }
 codeview = { module = "io.github.amrdeveloper:codeview", version.ref = "codeview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
-compose-dnd = { module = "com.mohamedrejeb.dnd:compose-dnd", version.ref = "composeDnd" }
 duktape-android = { module = "com.squareup.duktape:duktape-android", version.ref = "duktapeAndroid" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
@@ -196,7 +192,6 @@ material3 = { module = "androidx.compose.material3:material3", version.ref = "ma
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 pytorch_android = { module = "org.pytorch:pytorch_android", version.ref = "pytorch_android" }
 pytorch_android_torchvision = { module = "org.pytorch:pytorch_android_torchvision", version.ref = "pytorch_android_torchvision" }
-reorderable = { module = "org.burnoutcrew.composereorderable:reorderable", version.ref = "reorderable" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
 smooth-corner-rect-android-compose = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smoothCornerRectAndroidCompose" }
 spleeter-android-ios = { module = "com.github.FaceOnLive:Spleeter-Android-iOS", version.ref = "spleeterAndroidIos" }
@@ -211,7 +206,6 @@ taglib = { group = "io.github.kyant0", name = "taglib", version.ref = "taglib" }
 jaudiotagger = { group = "net.jthink", name = "jaudiotagger", version.ref = "jaudiotagger" }
 vorbisjava-core = { group = "org.gagravarr", name = "vorbis-java-core", version.ref = "vorbisjava" }
 reorderables = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderables" }
-generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }

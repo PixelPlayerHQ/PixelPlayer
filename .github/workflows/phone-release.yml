@@ -52,7 +52,7 @@ jobs:
           echo "keyPassword=994273" >> keystore.properties
 
       - name: Build Phone release APK
-        run: gradle :app:assembleRelease -Ppixelplay.enableAbiSplits=true
+        run: gradle :app:assembleRelease -Ppixelplay.enableAbiSplits=true --no-build-cache
 
       - name: Verify Phone split APKs
         run: |

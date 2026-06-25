@@ -1056,7 +1056,14 @@ class LyricsRepositoryImpl @Inject constructor(
 
             val lyricsData = LyricsData(
                 plainLyrics = lyrics.plain?.joinToString("\n"),
-                syncedLyrics = lyrics.synced?.joinToString("\n") { "[${formatTimestamp(it.time)}]${it.line}" },
+                syncedLyrics = lyrics.synced?.joinToString("\n") { line ->
+                    buildString {
+                        append("[${formatTimestamp(line.time)}]${line.line}")
+                        if (!line.translation.isNullOrBlank()) {
+                            append("\n[${formatTimestamp(line.time)}]${line.translation}")
+                        }
+                    }
+                },
                 wordByWordLyrics = wordByWordLyrics
             )
 
@@ -1247,7 +1254,12 @@ class LyricsRepositoryImpl @Inject constructor(
                 toWordByWordLrc(syncedLyrics)
             } else {
                 syncedLyrics.joinToString("\n") { line ->
-                    "[${formatTimestamp(line.time)}]${line.line}"
+                    buildString {
+                        append("[${formatTimestamp(line.time)}]${line.line}")
+                        if (!line.translation.isNullOrBlank()) {
+                            append("\n[${formatTimestamp(line.time)}]${line.translation}")
+                        }
+                    }
                 }
             }
         }
@@ -1710,6 +1722,8 @@ class LyricsRepositoryImpl @Inject constructor(
             MultiLangRomanizer.isJapanese(text) -> MultiLangRomanizer.romanizeJapanese(text) ?: text
             MultiLangRomanizer.isChinese(text) -> MultiLangRomanizer.romanizeChinese(text) ?: text
             MultiLangRomanizer.isKorean(text) -> MultiLangRomanizer.romanizeKorean(text)
+            MultiLangRomanizer.isCyrillic(text) -> MultiLangRomanizer.romanizeCyrillic(text) ?: text
+            MultiLangRomanizer.isVietnamese(text) -> MultiLangRomanizer.romanizeVietnamese(text)
             else -> text
         }
     }

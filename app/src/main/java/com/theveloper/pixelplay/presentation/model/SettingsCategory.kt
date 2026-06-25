@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.theveloper.pixelplay.R
 
@@ -31,11 +32,23 @@ enum class SettingsCategory(
         subtitleRes = R.string.settings_category_appearance_subtitle,
         icon = Icons.Rounded.Palette
     ),
+    LYRICS(
+        id = "lyrics",
+        titleRes = R.string.settings_category_lyrics_title,
+        subtitleRes = R.string.settings_category_lyrics_subtitle,
+        icon = Icons.Rounded.QueueMusic
+    ),
     PLAYBACK(
         id = "playback",
         titleRes = R.string.settings_category_playback_title,
         subtitleRes = R.string.settings_category_playback_subtitle,
-        icon = Icons.Rounded.MusicNote // Using MusicNote again or maybe PlayCircle if available
+        icon = Icons.Rounded.MusicNote
+    ),
+    EQUALIZER(
+        id = "equalizer",
+        titleRes = R.string.settings_category_equalizer_title,
+        subtitleRes = R.string.settings_category_equalizer_subtitle,
+        icon = Icons.Rounded.GraphicEq
     ),
     BEHAVIOR(
         id = "behavior",
@@ -61,17 +74,11 @@ enum class SettingsCategory(
         subtitleRes = R.string.settings_category_developer_subtitle,
         icon = Icons.Rounded.DeveloperMode
     ),
-    EQUALIZER(
-        id = "equalizer",
-        titleRes = R.string.settings_category_equalizer_title,
-        subtitleRes = R.string.settings_category_equalizer_subtitle,
-        icon = Icons.Rounded.GraphicEq
-    ),
     DEVICE_CAPABILITIES(
         id = "device_capabilities",
         titleRes = R.string.settings_category_device_capabilities_title,
         subtitleRes = R.string.settings_category_device_capabilities_subtitle,
-        icon = Icons.Rounded.DeveloperBoard // Placeholder, maybe Memory or SettingsInputComponent
+        icon = Icons.Rounded.DeveloperBoard
     ),
     ABOUT(
         id = "about",
@@ -83,4 +90,6 @@ enum class SettingsCategory(
     companion object {
         fun fromId(id: String): SettingsCategory? = entries.find { it.id == id }
     }
+
+
 }

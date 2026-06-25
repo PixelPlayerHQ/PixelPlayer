@@ -356,9 +356,9 @@ class LyricsStateHolder @Inject constructor(
             _messageEvents.emit(cb.getString(R.string.lyrics_translate_progress))
 
             val rawLyrics = withContext(Dispatchers.IO) {
-                currentSong.lyrics?.takeIf { it.isNotBlank() }
-                    ?: readLocalLyricsFile(currentSong)
+                readLocalLyricsFile(currentSong)
                     ?: readEmbeddedLyricsFromFile(currentSong)
+                    ?: currentSong.lyrics?.takeIf { it.isNotBlank() }
                     ?: musicRepository.getStoredLyrics(currentSong)?.second
             }
 

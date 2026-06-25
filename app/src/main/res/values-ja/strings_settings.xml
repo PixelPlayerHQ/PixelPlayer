@@ -634,8 +634,19 @@
     <string name="about_contributors_section_title">オープンソースコントリビューター</string>
     <string name="about_contributors_section_subtitle">GitHub からのライブコントリビューターリスト。</string>
     <string name="about_contributions_format">%1$d 回のコントリビューション</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_subtitle">リポジトリ</string>
+    <string name="about_telegram_label">Telegram</string>
+    <string name="about_telegram_subtitle">サポート</string>
+    <string name="about_cd_open_github_repo">GitHub リポジトリを開く</string>
+    <string name="about_cd_join_telegram">Telegram コミュニティに参加</string>
     <string name="about_cd_open_github_profile">GitHub プロフィールを開く</string>
     <string name="about_cd_open_telegram">Telegram を開く</string>
     <string name="about_cd_contributor_avatar">%1$s のアバター</string>
     <string name="about_cd_contributor_icon">%1$s のアイコン</string>
+
+    <!-- Playback category (Volume) -->
+    <string name="settings_volume_section">音量</string>
+    <string name="settings_pause_on_volume_zero">音量ゼロで一時停止</string>
+    <string name="settings_pause_on_volume_zero_desc">音量が 0 に設定されたとき、再生を自動的に一時停止します。</string>
 </resources>

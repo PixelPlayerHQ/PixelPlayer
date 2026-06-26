@@ -1600,6 +1600,9 @@ constructor(
                 // across chunks, so the count may be updated again in a later chunk upsert — that
                 // is fine because incrementalSyncMusicData uses upsert (INSERT OR REPLACE), so
                 // the last chunk to touch an album wins with the final correct count.
+                // cleanupOrphans=false: this is a pure-insert chunk (no deletions), so it can't
+                // create orphans. Cleanup runs once after all chunks (including the deletion
+                // loop below) instead of on every one of the ~200 chunk flushes for 100k songs.
                 val finalAlbums = albumsToInsert.values.map { album ->
                     album.copy(songCount = albumSongCounts[album.id] ?: 0)
                 }
@@ -1608,7 +1611,8 @@ constructor(
                     albums = finalAlbums,
                     artists = artistsToInsert.values.toList(),
                     crossRefs = crossRefsToInsert,
-                    deletedSongIds = emptyList() // Deletions handled after all chunks
+                    deletedSongIds = emptyList(), // Deletions handled after all chunks
+                    cleanupOrphans = false
                 )
                 totalSynced += songsToInsert.size
                 Log.d(TAG, "Telegram sync: flushed chunk of ${songsToInsert.size} songs ($totalSynced / ${telegramSongs.size} total)")
@@ -1624,11 +1628,15 @@ constructor(
                         albums = emptyList(),
                         artists = emptyList(),
                         crossRefs = emptyList(),
-                        deletedSongIds = batch
+                        deletedSongIds = batch,
+                        cleanupOrphans = false
                     )
                 }
                 Log.i(TAG, "Telegram sync: removed ${deletedUnifiedSongIds.size} deleted songs.")
             }
+
+            // Single orphan cleanup for the whole sync, instead of one per chunk above.
+            musicDao.cleanupOrphanedMusicData()
 
             Log.i(TAG, "Synced $totalSynced Telegram songs with Unified Metadata.")
         } catch (e: Exception) {

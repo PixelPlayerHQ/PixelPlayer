@@ -960,12 +960,17 @@ constructor(
         val artistDelimiters = userPreferencesRepository.artistDelimitersFlow.first()
         val artistWordDelimiters = userPreferencesRepository.artistWordDelimitersFlow.first()
         val rawSongCount = rawDataList.size
-        val songsToProcess = if (isRebuild) {
-             rawDataList.toList()
+        // Pairs of (raw MediaStore data, existing local entity if any). Phase 2 already has
+        // to fetch each song's existing entity to decide whether it changed; carrying that
+        // entity forward here means Phase 3 doesn't have to issue the same
+        // getSongsByIdsListSimple query a second time for the same IDs just to get the same
+        // data again for the merge step below.
+        val songsToProcess: List<Pair<RawSongData, SongEntity?>> = if (isRebuild) {
+             rawDataList.map { it to null }
         } else {
             // Find existing data for these songs to avoid unnecessary reprocessing
             // and to preserve user edits.
-            val results = mutableListOf<RawSongData>()
+            val results = mutableListOf<Pair<RawSongData, SongEntity?>>()
             
             rawDataList.chunked(500).forEach { batch ->
                 val ids = batch.map { it.id }
@@ -974,7 +979,7 @@ constructor(
                 batch.forEach { raw ->
                     val existing = existingMap[raw.id]
                     if (!isSongUnchanged(raw, existing)) {
-                        results.add(raw)
+                        results.add(raw to existing)
                     }
                 }
             }
@@ -1001,17 +1006,15 @@ constructor(
         val concurrencyLimit = 4 // Reduced concurrency to save memory
         val semaphore = Semaphore(concurrencyLimit)
 
-        // Process batches sequentially so each batch's existingMap can be GC'd before the next
-        // batch is loaded. The semaphore still limits concurrency within each batch.
+        // Process batches sequentially to keep peak memory bounded, same as before. The
+        // per-batch existingMap query from the original version is gone — localSong now comes
+        // from the pair carried over from Phase 2 instead of a second DB round-trip.
         val songs = mutableListOf<SongEntity>()
         for (batch in songsToProcess.chunked(200)) {
-            val ids = batch.map { it.id }
-            val existingMap = if (isRebuild) emptyMap() else musicDao.getSongsByIdsListSimple(ids).associateBy { it.id }
             val batchResults = coroutineScope {
-                batch.map { raw ->
+                batch.map { (raw, localSong) ->
                     async {
                         semaphore.withPermit {
-                            val localSong = existingMap[raw.id]
                             val mediaStoreSong =
                                 processSongData(
                                     raw = raw,

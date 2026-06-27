@@ -89,33 +89,33 @@ class TelegramClientManager @Inject constructor(
             is TdApi.AuthorizationStateWaitTdlibParameters -> {
                 val databaseDirectory = File(context.filesDir, "tdlib").absolutePath
                 val filesDirectory = File(context.filesDir, "tdlib_files").absolutePath
-                
-                // Based on error message and typical TDLib params structure for flat constructors:
-                // useTestDc, databaseDir, filesDir, encryptionKey, useFileDatabase, useChatInfoDatabase, useMessageDatabase, useSecretChats, apiId, apiHash, systemLanguage, deviceModel, systemVersion, applicationVersion, enableStorageOptimizer, ignoreFileNames
-                
-                // Note: The order varies by version. I will try the most common flat signature.
-                // If this fails, I might need to revert to using the object but finding why the object constructor failed.
-                // Actually, often in Java bindings, you have to set fields on the object passed to SetTdlibParameters.
-                // But if SetTdlibParameters ONLY has a multi-arg constructor, I must use it.
-                
-                // Let's assume the error message `constructor(p0: Boolean, p1: String!, ...)` matches the fields.
-                
-                client?.send(TdApi.SetTdlibParameters(
-                    false, // useTestDc
-                    databaseDirectory,
-                    filesDirectory,
-                    null, // databaseEncryptionKey
-                    true, // useFileDatabase
-                    true, // useChatInfoDatabase
-                    true, // useMessageDatabase
-                    false, // useSecretChats
-                    BuildConfig.TELEGRAM_API_ID,
-                    BuildConfig.TELEGRAM_API_HASH,
-                    "en", // systemLanguageCode
-                    "PixelPlayer Instance", // deviceModel
-                    android.os.Build.VERSION.RELEASE, // systemVersion
-                    BuildConfig.VERSION_NAME
-                ), defaultHandler)
+
+                // Field assignment (not the flat positional constructor) on purpose: the
+                // flat TdApi.SetTdlibParameters(...) constructor's argument order isn't
+                // documented for this tdlibx build and was previously guessed, which risks
+                // silently shifting values into the wrong field (e.g. apiId landing where
+                // systemLanguageCode is expected) with no compile-time or runtime error.
+                // Named field assignment, as used in TDLib's own official Java example,
+                // can't misalign like that.
+                val parameters = TdApi.TdlibParameters().apply {
+                    useTestDc = false
+                    this.databaseDirectory = databaseDirectory
+                    this.filesDirectory = filesDirectory
+                    useFileDatabase = true
+                    useChatInfoDatabase = true
+                    useMessageDatabase = true
+                    useSecretChats = false
+                    apiId = BuildConfig.TELEGRAM_API_ID
+                    apiHash = BuildConfig.TELEGRAM_API_HASH
+                    systemLanguageCode = "en"
+                    deviceModel = "PixelPlayer Instance"
+                    systemVersion = android.os.Build.VERSION.RELEASE
+                    applicationVersion = BuildConfig.VERSION_NAME
+                    enableStorageOptimizer = true
+                    ignoreFileNames = false
+                }
+
+                client?.send(TdApi.SetTdlibParameters(parameters), defaultHandler)
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> {
                 // UI should prompt for phone number

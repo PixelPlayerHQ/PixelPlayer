@@ -1221,11 +1221,25 @@ constructor(
         // Number of Telegram songs processed per DB flush. Keeps peak memory bounded
         // regardless of channel size (e.g. 65k songs → ~130 flushes of 500 each).
         private const val TELEGRAM_SYNC_CHUNK_SIZE = 500
+
         // Bounded parallelism for the per-song file.exists()+tag-read step within a chunk.
-        // This was previously fully sequential, which is what made very large Telegram
-        // channels (e.g. 100k songs) take on the order of 10 minutes to sync. Kept modest
-        // (same order as the MediaStore processing semaphore) to avoid saturating disk IO.
-        private const val TELEGRAM_METADATA_READ_CONCURRENCY = 8
+        // This work was previously fully sequential, which is what made very large Telegram
+        // channels (e.g. 100k songs) take on the order of 10 minutes to sync.
+        //
+        // This used to be a flat constant (8) regardless of device. A flat number can't be
+        // right for both ends of the device spectrum: it leaves a low-core device with very
+        // little CPU headroom for the UI thread during a background sync (each of these
+        // concurrent reads does a real native TagLib JNI call, which is genuine CPU-bound work,
+        // not just blocking IO wait — Kotlin dispatchers schedule threads, they don't reserve
+        // CPU time, so heavy parallel CPU work here can still starve the Main thread on a
+        // device with few cores), while being needlessly conservative on a high-core device.
+        //
+        // Scaling with availableProcessors(), capped to [2, 4], is an engineering default
+        // based on that reasoning, not a profiled/measured-optimal value — it has not been
+        // verified against real device traces. If real-world telemetry or further testing
+        // shows a different range is better, this is the one place to adjust it.
+        private fun telegramMetadataReadConcurrency(): Int =
+            (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 4)
 
         private const val NETEASE_SONG_ID_OFFSET = 3_000_000_000_000L
         private const val NETEASE_ALBUM_ID_OFFSET = 4_000_000_000_000L
@@ -1370,12 +1384,33 @@ constructor(
             }
 
             // 1. Pre-load local data for merging — loaded once, shared across all chunks.
-            //    getAllArtistsListRaw() called once only (was called twice before).
+            //
+            // NOTE: getAllArtistsListRaw()/getAllAlbumsList() load every artist/album in the
+            // entire unified library (not just Telegram-sourced ones), unconditionally. This
+            // preload's memory cost scales with the size of the user's *existing* library, not
+            // with the size of the channel being synced — on a library with many thousands of
+            // distinct artists already present (e.g. a prior sync of a similarly large channel),
+            // this can be a genuinely large amount of memory held for the whole sync. Fully
+            // avoiding that would mean replacing this preload with batched per-chunk lookups
+            // (e.g. SELECT ... WHERE name IN (:chunkNames)) instead of one upfront full-library
+            // load; that's a real, separate redesign, not done here.
+            //
+            // What IS done here: build both derived maps in a single pass over the artist list,
+            // pre-sized to the known count, instead of two separate .associate{} calls (each of
+            // which allocates its own default-capacity HashMap that has to resize/reallocate
+            // repeatedly as it grows for a large list). This avoids some transient duplicate
+            // allocation during the preload, though it does not change the preload's fundamental
+            // scaling with existing-library size.
             val allExistingArtists = musicDao.getAllArtistsListRaw()
-            val existingArtists = allExistingArtists.associate { it.name.trim().lowercase() to it.id }
+            val initialCapacity = ((allExistingArtists.size / 0.75f).toInt() + 1).coerceAtLeast(16)
+            val existingArtists = HashMap<String, Long>(initialCapacity)
+            val existingArtistImageUrls = HashMap<Long, String?>(initialCapacity)
+            for (artist in allExistingArtists) {
+                existingArtists[artist.name.trim().lowercase()] = artist.id
+                existingArtistImageUrls[artist.id] = artist.imageUrl
+            }
             val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0)
                 .associate { "${it.title.trim().lowercase()}_${it.artistName.trim().lowercase()}" to it.id }
-            val existingArtistImageUrls = allExistingArtists.associate { it.id to it.imageUrl }
             val delimiters = userPreferencesRepository.artistDelimitersFlow.first()
             val wordDelims = userPreferencesRepository.artistWordDelimitersFlow.first()
 
@@ -1389,7 +1424,7 @@ constructor(
             // expensive part of the loop (file.exists() + tag parsing per song), so it's the
             // only part run in parallel; the artist/album dedup maps that follow are mutated
             // from a single thread per chunk and stay sequential, same as before.
-            val metadataReadSemaphore = Semaphore(TELEGRAM_METADATA_READ_CONCURRENCY)
+            val metadataReadSemaphore = Semaphore(telegramMetadataReadConcurrency())
 
             telegramSongs.chunked(TELEGRAM_SYNC_CHUNK_SIZE).forEach { chunk ->
                 // Per-chunk collections — allocated, used, then released each iteration.

@@ -79,6 +79,10 @@ import androidx.paging.PagingData
 import androidx.paging.map
 import androidx.paging.filter
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
@@ -107,6 +111,12 @@ class MusicRepositoryImpl @Inject constructor(
         private const val SEARCH_RESULTS_LIMIT = 100
         private const val UNKNOWN_GENRE_NAME = "Unknown"
         private const val UNKNOWN_GENRE_ID = "unknown"
+        // How long the artist list must stop changing before a prefetch is actually
+        // triggered. A judgment call, not a profiled-optimal value: long enough to coalesce
+        // the rapid chunk-commit cadence of an active sync (observed roughly every few
+        // hundred ms to ~1s during a large Telegram/MediaStore sync), short enough that a
+        // normal, one-off addition of a few songs still gets artist images fetched promptly.
+        private const val ARTIST_PREFETCH_DEBOUNCE_MS = 1500L
     }
 
     private val directoryScanMutex = Mutex()
@@ -116,11 +126,18 @@ class MusicRepositoryImpl @Inject constructor(
         enablePlaceholders = true,
         maxSize = 250
     )
-    // Tracks the active prefetch job so a new flow emission cancels the previous one.
-    @Volatile private var prefetchJob: Job? = null
     @Volatile private var currentSongArtistPrefetchJob: Job? = null
     @Volatile private var currentSongArtistPrefetchSongId: Long? = null
     @Volatile private var telegramDownloadSyncObserverStarted = false
+    @Volatile private var artistPrefetchObserverStarted = false
+    // Buffers the latest artist list for the debounced prefetch trigger below. Capacity 1 +
+    // DROP_OLDEST means a burst of rapid emissions (e.g. one per sync chunk commit) only ever
+    // holds the single most recent list, rather than queuing every intermediate one.
+    private val artistPrefetchTrigger = MutableSharedFlow<List<Artist>>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager
         get() = telegramCacheManagerProvider.get()
     override val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository
@@ -174,6 +191,40 @@ class MusicRepositoryImpl @Inject constructor(
                     com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
                 )
             }
+        }
+    }
+
+    // getArtists()'s underlying query re-emits on every artist/song insert during a sync —
+    // its own song-count column changes with every song attributed to an artist, so
+    // distinctUntilChanged() upstream does not dedupe these away. Previously each emission
+    // cancelled any in-flight prefetch and started a new one from scratch (see git history),
+    // which on a 100k-song sync meant the prefetch was restarted, cancelled, and discarded
+    // dozens of times in rapid succession — confirmed via a field performance report showing
+    // repeated short-lived artist_image_prefetch_start/end pairs (shrinking artist counts,
+    // sub-4-second durations) tightly interleaved with 600-1000ms+ main-thread frame stalls.
+    //
+    // debounce() here means a burst of emissions during active syncing collapses into a
+    // single prefetch attempt once the list has stopped changing for ARTIST_PREFETCH_DEBOUNCE_MS,
+    // instead of restarting on every single one. collectLatest() still cancels a prefetch that's
+    // already running if a newer list arrives after debounce, same intent as the previous
+    // manual prefetchJob?.cancel(), just without redoing that bookkeeping by hand.
+    //
+    // ARTIST_PREFETCH_DEBOUNCE_MS is a judgment call, not a profiled-optimal value: long enough
+    // to coalesce the rapid chunk-commit cadence of an active sync, short enough that a normal,
+    // one-off addition of a few songs still gets its artist images fetched promptly.
+    private fun ensureArtistPrefetchObserverStarted() {
+        if (artistPrefetchObserverStarted) return
+        artistPrefetchObserverStarted = true
+
+        repositoryScope.launch {
+            artistPrefetchTrigger
+                .debounce(ARTIST_PREFETCH_DEBOUNCE_MS)
+                .collectLatest { artists ->
+                    val missingImages = artists.missingImageCandidates()
+                    if (missingImages.isNotEmpty()) {
+                        artistImageRepository.prefetchArtistImages(missingImages)
+                    }
+                }
         }
     }
 
@@ -471,20 +522,15 @@ class MusicRepositoryImpl @Inject constructor(
                 filterMode = storageFilter.toFilterMode()
             )
                 .distinctUntilChanged()
-                .map { entities ->
-                    val artists = entities.map { it.toArtist() }
-                    // Trigger prefetch for missing images (non-blocking)
-                    val missingImages = artists.missingImageCandidates()
-                    if (missingImages.isNotEmpty()) {
-                        // Cancel any in-flight prefetch before starting a new one — the flow
-                        // can emit multiple times during sync, and concurrent launches would
-                        // create N × artist-count coroutines simultaneously.
-                        prefetchJob?.cancel()
-                        prefetchJob = repositoryScope.launch {
-                            artistImageRepository.prefetchArtistImages(missingImages)
-                        }
-                    }
-                    artists
+                .map { entities -> entities.map { it.toArtist() } }
+                .onEach { artists ->
+                    // Feed the debounced trigger rather than computing missingImages and
+                    // launching a prefetch directly here. See ensureArtistPrefetchObserverStarted()
+                    // for why: this Flow can emit many times in quick succession during a sync,
+                    // and the previous per-emission cancel-and-restart approach wasted real
+                    // work and contended for CPU/IO across the whole app each time it restarted.
+                    ensureArtistPrefetchObserverStarted()
+                    artistPrefetchTrigger.tryEmit(artists)
                 }
         }.conflate().flowOn(Dispatchers.IO)
     }

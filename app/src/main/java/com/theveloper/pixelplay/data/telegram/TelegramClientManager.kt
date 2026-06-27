@@ -90,32 +90,53 @@ class TelegramClientManager @Inject constructor(
                 val databaseDirectory = File(context.filesDir, "tdlib").absolutePath
                 val filesDirectory = File(context.filesDir, "tdlib_files").absolutePath
 
-                // Field assignment (not the flat positional constructor) on purpose: the
-                // flat TdApi.SetTdlibParameters(...) constructor's argument order isn't
-                // documented for this tdlibx build and was previously guessed, which risks
-                // silently shifting values into the wrong field (e.g. apiId landing where
-                // systemLanguageCode is expected) with no compile-time or runtime error.
-                // Named field assignment, as used in TDLib's own official Java example,
-                // can't misalign like that.
-                val parameters = TdApi.TdlibParameters().apply {
-                    useTestDc = false
-                    this.databaseDirectory = databaseDirectory
-                    this.filesDirectory = filesDirectory
-                    useFileDatabase = true
-                    useChatInfoDatabase = true
-                    useMessageDatabase = true
-                    useSecretChats = false
-                    apiId = BuildConfig.TELEGRAM_API_ID
-                    apiHash = BuildConfig.TELEGRAM_API_HASH
-                    systemLanguageCode = "en"
-                    deviceModel = "PixelPlayer Instance"
-                    systemVersion = android.os.Build.VERSION.RELEASE
-                    applicationVersion = BuildConfig.VERSION_NAME
-                    enableStorageOptimizer = true
-                    ignoreFileNames = false
-                }
+                // Flat positional constructor, confirmed against this exact tdlibx 1.8.56
+                // build's actual compiled signature (via a real compile error, not assumed
+                // from docs — see commit message). This build's TdApi.SetTdlibParameters has
+                // no constructor that takes a TdlibParameters object, only this flat one and
+                // a no-arg one, contrary to the official TDLib docs/example for a different
+                // binding. Confirmed signature:
+                //   (useTestDc: Boolean, databaseDirectory: String, filesDirectory: String,
+                //    databaseEncryptionKey: ByteArray?, useFileDatabase: Boolean,
+                //    useChatInfoDatabase: Boolean, useMessageDatabase: Boolean,
+                //    useSecretChats: Boolean, apiId: Int, apiHash: String,
+                //    systemLanguageCode: String, deviceModel: String, systemVersion: String,
+                //    applicationVersion: String)
+                // Named locals here instead of bare positional literals so a misordering is
+                // easier to spot on review, without reintroducing the ambiguity of guessing
+                // at field names that don't apply to this build's API shape.
+                val useTestDc = false
+                val databaseEncryptionKey: ByteArray? = null
+                val useFileDatabase = true
+                val useChatInfoDatabase = true
+                val useMessageDatabase = true
+                val useSecretChats = false
+                val apiId = BuildConfig.TELEGRAM_API_ID
+                val apiHash = BuildConfig.TELEGRAM_API_HASH
+                val systemLanguageCode = "en"
+                val deviceModel = "PixelPlayer Instance"
+                val systemVersion = android.os.Build.VERSION.RELEASE
+                val applicationVersion = BuildConfig.VERSION_NAME
 
-                client?.send(TdApi.SetTdlibParameters(parameters), defaultHandler)
+                client?.send(
+                    TdApi.SetTdlibParameters(
+                        useTestDc,
+                        databaseDirectory,
+                        filesDirectory,
+                        databaseEncryptionKey,
+                        useFileDatabase,
+                        useChatInfoDatabase,
+                        useMessageDatabase,
+                        useSecretChats,
+                        apiId,
+                        apiHash,
+                        systemLanguageCode,
+                        deviceModel,
+                        systemVersion,
+                        applicationVersion
+                    ),
+                    defaultHandler
+                )
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> {
                 // UI should prompt for phone number

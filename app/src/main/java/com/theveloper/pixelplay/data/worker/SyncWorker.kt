@@ -893,8 +893,8 @@ constructor(
                     } else -1
 
                     while (cursor.moveToNext()) {
+                        val data = cursor.getString(dataCol) ?: continue
                         try {
-                            val data = cursor.getString(dataCol) ?: continue
                             val lastSlash = data.lastIndexOf('/')
                             if (lastSlash > 0) {
                                 val normalizedParent = data.substring(0, lastSlash)
@@ -906,12 +906,20 @@ constructor(
                             // Proceed on error
                         }
 
+                        // Cursor getters cross into native CursorWindow code; read each column
+                        // once per row and reuse the value, rather than calling the same
+                        // getter twice (trackCol previously fed both trackNumber and
+                        // discNumber via two separate cursor.getInt(trackCol) calls, and
+                        // dataCol was read once above for the directory filter and again
+                        // here for filePath).
+                        val rawTrack = cursor.getInt(trackCol)
+
                         rawDataList.add(
                                 RawSongData(
                                         id = cursor.getLong(idCol),
                                         albumId = cursor.getLong(albumIdCol),
                                         artistId = cursor.getLong(artistIdCol),
-                                        filePath = cursor.getString(dataCol) ?: "",
+                                        filePath = data,
                                         mimeType = if (mimeTypeCol >= 0) cursor.getString(mimeTypeCol) else null,
                                         title =
                                                 cursor.getString(titleCol)
@@ -932,8 +940,8 @@ constructor(
                                                                 ?.takeIf { it.isNotBlank() }
                                                 else null,
                                         duration = cursor.getLong(durationCol),
-                                        trackNumber = cursor.getInt(trackCol) % 1000,
-                                        discNumber = (cursor.getInt(trackCol) / 1000).takeIf { it > 0 },
+                                        trackNumber = rawTrack % 1000,
+                                        discNumber = (rawTrack / 1000).takeIf { it > 0 },
                                         year = cursor.getInt(yearCol),
                                         dateModified = cursor.getLong(dateModifiedCol),
                                         genre = if (genreCol >= 0) cursor.getString(genreCol) else null
@@ -1187,9 +1195,18 @@ constructor(
             while (cursor.moveToNext()) {
                 val data = cursor.getString(dataCol)
                 if (data != null) {
-                    val parentPath = File(data).parent
-                    if (parentPath != null && directoryResolver.isBlocked(File(parentPath).absolutePath)) {
-                        continue
+                    // MediaStore's DATA column is always an absolute path, so the parent
+                    // path derived from it is already absolute — no need to re-wrap it in a
+                    // second File just to call .absolutePath, which was allocating two File
+                    // objects per row (one for .parent, one for .absolutePath) purely to
+                    // arrive back at the same string. String slicing matches the leaner
+                    // approach already used for this same check in fetchMusicFromMediaStore.
+                    val lastSlash = data.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        val parentPath = data.substring(0, lastSlash)
+                        if (directoryResolver.isBlocked(parentPath)) {
+                            continue
+                        }
                     }
                 }
                 ids.add(cursor.getLong(idCol))
@@ -1701,11 +1718,16 @@ constructor(
             neteaseSongs.forEach { nSong ->
                 val songId = toUnifiedNeteaseSongId(nSong.neteaseId)
                 val artistNames = parseNeteaseArtistNames(nSong.artist)
+                // Computed once per song and reused below for the cross-ref loop, the
+                // primary artist ID, and the JSON artist refs — previously this called
+                // toUnifiedNeteaseArtistId (a lowercase()+hashCode() per call) up to three
+                // separate times for the same artist name within the same song iteration.
+                val artistIds = artistNames.map { toUnifiedNeteaseArtistId(it) }
                 val primaryArtistName = artistNames.firstOrNull() ?: "Unknown Artist"
-                val primaryArtistId = toUnifiedNeteaseArtistId(primaryArtistName)
+                val primaryArtistId = artistIds.firstOrNull() ?: toUnifiedNeteaseArtistId(primaryArtistName)
 
                 artistNames.forEachIndexed { index, artistName ->
-                    val artistId = toUnifiedNeteaseArtistId(artistName)
+                    val artistId = artistIds[index]
                     artistsToInsert.putIfAbsent(
                         artistId,
                         ArtistEntity(
@@ -1743,7 +1765,7 @@ constructor(
                 // Build artists JSON
                 val neteaseArtistRefs = artistNames.mapIndexed { idx, name ->
                     ArtistRef(
-                        id = toUnifiedNeteaseArtistId(name),
+                        id = artistIds[idx],
                         name = name,
                         isPrimary = idx == 0
                     )

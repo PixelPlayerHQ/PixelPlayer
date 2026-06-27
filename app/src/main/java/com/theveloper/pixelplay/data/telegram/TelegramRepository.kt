@@ -177,10 +177,17 @@ class TelegramRepository @Inject constructor(
                     // looks like a thread/message identifier. We skip fields named
                     // exactly "id" because in many TDLib Java builds that field is a
                     // String composite key, not the numeric thread ID.
+                    //
+                    // "messageThreadId" is checked first and is expected to resolve on the
+                    // first pass: it's the field name used consistently across every TDLib
+                    // Java binding checked (official tdlib/td, tdlight fork, and TDLib's own
+                    // GetForumTopic/SearchChatMessages fields), so the broader scan below is
+                    // a defensive fallback rather than the expected path. Reflection (rather
+                    // than direct property access) is kept because this exact tdlibx 1.8.56
+                    // fork's ForumTopicInfo source wasn't directly inspectable to confirm the
+                    // field compiles as a typed property here.
                     val threadId: Long = run {
-                        // Log all fields once so we can confirm the correct name in Logcat
                         val allFields = info.javaClass.declaredFields
-                        Timber.d("ForumTopicInfo fields: ${allFields.map { "${it.name}:${it.type.simpleName}" }}")
 
                         var resolved = 0L
                         // Prefer the most specific name first, skip bare "id" (likely String)
@@ -201,7 +208,6 @@ class TelegramRepository @Inject constructor(
                                     else    -> 0L
                                 }
                                 if (candidate != 0L) {
-                                    Timber.d("ForumTopicInfo: resolved threadId via field '$name' = $candidate")
                                     resolved = candidate
                                     break
                                 }

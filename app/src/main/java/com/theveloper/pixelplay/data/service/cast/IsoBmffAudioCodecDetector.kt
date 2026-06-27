@@ -87,6 +87,7 @@ internal object IsoBmffAudioCodecDetector {
             "mp4a" -> "audio/mp4a-latm"
             "ac-3" -> "audio/ac3"
             "ec-3" -> "audio/eac3"
+            "ac-4" -> "audio/ac4"
             "flac" -> "audio/flac"
             "opus" -> "audio/opus"
             else -> null

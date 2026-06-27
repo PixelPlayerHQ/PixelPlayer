@@ -345,6 +345,15 @@ interface MusicDao {
     /**
      * Incrementally sync music data: upsert new/modified songs and remove deleted ones.
      * More efficient than clear-and-replace for large libraries with few changes.
+     *
+     * @param cleanupOrphans Whether to run the orphaned-album/artist cleanup scans at the end
+     * of this call. These are full-table NOT EXISTS scans against songs / cross-refs, so they
+     * get expensive when this function is called many times in a row for chunked inserts (e.g.
+     * syncing 100k+ songs in batches of a few hundred). Callers that flush several chunks of
+     * pure inserts in a loop should pass `false` for every chunk and run cleanup once after the
+     * loop finishes instead, since inserting songs/albums/artists can never create an orphan —
+     * only the deletedSongIds path below can. Defaults to true to preserve existing behavior
+     * for callers that sync once per call (e.g. single-pass deletions, single-batch syncs).
      */
     @Transaction
     suspend fun incrementalSyncMusicData(
@@ -352,7 +361,8 @@ interface MusicDao {
         albums: List<AlbumEntity>,
         artists: List<ArtistEntity>,
         crossRefs: List<SongArtistCrossRef>,
-        deletedSongIds: List<Long>
+        deletedSongIds: List<Long>,
+        cleanupOrphans: Boolean = true
     ) {
         // Protect cloud songs from deletion during generic media scan
         // Only allow explicit deletions if the list is non-empty.
@@ -384,9 +394,11 @@ interface MusicDao {
             insertSongArtistCrossRefs(chunk)
         }
 
-        // Clean up orphaned albums and artists
-        deleteOrphanedAlbums()
-        deleteOrphanedArtists()
+        // Clean up orphaned albums and artists. Skippable via cleanupOrphans — see kdoc above.
+        if (cleanupOrphans) {
+            deleteOrphanedAlbums()
+            deleteOrphanedArtists()
+        }
     }
 
     // --- Directory Helper ---
@@ -1629,6 +1641,17 @@ interface MusicDao {
 
     @Query("DELETE FROM artists WHERE NOT EXISTS (SELECT 1 FROM song_artist_cross_ref WHERE song_artist_cross_ref.artist_id = artists.id)")
     suspend fun deleteOrphanedArtists()
+
+    /**
+     * Runs both orphan-cleanup scans once. Call this after a loop of
+     * incrementalSyncMusicData(..., cleanupOrphans = false) calls, instead of paying for the
+     * cleanup scan on every chunk.
+     */
+    @Transaction
+    suspend fun cleanupOrphanedMusicData() {
+        deleteOrphanedAlbums()
+        deleteOrphanedArtists()
+    }
 
     // --- Favorite Operations ---
     @Query("UPDATE songs SET is_favorite = :isFavorite WHERE id = :songId")

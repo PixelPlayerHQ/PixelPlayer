@@ -620,9 +620,7 @@ constructor(
              val representativeAlbumArt = songsInAlbum.firstNotNullOfOrNull { it.albumArtUriString }
              val determinedAlbumArtist = chooseAlbumDisplayArtist(
                  songs = songsInAlbum,
-                 preferAlbumArtist = groupByAlbumArtist,
-                 artistDelimiters = artistDelimiters,
-                 wordDelimiters = wordDelimiters
+                 preferAlbumArtist = groupByAlbumArtist
              )
              val determinedAlbumArtistId = resolveAlbumDisplayArtistId(
                  displayArtist = determinedAlbumArtist,
@@ -895,8 +893,8 @@ constructor(
                     } else -1
 
                     while (cursor.moveToNext()) {
+                        val data = cursor.getString(dataCol) ?: continue
                         try {
-                            val data = cursor.getString(dataCol) ?: continue
                             val lastSlash = data.lastIndexOf('/')
                             if (lastSlash > 0) {
                                 val normalizedParent = data.substring(0, lastSlash)
@@ -908,12 +906,20 @@ constructor(
                             // Proceed on error
                         }
 
+                        // Cursor getters cross into native CursorWindow code; read each column
+                        // once per row and reuse the value, rather than calling the same
+                        // getter twice (trackCol previously fed both trackNumber and
+                        // discNumber via two separate cursor.getInt(trackCol) calls, and
+                        // dataCol was read once above for the directory filter and again
+                        // here for filePath).
+                        val rawTrack = cursor.getInt(trackCol)
+
                         rawDataList.add(
                                 RawSongData(
                                         id = cursor.getLong(idCol),
                                         albumId = cursor.getLong(albumIdCol),
                                         artistId = cursor.getLong(artistIdCol),
-                                        filePath = cursor.getString(dataCol) ?: "",
+                                        filePath = data,
                                         mimeType = if (mimeTypeCol >= 0) cursor.getString(mimeTypeCol) else null,
                                         title =
                                                 cursor.getString(titleCol)
@@ -934,8 +940,8 @@ constructor(
                                                                 ?.takeIf { it.isNotBlank() }
                                                 else null,
                                         duration = cursor.getLong(durationCol),
-                                        trackNumber = cursor.getInt(trackCol) % 1000,
-                                        discNumber = (cursor.getInt(trackCol) / 1000).takeIf { it > 0 },
+                                        trackNumber = rawTrack % 1000,
+                                        discNumber = (rawTrack / 1000).takeIf { it > 0 },
                                         year = cursor.getInt(yearCol),
                                         dateModified = cursor.getLong(dateModifiedCol),
                                         genre = if (genreCol >= 0) cursor.getString(genreCol) else null
@@ -954,12 +960,17 @@ constructor(
         val artistDelimiters = userPreferencesRepository.artistDelimitersFlow.first()
         val artistWordDelimiters = userPreferencesRepository.artistWordDelimitersFlow.first()
         val rawSongCount = rawDataList.size
-        val songsToProcess = if (isRebuild) {
-             rawDataList.toList()
+        // Pairs of (raw MediaStore data, existing local entity if any). Phase 2 already has
+        // to fetch each song's existing entity to decide whether it changed; carrying that
+        // entity forward here means Phase 3 doesn't have to issue the same
+        // getSongsByIdsListSimple query a second time for the same IDs just to get the same
+        // data again for the merge step below.
+        val songsToProcess: List<Pair<RawSongData, SongEntity?>> = if (isRebuild) {
+             rawDataList.map { it to null }
         } else {
             // Find existing data for these songs to avoid unnecessary reprocessing
             // and to preserve user edits.
-            val results = mutableListOf<RawSongData>()
+            val results = mutableListOf<Pair<RawSongData, SongEntity?>>()
             
             rawDataList.chunked(500).forEach { batch ->
                 val ids = batch.map { it.id }
@@ -968,7 +979,7 @@ constructor(
                 batch.forEach { raw ->
                     val existing = existingMap[raw.id]
                     if (!isSongUnchanged(raw, existing)) {
-                        results.add(raw)
+                        results.add(raw to existing)
                     }
                 }
             }
@@ -995,17 +1006,15 @@ constructor(
         val concurrencyLimit = 4 // Reduced concurrency to save memory
         val semaphore = Semaphore(concurrencyLimit)
 
-        // Process batches sequentially so each batch's existingMap can be GC'd before the next
-        // batch is loaded. The semaphore still limits concurrency within each batch.
+        // Process batches sequentially to keep peak memory bounded, same as before. The
+        // per-batch existingMap query from the original version is gone — localSong now comes
+        // from the pair carried over from Phase 2 instead of a second DB round-trip.
         val songs = mutableListOf<SongEntity>()
         for (batch in songsToProcess.chunked(200)) {
-            val ids = batch.map { it.id }
-            val existingMap = if (isRebuild) emptyMap() else musicDao.getSongsByIdsListSimple(ids).associateBy { it.id }
             val batchResults = coroutineScope {
-                batch.map { raw ->
+                batch.map { (raw, localSong) ->
                     async {
                         semaphore.withPermit {
-                            val localSong = existingMap[raw.id]
                             val mediaStoreSong =
                                 processSongData(
                                     raw = raw,
@@ -1189,9 +1198,18 @@ constructor(
             while (cursor.moveToNext()) {
                 val data = cursor.getString(dataCol)
                 if (data != null) {
-                    val parentPath = File(data).parent
-                    if (parentPath != null && directoryResolver.isBlocked(File(parentPath).absolutePath)) {
-                        continue
+                    // MediaStore's DATA column is always an absolute path, so the parent
+                    // path derived from it is already absolute — no need to re-wrap it in a
+                    // second File just to call .absolutePath, which was allocating two File
+                    // objects per row (one for .parent, one for .absolutePath) purely to
+                    // arrive back at the same string. String slicing matches the leaner
+                    // approach already used for this same check in fetchMusicFromMediaStore.
+                    val lastSlash = data.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        val parentPath = data.substring(0, lastSlash)
+                        if (directoryResolver.isBlocked(parentPath)) {
+                            continue
+                        }
                     }
                 }
                 ids.add(cursor.getLong(idCol))
@@ -1223,6 +1241,25 @@ constructor(
         // Number of Telegram songs processed per DB flush. Keeps peak memory bounded
         // regardless of channel size (e.g. 65k songs → ~130 flushes of 500 each).
         private const val TELEGRAM_SYNC_CHUNK_SIZE = 500
+
+        // Bounded parallelism for the per-song file.exists()+tag-read step within a chunk.
+        // This work was previously fully sequential, which is what made very large Telegram
+        // channels (e.g. 100k songs) take on the order of 10 minutes to sync.
+        //
+        // This used to be a flat constant (8) regardless of device. A flat number can't be
+        // right for both ends of the device spectrum: it leaves a low-core device with very
+        // little CPU headroom for the UI thread during a background sync (each of these
+        // concurrent reads does a real native TagLib JNI call, which is genuine CPU-bound work,
+        // not just blocking IO wait — Kotlin dispatchers schedule threads, they don't reserve
+        // CPU time, so heavy parallel CPU work here can still starve the Main thread on a
+        // device with few cores), while being needlessly conservative on a high-core device.
+        //
+        // Scaling with availableProcessors(), capped to [2, 4], is an engineering default
+        // based on that reasoning, not a profiled/measured-optimal value — it has not been
+        // verified against real device traces. If real-world telemetry or further testing
+        // shows a different range is better, this is the one place to adjust it.
+        private fun telegramMetadataReadConcurrency(): Int =
+            (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 4)
 
         private const val NETEASE_SONG_ID_OFFSET = 3_000_000_000_000L
         private const val NETEASE_ALBUM_ID_OFFSET = 4_000_000_000_000L
@@ -1319,6 +1356,30 @@ constructor(
         }
     }
     
+    /**
+     * Result of refining a single Telegram song's metadata against its local file (ID3 tags),
+     * if one exists on disk. Computed in [refineTelegramSongMetadata], which is the part of
+     * [syncTelegramData]'s per-song work that's safe to parallelize (pure file IO + parsing,
+     * no shared mutable state).
+     */
+    private data class RefinedTelegramMetadata(
+        val channelName: String,
+        val title: String,
+        val artistName: String,
+        val albumName: String,
+        val albumArtist: String,
+        val dateAdded: Long,
+        val year: Int,
+        val trackNumber: Int,
+        val discNumber: Int?,
+        val genre: String?,
+        val lyrics: String?,
+        val duration: Long,
+        val bitrate: Int?,
+        val sampleRate: Int?,
+        val albumArtUri: String?
+    )
+
     // Logic to sync Telegram songs into main DB with Unified Library Support.
     //
     // Memory safety: songs are processed and flushed to the DB in chunks of
@@ -1343,12 +1404,33 @@ constructor(
             }
 
             // 1. Pre-load local data for merging — loaded once, shared across all chunks.
-            //    getAllArtistsListRaw() called once only (was called twice before).
+            //
+            // NOTE: getAllArtistsListRaw()/getAllAlbumsList() load every artist/album in the
+            // entire unified library (not just Telegram-sourced ones), unconditionally. This
+            // preload's memory cost scales with the size of the user's *existing* library, not
+            // with the size of the channel being synced — on a library with many thousands of
+            // distinct artists already present (e.g. a prior sync of a similarly large channel),
+            // this can be a genuinely large amount of memory held for the whole sync. Fully
+            // avoiding that would mean replacing this preload with batched per-chunk lookups
+            // (e.g. SELECT ... WHERE name IN (:chunkNames)) instead of one upfront full-library
+            // load; that's a real, separate redesign, not done here.
+            //
+            // What IS done here: build both derived maps in a single pass over the artist list,
+            // pre-sized to the known count, instead of two separate .associate{} calls (each of
+            // which allocates its own default-capacity HashMap that has to resize/reallocate
+            // repeatedly as it grows for a large list). This avoids some transient duplicate
+            // allocation during the preload, though it does not change the preload's fundamental
+            // scaling with existing-library size.
             val allExistingArtists = musicDao.getAllArtistsListRaw()
-            val existingArtists = allExistingArtists.associate { it.name.trim().lowercase() to it.id }
+            val initialCapacity = ((allExistingArtists.size / 0.75f).toInt() + 1).coerceAtLeast(16)
+            val existingArtists = HashMap<String, Long>(initialCapacity)
+            val existingArtistImageUrls = HashMap<Long, String?>(initialCapacity)
+            for (artist in allExistingArtists) {
+                existingArtists[artist.name.trim().lowercase()] = artist.id
+                existingArtistImageUrls[artist.id] = artist.imageUrl
+            }
             val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0)
                 .associate { "${it.title.trim().lowercase()}_${it.artistName.trim().lowercase()}" to it.id }
-            val existingArtistImageUrls = allExistingArtists.associate { it.id to it.imageUrl }
             val delimiters = userPreferencesRepository.artistDelimitersFlow.first()
             val wordDelims = userPreferencesRepository.artistWordDelimitersFlow.first()
 
@@ -1358,6 +1440,12 @@ constructor(
             val albumSongCounts = mutableMapOf<Long, Int>()
             var totalSynced = 0
 
+            // Bounds concurrent file reads during metadata refinement below. This is the
+            // expensive part of the loop (file.exists() + tag parsing per song), so it's the
+            // only part run in parallel; the artist/album dedup maps that follow are mutated
+            // from a single thread per chunk and stay sequential, same as before.
+            val metadataReadSemaphore = Semaphore(telegramMetadataReadConcurrency())
+
             telegramSongs.chunked(TELEGRAM_SYNC_CHUNK_SIZE).forEach { chunk ->
                 // Per-chunk collections — allocated, used, then released each iteration.
                 val songsToInsert = ArrayList<SongEntity>(chunk.size)
@@ -1365,54 +1453,104 @@ constructor(
                 val albumsToInsert = mutableMapOf<Long, AlbumEntity>()
                 val crossRefsToInsert = mutableListOf<SongArtistCrossRef>()
 
-                chunk.forEach { tSong ->
-                    val channelName = channels[tSong.chatId]?.title ?: "Telegram Stream"
+                // 2. Metadata Refinement (ID3 for Downloaded Files) — done first and in
+                // parallel for the whole chunk, since each song's file read is independent
+                // IO/CPU work. Was previously sequential, one file at a time; with 100k+
+                // songs that serial file.exists()+tag-parse cost is what made large Telegram
+                // libraries take ~10 minutes to sync. The merge logic that follows (artist /
+                // album dedup maps) stays sequential, same as before — only the per-song file
+                // read is parallelized here.
+                val refinedChunk = coroutineScope {
+                    chunk.map { tSong ->
+                        async {
+                            metadataReadSemaphore.withPermit {
+                                val channelName = channels[tSong.chatId]?.title ?: "Telegram Stream"
+
+                                var realTitle = tSong.title
+                                var realArtistName = tSong.artist
+                                var realAlbumName = channelName
+                                val realDateAdded = tSong.dateAdded
+                                var realYear = 0
+                                var realTrackNumber = 0
+                                var realDiscNumber: Int? = null
+                                var realAlbumArtist = "Telegram"
+                                var realGenre: String? = null
+                                var realLyrics: String? = null
+                                var realDuration = tSong.duration
+                                var realBitrate: Int? = null
+                                var realSampleRate: Int? = null
+                                val resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
+
+                                val file = File(tSong.filePath)
+                                if (tSong.filePath.isNotEmpty() && file.exists()) {
+                                    try {
+                                        AudioMetadataReader.read(file, readArtwork = false)?.let { meta ->
+                                            if (!meta.title.isNullOrBlank()) realTitle = meta.title
+                                            if (!meta.artist.isNullOrBlank()) realArtistName = meta.artist
+                                            if (!meta.album.isNullOrBlank()) realAlbumName = meta.album
+                                            if (!meta.albumArtist.isNullOrBlank()) {
+                                                realAlbumArtist = meta.albumArtist
+                                            } else if (!realArtistName.isBlank()) {
+                                                realAlbumArtist = realArtistName
+                                            }
+                                            if (!meta.genre.isNullOrBlank()) realGenre = meta.genre
+                                            if (!meta.lyrics.isNullOrBlank()) realLyrics = meta.lyrics
+                                            if (meta.trackNumber != null) realTrackNumber = meta.trackNumber
+                                            if (meta.discNumber != null) realDiscNumber = meta.discNumber
+                                            if (meta.year != null) realYear = meta.year
+                                            if (meta.durationMs != null && meta.durationMs > 0L) realDuration = meta.durationMs
+                                            if (meta.bitrate != null && meta.bitrate > 0) realBitrate = meta.bitrate
+                                            if (meta.sampleRate != null && meta.sampleRate > 0) realSampleRate = meta.sampleRate
+                                        }
+                                        // resolveAlbumArtUri() doesn't change after the tag read, so unlike
+                                        // before, it's computed once above instead of a second time here.
+                                    } catch (e: Exception) {
+                                        // Ignore read errors, fall back to TdApi metadata
+                                    }
+                                }
+
+                                RefinedTelegramMetadata(
+                                    channelName = channelName,
+                                    title = realTitle,
+                                    artistName = realArtistName,
+                                    albumName = realAlbumName,
+                                    albumArtist = realAlbumArtist,
+                                    dateAdded = realDateAdded,
+                                    year = realYear,
+                                    trackNumber = realTrackNumber,
+                                    discNumber = realDiscNumber,
+                                    genre = realGenre,
+                                    lyrics = realLyrics,
+                                    duration = realDuration,
+                                    bitrate = realBitrate,
+                                    sampleRate = realSampleRate,
+                                    albumArtUri = resolvedAlbumArtUri
+                                ).let { tSong to it }
+                            }
+                        }
+                    }.awaitAll()
+                }
+
+                refinedChunk.forEach { (tSong, refined) ->
+                    val channelName = refined.channelName
                     val songId = -(tSong.id.hashCode().toLong().absoluteValue)
                     val finalSongId = if (songId == 0L) -1L else songId
                     syncedTelegramSongIds.add(finalSongId)
 
-                    // 2. Metadata Refinement (ID3 for Downloaded Files)
-                    var realTitle = tSong.title
-                    var realArtistName = tSong.artist
-                    var realAlbumName = channelName
-                    var realDateAdded = tSong.dateAdded
-                    var realYear = 0
-                    var realTrackNumber = 0
-                    var realDiscNumber: Int? = null
-                    var realAlbumArtist = "Telegram"
-                    var realGenre: String? = null
-                    var realLyrics: String? = null
-                    var realDuration = tSong.duration
-                    var realBitrate: Int? = null
-                    var realSampleRate: Int? = null
-                    var resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
-
-                    val file = java.io.File(tSong.filePath)
-                    if (tSong.filePath.isNotEmpty() && file.exists()) {
-                        try {
-                            AudioMetadataReader.read(file, readArtwork = false)?.let { meta ->
-                                if (!meta.title.isNullOrBlank()) realTitle = meta.title
-                                if (!meta.artist.isNullOrBlank()) realArtistName = meta.artist
-                                if (!meta.album.isNullOrBlank()) realAlbumName = meta.album
-                                if (!meta.albumArtist.isNullOrBlank()) {
-                                    realAlbumArtist = meta.albumArtist
-                                } else if (!realArtistName.isBlank()) {
-                                    realAlbumArtist = realArtistName
-                                }
-                                if (!meta.genre.isNullOrBlank()) realGenre = meta.genre
-                                if (!meta.lyrics.isNullOrBlank()) realLyrics = meta.lyrics
-                                if (meta.trackNumber != null) realTrackNumber = meta.trackNumber
-                                if (meta.discNumber != null) realDiscNumber = meta.discNumber
-                                if (meta.year != null) realYear = meta.year
-                                if (meta.durationMs != null && meta.durationMs > 0L) realDuration = meta.durationMs
-                                if (meta.bitrate != null && meta.bitrate > 0) realBitrate = meta.bitrate
-                                if (meta.sampleRate != null && meta.sampleRate > 0) realSampleRate = meta.sampleRate
-                            }
-                            resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
-                        } catch (e: Exception) {
-                            // Ignore read errors, fall back to TdApi metadata
-                        }
-                    }
+                    val realTitle = refined.title
+                    val realArtistName = refined.artistName
+                    val realAlbumName = refined.albumName
+                    val realDateAdded = refined.dateAdded
+                    val realYear = refined.year
+                    val realTrackNumber = refined.trackNumber
+                    val realDiscNumber = refined.discNumber
+                    val realAlbumArtist = refined.albumArtist
+                    val realGenre = refined.genre
+                    val realLyrics = refined.lyrics
+                    val realDuration = refined.duration
+                    val realBitrate = refined.bitrate
+                    val realSampleRate = refined.sampleRate
+                    val resolvedAlbumArtUri = refined.albumArtUri
 
                     // 3. Multi-Artist Processing
                     val rawArtistName = if (realArtistName.isBlank()) "Unknown Artist" else realArtistName
@@ -1517,6 +1655,9 @@ constructor(
                 // across chunks, so the count may be updated again in a later chunk upsert — that
                 // is fine because incrementalSyncMusicData uses upsert (INSERT OR REPLACE), so
                 // the last chunk to touch an album wins with the final correct count.
+                // cleanupOrphans=false: this is a pure-insert chunk (no deletions), so it can't
+                // create orphans. Cleanup runs once after all chunks (including the deletion
+                // loop below) instead of on every one of the ~200 chunk flushes for 100k songs.
                 val finalAlbums = albumsToInsert.values.map { album ->
                     album.copy(songCount = albumSongCounts[album.id] ?: 0)
                 }
@@ -1525,7 +1666,8 @@ constructor(
                     albums = finalAlbums,
                     artists = artistsToInsert.values.toList(),
                     crossRefs = crossRefsToInsert,
-                    deletedSongIds = emptyList() // Deletions handled after all chunks
+                    deletedSongIds = emptyList(), // Deletions handled after all chunks
+                    cleanupOrphans = false
                 )
                 totalSynced += songsToInsert.size
                 Log.d(TAG, "Telegram sync: flushed chunk of ${songsToInsert.size} songs ($totalSynced / ${telegramSongs.size} total)")
@@ -1541,11 +1683,15 @@ constructor(
                         albums = emptyList(),
                         artists = emptyList(),
                         crossRefs = emptyList(),
-                        deletedSongIds = batch
+                        deletedSongIds = batch,
+                        cleanupOrphans = false
                     )
                 }
                 Log.i(TAG, "Telegram sync: removed ${deletedUnifiedSongIds.size} deleted songs.")
             }
+
+            // Single orphan cleanup for the whole sync, instead of one per chunk above.
+            musicDao.cleanupOrphanedMusicData()
 
             Log.i(TAG, "Synced $totalSynced Telegram songs with Unified Metadata.")
         } catch (e: Exception) {
@@ -1575,11 +1721,16 @@ constructor(
             neteaseSongs.forEach { nSong ->
                 val songId = toUnifiedNeteaseSongId(nSong.neteaseId)
                 val artistNames = parseNeteaseArtistNames(nSong.artist)
+                // Computed once per song and reused below for the cross-ref loop, the
+                // primary artist ID, and the JSON artist refs — previously this called
+                // toUnifiedNeteaseArtistId (a lowercase()+hashCode() per call) up to three
+                // separate times for the same artist name within the same song iteration.
+                val artistIds = artistNames.map { toUnifiedNeteaseArtistId(it) }
                 val primaryArtistName = artistNames.firstOrNull() ?: "Unknown Artist"
-                val primaryArtistId = toUnifiedNeteaseArtistId(primaryArtistName)
+                val primaryArtistId = artistIds.firstOrNull() ?: toUnifiedNeteaseArtistId(primaryArtistName)
 
                 artistNames.forEachIndexed { index, artistName ->
-                    val artistId = toUnifiedNeteaseArtistId(artistName)
+                    val artistId = artistIds[index]
                     artistsToInsert.putIfAbsent(
                         artistId,
                         ArtistEntity(
@@ -1617,7 +1768,7 @@ constructor(
                 // Build artists JSON
                 val neteaseArtistRefs = artistNames.mapIndexed { idx, name ->
                     ArtistRef(
-                        id = toUnifiedNeteaseArtistId(name),
+                        id = artistIds[idx],
                         name = name,
                         isPrimary = idx == 0
                     )

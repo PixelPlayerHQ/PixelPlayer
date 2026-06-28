@@ -921,12 +921,12 @@ fun SettingsCategoryScreen(
 
                             // AI Provider Selection
                             SettingsSubsection(title = stringResource(R.string.settings_ai_provider_section)) {
-                                ThemeSelectorItem(
+                                SearchableProviderSelector(
                                     label = stringResource(R.string.settings_ai_provider_title),
                                     description = stringResource(R.string.settings_ai_provider_subtitle),
-                                    options = com.theveloper.pixelplay.data.ai.provider.AiProvider.entries.associate { it.name to it.displayName },
-                                    selectedKey = aiProvider,
-                                    onSelectionChanged = { settingsViewModel.onAiProviderChange(it) },
+                                    providers = com.theveloper.pixelplay.data.ai.provider.AiProvider.entries,
+                                    selectedProvider = aiProvider,
+                                    onProviderSelected = { settingsViewModel.onAiProviderChange(it) },
                                     leadingIcon = { Icon(Icons.Rounded.Science, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                                 SwitchSettingItem(

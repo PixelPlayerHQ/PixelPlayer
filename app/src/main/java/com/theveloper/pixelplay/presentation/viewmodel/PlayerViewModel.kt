@@ -1527,15 +1527,11 @@ class PlayerViewModel @Inject constructor(
 
 
 
+        // Deferred: legacy migrations run after init to avoid blocking first render
         viewModelScope.launch {
+            kotlinx.coroutines.delay(2000)
             userPreferencesRepository.migrateTabOrder()
-        }
-
-        viewModelScope.launch {
             userPreferencesRepository.ensureLibrarySortDefaults()
-        }
-
-        viewModelScope.launch {
             val legacyFavoriteIds = userPreferencesRepository.favoriteSongIdsFlow.first()
             if (legacyFavoriteIds.isNotEmpty()) {
                 val roomFavoriteIds = musicRepository.getFavoriteSongIdsOnce()
@@ -1677,8 +1673,12 @@ class PlayerViewModel @Inject constructor(
 
         // launchColorSchemeProcessor() - Handled by ThemeStateHolder and on-demand calls
 
-        loadPersistedDailyMix()
-        loadSearchHistory()
+        // Deferred: daily mix and search history load after first frame
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1500)
+            loadPersistedDailyMix()
+            loadSearchHistory()
+        }
 
         viewModelScope.launch {
             isSyncingStateFlow.collect { isSyncing ->

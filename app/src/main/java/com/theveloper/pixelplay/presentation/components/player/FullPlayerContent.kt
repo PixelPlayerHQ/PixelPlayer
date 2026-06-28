@@ -103,6 +103,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.Cloud
@@ -1609,7 +1610,24 @@ private fun SongMetadataDisplaySection(
     }
 }
 
+private const val ATMOS_META_LABEL = "Dolby Atmos"
+
+private fun isDolbyAtmosAudioMimeType(mimeType: String?): Boolean {
+    return when (mimeType
+        ?.trim()
+        ?.lowercase(Locale.ROOT)
+        ?.substringBefore(';')
+    ) {
+        "audio/ac3", "audio/eac3", "audio/eac3-joc" -> true
+        else -> false
+    }
+}
+
 private fun formatAudioMetaLabel(mimeType: String?, bitrate: Int?, sampleRate: Int?): String? {
+    if (isDolbyAtmosAudioMimeType(mimeType)) {
+        return ATMOS_META_LABEL
+    }
+
     val formatLabel = mimeTypeToFormat(mimeType)
         .takeIf { it != "-" }
         ?.uppercase(Locale.getDefault())
@@ -1952,16 +1970,29 @@ private fun EfficientTimeLabels(
                 color = textColor.copy(alpha = 0.14f),
                 contentColor = textColor.copy(alpha = 0.96f)
             ) {
-                Text(
-                    text = audioMetaLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 11.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (audioMetaLabel == ATMOS_META_LABEL) {
+                        Image(
+                            painter = painterResource(R.drawable.dolby_atmos_badge),
+                            contentDescription = stringResource(R.string.dolby_atmos_badge_description),
+                            modifier = Modifier
+                                .size(height = 14.dp, width = 60.dp)
+                        )
+                    }
+                    Text(
+                        text = audioMetaLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

@@ -64,6 +64,7 @@
     <string name="cast_server_notification_text">Serving media to Cast device</string>
     <string name="cast_server_foreground_error">%1$s: %2$s</string>
     <string name="cast_seek_unavailable_for_format">Seeking is temporarily unavailable for this audio format on Cast because it can crash the Cast session.</string>
+    <string name="dolby_atmos_badge_description">Dolby Atmos audio</string>
 
     <!-- Sleep Timer -->
     <string name="sleep_timer_title">Sleep timer</string>

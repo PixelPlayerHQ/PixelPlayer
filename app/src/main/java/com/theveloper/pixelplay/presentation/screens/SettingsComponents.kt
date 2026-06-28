@@ -551,6 +551,7 @@ fun SearchableModelSelector(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchableProviderSelector(
     label: String,

@@ -1797,7 +1797,7 @@ class PlayerViewModel @Inject constructor(
                     aiStatus = status,
                     aiError = error
                 )
-            }.collect { snapshot ->
+            }.distinctUntilChanged().collect { snapshot ->
                 _playerUiState.update {
                     it.copy(
                         showAiPlaylistSheet = snapshot.showAiPlaylistSheet,
@@ -1820,7 +1820,7 @@ class PlayerViewModel @Inject constructor(
                 libraryStateHolder.isLoadingCategories,
             ) { folders, loadingLibrary, loadingCategories ->
                 Triple(folders, loadingLibrary, loadingCategories)
-            }.collect { (folders, loadingLibrary, loadingCategories) ->
+            }.distinctUntilChanged().collect { (folders, loadingLibrary, loadingCategories) ->
                 _playerUiState.update {
                     it.copy(
                         musicFolders = folders,
@@ -1841,7 +1841,7 @@ class PlayerViewModel @Inject constructor(
                 libraryStateHolder.currentFavoriteSortOption,
             ) { songSort, albumSort, artistSort, folderSort, favoriteSort ->
                 SortOptionsSnapshot(songSort, albumSort, artistSort, folderSort, favoriteSort)
-            }.collect { snapshot ->
+            }.distinctUntilChanged().collect { snapshot ->
                 _playerUiState.update {
                     it.copy(
                         currentSongSortOption = snapshot.songSort,

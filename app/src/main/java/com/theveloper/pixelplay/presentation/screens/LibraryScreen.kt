@@ -1002,11 +1002,11 @@ fun LibraryScreen(
         }.collectAsStateWithLifecycle(initialValue = LibraryScreenPlayerProjection())
         val isLibraryContentEmpty by remember(playerViewModel) {
             combine(
-                playerViewModel.songCountFlow,
+                playerViewModel.allSongsFlow,
                 playerViewModel.albumsFlow,
                 playerViewModel.artistsFlow
-            ) { songCount, albums, artists ->
-                songCount == 0 && albums.isEmpty() && artists.isEmpty()
+            ) { songs, albums, artists ->
+                songs.isEmpty() && albums.isEmpty() && artists.isEmpty()
             }.distinctUntilChanged()
         }.collectAsStateWithLifecycle(initialValue = true)
 

@@ -70,6 +70,8 @@ jdom2 = "2.0.6.1"
 jose4j = "0.9.6"
 httpclient = "4.5.14"
 
+errorProneAnnotations = "2.36.0"
+
 # DI
 dagger = "2.60"
 javax-inject = "1"
@@ -161,6 +163,7 @@ codeview = { module = "io.github.amrdeveloper:codeview", version.ref = "codeview
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 duktape-android = { module = "com.squareup.duktape:duktape-android", version.ref = "duktapeAndroid" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+error-prone-annotations = { module = "com.google.errorprone:error_prone_annotations", version.ref = "errorProneAnnotations" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltNavigationCompose" }

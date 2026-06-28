@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.animation.AnimatedContent

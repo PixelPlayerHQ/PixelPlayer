@@ -638,7 +638,7 @@ class PlayerViewModel @Inject constructor(
 
     // Toast Events
     private val _toastEvents = MutableSharedFlow<String>(
-        extraBufferCapacity = 1,
+        extraBufferCapacity = 5,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val toastEvents = _toastEvents.asSharedFlow()

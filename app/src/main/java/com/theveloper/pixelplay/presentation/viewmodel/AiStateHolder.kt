@@ -287,7 +287,7 @@ class AiStateHolder @Inject constructor(
     suspend fun translateLyrics(lyricsText: String): Result<String> {
         return try {
             val targetLanguage = context.resources.configuration.locales[0].displayLanguage
-            val prompt = """
+            val xmlPrompt = """
 <task>Translate song lyrics into $targetLanguage.</task>
 
 <rules>
@@ -307,10 +307,10 @@ class AiStateHolder @Inject constructor(
 $lyricsText
 </lyrics>
             """.trimIndent()
-            
+
             val response = aiHandler.generateContent(
-                prompt = prompt,
-                type = AiSystemPromptType.GENERAL,
+                prompt = xmlPrompt,
+                type = AiSystemPromptType.LYRICS,
                 temperature = 0.1f
             )
             Result.success(response)

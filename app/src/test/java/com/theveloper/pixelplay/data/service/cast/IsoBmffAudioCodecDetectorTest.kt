@@ -24,6 +24,15 @@ class IsoBmffAudioCodecDetectorTest {
     }
 
     @Test
+    fun detectAudioCodec_returnsAc4SampleEntry() {
+        val bytes = mp4WithTracks(audioTrack("ac-4"))
+
+        val codec = IsoBmffAudioCodecDetector.detectAudioCodec(bytes)
+
+        assertThat(codec).isEqualTo("audio/ac4")
+    }
+
+    @Test
     fun detectAudioCodec_skipsVideoTracks() {
         val bytes = mp4WithTracks(
             track(handler = "vide", sampleEntry = "hvc1"),

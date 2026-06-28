@@ -117,6 +117,20 @@ data class MimeTypeCountRow(
     val count: Int
 )
 
+/** Result row for getArtistsByNormalizedNames — used by syncTelegramData's per-chunk dedup. */
+data class ArtistLookupRow(
+    val id: Long,
+    val name: String,
+    val imageUrl: String?
+)
+
+/** Result row for getAlbumsByNormalizedTitles — used by syncTelegramData's per-chunk dedup. */
+data class AlbumLookupRow(
+    val id: Long,
+    val title: String,
+    val artistName: String
+)
+
 @Dao
 interface MusicDao {
 
@@ -345,6 +359,15 @@ interface MusicDao {
     /**
      * Incrementally sync music data: upsert new/modified songs and remove deleted ones.
      * More efficient than clear-and-replace for large libraries with few changes.
+     *
+     * @param cleanupOrphans Whether to run the orphaned-album/artist cleanup scans at the end
+     * of this call. These are full-table NOT EXISTS scans against songs / cross-refs, so they
+     * get expensive when this function is called many times in a row for chunked inserts (e.g.
+     * syncing 100k+ songs in batches of a few hundred). Callers that flush several chunks of
+     * pure inserts in a loop should pass `false` for every chunk and run cleanup once after the
+     * loop finishes instead, since inserting songs/albums/artists can never create an orphan —
+     * only the deletedSongIds path below can. Defaults to true to preserve existing behavior
+     * for callers that sync once per call (e.g. single-pass deletions, single-batch syncs).
      */
     @Transaction
     suspend fun incrementalSyncMusicData(
@@ -352,7 +375,8 @@ interface MusicDao {
         albums: List<AlbumEntity>,
         artists: List<ArtistEntity>,
         crossRefs: List<SongArtistCrossRef>,
-        deletedSongIds: List<Long>
+        deletedSongIds: List<Long>,
+        cleanupOrphans: Boolean = true
     ) {
         // Protect cloud songs from deletion during generic media scan
         // Only allow explicit deletions if the list is non-empty.
@@ -384,9 +408,11 @@ interface MusicDao {
             insertSongArtistCrossRefs(chunk)
         }
 
-        // Clean up orphaned albums and artists
-        deleteOrphanedAlbums()
-        deleteOrphanedArtists()
+        // Clean up orphaned albums and artists. Skippable via cleanupOrphans — see kdoc above.
+        if (cleanupOrphans) {
+            deleteOrphanedAlbums()
+            deleteOrphanedArtists()
+        }
     }
 
     // --- Directory Helper ---
@@ -1528,6 +1554,21 @@ interface MusicDao {
     @Query("SELECT id FROM artists WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1")
     suspend fun getArtistIdByNormalizedName(name: String): Long?
 
+    // Used by syncTelegramData's per-chunk dedup: looks up only the artists relevant to the
+    // current chunk's songs instead of loading the entire artists table. normalizedNames
+    // must already be trim().lowercase()'d by the caller, matching the LOWER(TRIM(name))
+    // comparison here.
+    @Query("SELECT id, name, image_url AS imageUrl FROM artists WHERE LOWER(TRIM(name)) IN (:normalizedNames)")
+    suspend fun getArtistsByNormalizedNames(normalizedNames: List<String>): List<ArtistLookupRow>
+
+    // Used by syncTelegramData's per-chunk dedup: looks up only the albums relevant to the
+    // current chunk's songs instead of loading the entire albums table. Filters by title only
+    // (not the full title+artist key) since SQLite IN() doesn't match tuples directly; the
+    // caller reconstructs the same "title_artistName" key in Kotlin and discards any rows
+    // whose artist doesn't match, same as the title-only candidate set this produces.
+    @Query("SELECT id, title, artist_name AS artistName FROM albums WHERE LOWER(TRIM(title)) IN (:normalizedTitles)")
+    suspend fun getAlbumsByNormalizedTitles(normalizedTitles: List<String>): List<AlbumLookupRow>
+
     @Query("SELECT MAX(id) FROM artists")
     suspend fun getMaxArtistId(): Long?
 
@@ -1629,6 +1670,17 @@ interface MusicDao {
 
     @Query("DELETE FROM artists WHERE NOT EXISTS (SELECT 1 FROM song_artist_cross_ref WHERE song_artist_cross_ref.artist_id = artists.id)")
     suspend fun deleteOrphanedArtists()
+
+    /**
+     * Runs both orphan-cleanup scans once. Call this after a loop of
+     * incrementalSyncMusicData(..., cleanupOrphans = false) calls, instead of paying for the
+     * cleanup scan on every chunk.
+     */
+    @Transaction
+    suspend fun cleanupOrphanedMusicData() {
+        deleteOrphanedAlbums()
+        deleteOrphanedArtists()
+    }
 
     // --- Favorite Operations ---
     @Query("UPDATE songs SET is_favorite = :isFavorite WHERE id = :songId")

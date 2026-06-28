@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.telegram
 
+
 import com.theveloper.pixelplay.data.database.TelegramDao
 import com.theveloper.pixelplay.data.database.TelegramSongEntity
 import com.theveloper.pixelplay.data.database.TelegramTopicEntity
@@ -33,6 +34,14 @@ import javax.inject.Singleton
 import kotlin.math.absoluteValue
 
 import timber.log.Timber
+
+/**
+ * Progress of an in-flight getAudioMessages fetch. current = songs fetched so far,
+ * approxTotal = -1 if unknown, otherwise TDLib's approximate count for the channel (see
+ * TelegramRepository.getApproxAudioMessageCount). Shared by every call site that wants to
+ * show fetch progress, rather than each declaring its own copy of the same shape.
+ */
+data class TelegramSyncProgress(val current: Int, val approxTotal: Int)
 
 @Singleton
 class TelegramRepository @Inject constructor(
@@ -267,7 +276,11 @@ class TelegramRepository @Inject constructor(
         return topics
     }
 
-    suspend fun getAudioMessagesByTopic(chatId: Long, threadId: Long): List<Song> {
+    suspend fun getAudioMessagesByTopic(
+        chatId: Long,
+        threadId: Long,
+        onProgress: (suspend (current: Int) -> Unit)? = null
+    ): List<Song> {
         Timber.d("Fetching audio for topic threadId=$threadId in chat=$chatId")
         try {
             clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
@@ -278,6 +291,24 @@ class TelegramRepository @Inject constructor(
         val allSongs = mutableListOf<Song>()
         var nextFromMessageId = 0L
         val batchSize = 100
+
+        // Resolved once, outside the loop, since the result never changes between batches —
+        // previously this reflection lookup (plus a Timber.d field dump) re-ran on every
+        // single batch despite always resolving the same way for a given build.
+        var topicFieldName: String? = null
+        var topicFieldSetsMessageTopic = false
+        try {
+            TdApi.SearchChatMessages::class.java.getDeclaredField("topicId")
+            topicFieldName = "topicId"
+            topicFieldSetsMessageTopic = true
+        } catch (_: NoSuchFieldException) {
+            try {
+                TdApi.SearchChatMessages::class.java.getDeclaredField("messageThreadId")
+                topicFieldName = "messageThreadId"
+            } catch (_: NoSuchFieldException) {
+                Timber.e("SearchChatMessages: could not resolve a topic filter field — results will be unfiltered")
+            }
+        }
 
         try {
             while (true) {
@@ -290,37 +321,15 @@ class TelegramRepository @Inject constructor(
                     this.limit = batchSize
                     this.filter = TdApi.SearchMessagesFilterAudio()
 
-                    // Set the topic/thread filter via reflection to handle different TDLib builds.
-                    // In newer builds the field is 'topicId' (MessageTopic object).
-                    // In older builds it was 'messageThreadId' (Long).
-                    val scFields = this.javaClass.declaredFields
-                    Timber.d("SearchChatMessages fields: ${scFields.map { "${it.name}:${it.type.simpleName}" }}")
-
-                    var topicSet = false
-
-                    // Try 'topicId' field (newer TDLib — expects a MessageTopic object)
-                    try {
-                        val f = this.javaClass.getDeclaredField("topicId")
+                    if (topicFieldName != null) {
+                        val f = this.javaClass.getDeclaredField(topicFieldName)
                         f.isAccessible = true
-                        // MessageTopicForum wraps the thread ID as Int
-                        f.set(this, TdApi.MessageTopicForum(threadId.toInt()))
-                        Timber.d("SearchChatMessages: set topicId = MessageTopicForum($threadId)")
-                        topicSet = true
-                    } catch (_: NoSuchFieldException) { }
-
-                    // Fallback: try 'messageThreadId' field (older TDLib — Long)
-                    if (!topicSet) {
-                        try {
-                            val f = this.javaClass.getDeclaredField("messageThreadId")
-                            f.isAccessible = true
+                        if (topicFieldSetsMessageTopic) {
+                            // MessageTopicForum wraps the thread ID as Int
+                            f.set(this, TdApi.MessageTopicForum(threadId.toInt()))
+                        } else {
                             f.set(this, threadId)
-                            Timber.d("SearchChatMessages: set messageThreadId = $threadId")
-                            topicSet = true
-                        } catch (_: NoSuchFieldException) { }
-                    }
-
-                    if (!topicSet) {
-                        Timber.e("SearchChatMessages: could not set topic filter — results will be unfiltered")
+                        }
                     }
                 }
 
@@ -331,6 +340,8 @@ class TelegramRepository @Inject constructor(
                 response.messages.forEach { message ->
                     mapMessageToSong(message)?.let { allSongs.add(it) }
                 }
+
+                onProgress?.invoke(allSongs.size)
 
                 nextFromMessageId = response.nextFromMessageId
                 if (nextFromMessageId == 0L) break
@@ -345,7 +356,47 @@ class TelegramRepository @Inject constructor(
 
     // ─── Full-channel fetch
 
-    suspend fun getAudioMessages(chatId: Long): List<Song> {
+    // Field name not independently confirmed for this exact tdlibx build (the same caution
+    // that applies to ForumTopicInfo's threadId field elsewhere in this file — TDLib docs for
+    // this library have already turned out to not match this build's actual compiled API
+    // once this session, for SetTdlibParameters). Reflection with a short candidate list and
+    // a graceful fallback, rather than a guessed direct field access that might not compile
+    // or might silently read the wrong thing.
+    private fun extractApproxCount(count: TdApi.Count): Int {
+        val candidateNames = listOf("count", "value", "approximateCount")
+        for (name in candidateNames) {
+            try {
+                val field = count.javaClass.getDeclaredField(name)
+                field.isAccessible = true
+                val value = field.get(count)
+                if (value is Int) return value
+            } catch (_: NoSuchFieldException) { }
+        }
+        Timber.w("Count: could not resolve count field, tried $candidateNames")
+        return -1
+    }
+
+    /**
+     * Approximate number of audio messages in a chat, used to decide whether a fetch is large
+     * enough to warrant a determinate progress indicator rather than an indeterminate spinner.
+     * Returns -1 if the count could not be determined (treat as "unknown", not "zero").
+     */
+    suspend fun getApproxAudioMessageCount(chatId: Long): Int {
+        return try {
+            val result = clientManager.sendRequest<TdApi.Count>(
+                TdApi.GetChatMessageCount(chatId, null, TdApi.SearchMessagesFilterAudio(), false)
+            )
+            extractApproxCount(result)
+        } catch (e: Exception) {
+            Timber.w(e, "getApproxAudioMessageCount failed for chat $chatId")
+            -1
+        }
+    }
+
+    suspend fun getAudioMessages(
+        chatId: Long,
+        onProgress: (suspend (current: Int, approxTotal: Int) -> Unit)? = null
+    ): List<Song> {
         Timber.d("Fetching chat history for chat: $chatId")
         try {
             clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
@@ -353,9 +404,15 @@ class TelegramRepository @Inject constructor(
             Timber.w("Failed to open chat: $chatId")
         }
 
+        // Only fetched when a caller actually wants progress, to avoid the extra round trip
+        // for callers that don't (e.g. tests, or call sites that don't render progress UI).
+        val approxTotal = if (onProgress != null) getApproxAudioMessageCount(chatId) else -1
+
         val allSongs = mutableListOf<Song>()
         var nextFromMessageId = 0L
-        val batchSize = 100
+        val batchSize = 100 // TDLib's hard server-side max for SearchChatMessages.limit
+        var batchCount = 0
+        val fetchStartMs = System.currentTimeMillis()
 
         try {
             while (true) {
@@ -369,7 +426,20 @@ class TelegramRepository @Inject constructor(
                     this.filter = TdApi.SearchMessagesFilterAudio()
                 }
 
+                // Pagination is inherently sequential here — each request needs the
+                // previous response's nextFromMessageId as its cursor, and 100 is TDLib's
+                // hard max for this call, so a large channel genuinely needs many
+                // round-trips (e.g. ~1000 for a 100k-message channel) with no way to
+                // reduce that count or parallelize it. What was previously missing is any
+                // visibility into that: this loop logged nothing between a single "start"
+                // line and a single "done" line, so a slow-but-progressing fetch (e.g. one
+                // hitting Telegram's flood-wait, which sendRequest has no timeout for and
+                // would absorb silently if TDLib retries internally before invoking the
+                // callback) was indistinguishable from a genuine hang in the logs.
+                val batchStartMs = System.currentTimeMillis()
                 val response = clientManager.sendRequest<TdApi.FoundChatMessages>(request)
+                val batchMs = System.currentTimeMillis() - batchStartMs
+                batchCount++
 
                 if (response.messages.isEmpty()) break
 
@@ -377,10 +447,26 @@ class TelegramRepository @Inject constructor(
                     mapMessageToSong(message)?.let { allSongs.add(it) }
                 }
 
+                // Every 10th batch (~every 1000 messages) rather than every single one, to
+                // avoid adding meaningful logging overhead across what can be ~1000 batches
+                // for a very large channel, while still giving a clear sense of progress and
+                // surfacing any individual batch that's unusually slow.
+                if (batchCount % 10 == 0 || batchMs > 2000) {
+                    Timber.d(
+                        "getAudioMessages chat=$chatId: batch $batchCount, " +
+                            "${allSongs.size} songs so far, last batch ${batchMs}ms, " +
+                            "elapsed ${System.currentTimeMillis() - fetchStartMs}ms"
+                    )
+                }
+                onProgress?.invoke(allSongs.size, approxTotal)
+
                 nextFromMessageId = response.nextFromMessageId
                 if (nextFromMessageId == 0L) break
             }
-            Timber.d("Total mapped audio songs: ${allSongs.size}")
+            Timber.d(
+                "Total mapped audio songs: ${allSongs.size} " +
+                    "($batchCount batches, ${System.currentTimeMillis() - fetchStartMs}ms total)"
+            )
             return allSongs
         } catch (e: Exception) {
             Timber.e(e, "Error fetching chat history for chat $chatId")

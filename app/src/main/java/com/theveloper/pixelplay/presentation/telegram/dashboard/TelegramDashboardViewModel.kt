@@ -7,6 +7,7 @@ import com.theveloper.pixelplay.data.database.TelegramTopicEntity
 import com.theveloper.pixelplay.data.database.toTelegramEntityWithThread
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.telegram.TelegramSyncProgress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +32,13 @@ class TelegramDashboardViewModel @Inject constructor(
 
     private val _isRefreshing = MutableStateFlow<Long?>(null)
     val isRefreshing = _isRefreshing.asStateFlow()
+
+    // current = songs fetched so far, approxTotal = -1 if unknown, otherwise TDLib's
+    // approximate count for the channel (see TelegramRepository.getApproxAudioMessageCount).
+    // Null when no fetch is in progress. The UI decides the >= 5000 threshold for whether to
+    // show a determinate progress bar instead of an indeterminate spinner — this is just data.
+    private val _syncProgress = MutableStateFlow<TelegramSyncProgress?>(null)
+    val syncProgress = _syncProgress.asStateFlow()
 
     private val _statusMessage = MutableStateFlow<String?>(null)
     val statusMessage = _statusMessage.asStateFlow()
@@ -74,12 +82,15 @@ class TelegramDashboardViewModel @Inject constructor(
                 // flight (in particular, never disturbs a full/rebuild).
                 runCatching { musicRepository.requestTelegramUnifiedSync() }
                 _isRefreshing.value = null
+                _syncProgress.value = null
             }
         }
     }
 
     private suspend fun syncFlatChannel(channel: TelegramChannelEntity) {
-        val songs = telegramRepository.getAudioMessages(channel.chatId)
+        val songs = telegramRepository.getAudioMessages(channel.chatId) { current, approxTotal ->
+            _syncProgress.value = TelegramSyncProgress(current, approxTotal)
+        }
         musicRepository.replaceTelegramSongsForChannel(channel.chatId, songs)
 
         val updatedChannel = channel.copy(
@@ -111,7 +122,15 @@ class TelegramDashboardViewModel @Inject constructor(
 
         var totalSongs = 0
         topics.forEach { topic ->
-            val topicSongs = telegramRepository.getAudioMessagesByTopic(channel.chatId, topic.threadId)
+            _statusMessage.value = "Syncing topic \"${topic.name}\"..."
+            val topicSongs = telegramRepository.getAudioMessagesByTopic(channel.chatId, topic.threadId) { current ->
+                // approxTotal = -1: GetChatMessageCount has no topic/thread parameter in any
+                // signature found, so there's no honest way to get a per-topic total the way
+                // getApproxAudioMessageCount does for a whole chat. Reporting a running count
+                // without a percentage here, rather than fabricating a total against the whole
+                // chat's count, which would overestimate badly for any single topic.
+                _syncProgress.value = TelegramSyncProgress(current, -1)
+            }
             totalSongs += topicSongs.size
 
             // Replace songs for this topic (with thread_id stamped)

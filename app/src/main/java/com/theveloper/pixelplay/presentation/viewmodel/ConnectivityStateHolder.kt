@@ -329,7 +329,7 @@ class ConnectivityStateHolder @Inject constructor(
                 device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
                 device.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
             ) {
-                val name = device.productName?.toString()?.trim().orEmpty()
+                val name = device.productName.toString().trim()
                 if (name.isNotEmpty() && !isOwnBluetoothDeviceName(name, localDeviceNames)) {
                     val address = device.address?.trim().orEmpty().takeIf { it.isNotEmpty() }
                     val key = bluetoothDeviceKey(address, name)

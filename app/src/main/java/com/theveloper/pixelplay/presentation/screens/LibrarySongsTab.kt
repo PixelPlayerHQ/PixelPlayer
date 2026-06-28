@@ -222,7 +222,7 @@ fun LibrarySongsTab(
 
     when {
         refreshState is LoadState.Error && songs.itemCount == 0 -> {
-            val error = (refreshState as LoadState.Error).error
+            val error = refreshState.error
             Box(
                 modifier = Modifier
                     .fillMaxSize()

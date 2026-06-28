@@ -48,6 +48,11 @@ object AudioMetadataReader {
      */
     private const val VERBOSE = false
 
+    // Compiled once instead of on every parseReplayGainDb() call. This function runs up to
+    // twice per song (track gain + album gain), each checking up to 3 property keys, so a
+    // per-call Regex(...) construction adds up across a large library sync.
+    private val DB_SUFFIX_REGEX = Regex("(?i)[dD][bB]")
+
     fun read(context: Context, uri: Uri): AudioMetadata? {
         val tempFile = createTempAudioFileFromUri(context, uri) ?: run {
             Timber.tag(TAG).w("Unable to create temp file for uri: $uri")
@@ -257,7 +262,7 @@ object AudioMetadataReader {
         val cleanedValue = rawValue
             ?.trim()
             ?.replace(',', '.')
-            ?.replace(Regex("(?i)[dD][bB]"), "")
+            ?.replace(DB_SUFFIX_REGEX, "")
             ?.trim()
             ?: return null
         return cleanedValue.toFloatOrNull()

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.telegram.TelegramSyncProgress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +40,10 @@ class TelegramChannelSearchViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
+
+    // See TelegramSyncProgress. Null when no fetch is in progress.
+    private val _syncProgress = MutableStateFlow<TelegramSyncProgress?>(null)
+    val syncProgress = _syncProgress.asStateFlow()
 
     // Status message for errors or "Not Found"
     private val _statusMessage = MutableStateFlow<String?>(null)
@@ -97,7 +102,9 @@ class TelegramChannelSearchViewModel @Inject constructor(
                 val isForum = telegramRepository.isForum(chatId)
                 val chat = _foundChat.value ?: return@launch
 
-                val allSongs = telegramRepository.getAudioMessages(chatId)
+                val allSongs = telegramRepository.getAudioMessages(chatId) { current, approxTotal ->
+                    _syncProgress.value = TelegramSyncProgress(current, approxTotal)
+                }
                 musicRepository.replaceTelegramSongsForChannel(chatId, allSongs)
 
                 var localPhotoPath: String? = null
@@ -124,7 +131,12 @@ class TelegramChannelSearchViewModel @Inject constructor(
                         musicRepository.replaceTopicsForChannel(chatId, topics)
                         var totalSongs = 0
                         topics.forEach { topic ->
-                            val topicSongs = telegramRepository.getAudioMessagesByTopic(chatId, topic.threadId)
+                            _statusMessage.value = "Syncing topic \"${topic.name}\"..."
+                            val topicSongs = telegramRepository.getAudioMessagesByTopic(chatId, topic.threadId) { current ->
+                                // approxTotal = -1: no honest per-topic total available, see
+                                // the equivalent comment in TelegramDashboardViewModel.
+                                _syncProgress.value = TelegramSyncProgress(current, -1)
+                            }
                             totalSongs += topicSongs.size
                             musicRepository.replaceTelegramSongsForTopic(
                                 chatId = chatId,
@@ -158,6 +170,7 @@ class TelegramChannelSearchViewModel @Inject constructor(
                 runCatching { musicRepository.requestTelegramUnifiedSync() }
                 _songs.value = emptyList()
                 _isLoading.value = false
+                _syncProgress.value = null
             }
         }
     }
@@ -189,6 +202,7 @@ class TelegramChannelSearchViewModel @Inject constructor(
         _foundChat.value = null
         _songs.value = emptyList()
         _isLoading.value = false
+        _syncProgress.value = null
         _statusMessage.value = null
         _resolvedUsername.value = null
     }

@@ -373,7 +373,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getApproxAudioMessageCount(chatId: Long): Int {
         return try {
             val result = clientManager.sendRequest<TdApi.Count>(
-                TdApi.GetChatMessageCount(chatId, TdApi.SearchMessagesFilterAudio(), false)
+                TdApi.GetChatMessageCount(chatId, null, TdApi.SearchMessagesFilterAudio(), false)
             )
             extractApproxCount(result)
         } catch (e: Exception) {

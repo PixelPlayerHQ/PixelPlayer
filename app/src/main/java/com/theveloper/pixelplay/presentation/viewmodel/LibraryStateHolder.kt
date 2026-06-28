@@ -272,7 +272,6 @@ class LibraryStateHolder @Inject constructor(
         // I/O contention on slower storage (eMMC on Redmi vs UFS on Samsung).
         albumsJob = scope?.launch {
             songsJob?.join()
-            _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             kotlinx.coroutines.flow.combine(
                 effectiveStorageFilter,
@@ -286,13 +285,11 @@ class LibraryStateHolder @Inject constructor(
                     sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()
                 }
                 _albums.value = sortedAlbums
-                _isLoadingCategories.value = false
             }
         }
 
         artistsJob = scope?.launch {
             albumsJob?.join()
-            _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
@@ -301,7 +298,6 @@ class LibraryStateHolder @Inject constructor(
                     sortArtistsList(artists, _currentArtistSortOption.value).toImmutableList()
                 }
                 _artists.value = sortedArtists
-                _isLoadingCategories.value = false
             }
         }
 
@@ -316,6 +312,16 @@ class LibraryStateHolder @Inject constructor(
                 }
                 _musicFolders.value = sortedFolders
             }
+        }
+
+        // Single loading state: true when songs start, false when all sequential
+        // jobs (albums + artists) finish. This avoids flapping true→false→true
+        // as each sequential coroutine completes.
+        scope?.launch {
+            songsJob?.join()
+            _isLoadingCategories.value = true
+            foldersJob?.join()
+            _isLoadingCategories.value = false
         }
     }
 

@@ -536,14 +536,6 @@ class PlayerViewModel @Inject constructor(
         initialValue = false
     )
 
-    val hasGeminiApiKey: StateFlow<Boolean> = aiPreferencesRepository.geminiApiKey
-        .map { it.isNotBlank() }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
     val fullPlayerLoadingTweaks: StateFlow<FullPlayerLoadingTweaks> = userPreferencesRepository.fullPlayerLoadingTweaksFlow
         .stateIn(
             scope = viewModelScope,
@@ -1138,13 +1130,6 @@ class PlayerViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = persistentListOf()
-        )
-
-    val songCountFlow: StateFlow<Int> = musicRepository.getSongCountFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0
         )
 
     val hasCloudSongsFlow: StateFlow<Boolean?> = musicRepository.getCloudSongCountFlow()

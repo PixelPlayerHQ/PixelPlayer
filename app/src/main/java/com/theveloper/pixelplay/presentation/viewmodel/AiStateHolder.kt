@@ -289,14 +289,8 @@ class AiStateHolder @Inject constructor(
     suspend fun translateLyrics(lyricsText: String): Result<String> {
         return try {
             val targetLanguage = context.resources.configuration.locales[0].displayLanguage
-            val sourceLanguage = detectLyricsLanguage(lyricsText)
-            val taskPrefix = if (sourceLanguage != null) {
-                "Translate these $sourceLanguage song lyrics into $targetLanguage."
-            } else {
-                "Translate these song lyrics into $targetLanguage."
-            }
-            val prompt = """
-<task>$taskPrefix</task>
+            val xmlPrompt = """
+<task>Translate song lyrics into $targetLanguage.</task>
 
 <rules>
 - Preserve ALL timestamps [mm:ss.xx] exactly — never modify, merge, or drop them.
@@ -317,8 +311,8 @@ $lyricsText
             """.trimIndent()
 
             val response = aiHandler.generateContent(
-                prompt = prompt,
-                type = AiSystemPromptType.GENERAL,
+                prompt = xmlPrompt,
+                type = AiSystemPromptType.LYRICS,
                 temperature = 0.1f
             )
             Result.success(response)

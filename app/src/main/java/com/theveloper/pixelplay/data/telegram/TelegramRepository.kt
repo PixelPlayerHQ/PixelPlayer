@@ -1,12 +1,5 @@
 package com.theveloper.pixelplay.data.telegram
 
-/**
- * Progress of an in-flight getAudioMessages fetch. current = songs fetched so far,
- * approxTotal = -1 if unknown, otherwise TDLib's approximate count for the channel (see
- * TelegramRepository.getApproxAudioMessageCount). Shared by every call site that wants to
- * show fetch progress, rather than each declaring its own copy of the same shape.
- */
-data class TelegramSyncProgress(val current: Int, val approxTotal: Int)
 
 import com.theveloper.pixelplay.data.database.TelegramDao
 import com.theveloper.pixelplay.data.database.TelegramSongEntity
@@ -41,6 +34,14 @@ import javax.inject.Singleton
 import kotlin.math.absoluteValue
 
 import timber.log.Timber
+
+/**
+ * Progress of an in-flight getAudioMessages fetch. current = songs fetched so far,
+ * approxTotal = -1 if unknown, otherwise TDLib's approximate count for the channel (see
+ * TelegramRepository.getApproxAudioMessageCount). Shared by every call site that wants to
+ * show fetch progress, rather than each declaring its own copy of the same shape.
+ */
+data class TelegramSyncProgress(val current: Int, val approxTotal: Int)
 
 @Singleton
 class TelegramRepository @Inject constructor(
@@ -383,7 +384,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getApproxAudioMessageCount(chatId: Long): Int {
         return try {
             val result = clientManager.sendRequest<TdApi.Count>(
-                TdApi.GetChatMessageCount(chatId, TdApi.SearchMessagesFilterAudio(), false)
+                TdApi.GetChatMessageCount(chatId, null, TdApi.SearchMessagesFilterAudio(), false)
             )
             extractApproxCount(result)
         } catch (e: Exception) {

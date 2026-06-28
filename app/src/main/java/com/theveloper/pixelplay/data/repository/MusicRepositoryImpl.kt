@@ -122,7 +122,16 @@ class MusicRepositoryImpl @Inject constructor(
         // itself, so a normal one-off action (e.g. deleting a song) should still feel
         // responsive. Still long enough to coalesce the rapid commit cadence of an active
         // sync. A judgment call, not a profiled-optimal value.
-        private const val AUDIO_FILES_DEBOUNCE_MS = 600L
+        // Shared across getAudioFiles/getAlbums/getArtists/getMusicFolders: all four wrap a
+        // Room Flow query that re-emits on every relevant table commit, with a
+        // distinctUntilChanged() that doesn't dedupe genuinely-different successive emissions
+        // during an active sync (counts/fields change with each commit). Debouncing here
+        // coalesces a burst of rapid re-emissions into one UI update once the list settles,
+        // instead of paying a full conversion + downstream rebuild cost on every commit.
+        // Intentionally short (600ms): these delay directly user-visible lists, not a
+        // background side effect, so a normal one-off action should still feel responsive.
+        // A judgment call, not a profiled-optimal value.
+        private const val LIBRARY_LIST_DEBOUNCE_MS = 600L
     }
 
     private val directoryScanMutex = Mutex()
@@ -260,18 +269,9 @@ class MusicRepositoryImpl @Inject constructor(
                 )
             }.flatMapLatest { it }
         }
-            // Room re-emits this query on every songs-table commit. During an active
-            // MediaStore/Telegram sync that's many commits in quick succession, each
-            // producing a genuinely different list (distinctUntilChanged() below doesn't
-            // dedupe these away), which previously meant a full entities.map{it.toSong()}
-            // conversion (potentially 100k+ conversions) plus a full list/map rebuild
-            // downstream in LibraryStateHolder, on every single commit. Same root cause as
-            // the artist-image prefetch storm fixed earlier in getArtists() — debouncing
-            // here means a burst of rapid re-emissions collapses into one conversion once
-            // the list has stopped changing for AUDIO_FILES_DEBOUNCE_MS, instead of paying
-            // the conversion + downstream rebuild cost on every commit. Placed before map{}
-            // so debounced-away emissions don't pay the conversion cost either.
-            .debounce(AUDIO_FILES_DEBOUNCE_MS)
+            // See LIBRARY_LIST_DEBOUNCE_MS. Placed before map{} so debounced-away emissions
+            // don't pay the toSong() conversion cost either.
+            .debounce(LIBRARY_LIST_DEBOUNCE_MS)
             .map { entities ->
                 entities.map { it.toSong() }
             }.distinctUntilChanged().conflate().flowOn(Dispatchers.IO)
@@ -517,6 +517,9 @@ class MusicRepositoryImpl @Inject constructor(
         }.flatMapLatest { (allowedDirs, blockedDirs) ->
             val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
             musicDao.getAlbums(allowedParentDirs, applyFilter, storageFilter.toFilterMode(), minTracks)
+                // See LIBRARY_LIST_DEBOUNCE_MS. Placed before map{} so debounced-away
+                // emissions don't pay the toAlbum() conversion cost either.
+                .debounce(LIBRARY_LIST_DEBOUNCE_MS)
                 .map { entities -> entities.map { it.toAlbum() } }
                 .distinctUntilChanged()
         }.conflate().flowOn(Dispatchers.IO)
@@ -540,6 +543,11 @@ class MusicRepositoryImpl @Inject constructor(
                 applyDirectoryFilter = applyFilter,
                 filterMode = storageFilter.toFilterMode()
             )
+                // See LIBRARY_LIST_DEBOUNCE_MS. This debounces the core artist list itself;
+                // the prefetch trigger below has its own, separate, longer debounce
+                // (ARTIST_PREFETCH_DEBOUNCE_MS) since it's a background side effect rather
+                // than a directly user-visible list.
+                .debounce(LIBRARY_LIST_DEBOUNCE_MS)
                 .distinctUntilChanged()
                 .map { entities -> entities.map { it.toArtist() } }
                 .onEach { artists ->
@@ -1056,18 +1064,25 @@ class MusicRepositoryImpl @Inject constructor(
                         allowedParentDirs = allowedParentDirs,
                         applyDirectoryFilter = applyDirectoryFilter,
                         filterMode = storageFilter.toFilterMode()
-                    ).map { folderSongs ->
-                        folderTreeBuilder.buildFolderTree(
-                            folderSongs = folderSongs,
-                            allowedDirs = config.allowedDirs,
-                            blockedDirs = config.blockedDirs,
-                            isFolderFilterActive = config.isFolderFilterActive,
-                            folderSource = config.folderSource,
-                            context = context
-                        )
-                    }
+                    )
                 )
             }.flatMapLatest { it }
+                // See LIBRARY_LIST_DEBOUNCE_MS. Placed before buildFolderTree below — an
+                // even more expensive step than the conversions in the other library list
+                // flows below, previously fused directly onto the raw emission with no
+                // distinctUntilChanged() at all, so debounced-away emissions now skip the
+                // rebuild and its allocation cost entirely instead of paying it on every commit.
+                .debounce(LIBRARY_LIST_DEBOUNCE_MS)
+                .map { folderSongs ->
+                    folderTreeBuilder.buildFolderTree(
+                        folderSongs = folderSongs,
+                        allowedDirs = config.allowedDirs,
+                        blockedDirs = config.blockedDirs,
+                        isFolderFilterActive = config.isFolderFilterActive,
+                        folderSource = config.folderSource,
+                        context = context
+                    )
+                }
         }.conflate().flowOn(Dispatchers.IO)
     }
 

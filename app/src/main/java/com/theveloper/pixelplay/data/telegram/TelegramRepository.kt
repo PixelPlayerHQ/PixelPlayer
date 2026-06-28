@@ -1,5 +1,13 @@
 package com.theveloper.pixelplay.data.telegram
 
+/**
+ * Progress of an in-flight getAudioMessages fetch. current = songs fetched so far,
+ * approxTotal = -1 if unknown, otherwise TDLib's approximate count for the channel (see
+ * TelegramRepository.getApproxAudioMessageCount). Shared by every call site that wants to
+ * show fetch progress, rather than each declaring its own copy of the same shape.
+ */
+data class TelegramSyncProgress(val current: Int, val approxTotal: Int)
+
 import com.theveloper.pixelplay.data.database.TelegramDao
 import com.theveloper.pixelplay.data.database.TelegramSongEntity
 import com.theveloper.pixelplay.data.database.TelegramTopicEntity
@@ -267,7 +275,11 @@ class TelegramRepository @Inject constructor(
         return topics
     }
 
-    suspend fun getAudioMessagesByTopic(chatId: Long, threadId: Long): List<Song> {
+    suspend fun getAudioMessagesByTopic(
+        chatId: Long,
+        threadId: Long,
+        onProgress: (suspend (current: Int) -> Unit)? = null
+    ): List<Song> {
         Timber.d("Fetching audio for topic threadId=$threadId in chat=$chatId")
         try {
             clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
@@ -278,6 +290,24 @@ class TelegramRepository @Inject constructor(
         val allSongs = mutableListOf<Song>()
         var nextFromMessageId = 0L
         val batchSize = 100
+
+        // Resolved once, outside the loop, since the result never changes between batches —
+        // previously this reflection lookup (plus a Timber.d field dump) re-ran on every
+        // single batch despite always resolving the same way for a given build.
+        var topicFieldName: String? = null
+        var topicFieldSetsMessageTopic = false
+        try {
+            TdApi.SearchChatMessages::class.java.getDeclaredField("topicId")
+            topicFieldName = "topicId"
+            topicFieldSetsMessageTopic = true
+        } catch (_: NoSuchFieldException) {
+            try {
+                TdApi.SearchChatMessages::class.java.getDeclaredField("messageThreadId")
+                topicFieldName = "messageThreadId"
+            } catch (_: NoSuchFieldException) {
+                Timber.e("SearchChatMessages: could not resolve a topic filter field — results will be unfiltered")
+            }
+        }
 
         try {
             while (true) {
@@ -290,37 +320,15 @@ class TelegramRepository @Inject constructor(
                     this.limit = batchSize
                     this.filter = TdApi.SearchMessagesFilterAudio()
 
-                    // Set the topic/thread filter via reflection to handle different TDLib builds.
-                    // In newer builds the field is 'topicId' (MessageTopic object).
-                    // In older builds it was 'messageThreadId' (Long).
-                    val scFields = this.javaClass.declaredFields
-                    Timber.d("SearchChatMessages fields: ${scFields.map { "${it.name}:${it.type.simpleName}" }}")
-
-                    var topicSet = false
-
-                    // Try 'topicId' field (newer TDLib — expects a MessageTopic object)
-                    try {
-                        val f = this.javaClass.getDeclaredField("topicId")
+                    if (topicFieldName != null) {
+                        val f = this.javaClass.getDeclaredField(topicFieldName)
                         f.isAccessible = true
-                        // MessageTopicForum wraps the thread ID as Int
-                        f.set(this, TdApi.MessageTopicForum(threadId.toInt()))
-                        Timber.d("SearchChatMessages: set topicId = MessageTopicForum($threadId)")
-                        topicSet = true
-                    } catch (_: NoSuchFieldException) { }
-
-                    // Fallback: try 'messageThreadId' field (older TDLib — Long)
-                    if (!topicSet) {
-                        try {
-                            val f = this.javaClass.getDeclaredField("messageThreadId")
-                            f.isAccessible = true
+                        if (topicFieldSetsMessageTopic) {
+                            // MessageTopicForum wraps the thread ID as Int
+                            f.set(this, TdApi.MessageTopicForum(threadId.toInt()))
+                        } else {
                             f.set(this, threadId)
-                            Timber.d("SearchChatMessages: set messageThreadId = $threadId")
-                            topicSet = true
-                        } catch (_: NoSuchFieldException) { }
-                    }
-
-                    if (!topicSet) {
-                        Timber.e("SearchChatMessages: could not set topic filter — results will be unfiltered")
+                        }
                     }
                 }
 
@@ -331,6 +339,8 @@ class TelegramRepository @Inject constructor(
                 response.messages.forEach { message ->
                     mapMessageToSong(message)?.let { allSongs.add(it) }
                 }
+
+                onProgress?.invoke(allSongs.size)
 
                 nextFromMessageId = response.nextFromMessageId
                 if (nextFromMessageId == 0L) break
@@ -373,7 +383,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getApproxAudioMessageCount(chatId: Long): Int {
         return try {
             val result = clientManager.sendRequest<TdApi.Count>(
-                TdApi.GetChatMessageCount(chatId, null, TdApi.SearchMessagesFilterAudio(), false)
+                TdApi.GetChatMessageCount(chatId, TdApi.SearchMessagesFilterAudio(), false)
             )
             extractApproxCount(result)
         } catch (e: Exception) {

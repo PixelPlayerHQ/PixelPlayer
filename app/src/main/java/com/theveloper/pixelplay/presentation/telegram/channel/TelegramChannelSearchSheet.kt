@@ -32,6 +32,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
@@ -73,6 +74,7 @@ fun TelegramChannelSearchSheet(
     val foundChat by viewModel.foundChat.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -240,6 +242,47 @@ fun TelegramChannelSearchSheet(
                                     fontFamily = GoogleSansRounded,
                                     color = MaterialTheme.colorScheme.primary
                                 )
+                                // Two cases here, same as the dashboard sync UI:
+                                // - Known total >= 5000 (flat channel): determinate bar with
+                                //   a percentage.
+                                // - Unknown total (forum topic fetch, approxTotal == -1): no
+                                //   honest percentage available (see TelegramSyncProgress),
+                                //   shown as an indeterminate bar with the running count
+                                //   instead. Below 5000 with a known total, the indeterminate
+                                //   LoadingIndicator above is enough since the fetch finishes
+                                //   quickly anyway.
+                                val progress = syncProgress
+                                if (progress != null && (progress.approxTotal >= 5000 || progress.approxTotal == -1)) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    if (progress.approxTotal > 0) {
+                                        val fraction = (progress.current.toFloat() / progress.approxTotal.toFloat())
+                                            .coerceIn(0f, 1f)
+                                        LinearWavyProgressIndicator(
+                                            progress = { fraction },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 32.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "${progress.current} / ${progress.approxTotal}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else {
+                                        LinearWavyProgressIndicator(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 32.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "${progress.current} songs so far",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                         statusMessage != null -> {

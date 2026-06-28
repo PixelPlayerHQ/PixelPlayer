@@ -117,6 +117,12 @@ class MusicRepositoryImpl @Inject constructor(
         // hundred ms to ~1s during a large Telegram/MediaStore sync), short enough that a
         // normal, one-off addition of a few songs still gets artist images fetched promptly.
         private const val ARTIST_PREFETCH_DEBOUNCE_MS = 1500L
+        // Shorter than ARTIST_PREFETCH_DEBOUNCE_MS on purpose: that one delays a background
+        // side effect the user doesn't directly perceive, this one delays the songs list
+        // itself, so a normal one-off action (e.g. deleting a song) should still feel
+        // responsive. Still long enough to coalesce the rapid commit cadence of an active
+        // sync. A judgment call, not a profiled-optimal value.
+        private const val AUDIO_FILES_DEBOUNCE_MS = 600L
     }
 
     private val directoryScanMutex = Mutex()
@@ -253,9 +259,22 @@ class MusicRepositoryImpl @Inject constructor(
                     )
                 )
             }.flatMapLatest { it }
-        }.map { entities ->
-            entities.map { it.toSong() }
-        }.distinctUntilChanged().conflate().flowOn(Dispatchers.IO)
+        }
+            // Room re-emits this query on every songs-table commit. During an active
+            // MediaStore/Telegram sync that's many commits in quick succession, each
+            // producing a genuinely different list (distinctUntilChanged() below doesn't
+            // dedupe these away), which previously meant a full entities.map{it.toSong()}
+            // conversion (potentially 100k+ conversions) plus a full list/map rebuild
+            // downstream in LibraryStateHolder, on every single commit. Same root cause as
+            // the artist-image prefetch storm fixed earlier in getArtists() — debouncing
+            // here means a burst of rapid re-emissions collapses into one conversion once
+            // the list has stopped changing for AUDIO_FILES_DEBOUNCE_MS, instead of paying
+            // the conversion + downstream rebuild cost on every commit. Placed before map{}
+            // so debounced-away emissions don't pay the conversion cost either.
+            .debounce(AUDIO_FILES_DEBOUNCE_MS)
+            .map { entities ->
+                entities.map { it.toSong() }
+            }.distinctUntilChanged().conflate().flowOn(Dispatchers.IO)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

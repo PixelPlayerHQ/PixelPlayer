@@ -6,6 +6,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
+import com.theveloper.pixelplay.data.ai.AiResponseCleaner
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.provider.AiProviderException
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
@@ -313,7 +314,8 @@ $lyricsText
                 type = AiSystemPromptType.LYRICS,
                 temperature = 0.1f
             )
-            Result.success(response)
+            val cleaned = AiResponseCleaner.cleanTextResponse(response)
+            Result.success(cleaned)
         } catch (e: Exception) {
             Result.failure(e)
         }

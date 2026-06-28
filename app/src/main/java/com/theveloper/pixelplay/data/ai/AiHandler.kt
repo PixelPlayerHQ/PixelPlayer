@@ -170,6 +170,18 @@ class AiHandler @Inject constructor(
         context: String = ""
     ): String {
         val params = getGenerationParams()
+        val effectiveMaxTokens = if (type == AiSystemPromptType.LYRICS) {
+            // Lyrics translation needs more output tokens because each original
+            // line is followed by its translation (2x output). Also factor in
+            // the full lyrics text in the prompt. Use at least 4096, at most
+            // 16384, scaling linearly with input length.
+            val estimatedInputChars = prompt.length
+            val estimatedOutputChars = estimatedInputChars * 2
+            val estimatedOutputTokens = (estimatedOutputChars / 4).coerceAtLeast(4096)
+            estimatedOutputTokens.coerceAtMost(16384)
+        } else {
+            params.maxTokens
+        }
         val effectiveTemperature = if (params.temperature == 0.7f) {
             if (temperature == 0.7f) {
                 when (type) {
@@ -231,7 +243,7 @@ class AiHandler @Inject constructor(
                     temperature = effectiveTemperature,
                     topP = params.topP,
                     topK = params.topK,
-                    maxTokens = params.maxTokens,
+                    maxTokens = effectiveMaxTokens,
                     presencePenalty = params.presencePenalty,
                     frequencyPenalty = params.frequencyPenalty,
                 )

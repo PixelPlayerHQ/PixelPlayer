@@ -117,6 +117,20 @@ data class MimeTypeCountRow(
     val count: Int
 )
 
+/** Result row for getArtistsByNormalizedNames — used by syncTelegramData's per-chunk dedup. */
+data class ArtistLookupRow(
+    val id: Long,
+    val name: String,
+    val imageUrl: String?
+)
+
+/** Result row for getAlbumsByNormalizedTitles — used by syncTelegramData's per-chunk dedup. */
+data class AlbumLookupRow(
+    val id: Long,
+    val title: String,
+    val artistName: String
+)
+
 @Dao
 interface MusicDao {
 
@@ -1539,6 +1553,21 @@ interface MusicDao {
 
     @Query("SELECT id FROM artists WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1")
     suspend fun getArtistIdByNormalizedName(name: String): Long?
+
+    // Used by syncTelegramData's per-chunk dedup: looks up only the artists relevant to the
+    // current chunk's songs instead of loading the entire artists table. normalizedNames
+    // must already be trim().lowercase()'d by the caller, matching the LOWER(TRIM(name))
+    // comparison here.
+    @Query("SELECT id, name, image_url AS imageUrl FROM artists WHERE LOWER(TRIM(name)) IN (:normalizedNames)")
+    suspend fun getArtistsByNormalizedNames(normalizedNames: List<String>): List<ArtistLookupRow>
+
+    // Used by syncTelegramData's per-chunk dedup: looks up only the albums relevant to the
+    // current chunk's songs instead of loading the entire albums table. Filters by title only
+    // (not the full title+artist key) since SQLite IN() doesn't match tuples directly; the
+    // caller reconstructs the same "title_artistName" key in Kotlin and discards any rows
+    // whose artist doesn't match, same as the title-only candidate set this produces.
+    @Query("SELECT id, title, artist_name AS artistName FROM albums WHERE LOWER(TRIM(title)) IN (:normalizedTitles)")
+    suspend fun getAlbumsByNormalizedTitles(normalizedTitles: List<String>): List<AlbumLookupRow>
 
     @Query("SELECT MAX(id) FROM artists")
     suspend fun getMaxArtistId(): Long?

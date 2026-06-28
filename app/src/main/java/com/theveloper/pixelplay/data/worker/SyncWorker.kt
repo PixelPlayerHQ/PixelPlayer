@@ -24,6 +24,7 @@ import com.theveloper.pixelplay.data.database.SongArtistCrossRef
 import com.theveloper.pixelplay.data.database.SongEntity
 import com.theveloper.pixelplay.data.database.SourceType
 import com.theveloper.pixelplay.data.database.TelegramDao // Added
+import com.theveloper.pixelplay.data.database.TelegramSongEntity
 import com.theveloper.pixelplay.data.database.resolveAlbumArtUri
 import com.theveloper.pixelplay.data.database.serializeArtistRefs
 import com.theveloper.pixelplay.data.diagnostics.AdvancedPerformanceDiagnostics
@@ -1403,34 +1404,12 @@ constructor(
                 return
             }
 
-            // 1. Pre-load local data for merging — loaded once, shared across all chunks.
-            //
-            // NOTE: getAllArtistsListRaw()/getAllAlbumsList() load every artist/album in the
-            // entire unified library (not just Telegram-sourced ones), unconditionally. This
-            // preload's memory cost scales with the size of the user's *existing* library, not
-            // with the size of the channel being synced — on a library with many thousands of
-            // distinct artists already present (e.g. a prior sync of a similarly large channel),
-            // this can be a genuinely large amount of memory held for the whole sync. Fully
-            // avoiding that would mean replacing this preload with batched per-chunk lookups
-            // (e.g. SELECT ... WHERE name IN (:chunkNames)) instead of one upfront full-library
-            // load; that's a real, separate redesign, not done here.
-            //
-            // What IS done here: build both derived maps in a single pass over the artist list,
-            // pre-sized to the known count, instead of two separate .associate{} calls (each of
-            // which allocates its own default-capacity HashMap that has to resize/reallocate
-            // repeatedly as it grows for a large list). This avoids some transient duplicate
-            // allocation during the preload, though it does not change the preload's fundamental
-            // scaling with existing-library size.
-            val allExistingArtists = musicDao.getAllArtistsListRaw()
-            val initialCapacity = ((allExistingArtists.size / 0.75f).toInt() + 1).coerceAtLeast(16)
-            val existingArtists = HashMap<String, Long>(initialCapacity)
-            val existingArtistImageUrls = HashMap<Long, String?>(initialCapacity)
-            for (artist in allExistingArtists) {
-                existingArtists[artist.name.trim().lowercase()] = artist.id
-                existingArtistImageUrls[artist.id] = artist.imageUrl
-            }
-            val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0)
-                .associate { "${it.title.trim().lowercase()}_${it.artistName.trim().lowercase()}" to it.id }
+            // Artist/album dedup lookups now happen per-chunk (see inside the loop below),
+            // scoped to just the distinct names appearing in that chunk, instead of loading
+            // every artist/album in the entire unified library upfront. The old whole-library
+            // preload's memory cost scaled with the size of the user's *existing* library, not
+            // with the size of the channel being synced, which made it a real, growing cost on
+            // libraries with many thousands of distinct artists already present.
             val delimiters = userPreferencesRepository.artistDelimitersFlow.first()
             val wordDelims = userPreferencesRepository.artistWordDelimitersFlow.first()
 
@@ -1445,6 +1424,18 @@ constructor(
             // only part run in parallel; the artist/album dedup maps that follow are mutated
             // from a single thread per chunk and stay sequential, same as before.
             val metadataReadSemaphore = Semaphore(telegramMetadataReadConcurrency())
+
+            // Holds one song's precomputed split-artist names and album key, used both to
+            // collect a chunk's distinct names before the batched lookup queries below and to
+            // avoid recomputing splitArtistsByDelimiters a second time in the main per-song loop.
+            data class ChunkSongPrep(
+                val tSong: TelegramSongEntity,
+                val refined: RefinedTelegramMetadata,
+                val rawArtistName: String,
+                val splitArtists: List<String>,
+                val albumKey: String,
+                val albumTitleLower: String
+            )
 
             telegramSongs.chunked(TELEGRAM_SYNC_CHUNK_SIZE).forEach { chunk ->
                 // Per-chunk collections — allocated, used, then released each iteration.
@@ -1531,7 +1522,52 @@ constructor(
                     }.awaitAll()
                 }
 
-                refinedChunk.forEach { (tSong, refined) ->
+                // Precompute each song's artist split and album key once, both because the
+                // main construction loop below needs them and because we need to know this
+                // chunk's distinct names before querying for them — avoids computing
+                // splitArtistsByDelimiters twice per song.
+                val chunkPrep = refinedChunk.map { (tSong, refined) ->
+                    val rawArtistName = if (refined.artistName.isBlank()) "Unknown Artist" else refined.artistName
+                    val splitArtists = rawArtistName.splitArtistsByDelimiters(delimiters, wordDelims)
+                    val albumTitleLower = refined.albumName.trim().lowercase()
+                    val albumKey = "${albumTitleLower}_${refined.albumArtist.trim().lowercase()}"
+                    ChunkSongPrep(tSong, refined, rawArtistName, splitArtists, albumKey, albumTitleLower)
+                }
+
+                // Batched, per-chunk lookups — scoped to just the distinct names appearing in
+                // THIS chunk, instead of the whole artists/albums tables. Any artist/album
+                // created earlier in this same sync run (a previous chunk, already committed —
+                // see cleanupOrphans=false flush below) is found here exactly like one that
+                // existed before the sync started; an artist/album that's genuinely new gets a
+                // deterministic synthetic id either way (see below), so it doesn't need to be
+                // "found" by this lookup to behave correctly.
+                val chunkArtistNamesLower = chunkPrep
+                    .flatMap { it.splitArtists }
+                    .map { it.trim().lowercase() }
+                    .distinct()
+                val chunkAlbumTitlesLower = chunkPrep.map { it.albumTitleLower }.distinct()
+
+                val chunkExistingArtists = HashMap<String, Long>(chunkArtistNamesLower.size.coerceAtLeast(1))
+                val chunkExistingArtistImageUrls = HashMap<Long, String?>(chunkArtistNamesLower.size.coerceAtLeast(1))
+                chunkArtistNamesLower.chunked(500).forEach { namesBatch ->
+                    musicDao.getArtistsByNormalizedNames(namesBatch).forEach { row ->
+                        val key = row.name.trim().lowercase()
+                        chunkExistingArtists[key] = row.id
+                        chunkExistingArtistImageUrls[row.id] = row.imageUrl
+                    }
+                }
+
+                val chunkExistingAlbums = HashMap<String, Long>(chunkAlbumTitlesLower.size.coerceAtLeast(1))
+                chunkAlbumTitlesLower.chunked(500).forEach { titlesBatch ->
+                    musicDao.getAlbumsByNormalizedTitles(titlesBatch).forEach { row ->
+                        val key = "${row.title.trim().lowercase()}_${row.artistName.trim().lowercase()}"
+                        chunkExistingAlbums[key] = row.id
+                    }
+                }
+
+                chunkPrep.forEach { prep ->
+                    val tSong = prep.tSong
+                    val refined = prep.refined
                     val channelName = refined.channelName
                     val songId = -(tSong.id.hashCode().toLong().absoluteValue)
                     val finalSongId = if (songId == 0L) -1L else songId
@@ -1552,15 +1588,18 @@ constructor(
                     val realSampleRate = refined.sampleRate
                     val resolvedAlbumArtUri = refined.albumArtUri
 
-                    // 3. Multi-Artist Processing
-                    val rawArtistName = if (realArtistName.isBlank()) "Unknown Artist" else realArtistName
-                    val splitArtists = rawArtistName.splitArtistsByDelimiters(delimiters, wordDelims)
+                    // 3. Multi-Artist Processing — rawArtistName/splitArtists already computed
+                    // in chunkPrep above (needed there to know what this chunk's distinct
+                    // names are before querying for them); reused here rather than
+                    // recomputed.
+                    val rawArtistName = prep.rawArtistName
+                    val splitArtists = prep.splitArtists
                     var primaryArtistId = -1L
 
                     splitArtists.forEachIndexed { index, individualArtistName ->
                         val cleanName = individualArtistName.trim()
                         val lowerName = cleanName.lowercase()
-                        val existingId = existingArtists[lowerName]
+                        val existingId = chunkExistingArtists[lowerName]
                         val finalArtistId = if (existingId != null) {
                             existingId
                         } else {
@@ -1573,7 +1612,7 @@ constructor(
                                 id = finalArtistId,
                                 name = cleanName,
                                 trackCount = 0,
-                                imageUrl = existingArtistImageUrls[finalArtistId]
+                                imageUrl = chunkExistingArtistImageUrls[finalArtistId]
                             )
                         }
                         crossRefsToInsert.add(SongArtistCrossRef(
@@ -1583,9 +1622,9 @@ constructor(
                         ))
                     }
 
-                    // 4. Album Logic
-                    val albumKey = "${realAlbumName.trim().lowercase()}_${realAlbumArtist.trim().lowercase()}"
-                    val existingAlbumId = existingAlbums[albumKey]
+                    // 4. Album Logic — albumKey already computed in chunkPrep above.
+                    val albumKey = prep.albumKey
+                    val existingAlbumId = chunkExistingAlbums[albumKey]
                     val finalAlbumId = if (existingAlbumId != null) {
                         existingAlbumId
                     } else {
@@ -1610,7 +1649,7 @@ constructor(
                     val telegramArtistRefs = splitArtists.mapIndexed { idx, name ->
                         val cleanName = name.trim()
                         val lowerName = cleanName.lowercase()
-                        val artId = existingArtists[lowerName]
+                        val artId = chunkExistingArtists[lowerName]
                             ?: artistsToInsert.values.find { it.name.equals(cleanName, ignoreCase = true) }?.id
                             ?: 0L
                         ArtistRef(id = artId, name = cleanName, isPrimary = idx == 0)

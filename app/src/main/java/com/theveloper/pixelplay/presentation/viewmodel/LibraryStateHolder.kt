@@ -257,22 +257,21 @@ class LibraryStateHolder @Inject constructor(
         songsJob = scope?.launch {
             _isLoadingLibrary.value = true
             musicRepository.getAudioFiles().conflate().collect { songs ->
-                // Process heavy list conversions on Default dispatcher to avoid blocking UI
                 val immutableSongs = withContext(Dispatchers.Default) { songs.toImmutableList() }
                 val songsMap = withContext(Dispatchers.Default) { songs.associateBy { it.id } }
 
                 _allSongs.value = immutableSongs
                 _allSongsById.value = songsMap
 
-                // When the repository emits a new list (triggered by directory changes),
-                // we update our state and re-apply current sorting.
-                // Apply sort to the new data
                 sortSongs(_currentSongSortOption.value, persist = false)
                 _isLoadingLibrary.value = false
             }
         }
 
+        // Albums, artists, and folders load sequentially after songs to avoid
+        // I/O contention on slower storage (eMMC on Redmi vs UFS on Samsung).
         albumsJob = scope?.launch {
+            songsJob?.join()
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             kotlinx.coroutines.flow.combine(
@@ -292,6 +291,7 @@ class LibraryStateHolder @Inject constructor(
         }
 
         artistsJob = scope?.launch {
+            albumsJob?.join()
             _isLoadingCategories.value = true
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
@@ -306,6 +306,7 @@ class LibraryStateHolder @Inject constructor(
         }
 
         foldersJob = scope?.launch {
+            artistsJob?.join()
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))

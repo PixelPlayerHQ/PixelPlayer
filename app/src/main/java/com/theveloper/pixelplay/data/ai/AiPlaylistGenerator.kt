@@ -54,7 +54,7 @@ class AiPlaylistGenerator @Inject constructor(
                     val genre = song.genre?.replace("\"", "'")?.take(15) ?: "?"
                     if (index > 0) append(",\n")
                     if (useExtendedFields) {
-                        val album = song.album?.replace("\"", "'")?.take(25) ?: "?"
+                        val album = song.album.replace("\"", "'")?.take(25) ?: "?"
                         val dur = song.duration
                         val fav = if (song.isFavorite) "1" else "0"
                         append("""{"id":"${song.id}","t":"$title","a":"$artist","g":"$genre","al":"$album","d":$dur,"f":$fav,"s":$score}""")

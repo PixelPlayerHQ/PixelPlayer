@@ -80,6 +80,7 @@ import androidx.paging.map
 import androidx.paging.filter
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.channels.BufferOverflow
@@ -88,7 +89,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,

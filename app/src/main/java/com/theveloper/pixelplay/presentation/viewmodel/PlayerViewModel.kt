@@ -45,6 +45,8 @@ import com.theveloper.pixelplay.data.model.Genre
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.SearchFilterType
+import com.theveloper.pixelplay.data.model.SearchHistoryItem
+import com.theveloper.pixelplay.data.model.SearchResultItem
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.toLibraryTabIdOrNull
@@ -443,6 +445,11 @@ class PlayerViewModel @Inject constructor(
     val aiSuccess: StateFlow<Boolean> = aiStateHolder.aiSuccess
     val aiStatus: StateFlow<String?> = aiStateHolder.aiStatus
     val aiError: StateFlow<String?> = aiStateHolder.aiError
+
+    // Search state (direct access bypasses 40-field playerUiState)
+    val searchResults: StateFlow<ImmutableList<SearchResultItem>> = searchStateHolder.searchResults
+    val selectedSearchFilter: StateFlow<SearchFilterType> = searchStateHolder.selectedSearchFilter
+    val searchHistory: StateFlow<ImmutableList<SearchHistoryItem>> = searchStateHolder.searchHistory
 
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()

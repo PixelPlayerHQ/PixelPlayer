@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,9 +28,9 @@ class AiHandler @Inject constructor(
     private val promptEngine: AiSystemPromptEngine,
     @AppScope private val appScope: CoroutineScope
 ) {
-    // Cooldown timer: Provider -> Expiry Timestamp
-    private val providerCooldowns = mutableMapOf<AiProvider, Long>()
-    private val COOLDOWN_DURATION_MS = 1000L * 60 * 5 // 5 minutes
+    // Cooldown timer: Provider -> Expiry Timestamp (thread-safe, auto-cleans expired)
+    private val providerCooldowns = ConcurrentHashMap<AiProvider, Long>()
+    private val COOLDOWN_DURATION_MS = 1000L * 60 * 2 // 2 minutes (was 5)
 
     // Cache TTL: 30 minutes — prevents stale results from being served indefinitely
     private val CACHE_TTL_MS = 1000L * 60 * 30
@@ -192,9 +193,12 @@ class AiHandler @Inject constructor(
             }
         }
 
+        // Clean up expired cooldowns so stale entries never accumulate
+        val now = System.currentTimeMillis()
+        providerCooldowns.entries.removeIf { it.value < now }
+
         val providersToTry = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.buildProviderChain(userProvider)
         val failedProviders = mutableListOf<String>()
-        val now = System.currentTimeMillis()
 
         for (provider in providersToTry) {
             val cooldownExpiry = providerCooldowns[provider] ?: 0L
@@ -205,7 +209,7 @@ class AiHandler @Inject constructor(
 
             try {
                 val apiKey = getApiKey(provider)
-                if (apiKey.isBlank()) {
+                if (apiKey.isBlank() && provider.requiresApiKey) {
                     failedProviders.add("${provider.name}: no API key configured")
                     continue
                 }

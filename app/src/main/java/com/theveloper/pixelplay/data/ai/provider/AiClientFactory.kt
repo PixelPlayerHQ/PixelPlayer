@@ -72,8 +72,8 @@ class AiClientFactory @Inject constructor() {
             )
             AiProvider.OLLAMA -> GenericOpenAiClient(
                 apiKey = apiKey,
-                baseUrl = "",
-                defaultModelId = "",
+                baseUrl = "https://api.ollama.ai/v1",
+                defaultModelId = "llama3",
                 providerName = "Ollama"
             )
             AiProvider.CUSTOM -> GenericOpenAiClient(

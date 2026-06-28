@@ -171,6 +171,7 @@ class AiHandler @Inject constructor(
                     AiSystemPromptType.TAGGING -> 0.4f
                     AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f
                     AiSystemPromptType.PERSONA -> 0.85f
+                    AiSystemPromptType.LYRICS -> 0.7f
                     AiSystemPromptType.GENERAL -> 0.7f
                 }
             } else temperature

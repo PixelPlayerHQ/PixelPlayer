@@ -7,6 +7,8 @@
     <string name="settings_category_appearance_subtitle">테마, 레이아웃 및 시각적 스타일</string>
     <string name="settings_category_playback_title">재생</string>
     <string name="settings_category_playback_subtitle">오디오 동작, 크로스페이드 및 백그라운드 재생</string>
+    <string name="settings_category_lyrics_title">가사</string>
+    <string name="settings_category_lyrics_subtitle">소스 우선순위, 몰입형 가사 및 가져오기 관리</string>
     <string name="settings_category_behavior_title">동작</string>
     <string name="settings_category_behavior_subtitle">제스처, 햅틱 및 내비게이션 동작</string>
     <string name="settings_category_ai_title">AI 연동 (β)</string>
@@ -174,6 +176,9 @@
     <string name="settings_language_korean">한국어</string>
     <string name="settings_language_norwegian_bokmal">노르웨이어 (Bokmål)</string>
     <string name="settings_language_turkish">터키어</string>
+    <string name="settings_language_japanese">일본어</string>
+    <string name="settings_language_traditional_chinese">중국어(번체)</string>
+    <string name="settings_language_vietnamese">베트남어</string>
     <string name="settings_app_theme_title">앱 테마</string>
     <string name="settings_app_theme_subtitle">밝은 테마, 어두운 테마 또는 시스템 설정 따르기 중에서 선택하세요.</string>
     <string name="settings_theme_light">밝은 테마</string>

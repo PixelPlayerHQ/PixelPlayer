@@ -49,6 +49,7 @@ fun AiUsageDateHeader(date: String) {
 }
 
 @Composable
+@Suppress("NonObservableLocale")
 fun AiUsageLogItem(
     usage: AiUsageEntity
 ) {

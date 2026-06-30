@@ -10,6 +10,7 @@ import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.provider.AiProviderException
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.utils.MultiLangRomanizer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -287,8 +289,14 @@ class AiStateHolder @Inject constructor(
     suspend fun translateLyrics(lyricsText: String): Result<String> {
         return try {
             val targetLanguage = context.resources.configuration.locales[0].displayLanguage
+            val sourceLanguage = detectLyricsLanguage(lyricsText)
+            val taskPrefix = if (sourceLanguage != null) {
+                "Translate these $sourceLanguage song lyrics into $targetLanguage."
+            } else {
+                "Translate these song lyrics into $targetLanguage."
+            }
             val prompt = """
-<task>Translate song lyrics into $targetLanguage.</task>
+<task>$taskPrefix</task>
 
 <rules>
 - Preserve ALL timestamps [mm:ss.xx] exactly — never modify, merge, or drop them.
@@ -307,7 +315,7 @@ class AiStateHolder @Inject constructor(
 $lyricsText
 </lyrics>
             """.trimIndent()
-            
+
             val response = aiHandler.generateContent(
                 prompt = prompt,
                 type = AiSystemPromptType.GENERAL,
@@ -316,6 +324,34 @@ $lyricsText
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private val timestampRegex = Regex("\\[\\d{1,2}:\\d{2}(?:[.:]\\d{1,3})?]")
+
+    private fun detectLyricsLanguage(lyricsText: String): String? {
+        val sample = timestampRegex.replace(lyricsText, "").trim().take(200)
+        if (sample.isBlank()) return null
+
+        return when {
+            MultiLangRomanizer.isJapanese(sample) -> "Japanese"
+            MultiLangRomanizer.isKorean(sample) -> "Korean"
+            MultiLangRomanizer.isChinese(sample) -> "Chinese"
+            MultiLangRomanizer.isThai(sample) -> "Thai"
+            MultiLangRomanizer.isArabic(sample) -> "Arabic"
+            MultiLangRomanizer.isGreek(sample) -> "Greek"
+            MultiLangRomanizer.isHebrew(sample) -> "Hebrew"
+            MultiLangRomanizer.isHindi(sample) -> "Hindi"
+            MultiLangRomanizer.isPunjabi(sample) -> "Punjabi"
+            MultiLangRomanizer.isCyrillic(sample) -> {
+                when {
+                    MultiLangRomanizer.isRussian(sample) -> "Russian"
+                    MultiLangRomanizer.isUkrainian(sample) -> "Ukrainian"
+                    else -> null
+                }
+            }
+            MultiLangRomanizer.isVietnamese(sample) -> "Vietnamese"
+            else -> null
         }
     }
 

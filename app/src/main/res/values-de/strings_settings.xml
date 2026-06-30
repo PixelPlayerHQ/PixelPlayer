@@ -7,6 +7,8 @@
     <string name="settings_category_appearance_subtitle">Design, Layout und Farben</string>
     <string name="settings_category_playback_title">Wiedergabe</string>
     <string name="settings_category_playback_subtitle">Audio, Crossfade und Hintergrundwiedergabe</string>
+    <string name="settings_category_lyrics_title">Songtexte</string>
+    <string name="settings_category_lyrics_subtitle">Quellpriorität, immersiver Modus und Importverwaltung</string>
     <string name="settings_category_behavior_title">Verhalten</string>
     <string name="settings_category_behavior_subtitle">Gesten, Haptik und Navigation</string>
     <string name="settings_category_ai_title">KI-Integration (β)</string>
@@ -174,6 +176,9 @@
     <string name="settings_language_korean">Koreanisch</string>
     <string name="settings_language_norwegian_bokmal">Norwegisch Bokmål</string>
     <string name="settings_language_turkish">Türkisch</string>
+    <string name="settings_language_japanese">日本語</string>
+    <string name="settings_language_traditional_chinese">繁體中文</string>
+    <string name="settings_language_vietnamese">Tiếng Việt</string>
     <string name="settings_app_theme_title">App-Design</string>
     <string name="settings_app_theme_subtitle">Hell, Dunkel oder System-Design – ganz nach Geschmack.</string>
     <string name="settings_theme_light">Hell</string>

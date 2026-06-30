@@ -7,6 +7,8 @@
     <string name="settings_category_appearance_subtitle">Темы, макеты и визуальные стили</string>
     <string name="settings_category_playback_title">Воспроизведение</string>
     <string name="settings_category_playback_subtitle">Поведение аудио, кроссфейд и фоновое воспроизведение</string>
+    <string name="settings_category_lyrics_title">Тексты песен</string>
+    <string name="settings_category_lyrics_subtitle">Приоритет источника, иммерсивный режим и управление импортом</string>
     <string name="settings_category_behavior_title">Поведение</string>
     <string name="settings_category_behavior_subtitle">Жесты, тактильный отклик и навигация</string>
     <string name="settings_category_ai_title">Интеграция ИИ (β)</string>
@@ -174,6 +176,9 @@
     <string name="settings_language_korean">Корейский</string>
     <string name="settings_language_norwegian_bokmal">Норвежский (Bokmål)</string>
     <string name="settings_language_turkish">Турецкий</string>
+    <string name="settings_language_japanese">Японский</string>
+    <string name="settings_language_traditional_chinese">Китайский (традиционный)</string>
+    <string name="settings_language_vietnamese">Вьетнамский</string>
     <string name="settings_app_theme_title">Тема приложения</string>
     <string name="settings_app_theme_subtitle">Светлая, тёмная тема или настройки системы.</string>
     <string name="settings_theme_light">Светлая тема</string>

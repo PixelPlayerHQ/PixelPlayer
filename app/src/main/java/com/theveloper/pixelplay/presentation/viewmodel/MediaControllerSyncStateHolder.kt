@@ -14,6 +14,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.EotStateHolder
+import com.theveloper.pixelplay.data.connectivity.ConnectivityStateHolder
 import com.theveloper.pixelplay.data.media.MediaMapper
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository

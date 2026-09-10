@@ -8,6 +8,8 @@ import android.util.Log
 import kotlinx.coroutines.withContext
 import androidx.compose.animation.core.Animatable
 import androidx.core.content.ContextCompat
+import com.theveloper.pixelplay.data.connectivity.BluetoothAudioDeviceState
+import com.theveloper.pixelplay.data.connectivity.ConnectivityStateHolder
 import com.theveloper.pixelplay.data.model.LibraryTabId
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel

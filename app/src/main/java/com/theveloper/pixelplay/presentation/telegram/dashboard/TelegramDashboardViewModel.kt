@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
+import com.theveloper.pixelplay.data.connectivity.ConnectivityStateHolder
 
 @HiltViewModel
 class TelegramDashboardViewModel @Inject constructor(

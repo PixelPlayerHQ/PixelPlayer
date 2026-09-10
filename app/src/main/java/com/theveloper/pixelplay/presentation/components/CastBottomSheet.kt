@@ -133,7 +133,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.mediarouter.media.MediaRouter
 import com.theveloper.pixelplay.presentation.screens.TabAnimation
-import com.theveloper.pixelplay.presentation.viewmodel.BluetoothAudioDeviceState
+import com.theveloper.pixelplay.data.connectivity.BluetoothAudioDeviceState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape

@@ -16,14 +16,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * `P.4`: [request] must expose the HTTP status code as a typed [JellyfinHttpException] instead
- * of burying it inside a message string (R19), and must never rewrap a [CancellationException]
- * into a [Result.failure] (`AND-CONC-04`).
+ * [request] must expose the HTTP status code as a typed [JellyfinHttpException] instead
+ * of burying it inside a message string, and must never rewrap a [CancellationException]
+ * into a [Result.failure].
  *
  * No mock server dependency is added for this: a fake [okhttp3.Interceptor] on the client injected
  * into [JellyfinApiService] returns a canned [Response] — real OkHttp objects, no new test
- * dependency. It works because `newBuilder()` carries interceptors over (confirmed independently
- * by `F1.2`'s finding on this same client).
+ * dependency. It works because `newBuilder()` carries interceptors over.
  */
 class JellyfinApiServiceErrorHandlingTest {
 

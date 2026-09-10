@@ -11,7 +11,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -94,7 +93,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -114,6 +112,7 @@ import androidx.navigation.NavController
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.CollectionActionItem
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.QueuePlaylistSongItem
@@ -852,7 +851,7 @@ fun PlaylistDetailScreen(
                         )
                     }
                 }
-                PlaylistActionItem(
+                CollectionActionItem(
                     icon = painterResource(R.drawable.rounded_edit_24),
                     label = editPlaylistLabel,
                     onClick = {
@@ -860,7 +859,7 @@ fun PlaylistDetailScreen(
                         showEditPlaylistDialog = true
                     }
                 )
-                PlaylistActionItem(
+                CollectionActionItem(
                     icon = painterResource(R.drawable.rounded_delete_24),
                     label = deletePlaylistLabel,
                     onClick = {
@@ -868,7 +867,7 @@ fun PlaylistDetailScreen(
                         showDeleteConfirmation = true
                     }
                 )
-                PlaylistActionItem(
+                CollectionActionItem(
                     icon = painterResource(R.drawable.outline_graph_1_24),
                     label = setDefaultTransitionLabel,
                     onClick = {
@@ -876,7 +875,7 @@ fun PlaylistDetailScreen(
                         navController.navigateSafely(Screen.EditTransition.createRoute(playlistId))
                     }
                 )
-                PlaylistActionItem(
+                CollectionActionItem(
                     icon = painterResource(R.drawable.rounded_attach_file_24),
                     label = exportPlaylistLabel,
                     onClick = {
@@ -1114,41 +1113,3 @@ fun PlaylistDetailScreen(
     }
 }
 
-
-@Composable
-private fun PlaylistActionItem(
-    icon: Painter,
-    label: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        Spacer(modifier = Modifier.width(14.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}

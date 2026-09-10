@@ -26,7 +26,7 @@ class GitHubAnnouncementPropertiesService @Inject constructor() {
 
     /**
      * Reads a raw `.properties` file from a GitHub repo over its raw-content CDN. Generic on
-     * purpose (`GEN-DES-01`): this class has no idea what a "Play Store announcement" or a
+     * purpose: this class has no idea what a "Play Store announcement" or a
      * "downloads feature flag" is — each caller maps the result to its own type, the way
      * [fetchPlayStoreAnnouncement] does below.
      *
@@ -35,7 +35,7 @@ class GitHubAnnouncementPropertiesService @Inject constructor() {
      * defaults say to — this is what makes a remote kill switch fail safe instead of fail
      * enabled. Any other non-2xx status, a network error, or an unreadable response is a
      * [Result.failure]. Cancelling the calling coroutine while this suspends propagates as
-     * [CancellationException], never as a [Result.failure] (`AND-CONC-04`).
+     * [CancellationException], never as a [Result.failure].
      */
     suspend fun fetchProperties(
         owner: String,
@@ -97,7 +97,7 @@ internal fun buildRawContentUrl(owner: String, repo: String, branch: String, con
  * 404 / error behaviors verifiable without a live network call.
  *
  * The `catch (e: CancellationException) { throw e }` below is the actual fix this task exists
- * for (`AND-CONC-04`): the original code caught a broad `Exception`, which would have silently
+ * for: the original code caught a broad `Exception`, which would have silently
  * turned a coroutine cancellation into an ordinary [Result.failure] instead of letting it
  * propagate. It's worth being honest about what this does and doesn't guarantee:
  * `HttpURLConnection` is a classic blocking-socket API that does **not** react to

@@ -178,5 +178,5 @@ class GitHubAnnouncementPropertiesServiceTest {
     // pure) and fetchRawProperties (tested above, against a local server): it always builds a
     // real GitHub URL by design, so there's no seam to verify it end to end without a live
     // network call — which would make this suite flaky and offline-hostile for no real
-    // coverage gain (GEN-TEST-01/04). Not tested separately on purpose.
+    // coverage gain. Not tested separately on purpose.
 }

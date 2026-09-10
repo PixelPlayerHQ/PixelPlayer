@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.data.network.jellyfin
 
 import com.theveloper.pixelplay.data.jellyfin.model.JellyfinCredentials
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -107,6 +108,8 @@ class JellyfinApiService @Inject constructor(
                     Timber.d("$TAG: Authentication successful for user $username")
                     Result.success(Pair(accessToken, userId))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "$TAG: Authentication failed")
                 Result.failure(e)
@@ -142,12 +145,20 @@ class JellyfinApiService @Inject constructor(
 
                     if (!response.isSuccessful) {
                         Timber.w("$TAG: <<< HTTP $code for $path")
-                        return@withContext Result.failure(Exception("HTTP $code: ${response.message}"))
+                        return@withContext Result.failure(
+                            JellyfinHttpException(
+                                statusCode = code,
+                                retryAfter = response.header("Retry-After"),
+                                message = "HTTP $code: ${response.message}",
+                            )
+                        )
                     }
 
                     Timber.d("$TAG: <<< HTTP $code for $path, body length: ${body.length}")
                     Result.success(body)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "$TAG: !!! FAILED GET $path")
                 Result.failure(e)

@@ -725,6 +725,50 @@ private fun ArtistAlbumSectionSongItem(
     }
 }
 
+/**
+ * The image-edit dropdown ("Change photo" / "Reset to default") shared by [SharedArtistTopBarProbe]
+ * and [CustomCollapsingTopBar] — two mutually exclusive top bar implementations picked by
+ * `UseSharedCollapsibleTopBarProbe`, each with its own trigger button and its own `showImageMenu`
+ * state, but until now with the menu's own content (labels, icons, the `hasCustomImage` branch)
+ * copy-pasted between them. `P.2`: one definition, both call sites.
+ */
+@Composable
+private fun ArtistImageEditMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    hasCustomImage: Boolean,
+    onChangeImage: () -> Unit,
+    onClearCustomImage: () -> Unit
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest
+    ) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.artist_action_change_photo)) },
+            leadingIcon = {
+                Icon(Icons.Rounded.AddAPhoto, contentDescription = null)
+            },
+            onClick = {
+                onDismissRequest()
+                onChangeImage()
+            }
+        )
+        if (hasCustomImage) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.artist_action_reset_to_default)) },
+                leadingIcon = {
+                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                },
+                onClick = {
+                    onDismissRequest()
+                    onClearCustomImage()
+                }
+            )
+        }
+    }
+}
+
 @Composable
 private fun SharedArtistTopBarProbe(
     artist: Artist,
@@ -854,33 +898,13 @@ private fun SharedArtistTopBarProbe(
                         )
                     }
 
-                    DropdownMenu(
+                    ArtistImageEditMenu(
                         expanded = showImageMenu,
-                        onDismissRequest = { showImageMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.artist_action_change_photo)) },
-                            leadingIcon = {
-                                Icon(Icons.Rounded.AddAPhoto, contentDescription = null)
-                            },
-                            onClick = {
-                                showImageMenu = false
-                                onChangeImage()
-                            }
-                        )
-                        if (hasCustomImage) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.artist_action_reset_to_default)) },
-                                leadingIcon = {
-                                    Icon(Icons.Rounded.Delete, contentDescription = null)
-                                },
-                                onClick = {
-                                    showImageMenu = false
-                                    onClearCustomImage()
-                                }
-                            )
-                        }
-                    }
+                        onDismissRequest = { showImageMenu = false },
+                        hasCustomImage = hasCustomImage,
+                        onChangeImage = onChangeImage,
+                        onClearCustomImage = onClearCustomImage
+                    )
                 }
             }
         )
@@ -1040,29 +1064,13 @@ private fun CustomCollapsingTopBar(
                         ) {
                             Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.artist_cd_edit_image))
                         }
-                        DropdownMenu(
+                        ArtistImageEditMenu(
                             expanded = showImageMenu,
-                            onDismissRequest = { showImageMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.artist_action_change_photo)) },
-                                leadingIcon = { Icon(Icons.Rounded.AddAPhoto, contentDescription = null) },
-                                onClick = {
-                                    showImageMenu = false
-                                    onChangeImage()
-                                }
-                            )
-                            if (hasCustomImage) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.artist_action_reset_to_default)) },
-                                    leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
-                                    onClick = {
-                                        showImageMenu = false
-                                        onClearCustomImage()
-                                    }
-                                )
-                            }
-                        }
+                            onDismissRequest = { showImageMenu = false },
+                            hasCustomImage = hasCustomImage,
+                            onChangeImage = onChangeImage,
+                            onClearCustomImage = onClearCustomImage
+                        )
                     }
                 }
 

@@ -89,6 +89,25 @@ import com.theveloper.pixelplay.data.preferences.LaunchTab
 
 // SettingsTopBar removed, replaced by CollapsibleCommonTopBar
 
+/**
+ * The three fixed items rendered after the [SettingsCategory] loop in [SettingsScreen]: they
+ * aren't part of the loop (Accounts isn't a category at all; Device Capabilities and About are
+ * categories but excluded from the loop to render in a fixed trailing position instead).
+ *
+ * This enum is the single source of truth for "which items are trailing" — both the item count
+ * used to size the rounded-corner list (previously a literal `+ 3`, disconnected from the code
+ * that actually rendered those three items) and the filter that excludes [DEVICE_CAPABILITIES]
+ * and [ABOUT] from the main loop (previously a second, independent list of the same two
+ * categories, spelled out again). Adding a fourth trailing item now means adding one entry here;
+ * the compiler forces a matching branch in the `when` that renders it, and the loop's filter picks
+ * it up automatically if it wraps a [SettingsCategory] — no second place to remember to update.
+ */
+private enum class TrailingSettingsItem(val category: SettingsCategory?) {
+    DEVICE_CAPABILITIES(SettingsCategory.DEVICE_CAPABILITIES),
+    ACCOUNTS(category = null),
+    ABOUT(SettingsCategory.ABOUT),
+}
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,12 +232,11 @@ fun SettingsScreen(
             item {
                 val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
                 ExpressiveSettingsGroup {
-                    val mainCategories = SettingsCategory.entries.filter {
-                        it != SettingsCategory.ABOUT && 
-                        it != SettingsCategory.DEVICE_CAPABILITIES
-                    }
+                    val trailingItems = TrailingSettingsItem.entries
+                    val trailingCategories = trailingItems.mapNotNull { it.category }.toSet()
+                    val mainCategories = SettingsCategory.entries.filter { it !in trailingCategories }
 
-                    val totalItems = mainCategories.size + 3 // Device + Accounts + About
+                    val totalItems = mainCategories.size + trailingItems.size
                     fun shapeFor(index: Int) =
                         when {
                             totalItems == 1 -> RoundedCornerShape(24.dp)
@@ -250,36 +268,36 @@ fun SettingsScreen(
                         itemIndex++
                     }
 
-                    ExpressiveCategoryItem(
-                        category = SettingsCategory.DEVICE_CAPABILITIES,
-                        customColors = getCategoryColors(SettingsCategory.DEVICE_CAPABILITIES, isDark),
-                        onClick = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
-                        shape = shapeFor(itemIndex)
-                    )
-                    if (itemIndex < totalItems - 1) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                    }
-                    itemIndex++
+                    trailingItems.forEach { trailing ->
+                        when (trailing) {
+                            TrailingSettingsItem.DEVICE_CAPABILITIES -> ExpressiveCategoryItem(
+                                category = SettingsCategory.DEVICE_CAPABILITIES,
+                                customColors = getCategoryColors(SettingsCategory.DEVICE_CAPABILITIES, isDark),
+                                onClick = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
+                                shape = shapeFor(itemIndex)
+                            )
 
-                    ExpressiveNavigationItem(
-                        title = stringResource(R.string.settings_category_accounts_title),
-                        subtitle = stringResource(R.string.settings_category_accounts_subtitle),
-                        icon = Icons.Rounded.AccountCircle,
-                        colors = getAccountsColors(isDark),
-                        onClick = { navController.navigateSafely(Screen.Accounts.route) },
-                        shape = shapeFor(itemIndex)
-                    )
-                    if (itemIndex < totalItems - 1) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                    }
-                    itemIndex++
+                            TrailingSettingsItem.ACCOUNTS -> ExpressiveNavigationItem(
+                                title = stringResource(R.string.settings_category_accounts_title),
+                                subtitle = stringResource(R.string.settings_category_accounts_subtitle),
+                                icon = Icons.Rounded.AccountCircle,
+                                colors = getAccountsColors(isDark),
+                                onClick = { navController.navigateSafely(Screen.Accounts.route) },
+                                shape = shapeFor(itemIndex)
+                            )
 
-                    ExpressiveCategoryItem(
-                        category = SettingsCategory.ABOUT,
-                        customColors = getCategoryColors(SettingsCategory.ABOUT, isDark),
-                        onClick = { navController.navigateSafely("about") },
-                        shape = shapeFor(itemIndex)
-                    )
+                            TrailingSettingsItem.ABOUT -> ExpressiveCategoryItem(
+                                category = SettingsCategory.ABOUT,
+                                customColors = getCategoryColors(SettingsCategory.ABOUT, isDark),
+                                onClick = { navController.navigateSafely("about") },
+                                shape = shapeFor(itemIndex)
+                            )
+                        }
+                        if (itemIndex < totalItems - 1) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
+                        itemIndex++
+                    }
                 }
 
                 // for player active:

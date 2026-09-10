@@ -65,105 +65,159 @@ object AudioMetadataReader {
         }
     }
 
-    fun read(file: File, readArtwork: Boolean = true): AudioMetadata? {
-        val startNanos = System.nanoTime()
-        return try {
-            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
-                // Get audio properties for duration
-                val audioProperties = TagLib.getAudioProperties(fd.dup().detachFd())
-                val durationMs = audioProperties?.length?.takeIf { it > 0 }?.let { it * 1000L }
-                val bitrate = audioProperties?.bitrate?.takeIf { it > 0 }?.let { it * 1000 }
-                val sampleRate = audioProperties?.sampleRate?.takeIf { it > 0 }
-
-                // Get metadata
-                val metadata = TagLib.getMetadata(fd.dup().detachFd(), readPictures = false)
-                val propertyMap = metadata?.propertyMap ?: emptyMap()
-
-                // Log ALL keys TagLib returned so we can diagnose mapping issues
-                if (VERBOSE) Log.w(TAG, "TagLib propertyMap keys for ${file.name}: ${propertyMap.keys}")
-
-                val title = propertyMap["TITLE"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val artist = propertyMap["ARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val albumArtist = propertyMap["ALBUMARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["ALBUM ARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["BAND"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val album = propertyMap["ALBUM"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val genre = propertyMap["GENRE"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val composer = propertyMap["COMPOSER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["TCOM"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val lyrics = propertyMap["LYRICS"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["UNSYNCEDLYRICS"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val trackString = propertyMap["TRACKNUMBER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["TRACK"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val trackNumber = trackString?.substringBefore('/')?.toIntOrNull()
-                val discString = propertyMap["DISCNUMBER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                    ?: propertyMap["DISC"]?.firstOrNull()?.takeIf { it.isNotBlank() }
-                val discNumber = discString?.substringBefore('/')?.toIntOrNull()
-                val year = propertyMap["DATE"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.take(4)?.toIntOrNull()
-                    ?: propertyMap["YEAR"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.toIntOrNull()
-                val replayGainTrackGainDb = extractReplayGainDb(
-                    propertyMap = propertyMap,
-                    keys = listOf("REPLAYGAIN_TRACK_GAIN", "REPLAYGAIN_TRACK_GAIN_DB", "R128_TRACK_GAIN")
-                )
-                val replayGainAlbumGainDb = extractReplayGainDb(
-                    propertyMap = propertyMap,
-                    keys = listOf("REPLAYGAIN_ALBUM_GAIN", "REPLAYGAIN_ALBUM_GAIN_DB", "R128_ALBUM_GAIN")
-                )
-
-                if (VERBOSE) Log.w(TAG, "TagLib result for ${file.name}: title=$title, artist=$artist, album=$album, genre=$genre")
-
-                // Get artwork only when requested to avoid allocating large ByteArrays unnecessarily
-                val artwork = if (readArtwork) {
-                    val pictures = TagLib.getPictures(fd.detachFd())
-                    pictures.firstOrNull()?.let { picture ->
-                        picture.data.takeIf { it.isNotEmpty() && isValidImageData(it) }?.let { data ->
-                            AudioMetadataArtwork(
-                                bytes = data,
-                                mimeType = picture.mimeType.takeIf { it.isNotBlank() } ?: guessImageMimeType(data)
-                            )
-                        }
-                    }
-                } else {
-                    null
+    fun read(file: File, readArtwork: Boolean = true): AudioMetadata? =
+        PerformanceMetrics.time(PerformanceMetrics.Timings.METADATA_READ) {
+            try {
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+                    buildAudioMetadata(
+                        dupFd = { fd.dup().detachFd() },
+                        readArtwork = readArtwork,
+                        logLabel = file.name,
+                        jAudioTaggerFallbackFile = file,
+                    )
                 }
-
-                // Fallback: TagLib sometimes parses core tags but misses APIC/other ID3 frames
-                // on some MP3s. If essential fields or requested artwork are missing, try
-                // JAudioTagger before giving up so we preserve full metadata when possible.
-                val fallback = if (title == null || artist == null || (readArtwork && artwork == null)) {
-                    if (VERBOSE) Log.w(TAG, "TagLib incomplete for ${file.name}, trying JAudioTagger fallback...")
-                    PerformanceMetrics.increment(PerformanceMetrics.Counters.METADATA_FALLBACK_JAUDIOTAGGER)
-                    readWithJAudioTagger(file, readArtwork = readArtwork)
-                } else null
-
-                AudioMetadata(
-                    title = title ?: fallback?.title,
-                    artist = artist ?: fallback?.artist,
-                    albumArtist = albumArtist ?: fallback?.albumArtist,
-                    album = album ?: fallback?.album,
-                    genre = genre ?: fallback?.genre,
-                    composer = composer ?: fallback?.composer,
-                    lyrics = lyrics ?: fallback?.lyrics,
-                    durationMs = durationMs ?: fallback?.durationMs,
-                    trackNumber = trackNumber ?: fallback?.trackNumber,
-                    discNumber = discNumber ?: fallback?.discNumber,
-                    year = year ?: fallback?.year,
-                    bitrate = bitrate ?: fallback?.bitrate,
-                    sampleRate = sampleRate ?: fallback?.sampleRate,
-                    artwork = artwork ?: fallback?.artwork,
-                    replayGainTrackGainDb = replayGainTrackGainDb ?: fallback?.replayGainTrackGainDb,
-                    replayGainAlbumGainDb = replayGainAlbumGainDb ?: fallback?.replayGainAlbumGainDb
-                )
+            } catch (error: Exception) {
+                Timber.tag(TAG).e(error, "Unable to read metadata from file: ${file.absolutePath}")
+                null
             }
-        } catch (error: Exception) {
-            Timber.tag(TAG).e(error, "Unable to read metadata from file: ${file.absolutePath}")
-            null
-        } finally {
-            PerformanceMetrics.recordTiming(
-                PerformanceMetrics.Timings.METADATA_READ,
-                (System.nanoTime() - startNanos) / 1_000_000
-            )
         }
+
+    /**
+     * Reads metadata directly from an already-open descriptor — the SAF / downloaded-file path,
+     * where there may be no [File] to open (a `content://` document isn't guaranteed to have a
+     * filesystem path at all). `P.6` of the offline-downloads plan.
+     *
+     * **Never consumes [pfd].** Every TagLib call goes through `pfd.dup().detachFd()` — a fresh
+     * native descriptor per call — never a bare `detachFd()` on the descriptor itself. [pfd] is
+     * owned by the caller, who is free to close it (in their own `use { }`) once this returns.
+     * `read(file: File, ...)` used to `detachFd()` its *own* last-owned descriptor directly (safe
+     * only because nothing touched it afterwards); it now goes through the same always-`dup()`
+     * path as this overload, so that shortcut can't quietly reappear on a descriptor that isn't
+     * ours to take.
+     *
+     * **No JAudioTagger fallback.** [readWithJAudioTagger] needs a real [File]; this overload
+     * doesn't have one to offer. For the app-private storage backend, which does have one, the
+     * [File] overload keeps the full fallback.
+     *
+     * [label] is only for the `VERBOSE` diagnostic logs below — pass something that identifies
+     * the item (a song id, a display name) when the caller has one, so concurrent reads of
+     * different descriptors stay distinguishable in logcat. Defaults to a generic tag.
+     */
+    fun read(pfd: ParcelFileDescriptor, readArtwork: Boolean = true, label: String = "descriptor"): AudioMetadata? =
+        PerformanceMetrics.time(PerformanceMetrics.Timings.METADATA_READ) {
+            try {
+                buildAudioMetadata(
+                    dupFd = { pfd.dup().detachFd() },
+                    readArtwork = readArtwork,
+                    logLabel = label,
+                    jAudioTaggerFallbackFile = null,
+                )
+            } catch (error: Exception) {
+                Timber.tag(TAG).e(error, "Unable to read metadata from descriptor")
+                null
+            }
+        }
+
+    /**
+     * Shared TagLib read path for both [read] overloads. [dupFd] must return a *fresh* duplicated
+     * native descriptor on every call — never the same one twice, and never one the caller still
+     * needs. [jAudioTaggerFallbackFile], when non-null, is used if TagLib leaves essential fields
+     * or requested artwork unresolved.
+     */
+    private fun buildAudioMetadata(
+        dupFd: () -> Int,
+        readArtwork: Boolean,
+        logLabel: String,
+        jAudioTaggerFallbackFile: File?,
+    ): AudioMetadata {
+        // Get audio properties for duration
+        val audioProperties = TagLib.getAudioProperties(dupFd())
+        val durationMs = audioProperties?.length?.takeIf { it > 0 }?.let { it * 1000L }
+        val bitrate = audioProperties?.bitrate?.takeIf { it > 0 }?.let { it * 1000 }
+        val sampleRate = audioProperties?.sampleRate?.takeIf { it > 0 }
+
+        // Get metadata
+        val metadata = TagLib.getMetadata(dupFd(), readPictures = false)
+        val propertyMap = metadata?.propertyMap ?: emptyMap()
+
+        // Log ALL keys TagLib returned so we can diagnose mapping issues
+        if (VERBOSE) Log.w(TAG, "TagLib propertyMap keys for $logLabel: ${propertyMap.keys}")
+
+        val title = propertyMap["TITLE"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val artist = propertyMap["ARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val albumArtist = propertyMap["ALBUMARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["ALBUM ARTIST"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["BAND"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val album = propertyMap["ALBUM"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val genre = propertyMap["GENRE"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val composer = propertyMap["COMPOSER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["TCOM"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val lyrics = propertyMap["LYRICS"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["UNSYNCEDLYRICS"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val trackString = propertyMap["TRACKNUMBER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["TRACK"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val trackNumber = trackString?.substringBefore('/')?.toIntOrNull()
+        val discString = propertyMap["DISCNUMBER"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: propertyMap["DISC"]?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val discNumber = discString?.substringBefore('/')?.toIntOrNull()
+        val year = propertyMap["DATE"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.take(4)?.toIntOrNull()
+            ?: propertyMap["YEAR"]?.firstOrNull()?.takeIf { it.isNotBlank() }?.toIntOrNull()
+        val replayGainTrackGainDb = extractReplayGainDb(
+            propertyMap = propertyMap,
+            keys = listOf("REPLAYGAIN_TRACK_GAIN", "REPLAYGAIN_TRACK_GAIN_DB", "R128_TRACK_GAIN")
+        )
+        val replayGainAlbumGainDb = extractReplayGainDb(
+            propertyMap = propertyMap,
+            keys = listOf("REPLAYGAIN_ALBUM_GAIN", "REPLAYGAIN_ALBUM_GAIN_DB", "R128_ALBUM_GAIN")
+        )
+
+        if (VERBOSE) Log.w(TAG, "TagLib result for $logLabel: title=$title, artist=$artist, album=$album, genre=$genre")
+
+        // Get artwork only when requested to avoid allocating large ByteArrays unnecessarily
+        val artwork = if (readArtwork) {
+            val pictures = TagLib.getPictures(dupFd())
+            pictures.firstOrNull()?.let { picture ->
+                picture.data.takeIf { it.isNotEmpty() && isValidImageData(it) }?.let { data ->
+                    AudioMetadataArtwork(
+                        bytes = data,
+                        mimeType = picture.mimeType.takeIf { it.isNotBlank() } ?: guessImageMimeType(data)
+                    )
+                }
+            }
+        } else {
+            null
+        }
+
+        // Fallback: TagLib sometimes parses core tags but misses APIC/other ID3 frames
+        // on some MP3s. If essential fields or requested artwork are missing, try
+        // JAudioTagger before giving up so we preserve full metadata when possible.
+        // Only available when a real File backs this read (see read(pfd) KDoc).
+        val fallback = if (jAudioTaggerFallbackFile != null &&
+            (title == null || artist == null || (readArtwork && artwork == null))
+        ) {
+            if (VERBOSE) Log.w(TAG, "TagLib incomplete for $logLabel, trying JAudioTagger fallback...")
+            PerformanceMetrics.increment(PerformanceMetrics.Counters.METADATA_FALLBACK_JAUDIOTAGGER)
+            readWithJAudioTagger(jAudioTaggerFallbackFile, readArtwork = readArtwork)
+        } else null
+
+        return AudioMetadata(
+            title = title ?: fallback?.title,
+            artist = artist ?: fallback?.artist,
+            albumArtist = albumArtist ?: fallback?.albumArtist,
+            album = album ?: fallback?.album,
+            genre = genre ?: fallback?.genre,
+            composer = composer ?: fallback?.composer,
+            lyrics = lyrics ?: fallback?.lyrics,
+            durationMs = durationMs ?: fallback?.durationMs,
+            trackNumber = trackNumber ?: fallback?.trackNumber,
+            discNumber = discNumber ?: fallback?.discNumber,
+            year = year ?: fallback?.year,
+            bitrate = bitrate ?: fallback?.bitrate,
+            sampleRate = sampleRate ?: fallback?.sampleRate,
+            artwork = artwork ?: fallback?.artwork,
+            replayGainTrackGainDb = replayGainTrackGainDb ?: fallback?.replayGainTrackGainDb,
+            replayGainAlbumGainDb = replayGainAlbumGainDb ?: fallback?.replayGainAlbumGainDb
+        )
     }
 
     /**

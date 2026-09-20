@@ -1,7 +1,7 @@
 # PixelPlayer 🎵
 
 <p align="center">
-  <img src="assets/icon.png" alt="App Icon" width="128"/>
+  <img src="assets/PixelPlayer.svg" alt="App Icon" height="250"/>
 </p>
 <p align="center">
 <a href="https://trendshift.io/repositories/15551" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15551" alt="PixelPlayerHQ%2FPixelPlayer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -209,3 +209,7 @@ Portions contributed before 2026-05-12 remain available under the MIT License; s
 <p align="center">
   Made with ❤️ by <a href="https://github.com/theovilardo">theovilardo</a>
 </p>
+<p align="center">
+  Logo designed by <a href="https://github.com/NPSummers">Aureal</a>.
+</p>
+

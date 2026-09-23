@@ -59,6 +59,7 @@ taglib = "1.0.6"
 jaudiotagger = "3.0.1"
 vorbisjava = "0.8"
 datastore = "1.2.1"
+newpipeExtractor = "v0.26.5"
 credentials = "1.6.0"
 googleid = "1.2.0"
 androidxTestCore = "1.7.0"
@@ -218,6 +219,7 @@ generativeai = { group = "com.google.ai.client.generativeai", name = "generative
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version.ref = "newpipeExtractor" }
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 androidx-mediarouter = { group = "androidx.mediarouter", name = "mediarouter", version.ref = "mediarouterVersion" }
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "playServicesCastFramework" }

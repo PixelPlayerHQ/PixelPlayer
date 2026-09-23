@@ -213,3 +213,17 @@
     public static int d(...);
     public static int i(...);
 }
+
+# NewPipe Extractor (SoundCloud)
+-keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.javascript.XMLLib.** { *; }
+-dontwarn org.mozilla.javascript.XMLLib
+-dontwarn org.schabi.newpipe.extractor.**
+
+# Rhino / NewPipe optional JDK APIs not on Android
+-dontwarn org.mozilla.javascript.**
+-dontwarn javax.script.**
+-dontwarn java.beans.**
+-dontwarn jdk.dynalink.**
+-dontwarn org.mozilla.classfile.**

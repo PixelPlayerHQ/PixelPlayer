@@ -9,7 +9,47 @@
     <!-- Navigation Bar Labels -->
     <string name="nav_bar_home">Home</string>
     <string name="nav_bar_search">Search</string>
+    <string name="nav_bar_soundcloud">SoundCloud</string>
     <string name="nav_bar_library">Library</string>
+
+    <!-- SoundCloud -->
+    <string name="soundcloud_tab_title">SoundCloud</string>
+    <string name="soundcloud_cd_open_settings">SoundCloud settings</string>
+    <string name="soundcloud_info_banner">Sign in for your personal feed and likes, or set a public username. Some tracks are DRM-only and won\'t play or download.</string>
+    <string name="soundcloud_info_signed_in">Signed in as @%1$s. Feed and likes use your SoundCloud session.</string>
+    <string name="soundcloud_query_label">Search or paste URL</string>
+    <string name="soundcloud_query_hint">lofi hip hop — or https://soundcloud.com/…</string>
+    <string name="soundcloud_client_id_label">Web client_id</string>
+    <string name="soundcloud_client_id_hint">From SoundCloud network requests</string>
+    <string name="soundcloud_username_label">SoundCloud username</string>
+    <string name="soundcloud_username_hint">public profile handle (no @)</string>
+    <string name="soundcloud_settings_help">Sign in with your SoundCloud account for personalized feed and likes. client_id is still required for streaming. Optional public username is a fallback when signed out.</string>
+    <string name="soundcloud_save_settings">Save SoundCloud settings</string>
+    <string name="soundcloud_sign_in">Sign in to SoundCloud</string>
+    <string name="soundcloud_sign_out">Sign out</string>
+    <string name="soundcloud_sign_in_done">I\'m signed in</string>
+    <string name="soundcloud_sign_in_incomplete">Couldn\'t find a SoundCloud session yet. Finish signing in, then tap again.</string>
+    <string name="soundcloud_signed_in_as">Signed in as @%1$s</string>
+    <string name="soundcloud_go">Search / resolve</string>
+    <string name="soundcloud_play">Play</string>
+    <string name="soundcloud_download">Download</string>
+    <string name="soundcloud_shuffle">Shuffle</string>
+    <string name="soundcloud_cd_shuffle">Shuffle play current list</string>
+    <string name="soundcloud_view_tiles">Tiles</string>
+    <string name="soundcloud_view_list">List</string>
+    <string name="soundcloud_cd_view_tiles">Tile view</string>
+    <string name="soundcloud_cd_view_list">List view</string>
+    <string name="soundcloud_section">SoundCloud</string>
+    <string name="soundcloud_profile_line">Profile: @%1$s</string>
+    <string name="soundcloud_playlist_browsing">Playlist: %1$s</string>
+    <string name="soundcloud_playlist_count">%1$d tracks</string>
+    <string name="soundcloud_pill_feed">Feed</string>
+    <string name="soundcloud_pill_discover">Discover</string>
+    <string name="soundcloud_pill_search">Search</string>
+    <string name="soundcloud_pill_likes">Likes</string>
+    <string name="soundcloud_pill_tracks">Tracks</string>
+    <string name="soundcloud_pill_playlists">Playlists</string>
+    <string name="soundcloud_pill_downloads">Downloads</string>
 
     <!-- All files access dialog-->
     <string name="all_files_access_title">Special Permission Required</string>

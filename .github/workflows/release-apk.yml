@@ -1,0 +1,211 @@
+name: Release APK
+
+# Builds a signed (CI keystore) release APK and publishes a GitHub Release with
+# conventional-commit feature notes. Triggered by version tags or manually.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version without v prefix (e.g. 0.8.0-soundcloud)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version metadata
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+            TAG="v${VERSION}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Resolved release ${TAG}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache keystore
+        id: cache-keystore
+        uses: actions/cache@v5
+        with:
+          path: vz-pixelplay.jks
+          key: ${{ runner.os }}-keystore-vz-pixelplay
+
+      - name: Generate keystore if not cached
+        if: steps.cache-keystore.outputs.cache-hit != 'true'
+        run: |
+          keytool -genkey -v -keystore vz-pixelplay.jks -alias pixelplay-key -keyalg RSA -keysize 4096 -validity 10000 \
+            -storepass 994273 -keypass 994273 \
+            -dname "CN=PixelPlay, OU=Dev, O=PixelPlay, L=World, S=World, C=US"
+
+      - name: Create keystore.properties
+        run: |
+          echo "storePassword=994273" > keystore.properties
+          echo "keyAlias=pixelplay-key" >> keystore.properties
+          echo "keyPassword=994273" >> keystore.properties
+
+      - name: Build Phone release APKs
+        run: gradle :app:assembleRelease -Ppixelplay.enableAbiSplits=true
+
+      - name: Verify APKs
+        run: |
+          BUILD_TOOLS_VERSION="$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          for apk in \
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk \
+            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
+          do
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/aapt2" dump badging "$apk" >/dev/null
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose "$apk"
+          done
+
+      - name: Stage release assets
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk \
+            "dist/PixelPlayer-${{ steps.meta.outputs.version }}-arm64-v8a.apk"
+          cp app/build/outputs/apk/release/app-armeabi-v7a-release.apk \
+            "dist/PixelPlayer-${{ steps.meta.outputs.version }}-armeabi-v7a.apk"
+
+      - name: Generate release notes from conventional commits
+        id: notes
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const tag = '${{ steps.meta.outputs.tag }}';
+            const version = '${{ steps.meta.outputs.version }}';
+
+            let range = '';
+            try {
+              const tags = execSync('git tag --sort=-creatordate', { encoding: 'utf8' })
+                .split('\n')
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .filter((t) => t !== tag);
+              if (tags.length > 0) {
+                range = `${tags[0]}..HEAD`;
+              }
+            } catch (_) {}
+
+            const logCmd = range
+              ? `git log ${range} --pretty=format:%s`
+              : 'git log -30 --pretty=format:%s';
+            const subjects = execSync(logCmd, { encoding: 'utf8' })
+              .split('\n')
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            const buckets = {
+              feat: [],
+              fix: [],
+              perf: [],
+              refactor: [],
+              docs: [],
+              chore: [],
+              other: [],
+            };
+
+            const re = /^(feat|fix|perf|refactor|docs|chore|ci|build|test|style|revert)(\(.+\))?!?:\s*(.+)$/i;
+            for (const subject of subjects) {
+              const m = subject.match(re);
+              if (!m) {
+                buckets.other.push(subject);
+                continue;
+              }
+              const type = m[1].toLowerCase();
+              const body = m[3];
+              if (buckets[type]) {
+                buckets[type].push(body);
+              } else {
+                buckets.other.push(subject);
+              }
+            }
+
+            const section = (title, items) => {
+              if (!items.length) return '';
+              return `### ${title}\n\n${items.map((i) => `- ${i}`).join('\n')}\n\n`;
+            };
+
+            let body = `## PixelPlayer ${version}\n\n`;
+            body += section('Features', buckets.feat);
+            body += section('Fixes', buckets.fix);
+            body += section('Performance', buckets.perf);
+            body += section('Refactors', buckets.refactor);
+            body += section('Docs', buckets.docs);
+            body += section('Chores', buckets.chore);
+            body += section('Other', buckets.other);
+            body += [
+              '### Downloads',
+              '',
+              '- `PixelPlayer-*-arm64-v8a.apk` — modern 64-bit devices (recommended)',
+              '- `PixelPlayer-*-armeabi-v7a.apk` — older 32-bit devices',
+              '',
+              '> CI builds use the repository CI keystore (not the store/Play signing key).',
+              '',
+            ].join('\n');
+
+            core.setOutput('body', body);
+            await core.summary.addHeading(`Release ${tag}`).addRaw(body).write();
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: PixelPlayer ${{ steps.meta.outputs.version }}
+          body: ${{ steps.notes.outputs.body }}
+          draft: false
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || contains(steps.meta.outputs.version, '-') }}
+          files: |
+            dist/PixelPlayer-${{ steps.meta.outputs.version }}-arm64-v8a.apk
+            dist/PixelPlayer-${{ steps.meta.outputs.version }}-armeabi-v7a.apk
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: PixelPlayer-${{ steps.meta.outputs.version }}-release-apks
+          path: dist/*.apk
+          if-no-files-found: error
+          compression-level: 0

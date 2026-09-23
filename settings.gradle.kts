@@ -25,6 +25,9 @@ dependencyResolutionManagement {
                 includeGroup("com.github.philburk")
                 includeGroup("com.github.racra")
                 includeGroup("com.github.tdlibx")
+                includeGroup("com.github.teamnewpipe")
+                includeGroup("com.github.TeamNewPipe")
+                includeGroupByRegex("com\\.github\\.[Tt]eam[Nn]ew[Pp]ipe(\\..*)?")
             }
         }
     }

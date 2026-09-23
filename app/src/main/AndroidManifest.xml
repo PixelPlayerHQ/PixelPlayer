@@ -120,6 +120,13 @@
             android:theme="@style/Theme.PixelPlay"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".presentation.soundcloud.auth.SoundCloudLoginActivity"
+            android:exported="false"
+            android:label="SoundCloud Login"
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
+
 
         <activity
             android:name=".ExternalPlayerActivity"

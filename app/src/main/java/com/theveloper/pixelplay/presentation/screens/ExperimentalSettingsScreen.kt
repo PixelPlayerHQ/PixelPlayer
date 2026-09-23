@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LinearScale
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Style
+import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Rectangle
@@ -44,8 +45,10 @@ import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,11 +69,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import android.content.Intent
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -78,8 +83,10 @@ import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
+import com.theveloper.pixelplay.soundcloud.SoundCloudPrefsViewModel
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -180,6 +187,97 @@ fun ExperimentalSettingsScreen(
             contentPadding = PaddingValues(top = currentTopBarHeightDp + 8.dp),
             modifier = Modifier.fillMaxSize()
         ) {
+            item(key = "soundcloud_section") {
+                val scPrefsVm: SoundCloudPrefsViewModel = hiltViewModel()
+                val scClientId by scPrefsVm.clientId.collectAsStateWithLifecycle()
+                val scUsername by scPrefsVm.username.collectAsStateWithLifecycle()
+                val scSession by scPrefsVm.session.collectAsStateWithLifecycle()
+                var clientIdDraft by remember(scClientId) { mutableStateOf(scClientId) }
+                var usernameDraft by remember(scUsername) { mutableStateOf(scUsername) }
+                val context = LocalContext.current
+
+                SettingsSection(
+                    title = stringResource(R.string.soundcloud_section),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Cloud,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 0.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.soundcloud_settings_help),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                        )
+                        if (scSession.isSignedIn) {
+                            Text(
+                                text = stringResource(
+                                    R.string.soundcloud_signed_in_as,
+                                    scSession.displayName.ifBlank { scSession.permalink }.ifBlank { "account" },
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                            FilledTonalButton(
+                                onClick = { scPrefsVm.signOut() },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.soundcloud_sign_out))
+                            }
+                        } else {
+                            FilledTonalButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(
+                                            context,
+                                            com.theveloper.pixelplay.presentation.soundcloud.auth.SoundCloudLoginActivity::class.java,
+                                        ),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.soundcloud_sign_in))
+                            }
+                        }
+                        OutlinedTextField(
+                            value = clientIdDraft,
+                            onValueChange = { clientIdDraft = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.soundcloud_client_id_label)) },
+                            placeholder = { Text(stringResource(R.string.soundcloud_client_id_hint)) },
+                        )
+                        OutlinedTextField(
+                            value = usernameDraft,
+                            onValueChange = { usernameDraft = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.soundcloud_username_label)) },
+                            placeholder = { Text(stringResource(R.string.soundcloud_username_hint)) },
+                        )
+                        FilledTonalButton(
+                            onClick = {
+                                scPrefsVm.saveClientId(clientIdDraft)
+                                scPrefsVm.saveUsername(usernameDraft)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.soundcloud_save_settings))
+                        }
+                    }
+                }
+            }
+
             item(key = "player_ui_tweaks_section") {
                 SettingsSection(
                     title = stringResource(R.string.settings_exp_player_ui_tweaks_section),

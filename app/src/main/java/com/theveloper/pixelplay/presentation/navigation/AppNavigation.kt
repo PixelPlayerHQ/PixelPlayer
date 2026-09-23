@@ -53,6 +53,7 @@ import com.theveloper.pixelplay.presentation.screens.RecentlyPlayedScreen
 import com.theveloper.pixelplay.presentation.screens.AboutScreen
 import com.theveloper.pixelplay.presentation.screens.OpenSourceLicensesScreen
 import com.theveloper.pixelplay.presentation.screens.SearchScreen
+import com.theveloper.pixelplay.presentation.screens.SoundCloudScreen
 import com.theveloper.pixelplay.presentation.screens.StatsScreen
 import com.theveloper.pixelplay.presentation.screens.SettingsScreen
 import com.theveloper.pixelplay.presentation.screens.SettingsCategoryScreen
@@ -203,6 +204,45 @@ fun AppNavigation(
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
                     LibraryScreen(navController = navController, playerViewModel = playerViewModel)
+                }
+            }
+            composable(
+                Screen.SoundCloud.route,
+                enterTransition = {
+                    mainRootEnterTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = enterTransition()
+                    )
+                },
+                exitTransition = {
+                    mainRootExitTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = exitTransition()
+                    )
+                },
+                popEnterTransition = {
+                    mainRootEnterTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = popEnterTransition()
+                    )
+                },
+                popExitTransition = {
+                    mainRootExitTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = popExitTransition()
+                    )
+                },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    SoundCloudScreen(
+                        playerViewModel = playerViewModel,
+                        navController = navController,
+                        paddingValues = paddingValues,
+                    )
                 }
             }
             composable(

@@ -115,6 +115,11 @@ android {
             ?: "b18441a1ff607e10a989891a5462e627"
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
+
+        val soundCloudClientId = localProperties.getProperty("soundcloud.clientId").orEmpty()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+        buildConfigField("String", "SOUNDCLOUD_CLIENT_ID", "\"$soundCloudClientId\"")
     }
 
     signingConfigs {
@@ -322,6 +327,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.google.play.services.cast.framework)
     implementation(libs.tdlib)
+    implementation(libs.newpipe.extractor)
 
     // UI Utilities & Extra
     implementation(libs.timber)

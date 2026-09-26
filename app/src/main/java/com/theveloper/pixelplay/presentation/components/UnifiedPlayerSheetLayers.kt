@@ -210,6 +210,12 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     val onSeek = remember(playerViewModel) { playerViewModel::seekTo }
                     val onNext = remember(playerViewModel) { playerViewModel::nextSong }
                     val onPrevious = remember(playerViewModel) { playerViewModel::previousSong }
+                    val onSeekForward = remember(playerViewModel) {
+                        { delta: Long -> playerViewModel.seekByDelta(delta) }
+                    }
+                    val onSeekBackward = remember(playerViewModel) {
+                        { delta: Long -> playerViewModel.seekByDelta(delta) }
+                    }
                     val onCollapse = remember(playerViewModel) {
                         { playerViewModel.collapsePlayerSheet() }
                     }
@@ -247,6 +253,8 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         onSeek = onSeek,
                         onNext = onNext,
                         onPrevious = onPrevious,
+                        onSeekForward = onSeekForward,
+                        onSeekBackward = onSeekBackward,
                         onCollapse = onCollapse,
                         onShowQueueClicked = onShowQueueClicked,
                         onQueueDragStart = onQueueDragStart,
@@ -313,6 +321,12 @@ internal fun UnifiedPlayerPrewarmLayer(
                 val onSeek = remember(playerViewModel) { playerViewModel::seekTo }
                 val onNext = remember(playerViewModel) { playerViewModel::nextSong }
                 val onPrevious = remember(playerViewModel) { playerViewModel::previousSong }
+                val onSeekForward = remember(playerViewModel) {
+                    { delta: Long -> playerViewModel.seekByDelta(delta) }
+                }
+                val onSeekBackward = remember(playerViewModel) {
+                    { delta: Long -> playerViewModel.seekByDelta(delta) }
+                }
                 val onShuffleToggle = remember(playerViewModel) { { playerViewModel.toggleShuffle() } }
                 val onRepeatToggle = remember(playerViewModel) { playerViewModel::cycleRepeatMode }
                 val onFavoriteToggle = remember(playerViewModel) { playerViewModel::toggleFavorite }
@@ -348,6 +362,8 @@ internal fun UnifiedPlayerPrewarmLayer(
                     onSeek = onSeek,
                     onNext = onNext,
                     onPrevious = onPrevious,
+                    onSeekForward = onSeekForward,
+                    onSeekBackward = onSeekBackward,
                     onCollapse = {},
                     onShowCastClicked = {},
                     onShuffleToggle = onShuffleToggle,

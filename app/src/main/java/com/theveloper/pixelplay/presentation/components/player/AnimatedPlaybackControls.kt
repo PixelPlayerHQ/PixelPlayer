@@ -6,8 +6,10 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -40,16 +42,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.presentation.components.LocalMaterialTheme
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 private enum class PlaybackButtonType { NONE, PREVIOUS, PLAY_PAUSE, NEXT }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun AnimatedPlaybackControls(
     isPlayingProvider: () -> Boolean,
@@ -57,6 +62,8 @@ fun AnimatedPlaybackControls(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    onSeekForward: ((Long) -> Unit)? = null,
+    onSeekBackward: ((Long) -> Unit)? = null,
     height: Dp = 90.dp,
     baseWeight: Float = 1f,
     expansionWeight: Float = 1.1f,
@@ -147,20 +154,54 @@ fun AnimatedPlaybackControls(
                 animationSpec = pressAnimationSpec,
                 label = "prevWeight"
             )
+            var seekBackwardJob by remember { mutableStateOf<Job?>(null) }
             Box(
                 modifier = Modifier
                     .weight(prevWeight)
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(colorPreviousButton)
-                    .clickable {
-                        lastClicked = PlaybackButtonType.PREVIOUS
-                        clickTrigger++
-                        coroutineScope.launch {
-                            delay(180)
-                            onPrevious()
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Final)
+                                if (event.changes.all { !it.pressed }) {
+                                    seekBackwardJob?.cancel()
+                                    seekBackwardJob = null
+                                }
+                            }
                         }
-                    },
+                    }
+                    .combinedClickable(
+                        onClick = {
+                            lastClicked = PlaybackButtonType.PREVIOUS
+                            clickTrigger++
+                            coroutineScope.launch {
+                                delay(180)
+                                onPrevious()
+                            }
+                        },
+                        onLongClick = if (onSeekBackward != null) {
+                            {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                seekBackwardJob = coroutineScope.launch {
+                                    var elapsed = 0L
+                                    val tickRate = 100L
+                                    while (true) {
+                                        delay(tickRate)
+                                        elapsed += tickRate
+                                        val accelerated = elapsed >= 3000L
+                                        val skipAmount = if (accelerated) 1000L else 500L
+                                        
+                                        if (elapsed % 400L == 0L) {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+                                        onSeekBackward(-skipAmount)
+                                    }
+                                }
+                            }
+                        } else null
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -220,20 +261,54 @@ fun AnimatedPlaybackControls(
                 animationSpec = pressAnimationSpec,
                 label = "nextWeight"
             )
+            var seekForwardJob by remember { mutableStateOf<Job?>(null) }
             Box(
                 modifier = Modifier
                     .weight(nextWeight)
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(colorNextButton)
-                    .clickable {
-                        lastClicked = PlaybackButtonType.NEXT
-                        clickTrigger++
-                        coroutineScope.launch {
-                            delay(180)
-                            onNext()
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Final)
+                                if (event.changes.all { !it.pressed }) {
+                                    seekForwardJob?.cancel()
+                                    seekForwardJob = null
+                                }
+                            }
                         }
-                    },
+                    }
+                    .combinedClickable(
+                        onClick = {
+                            lastClicked = PlaybackButtonType.NEXT
+                            clickTrigger++
+                            coroutineScope.launch {
+                                delay(180)
+                                onNext()
+                            }
+                        },
+                        onLongClick = if (onSeekForward != null) {
+                            {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                seekForwardJob = coroutineScope.launch {
+                                    var elapsed = 0L
+                                    val tickRate = 100L
+                                    while (true) {
+                                        delay(tickRate)
+                                        elapsed += tickRate
+                                        val accelerated = elapsed >= 3000L
+                                        val skipAmount = if (accelerated) 1000L else 500L
+                                        
+                                        if (elapsed % 400L == 0L) {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+                                        onSeekForward(skipAmount)
+                                    }
+                                }
+                            }
+                        } else null
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

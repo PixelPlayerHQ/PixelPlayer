@@ -2455,6 +2455,10 @@ class PlayerViewModel @Inject constructor(
         playbackStateHolder.previousSong()
     }
 
+    fun seekByDelta(deltaMs: Long) {
+        playbackStateHolder.seekByDelta(deltaMs)
+    }
+
     private fun startProgressUpdates() {
         playbackStateHolder.startProgressUpdates()
     }

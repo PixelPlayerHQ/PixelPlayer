@@ -486,6 +486,21 @@ class PlaybackStateHolder @Inject constructor(
         }
     }
 
+    /**
+     * Seeks relative to the current position by [deltaMs] milliseconds.
+     * Positive values seek forward, negative values seek backward.
+     * The resulting position is clamped to `[0, totalDuration]`.
+     */
+    fun seekByDelta(deltaMs: Long) {
+        val current = _currentPosition.value
+        val duration = _stablePlayerState.value.totalDuration.takeIf { it > 0L }
+            ?: _stablePlayerState.value.currentSong?.duration
+            ?: return
+        val safeDuration = duration.coerceAtLeast(0L)
+        val target = (current + deltaMs).coerceAtMost(safeDuration).coerceAtLeast(0L)
+        seekTo(target)
+    }
+
     fun previousSong() {
         val castSession = castStateHolder.castSession.value
         if (castSession != null && castSession.remoteMediaClient != null) {

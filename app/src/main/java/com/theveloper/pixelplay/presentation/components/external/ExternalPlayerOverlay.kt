@@ -302,6 +302,8 @@ fun ExternalPlayerOverlay(
                             onPrevious = playerViewModel::previousSong,
                             onPlayPause = playerViewModel::playPause,
                             onNext = playerViewModel::nextSong,
+                            onSeekForward = { delta -> playerViewModel.seekByDelta(delta) },
+                            onSeekBackward = { delta -> playerViewModel.seekByDelta(delta) },
                             height = 76.dp,
                             pressAnimationSpec = controlSpatialSpec,
                             colorOtherButtons = skipContainer,

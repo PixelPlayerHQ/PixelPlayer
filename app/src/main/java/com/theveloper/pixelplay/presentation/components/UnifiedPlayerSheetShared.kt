@@ -40,11 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.size.Size
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -92,7 +94,7 @@ internal fun MiniPlayerContentInternal(
             key(song.id) {
                 SmartImage(
                     model = albumArtModel,
-                    contentDescription = "Carátula de ${song.title}",
+                    contentDescription = stringResource(R.string.common_album_art_for_title, song.title),
                     shape = CircleShape,
                     targetSize = Size(150, 150),
                     modifier = Modifier.size(44.dp),
@@ -166,7 +168,7 @@ internal fun MiniPlayerContentInternal(
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipPrevious,
-                contentDescription = "Anterior",
+                contentDescription = stringResource(R.string.common_previous_track),
                 tint = LocalMaterialTheme.current.primary,
                 modifier = Modifier.size(22.dp)
             )
@@ -191,7 +193,7 @@ internal fun MiniPlayerContentInternal(
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                contentDescription = if (isPlaying) stringResource(R.string.common_pause) else stringResource(R.string.common_play),
                 tint = LocalMaterialTheme.current.onPrimary,
                 modifier = Modifier.size(22.dp)
             )
@@ -213,7 +215,7 @@ internal fun MiniPlayerContentInternal(
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipNext,
-                contentDescription = "Siguiente",
+                contentDescription = stringResource(R.string.common_next_track),
                 tint = LocalMaterialTheme.current.primary,
                 modifier = Modifier.size(22.dp)
             )

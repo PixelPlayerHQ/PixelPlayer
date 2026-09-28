@@ -2200,7 +2200,7 @@ private fun BackupSectionSelectableCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = section.label,
+                        text = stringResource(section.labelRes),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = GoogleSansRounded
                         ),
@@ -2208,7 +2208,7 @@ private fun BackupSectionSelectableCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = section.description,
+                        text = stringResource(section.descriptionRes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2400,7 +2400,7 @@ private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate)
 
                 progress.section?.let { section ->
                     Text(
-                        text = section.label,
+                        text = stringResource(section.labelRes),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center

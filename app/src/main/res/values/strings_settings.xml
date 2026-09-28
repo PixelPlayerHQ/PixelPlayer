@@ -367,6 +367,30 @@
     <string name="settings_import_backup_title">Import Backup</string>
     <string name="settings_action_select_restore">Select &amp; Restore</string>
     <string name="settings_import_backup_subtitle">Browse or pick from recent backups. Selected data will replace current data.</string>
+    <string name="backup_section_playlists_label">Playlists</string>
+    <string name="backup_section_playlists_description">Your custom playlists and ordering preferences.</string>
+    <string name="backup_section_global_settings_label">Global Settings</string>
+    <string name="backup_section_global_settings_description">Themes, behavior, playback, and app preferences.</string>
+    <string name="backup_section_favorites_label">Favorites</string>
+    <string name="backup_section_favorites_description">Songs marked as favorite.</string>
+    <string name="backup_section_lyrics_label">Saved Lyrics</string>
+    <string name="backup_section_lyrics_description">Lyrics you\'ve saved or imported.</string>
+    <string name="backup_section_search_history_label">Search History</string>
+    <string name="backup_section_search_history_description">Recent search terms in the app.</string>
+    <string name="backup_section_transitions_label">Transition Rules</string>
+    <string name="backup_section_transitions_description">Custom transition settings between songs.</string>
+    <string name="backup_section_engagement_stats_label">Engagement Stats</string>
+    <string name="backup_section_engagement_stats_description">Play count and listening duration per song.</string>
+    <string name="backup_section_playback_history_label">Playback History</string>
+    <string name="backup_section_playback_history_description">Timeline-based listening history for stats.</string>
+    <string name="backup_section_quick_fill_label">QuickFill Genres</string>
+    <string name="backup_section_quick_fill_description">Custom genres and their icons.</string>
+    <string name="backup_section_artist_images_label">Artist Images</string>
+    <string name="backup_section_artist_images_description">Cached artist image URLs from Deezer.</string>
+    <string name="backup_section_equalizer_label">Equalizer</string>
+    <string name="backup_section_equalizer_description">Your custom equalizer presets and audio profiles.</string>
+    <string name="backup_section_ai_usage_logs_label">AI Activity Logs</string>
+    <string name="backup_section_ai_usage_logs_description">History of AI requests and token consumption.</string>
 
     <!-- Backup & Restore category (Export & Restore Backup Flow) -->
     <string name="settings_export_backup_hint">Choose exactly what you want to include in the backup package.</string>

@@ -96,6 +96,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -925,7 +927,8 @@ fun FullPlayerContent(
                     albumCoverSection = albumCoverSection,
                     songMetadataSection = portraitSongMetadataSection,
                     playerProgressSection = playerProgressSection,
-                    controlsSection = controlsSection
+                    controlsSection = controlsSection,
+                    carouselStyle = carouselStyle
                 )
             }
         }
@@ -1038,12 +1041,10 @@ private fun FullPlayerAlbumCoverSection(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        val carouselHeight = when (carouselStyle) {
-            CarouselStyle.NO_PEEK -> maxWidth
-            CarouselStyle.ONE_PEEK -> maxWidth * 0.8f
-            CarouselStyle.TWO_PEEK -> maxWidth * 0.6f
-            else -> maxWidth * 0.8f
-        }
+        // Width-driven carousel (existing behavior), but never taller than its own
+        // constraints. In normal windows widthBased fits and this is a no-op; in short
+        // multi-window heights it prevents the album alone from forcing overflow.
+        val carouselHeight = resolveCarouselHeight(maxWidth, maxHeight, carouselStyle)
 
         DelayedContent(
             shouldDelay = shouldDelay,
@@ -1370,38 +1371,125 @@ private fun FullPlayerSongMetadataSection(
     }
 }
 
+// Compact-height policy for #2632 (Split Screen / Pop-up View with small window height).
+// All values are derived from existing fixed minima in this file, no new magic numbers:
+// - controls 182.dp (sharedBoundsModifier, FullPlayerControlsSection)
+// - metadata min 70.dp (SongMetadataDisplaySection heightIn)
+// - progress min 70.dp (PlayerProgressBarSection heightIn)
+// - portrait middle spacedBy 4.dp (FullPlayerPortraitContent)
+// - album vertical padding 8.dp * 2 (FullPlayerAlbumCoverSection)
+// - portrait horizontal padding 24.dp * 2 (FullPlayerPortraitContent)
+// Normal tall windows keep the exact existing SpaceAround/SpaceEvenly layout; the compact
+// branch (Top + verticalScroll) is used only when the width-based carousel + fixed minima
+// do not fit into the ACTUAL available height (BoxWithConstraints maxHeight minus the
+// Scaffold paddingValues that are already applied). No extra WindowInsets are added here
+// on purpose: Scaffold paddingValues already carry system-bar insets, double-applying
+// navigationBarsPadding()/safeDrawingPadding()/captionBarPadding() would offset twice.
+internal val PlayerControlsFixedHeight = 182.dp
+internal val PlayerMetadataMinHeight = 70.dp
+internal val PlayerProgressMinHeight = 70.dp
+internal val PlayerPortraitMiddleSpacing = 4.dp
+internal val PlayerAlbumVerticalPadding = 16.dp
+internal val PlayerPortraitHorizontalPadding = 48.dp
+
+internal fun estimatePlayerPortraitFixedHeight(): Dp =
+    PlayerControlsFixedHeight +
+        PlayerMetadataMinHeight +
+        PlayerProgressMinHeight +
+        PlayerPortraitMiddleSpacing +
+        PlayerAlbumVerticalPadding
+
+internal fun estimatePlayerLandscapeFixedHeight(): Dp =
+    PlayerControlsFixedHeight +
+        PlayerMetadataMinHeight +
+        PlayerProgressMinHeight
+
+internal fun estimateCarouselHeight(maxWidth: Dp, carouselStyle: String): Dp =
+    when (carouselStyle) {
+        CarouselStyle.NO_PEEK -> maxWidth
+        CarouselStyle.ONE_PEEK -> maxWidth * 0.8f
+        CarouselStyle.TWO_PEEK -> maxWidth * 0.6f
+        else -> maxWidth * 0.8f
+    }
+
+internal fun shouldUseCompactPlayerLayout(
+    availableHeight: Dp,
+    contentMaxWidth: Dp,
+    carouselStyle: String
+): Boolean {
+    if (!availableHeight.value.isFinite() || !contentMaxWidth.value.isFinite()) return false
+    if (availableHeight <= 0.dp || contentMaxWidth <= 0.dp) return false
+    val carouselHeight = estimateCarouselHeight(contentMaxWidth, carouselStyle)
+    return availableHeight < carouselHeight + estimatePlayerPortraitFixedHeight()
+}
+
+internal fun shouldUseCompactLandscapeLayout(availableHeight: Dp): Boolean {
+    if (!availableHeight.value.isFinite()) return false
+    if (availableHeight <= 0.dp) return false
+    return availableHeight < estimatePlayerLandscapeFixedHeight()
+}
+
+internal fun resolveCarouselHeight(maxWidth: Dp, maxHeight: Dp, carouselStyle: String): Dp {
+    val widthBased = estimateCarouselHeight(maxWidth, carouselStyle)
+    // Never force the carousel taller than its own constraints (BoxWithConstraints maxHeight
+    // minus the section's own vertical padding). In normal tall windows widthBased fits and
+    // this returns widthBased unchanged.
+    val cappedBy = (maxHeight - PlayerAlbumVerticalPadding).coerceAtLeast(0.dp)
+    return minOf(widthBased, cappedBy)
+}
+
 @Composable
 private fun FullPlayerPortraitContent(
     paddingValues: PaddingValues,
     albumCoverSection: @Composable (Modifier) -> Unit,
     songMetadataSection: @Composable () -> Unit,
     playerProgressSection: @Composable () -> Unit,
-    controlsSection: @Composable () -> Unit
+    controlsSection: @Composable () -> Unit,
+    carouselStyle: String
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(
-                horizontal = 24.dp,
-                vertical = 0.dp
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceAround
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
-        albumCoverSection(Modifier)
-
+        // ACTUAL window height for content: BoxWithConstraints reflects the real window
+        // (shrinks in split-screen / pop-up), unlike LocalConfiguration.screenHeightDp.
+        // paddingValues already contains Scaffold system-bar/topBar insets, so subtract it
+        // instead of adding new inset modifiers (avoids double-applying insets).
+        val availableHeight =
+            (maxHeight - paddingValues.calculateTopPadding() - paddingValues.calculateBottomPadding())
+                .coerceAtLeast(0.dp)
+        val contentMaxWidth = (maxWidth - PlayerPortraitHorizontalPadding).coerceAtLeast(0.dp)
+        val useCompact = shouldUseCompactPlayerLayout(availableHeight, contentMaxWidth, carouselStyle)
+        // Compact window (e.g. split-screen / pop-up): top-align and scroll only if the
+        // content overflows. Same children, no distributed SpaceAround slack that renders
+        // as an empty primaryContainer bar in short windows. Regular windows keep the
+        // exact existing SpaceAround layout below (arrangement + no scroll).
+        val scrollState = rememberScrollState()
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 0.dp
+                )
+                .then(if (useCompact) Modifier.verticalScroll(scrollState) else Modifier),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = if (useCompact) Arrangement.Top else Arrangement.SpaceAround
         ) {
-            Box(Modifier.align(Alignment.Start)) {
-                songMetadataSection()
-            }
-            playerProgressSection()
-        }
+            albumCoverSection(Modifier)
 
-        controlsSection()
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Box(Modifier.align(Alignment.Start)) {
+                    songMetadataSection()
+                }
+                playerProgressSection()
+            }
+
+            controlsSection()
+        }
     }
 }
 
@@ -1413,36 +1501,49 @@ private fun FullPlayerLandscapeContent(
     playerProgressSection: @Composable () -> Unit,
     controlsSection: @Composable () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(
-                horizontal = 24.dp,
-                vertical = 0.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
-        albumCoverSection(
-            Modifier
-                .fillMaxHeight()
-                .weight(1f)
-        )
-        Spacer(Modifier.width(9.dp))
-        Column(
+        val availableHeight =
+            (maxHeight - paddingValues.calculateTopPadding() - paddingValues.calculateBottomPadding())
+                .coerceAtLeast(0.dp)
+        val useCompact = shouldUseCompactLandscapeLayout(availableHeight)
+        // Same children in both modes. Compact height uses a top-aligned right column
+        // with scroll fallback instead of SpaceEvenly slack; the album side is capped
+        // by its own constraints (see resolveCarouselHeight).
+        val scrollState = rememberScrollState()
+        Row(
             modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f)
+                .fillMaxSize()
+                .padding(paddingValues)
                 .padding(
-                    horizontal = 0.dp,
+                    horizontal = 24.dp,
                     vertical = 0.dp
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            verticalAlignment = if (useCompact) Alignment.Top else Alignment.CenterVertically
         ) {
-            songMetadataSection()
-            playerProgressSection()
-            controlsSection()
+            albumCoverSection(
+                Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+            )
+            Spacer(Modifier.width(9.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .padding(
+                        horizontal = 0.dp,
+                        vertical = 0.dp
+                    )
+                    .then(if (useCompact) Modifier.verticalScroll(scrollState) else Modifier),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = if (useCompact) Arrangement.Top else Arrangement.SpaceEvenly
+            ) {
+                songMetadataSection()
+                playerProgressSection()
+                controlsSection()
+            }
         }
     }
 }

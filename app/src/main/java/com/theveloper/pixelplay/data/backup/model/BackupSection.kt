@@ -1,11 +1,24 @@
 package com.theveloper.pixelplay.data.backup.model
 
+import androidx.annotation.StringRes
 import com.theveloper.pixelplay.R
 
 enum class BackupSection(
     val key: String,
+    @Deprecated(
+        "Transitional English text, kept only for backup/restore progress titles " +
+            "and validation messages until progress events are localized. " +
+            "UI must use labelRes."
+    )
     val label: String,
+    @Deprecated(
+        "Transitional English text, kept only for backup/restore progress details " +
+            "and validation messages until progress events are localized. " +
+            "UI must use descriptionRes."
+    )
     val description: String,
+    @StringRes val labelRes: Int,
+    @StringRes val descriptionRes: Int,
     val iconRes: Int,
     val sinceVersion: Int = 1
 ) {
@@ -13,54 +26,72 @@ enum class BackupSection(
         key = "playlists",
         label = "Playlists",
         description = "Your custom playlists and ordering preferences.",
+        labelRes = R.string.backup_section_playlists_label,
+        descriptionRes = R.string.backup_section_playlists_description,
         iconRes = R.drawable.rounded_playlist_play_24
     ),
     GLOBAL_SETTINGS(
         key = "global_settings",
         label = "Global Settings",
         description = "Themes, behavior, playback, and app preferences.",
+        labelRes = R.string.backup_section_global_settings_label,
+        descriptionRes = R.string.backup_section_global_settings_description,
         iconRes = R.drawable.rounded_settings_24
     ),
     FAVORITES(
         key = "favorites",
         label = "Favorites",
         description = "Songs marked as favorite.",
+        labelRes = R.string.backup_section_favorites_label,
+        descriptionRes = R.string.backup_section_favorites_description,
         iconRes = R.drawable.rounded_favorite_24
     ),
     LYRICS(
         key = "lyrics",
         label = "Saved Lyrics",
         description = "Lyrics you've saved or imported.",
+        labelRes = R.string.backup_section_lyrics_label,
+        descriptionRes = R.string.backup_section_lyrics_description,
         iconRes = R.drawable.rounded_lyrics_24
     ),
     SEARCH_HISTORY(
         key = "search_history",
         label = "Search History",
         description = "Recent search terms in the app.",
+        labelRes = R.string.backup_section_search_history_label,
+        descriptionRes = R.string.backup_section_search_history_description,
         iconRes = R.drawable.rounded_search_24
     ),
     TRANSITIONS(
         key = "transitions",
         label = "Transition Rules",
         description = "Custom transition settings between songs.",
+        labelRes = R.string.backup_section_transitions_label,
+        descriptionRes = R.string.backup_section_transitions_description,
         iconRes = R.drawable.rounded_align_justify_space_even_24
     ),
     ENGAGEMENT_STATS(
         key = "engagement_stats",
         label = "Engagement Stats",
         description = "Play count and listening duration per song.",
+        labelRes = R.string.backup_section_engagement_stats_label,
+        descriptionRes = R.string.backup_section_engagement_stats_description,
         iconRes = R.drawable.rounded_monitoring_24
     ),
     PLAYBACK_HISTORY(
         key = "playback_history",
         label = "Playback History",
         description = "Timeline-based listening history for stats.",
+        labelRes = R.string.backup_section_playback_history_label,
+        descriptionRes = R.string.backup_section_playback_history_description,
         iconRes = R.drawable.rounded_schedule_24
     ),
     QUICK_FILL(
         key = "quick_fill",
         label = "QuickFill Genres",
         description = "Custom genres and their icons.",
+        labelRes = R.string.backup_section_quick_fill_label,
+        descriptionRes = R.string.backup_section_quick_fill_description,
         iconRes = R.drawable.rounded_instant_mix_24,
         sinceVersion = 3
     ),
@@ -68,6 +99,8 @@ enum class BackupSection(
         key = "artist_images",
         label = "Artist Images",
         description = "Cached artist image URLs from Deezer.",
+        labelRes = R.string.backup_section_artist_images_label,
+        descriptionRes = R.string.backup_section_artist_images_description,
         iconRes = R.drawable.rounded_person_24,
         sinceVersion = 3
     ),
@@ -75,6 +108,8 @@ enum class BackupSection(
         key = "equalizer",
         label = "Equalizer",
         description = "Your custom equalizer presets and audio profiles.",
+        labelRes = R.string.backup_section_equalizer_label,
+        descriptionRes = R.string.backup_section_equalizer_description,
         iconRes = R.drawable.rounded_surround_sound_24,
         sinceVersion = 3
     ),
@@ -82,6 +117,8 @@ enum class BackupSection(
         key = "ai_usage_logs",
         label = "AI Activity Logs",
         description = "History of AI requests and token consumption.",
+        labelRes = R.string.backup_section_ai_usage_logs_label,
+        descriptionRes = R.string.backup_section_ai_usage_logs_description,
         iconRes = R.drawable.rounded_monitoring_24,
         sinceVersion = 4
     );

@@ -367,6 +367,30 @@
     <string name="settings_import_backup_title">Импорт резервной копии</string>
     <string name="settings_action_select_restore">Выбрать и восстановить</string>
     <string name="settings_import_backup_subtitle">Выберите файл или одну из недавних резервных копий. Выбранные данные заменят текущие.</string>
+    <string name="backup_section_playlists_label">Плейлисты</string>
+    <string name="backup_section_playlists_description">Ваши плейлисты и порядок их следования.</string>
+    <string name="backup_section_global_settings_label">Общие настройки</string>
+    <string name="backup_section_global_settings_description">Темы, поведение, воспроизведение и настройки приложения.</string>
+    <string name="backup_section_favorites_label">Избранное</string>
+    <string name="backup_section_favorites_description">Песни, отмеченные как избранное.</string>
+    <string name="backup_section_lyrics_label">Сохранённые тексты</string>
+    <string name="backup_section_lyrics_description">Сохранённые или импортированные тексты песен.</string>
+    <string name="backup_section_search_history_label">История поиска</string>
+    <string name="backup_section_search_history_description">Недавние поисковые запросы в приложении.</string>
+    <string name="backup_section_transitions_label">Правила переходов</string>
+    <string name="backup_section_transitions_description">Пользовательские настройки переходов между песнями.</string>
+    <string name="backup_section_engagement_stats_label">Статистика прослушиваний</string>
+    <string name="backup_section_engagement_stats_description">Число воспроизведений и длительность прослушивания каждой песни.</string>
+    <string name="backup_section_playback_history_label">История воспроизведения</string>
+    <string name="backup_section_playback_history_description">История прослушиваний по временной шкале для статистики.</string>
+    <string name="backup_section_quick_fill_label">Жанры QuickFill</string>
+    <string name="backup_section_quick_fill_description">Пользовательские жанры и их значки.</string>
+    <string name="backup_section_artist_images_label">Изображения исполнителей</string>
+    <string name="backup_section_artist_images_description">Кэшированные URL изображений исполнителей из Deezer.</string>
+    <string name="backup_section_equalizer_label">Эквалайзер</string>
+    <string name="backup_section_equalizer_description">Ваши пресеты эквалайзера и звуковые профили.</string>
+    <string name="backup_section_ai_usage_logs_label">Журнал активности ИИ</string>
+    <string name="backup_section_ai_usage_logs_description">История запросов к ИИ и расход токенов.</string>
 
     <!-- Backup & Restore category (Export & Restore Backup Flow) -->
     <string name="settings_export_backup_hint">Выберите, какие данные нужно включить в резервную копию.</string>

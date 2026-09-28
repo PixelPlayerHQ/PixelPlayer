@@ -643,6 +643,15 @@
     <string name="about_cd_open_telegram">Открыть Telegram</string>
     <string name="about_cd_contributor_avatar">Аватар %1$s</string>
     <string name="about_cd_contributor_icon">Значок %1$s</string>
+    <string name="about_licenses_title">Лицензии и уведомления</string>
+    <string name="about_licenses_subtitle">Упоминания зависимостей и ранее внесённого вклада.</string>
+    <string name="about_open_source_licenses">Лицензии открытого кода</string>
+    <string name="about_open_source_licenses_subtitle">Лицензии зависимостей и уведомления сторонних компонентов</string>
+    <string name="open_source_licenses_screen_title">Лицензии открытого кода</string>
+    <string name="third_party_notices_action">Уведомление MIT</string>
+    <string name="third_party_notices_title">Уведомления сторонних компонентов</string>
+    <string name="third_party_notices_close">Закрыть</string>
+    <string name="third_party_notices_load_error">Не удалось загрузить встроенное уведомление стороннего компонента.</string>
     <string name="settings_volume_section">Громкость</string>
     <string name="settings_pause_on_volume_zero">Пауза при нулевой громкости</string>
     <string name="settings_pause_on_volume_zero_desc">Автоматически приостанавливать воспроизведение, когда громкость равна 0</string>

@@ -7,7 +7,13 @@ import androidx.compose.runtime.Immutable
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Search : Screen("search")
+    object Liked : Screen("liked")
+    object Radio : Screen("radio")
+    object Playlists : Screen("playlists")
+    object YoutubeSettings : Screen("youtube_settings")
     object Library : Screen("library")
+    object SoundCloud : Screen("soundcloud")
+    object SoundCloudSettings : Screen("soundcloud_settings")
     object Settings : Screen("settings")
     object Accounts : Screen("settings_accounts")
     object SettingsCategory : Screen("settings_category/{categoryId}") {

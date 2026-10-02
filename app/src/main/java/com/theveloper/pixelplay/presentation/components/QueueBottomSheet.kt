@@ -288,7 +288,8 @@ fun QueueBottomSheet(
 
     // Read show queue history preference
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val showQueueHistory = settingsState.showQueueHistory
+    val playerUiState by viewModel.playerUiState.collectAsStateWithLifecycle()
+    val showQueueHistory = settingsState.showQueueHistory || playerUiState.keepPlayedSongsInQueue
 
     // Offset to convert display indices to queue indices when history is hidden.
     val queueIndexOffset = if (showQueueHistory || currentSongIndex < 0) 0 else currentSongIndex

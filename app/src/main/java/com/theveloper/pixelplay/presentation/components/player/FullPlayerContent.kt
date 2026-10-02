@@ -326,6 +326,7 @@ fun FullPlayerContent(
 
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val fold = rememberFoldObservation(isLandscape)
 
 
     // Lógica para el botón de Lyrics en el reproductor expandido
@@ -497,7 +498,7 @@ fun FullPlayerContent(
         Unit
     }
 
-    val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
+    val albumCoverSection: @Composable (Modifier, Dp) -> Unit = { modifier, cap ->
         FullPlayerAlbumCoverSection(
             song = song,
             currentPlaybackQueue = currentPlaybackQueue,
@@ -517,6 +518,7 @@ fun FullPlayerContent(
             onAlbumClick = { albumSong ->
                 playerViewModel.triggerAlbumNavigationFromPlayer(albumSong.albumId)
             },
+            maxCarouselSide = cap,
             modifier = modifier
         )
     }
@@ -899,8 +901,8 @@ fun FullPlayerContent(
         }
     ) { paddingValues ->
         // MD3: 方向变化时先 alpha=0 再淡入新布局，避免双布局同时测量导致错位
-        var contentVisible by remember(isLandscape) { mutableStateOf(false) }
-        LaunchedEffect(isLandscape) { contentVisible = true }
+        var contentVisible by remember(isLandscape, fold.layout) { mutableStateOf(false) }
+        LaunchedEffect(isLandscape, fold.layout) { contentVisible = true }
         val contentAlpha by animateFloatAsState(
             targetValue = if (contentVisible) 1f else 0f,
             animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
@@ -911,22 +913,62 @@ fun FullPlayerContent(
                 .fillMaxSize()
                 .graphicsLayer { alpha = contentAlpha }
         ) {
-            if (isLandscape) {
-                FullPlayerLandscapeContent(
+            when (fold.layout) {
+                FoldPlayerLayout.Tabletop -> FullPlayerTabletopContent(
                     paddingValues = paddingValues,
-                    albumCoverSection = albumCoverSection,
-                    songMetadataSection = landscapeSongMetadataSection,
-                    playerProgressSection = playerProgressSection,
-                    controlsSection = controlsSection
-                )
-            } else {
-                FullPlayerPortraitContent(
-                    paddingValues = paddingValues,
+                    hingeThickness = fold.hingeThickness,
                     albumCoverSection = albumCoverSection,
                     songMetadataSection = portraitSongMetadataSection,
                     playerProgressSection = playerProgressSection,
-                    controlsSection = controlsSection
+                    controlsSection = controlsSection,
+                    queue = {
+                        FoldPlayerQueue(
+                            queue = currentPlaybackQueue,
+                            currentSongId = song.id,
+                            queueName = currentQueueSourceName,
+                            onSongClick = onAlbumSongSelected,
+                            modifier = it,
+                        )
+                    },
                 )
+                FoldPlayerLayout.Book, FoldPlayerLayout.FlatWide -> FullPlayerBookContent(
+                    paddingValues = paddingValues,
+                    hingeThickness = if (fold.layout == FoldPlayerLayout.FlatWide) {
+                        fold.hingeThickness.coerceAtMost(8.dp)
+                    } else {
+                        fold.hingeThickness.coerceAtLeast(12.dp)
+                    },
+                    albumCoverSection = albumCoverSection,
+                    songMetadataSection = landscapeSongMetadataSection,
+                    playerProgressSection = playerProgressSection,
+                    controlsSection = controlsSection,
+                    queue = {
+                        FoldPlayerQueue(
+                            queue = currentPlaybackQueue,
+                            currentSongId = song.id,
+                            queueName = currentQueueSourceName,
+                            onSongClick = onAlbumSongSelected,
+                            modifier = it,
+                        )
+                    },
+                )
+                FoldPlayerLayout.Phone -> if (isLandscape) {
+                    FullPlayerLandscapeContent(
+                        paddingValues = paddingValues,
+                        albumCoverSection = albumCoverSection,
+                        songMetadataSection = landscapeSongMetadataSection,
+                        playerProgressSection = playerProgressSection,
+                        controlsSection = controlsSection,
+                    )
+                } else {
+                    FullPlayerPortraitContent(
+                        paddingValues = paddingValues,
+                        albumCoverSection = albumCoverSection,
+                        songMetadataSection = portraitSongMetadataSection,
+                        playerProgressSection = playerProgressSection,
+                        controlsSection = controlsSection,
+                    )
+                }
             }
         }
     }
@@ -1018,6 +1060,7 @@ private fun FullPlayerAlbumCoverSection(
     requestedScrollIndex: Int?,
     onSongSelected: (Song, Int) -> Unit,
     onAlbumClick: (Song) -> Unit,
+    maxCarouselSide: Dp = Dp.Unspecified,
     modifier: Modifier = Modifier
 ) {
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delayAlbumCarousel
@@ -1038,11 +1081,16 @@ private fun FullPlayerAlbumCoverSection(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        val carouselHeight = when (carouselStyle) {
+        val preferredHeight = when (carouselStyle) {
             CarouselStyle.NO_PEEK -> maxWidth
             CarouselStyle.ONE_PEEK -> maxWidth * 0.8f
             CarouselStyle.TWO_PEEK -> maxWidth * 0.6f
             else -> maxWidth * 0.8f
+        }
+        val carouselHeight = if (maxCarouselSide != Dp.Unspecified) {
+            preferredHeight.coerceAtMost(maxCarouselSide)
+        } else {
+            preferredHeight
         }
 
         DelayedContent(
@@ -1373,7 +1421,7 @@ private fun FullPlayerSongMetadataSection(
 @Composable
 private fun FullPlayerPortraitContent(
     paddingValues: PaddingValues,
-    albumCoverSection: @Composable (Modifier) -> Unit,
+    albumCoverSection: @Composable (Modifier, Dp) -> Unit,
     songMetadataSection: @Composable () -> Unit,
     playerProgressSection: @Composable () -> Unit,
     controlsSection: @Composable () -> Unit
@@ -1389,7 +1437,7 @@ private fun FullPlayerPortraitContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceAround
     ) {
-        albumCoverSection(Modifier)
+        albumCoverSection(Modifier, Dp.Unspecified)
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1408,7 +1456,7 @@ private fun FullPlayerPortraitContent(
 @Composable
 private fun FullPlayerLandscapeContent(
     paddingValues: PaddingValues,
-    albumCoverSection: @Composable (Modifier) -> Unit,
+    albumCoverSection: @Composable (Modifier, Dp) -> Unit,
     songMetadataSection: @Composable () -> Unit,
     playerProgressSection: @Composable () -> Unit,
     controlsSection: @Composable () -> Unit
@@ -1426,7 +1474,8 @@ private fun FullPlayerLandscapeContent(
         albumCoverSection(
             Modifier
                 .fillMaxHeight()
-                .weight(1f)
+                .weight(1f),
+            Dp.Unspecified,
         )
         Spacer(Modifier.width(9.dp))
         Column(
@@ -1444,6 +1493,101 @@ private fun FullPlayerLandscapeContent(
             playerProgressSection()
             controlsSection()
         }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun FullPlayerTabletopContent(
+    paddingValues: PaddingValues,
+    hingeThickness: Dp,
+    albumCoverSection: @Composable (Modifier, Dp) -> Unit,
+    songMetadataSection: @Composable () -> Unit,
+    playerProgressSection: @Composable () -> Unit,
+    controlsSection: @Composable () -> Unit,
+    queue: @Composable (Modifier) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                albumCoverSection(Modifier, maxHeight.coerceAtMost(maxWidth))
+            }
+            songMetadataSection()
+        }
+        Spacer(Modifier.height(hingeThickness.coerceAtLeast(12.dp)))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+        ) {
+            queue(Modifier.weight(1f))
+            playerProgressSection()
+            controlsSection()
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun FullPlayerBookContent(
+    paddingValues: PaddingValues,
+    hingeThickness: Dp,
+    albumCoverSection: @Composable (Modifier, Dp) -> Unit,
+    songMetadataSection: @Composable () -> Unit,
+    playerProgressSection: @Composable () -> Unit,
+    controlsSection: @Composable () -> Unit,
+    queue: @Composable (Modifier) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(start = 24.dp, end = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                albumCoverSection(Modifier, minOf(maxWidth, maxHeight))
+            }
+            songMetadataSection()
+            playerProgressSection()
+            controlsSection()
+        }
+        Spacer(Modifier.width(hingeThickness))
+        queue(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(end = 12.dp),
+        )
     }
 }
 

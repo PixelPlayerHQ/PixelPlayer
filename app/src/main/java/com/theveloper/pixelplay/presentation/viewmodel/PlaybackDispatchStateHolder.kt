@@ -495,7 +495,13 @@ class PlaybackDispatchStateHolder @Inject constructor(
         }
     }
 
-    fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
+    fun playSongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        keepPlayedSongs: Boolean = false,
+    ) {
         cancelPendingFullQueuePlayback()
         val requestToken = beginDirectPlaybackRequest()
         directPlaybackJob = cb.scope.launch {
@@ -566,7 +572,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
             throwIfDirectPlaybackRequestIsStale(requestToken)
 
             // Send the final list (shuffled or not) to the player engine
-            internalPlaySongs(finalSongsToPlay, validStartSong, queueName, playlistId)
+            internalPlaySongs(finalSongsToPlay, validStartSong, queueName, playlistId, keepPlayedSongs)
             if (requestToken == directPlaybackToken) {
                 directPlaybackJob = null
             }
@@ -804,7 +810,13 @@ class PlaybackDispatchStateHolder @Inject constructor(
         }
     }
 
-    suspend fun internalPlaySongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
+    suspend fun internalPlaySongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        keepPlayedSongs: Boolean = false,
+    ) {
         if (songsToPlay.isEmpty()) {
             clearPreparingSongIfMatching()
             return
@@ -835,7 +847,13 @@ class PlaybackDispatchStateHolder @Inject constructor(
                 return
             }
 
-            cb.updateUiState { it.copy(currentPlaybackQueue = songsToPlay.toPlaybackQueue(), currentQueueSourceName = queueName) }
+            cb.updateUiState {
+                it.copy(
+                    currentPlaybackQueue = songsToPlay.toPlaybackQueue(),
+                    currentQueueSourceName = queueName,
+                    keepPlayedSongsInQueue = keepPlayedSongs,
+                )
+            }
             playbackStateHolder.updateStablePlayerState {
                 it.copy(
                     currentSong = effectiveStartSong,
@@ -850,7 +868,8 @@ class PlaybackDispatchStateHolder @Inject constructor(
             cb.updateUiState {
                 it.copy(
                     currentPlaybackQueue = songsToPlay.toPlaybackQueue(),
-                    currentQueueSourceName = queueName
+                    currentQueueSourceName = queueName,
+                    keepPlayedSongsInQueue = keepPlayedSongs,
                 )
             }
             playbackStateHolder.updateStablePlayerState {
@@ -1049,7 +1068,12 @@ class PlaybackDispatchStateHolder @Inject constructor(
                         castTransferStateHolder.lastRemoteQueue.size
                     )
                     cb.scope.launch {
-                        internalPlaySongs(localQueue, startSong, cb.getUiState().currentQueueSourceName)
+                        internalPlaySongs(
+                            localQueue,
+                            startSong,
+                            cb.getUiState().currentQueueSourceName,
+                            keepPlayedSongs = cb.getUiState().keepPlayedSongsInQueue,
+                        )
                     }
                 } else if (remoteHasQueue) {
                     // No local queue available to reconcile; fallback to resuming remote queue.
@@ -1084,7 +1108,8 @@ class PlaybackDispatchStateHolder @Inject constructor(
                                 internalPlaySongs(
                                     currentQueue.toList(),
                                     currentSong,
-                                    cb.getUiState().currentQueueSourceName
+                                    cb.getUiState().currentQueueSourceName,
+                                    keepPlayedSongs = cb.getUiState().keepPlayedSongsInQueue,
                                 )
                             }
                         }

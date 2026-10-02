@@ -857,6 +857,13 @@ fun SettingsCategoryScreen(
                                     leadingIcon = { Icon(painterResource(R.drawable.outline_high_quality_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                                 SwitchSettingItem(
+                                    title = stringResource(R.string.settings_skip_silence_title),
+                                    subtitle = stringResource(R.string.settings_skip_silence_subtitle),
+                                    checked = uiState.skipSilenceEnabled,
+                                    onCheckedChange = { settingsViewModel.setSkipSilenceEnabled(it) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_align_justify_space_even_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
                                     title = stringResource(R.string.settings_persistent_shuffle_title),
                                     subtitle = stringResource(R.string.settings_persistent_shuffle_subtitle),
                                     checked = uiState.persistentShuffleEnabled,

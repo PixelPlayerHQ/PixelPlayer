@@ -553,7 +553,6 @@ sealed class SetupPage {
 private fun buildSetupPages(sdkInt: Int): List<SetupPage> {
     val pages = mutableListOf<SetupPage>(
         SetupPage.Welcome,
-        SetupPage.MediaPermission
     )
 
     if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
@@ -561,15 +560,9 @@ private fun buildSetupPages(sdkInt: Int): List<SetupPage> {
     }
 
     pages += SetupPage.BackupRestore
-    pages += SetupPage.DirectorySelection
     pages += SetupPage.ThemeSelection
     pages += SetupPage.LibraryLayout
     pages += SetupPage.NavBarLayout
-
-    if (sdkInt >= Build.VERSION_CODES.S) {
-        pages += SetupPage.AlarmsPermission
-    }
-
     pages += SetupPage.BatteryOptimization
     pages += SetupPage.Finish
     return pages
@@ -610,14 +603,13 @@ private fun isPermissionGateSatisfied(
 }
 
 private fun allRequiredPermissionsGrantedNow(context: Context): Boolean {
-    val mediaGranted = hasMediaPermissionNow(context)
     val notificationsGranted =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-    return mediaGranted && notificationsGranted
+    return notificationsGranted
 }
 
 private fun hasMediaPermissionNow(context: Context): Boolean {

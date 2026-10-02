@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-youtube] - 2026-09-28
+
+### Added
+- YouTube Music sign-in, personalized Feed, Liked Music, library playlists, and radio.
+- Skip silence playback setting.
+- Multi-select songs and add them to a YouTube Music playlist, or create a new one.
+- Infinite scroll on Liked Music, newest likes first.
+
+### Changed
+- About lists KibetMasi as the maintainer.
+- Changelog sheet stays half-screen until you drag or scroll it open.
+- Dropped unused local-library and Bluetooth runtime permissions.
+
+### Fixed
+- Launch no longer crashes on Pixel Fold after permission cleanup (Cast/Wi-Fi init).
+- Authenticated InnerTube session (visitorData + DATASYNC_ID) so likes and home are yours.
+- Tapping a playlist such as Recap opens it through YouTube Music browse, not NewPipe.
+- Liking a song now calls YouTube Music like/like and like/removelike.
+- Tapping the current song pauses or resumes instead of restarting.
+- First tap starts playback; a second tap is not required.
+
+## [0.8.1-soundcloud] - 2026-09-23
+
+### Added
+- **SoundCloud:** Personalized feed shelves for likes, recent plays, mixes, curated tracks, playlists, and followed creators.
+- **SoundCloud:** Automatic queue playback so the next playable track starts when the current track ends.
+- **SoundCloud:** End-of-list loading that requests more results while scrolling.
+- **SoundCloud:** Like and unlike controls on track tiles and list rows.
+
+### Changed
+- **SoundCloud:** Reused the Library accent header, pill navigation, action row, and tiles/list controls across every SoundCloud page.
+- **SoundCloud:** Compact screens use feed category pills while foldables and wide screens show the full multi-section feed.
+
+### Fixed
+- **SoundCloud:** Playlist Back now restores the previous SoundCloud tab and feed state.
+- **SoundCloud:** Downloaded tracks retain artwork, with metadata backfill for existing downloads.
+- **SoundCloud:** Tile labels are no longer clipped by the card’s rounded bottom corners.
+
+## [0.8.0-soundcloud] - 2026-09-23
+
+### Added
+- **SoundCloud:** New main-tab SoundCloud experience with session sign-in, feed, discover, likes, tracks, playlists, and downloads.
+- **SoundCloud:** Always-on search, tiles/list view (wide defaults to tiles), shuffle play, pull-to-refresh, and playlist back navigation.
+- **SoundCloud:** Downloads shown as playable Library-style songs (MediaStore) with tile/list layouts.
+- **CI:** Conventional-commit lint (`commitlint`) for pushes and PR titles.
+- **CI:** `Release APK` workflow that builds phone release APKs and publishes a GitHub Release with feature notes from conventional commits.
+
+### Changed
+- **CI:** Phone-only focus — removed Wear OS APK workflow; CodeQL builds `:app` only.
+
+### Fixed
+- **SoundCloud:** Hilt/KSP crash from ViewModel default parameters (`Unexpected owner function: null`).
+- **SoundCloud:** Release compile OptIn for experimental Material3 loading indicators.
+
 ## [0.7.5-beta] - 2026-06-13
 
 ### Added

@@ -44,6 +44,7 @@ fun AlbumEntity.toAlbum(): Album {
         LocalArtworkUri.looksLikeVolatileArtworkUri(this.albumArtUriString) ->
             LocalArtworkUri.parseSongIdFromVolatileArtworkUri(this.albumArtUriString)
                 ?.let { LocalArtworkUri.buildSongUri(it) }
+                ?: this.albumArtUriString
         else -> this.albumArtUriString
     }
 

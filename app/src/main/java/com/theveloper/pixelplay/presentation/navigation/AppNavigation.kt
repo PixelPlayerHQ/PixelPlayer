@@ -26,6 +26,7 @@ import com.theveloper.pixelplay.R
 import androidx.compose.ui.unit.IntOffset
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -41,9 +42,10 @@ import com.theveloper.pixelplay.presentation.screens.DailyMixScreen
 import com.theveloper.pixelplay.presentation.screens.EditTransitionScreen
 import com.theveloper.pixelplay.presentation.screens.EasterEggScreen
 import com.theveloper.pixelplay.presentation.screens.ExperimentalSettingsScreen
+import com.theveloper.pixelplay.presentation.screens.SoundCloudSettingsScreen
 import com.theveloper.pixelplay.presentation.screens.GenreDetailScreen
-import com.theveloper.pixelplay.presentation.screens.HomeScreen
-import com.theveloper.pixelplay.presentation.screens.LibraryScreen
+import com.theveloper.pixelplay.presentation.screens.YoutubeScreen
+import com.theveloper.pixelplay.presentation.screens.YoutubeSettingsScreen
 import com.theveloper.pixelplay.presentation.screens.MashupScreen
 import com.theveloper.pixelplay.presentation.screens.NavBarCornerRadiusScreen
 import com.theveloper.pixelplay.presentation.screens.PaletteStyleSettingsScreen
@@ -52,7 +54,7 @@ import com.theveloper.pixelplay.presentation.screens.RecentlyPlayedScreen
 
 import com.theveloper.pixelplay.presentation.screens.AboutScreen
 import com.theveloper.pixelplay.presentation.screens.OpenSourceLicensesScreen
-import com.theveloper.pixelplay.presentation.screens.SearchScreen
+import com.theveloper.pixelplay.youtube.YoutubeSection
 import com.theveloper.pixelplay.presentation.screens.StatsScreen
 import com.theveloper.pixelplay.presentation.screens.SettingsScreen
 import com.theveloper.pixelplay.presentation.screens.SettingsCategoryScreen
@@ -122,11 +124,10 @@ fun AppNavigation(
                 },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
-                    HomeScreen(
-                        navController = navController, 
-                        paddingValuesParent = paddingValues, 
+                    YoutubeScreen(
+                        section = YoutubeSection.HOME,
                         playerViewModel = playerViewModel,
-                        onOpenSidebar = onOpenSidebar
+                        navController = navController,
                     )
                 }
             }
@@ -162,16 +163,17 @@ fun AppNavigation(
                 },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
-                    SearchScreen(
-                        paddingValues = paddingValues,
+                    YoutubeScreen(
+                        section = YoutubeSection.SEARCH,
                         playerViewModel = playerViewModel,
                         navController = navController,
-                        onSearchBarActiveChange = onSearchBarActiveChange
                     )
                 }
             }
+            youtubeTab(Screen.Radio.route, YoutubeSection.RADIO, navController, playerViewModel)
+            youtubeTab(Screen.Playlists.route, YoutubeSection.PLAYLISTS, navController, playerViewModel)
             composable(
-                Screen.Library.route,
+                Screen.Liked.route,
                 enterTransition = {
                     mainRootEnterTransition(
                         fromRoute = initialState.destination.route,
@@ -202,7 +204,50 @@ fun AppNavigation(
                 },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
-                    LibraryScreen(navController = navController, playerViewModel = playerViewModel)
+                    YoutubeScreen(
+                        section = YoutubeSection.LIKED,
+                        playerViewModel = playerViewModel,
+                        navController = navController,
+                    )
+                }
+            }
+            composable(
+                Screen.SoundCloud.route,
+                enterTransition = {
+                    mainRootEnterTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = enterTransition()
+                    )
+                },
+                exitTransition = {
+                    mainRootExitTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = exitTransition()
+                    )
+                },
+                popEnterTransition = {
+                    mainRootEnterTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = popEnterTransition()
+                    )
+                },
+                popExitTransition = {
+                    mainRootExitTransition(
+                        fromRoute = initialState.destination.route,
+                        toRoute = targetState.destination.route,
+                        fallback = popExitTransition()
+                    )
+                },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    YoutubeScreen(
+                        section = YoutubeSection.HOME,
+                        playerViewModel = playerViewModel,
+                        navController = navController,
+                    )
                 }
             }
             composable(
@@ -263,6 +308,13 @@ fun AppNavigation(
                         playerViewModel = playerViewModel,
                         onBackClick = { navController.popBackStack() }
                     )
+                }
+            }
+            composable(
+                Screen.SoundCloudSettings.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    SoundCloudSettingsScreen(navController = navController)
                 }
             }
             composable(
@@ -495,6 +547,11 @@ fun AppNavigation(
                     )
                 }
             }
+            composable(Screen.YoutubeSettings.route) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    YoutubeSettingsScreen(navController = navController)
+                }
+            }
             composable(
                 Screen.JellyfinDashboard.route,
             ) {
@@ -508,9 +565,51 @@ fun AppNavigation(
     }
 }
 
+private fun NavGraphBuilder.youtubeTab(
+    route: String,
+    section: com.theveloper.pixelplay.youtube.YoutubeSection,
+    navController: NavHostController,
+    playerViewModel: PlayerViewModel,
+) {
+    composable(
+        route,
+        enterTransition = {
+            mainRootEnterTransition(
+                fromRoute = initialState.destination.route,
+                toRoute = targetState.destination.route,
+                fallback = enterTransition(),
+            )
+        },
+        exitTransition = {
+            mainRootExitTransition(
+                fromRoute = initialState.destination.route,
+                toRoute = targetState.destination.route,
+                fallback = exitTransition(),
+            )
+        },
+        popEnterTransition = {
+            mainRootEnterTransition(
+                fromRoute = initialState.destination.route,
+                toRoute = targetState.destination.route,
+                fallback = popEnterTransition(),
+            )
+        },
+        popExitTransition = {
+            mainRootExitTransition(
+                fromRoute = initialState.destination.route,
+                toRoute = targetState.destination.route,
+                fallback = popExitTransition(),
+            )
+        },
+    ) {
+        ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+            YoutubeScreen(section = section, playerViewModel = playerViewModel, navController = navController)
+        }
+    }
+}
+
 private fun String.toRoute(): String = when (this) {
     LaunchTab.SEARCH -> Screen.Search.route
-    LaunchTab.LIBRARY -> Screen.Library.route
     else -> Screen.Home.route
 }
 
@@ -520,7 +619,7 @@ private enum class MainRootDirection {
 }
 
 // Base duration for bottom-nav switches at 1x — at 0.5x system scale = ~190 ms.
-private const val BOTTOM_NAV_TRANSITION_DURATION = 380
+private const val BOTTOM_NAV_TRANSITION_DURATION = 160
 
 // MD3 Expressive easing for bottom-nav switches
 private val BottomNavEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)

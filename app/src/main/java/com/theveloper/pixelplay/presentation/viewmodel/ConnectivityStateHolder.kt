@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -126,6 +127,16 @@ class ConnectivityStateHolder @Inject constructor(
         if (isInitialized) return
         isInitialized = true
 
+        try {
+            initializeMonitoring()
+        } catch (error: SecurityException) {
+            Timber.e(error, "Connectivity monitoring unavailable without runtime permissions")
+        } catch (error: Exception) {
+            Timber.e(error, "Connectivity monitoring failed to start")
+        }
+    }
+
+    private fun initializeMonitoring() {
         // Initial state check
         val activeNetwork = connectivityManager.activeNetwork
         val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
@@ -134,7 +145,7 @@ class ConnectivityStateHolder @Inject constructor(
         if (_isWifiEnabled.value) {
             updateWifiInfo()
         }
-        
+
         _isOnline.value = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
@@ -152,15 +163,15 @@ class ConnectivityStateHolder @Inject constructor(
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 val isValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                
+
                 if (hasInternet && isValidated) {
                     availableNetworks.add(network)
                 } else {
                     availableNetworks.remove(network)
                 }
-                
+
                 checkConnectivity()
-                
+
                 if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                     _isWifiEnabled.value = true
                     updateWifiInfo()
@@ -170,71 +181,76 @@ class ConnectivityStateHolder @Inject constructor(
             override fun onLost(network: Network) {
                 availableNetworks.remove(network)
                 checkConnectivity()
-                
+
                 val currentNetwork = connectivityManager.activeNetwork
                 val caps = connectivityManager.getNetworkCapabilities(currentNetwork)
                 _isWifiEnabled.value = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
                 if (!_isWifiEnabled.value) _wifiName.value = null
             }
-            
+
             private fun checkConnectivity() {
                 _isOnline.value = availableNetworks.isNotEmpty()
             }
         }
-        
+
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         connectivityManager.registerNetworkCallback(request, networkCallback!!)
 
-        // Register receivers
-        wifiStateReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == WifiManager.WIFI_STATE_CHANGED_ACTION) {
-                     updateWifiRadioState()
+        if (hasWifiStatePermission()) {
+            wifiStateReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    if (intent?.action == WifiManager.WIFI_STATE_CHANGED_ACTION) {
+                        updateWifiRadioState()
+                    }
                 }
             }
+            registerExportedReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
         }
-        context.registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
 
-        bluetoothStateReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                when (intent?.action) {
-                    BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                        updateBluetoothEnabledState()
-                        if (_isBluetoothEnabled.value) {
-                            updateAudioDevices()
-                        } else {
-                            discoveredBluetoothAudioDevices.clear()
-                            _bluetoothAudioDeviceStates.value = emptyList()
-                            _bluetoothAudioDevices.value = emptyList()
-                            updateBluetoothName(emptyList())
+        if (hasBluetoothConnectPermission()) {
+            bluetoothStateReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    when (intent?.action) {
+                        BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                            updateBluetoothEnabledState()
+                            if (_isBluetoothEnabled.value) {
+                                updateAudioDevices()
+                            } else {
+                                discoveredBluetoothAudioDevices.clear()
+                                _bluetoothAudioDeviceStates.value = emptyList()
+                                _bluetoothAudioDevices.value = emptyList()
+                                updateBluetoothName(emptyList())
+                            }
+                        }
+                        BluetoothDevice.ACTION_BOND_STATE_CHANGED,
+                        BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
+                        BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> updateAudioDevices()
+                        BluetoothDevice.ACTION_FOUND -> {
+                            extractBluetoothDevice(intent)
+                                ?.takeIf { it.isAudioOutputCandidate() }
+                                ?.toBluetoothAudioDeviceState(isConnected = false)
+                                ?.let { deviceState ->
+                                    discoveredBluetoothAudioDevices[deviceState.uniqueKey()] = deviceState
+                                    updateAudioDevices()
+                                }
                         }
                     }
-                    BluetoothDevice.ACTION_BOND_STATE_CHANGED,
-                    BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
-                    BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> updateAudioDevices()
-                    BluetoothDevice.ACTION_FOUND -> {
-                        extractBluetoothDevice(intent)
-                            ?.takeIf { it.isAudioOutputCandidate() }
-                            ?.toBluetoothAudioDeviceState(isConnected = false)
-                            ?.let { deviceState ->
-                                discoveredBluetoothAudioDevices[deviceState.uniqueKey()] = deviceState
-                                updateAudioDevices()
-                            }
-                    }
                 }
             }
+            registerExportedReceiver(
+                bluetoothStateReceiver,
+                IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED).apply {
+                    addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+                    addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
+                    addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)
+                    if (hasBluetoothScanPermission()) {
+                        addAction(BluetoothDevice.ACTION_FOUND)
+                    }
+                }
+            )
         }
-        context.registerReceiver(
-            bluetoothStateReceiver,
-            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED).apply {
-                addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-                addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
-                addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)
-                addAction(BluetoothDevice.ACTION_FOUND)
-            }
-        )
 
         // Audio Device Callback
         audioDeviceCallback = object : android.media.AudioDeviceCallback() {
@@ -250,8 +266,13 @@ class ConnectivityStateHolder @Inject constructor(
         updateAudioDevices()
     }
 
+    private fun registerExportedReceiver(receiver: BroadcastReceiver?, filter: IntentFilter) {
+        if (receiver == null) return
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
+    }
+
     private fun updateWifiRadioState() {
-        _isWifiRadioOn.value = wifiManager?.isWifiEnabled == true
+        _isWifiRadioOn.value = hasWifiStatePermission() && wifiManager?.isWifiEnabled == true
     }
 
     private fun updateWifiInfo() {
@@ -416,6 +437,13 @@ class ConnectivityStateHolder @Inject constructor(
             resolveLocalBluetoothAdapterName()?.let { add(it) }
             Build.MODEL.trim().takeIf { it.isNotEmpty() }?.let { add(it) }
         }
+    }
+
+    private fun hasWifiStatePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_WIFI_STATE
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun hasBluetoothConnectPermission(): Boolean {

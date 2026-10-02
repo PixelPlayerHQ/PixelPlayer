@@ -243,7 +243,11 @@ class PlaybackStateHolder @Inject constructor(
     }
 
     fun setCurrentPosition(positionMs: Long) {
-        _currentPosition.value = positionMs.coerceAtLeast(0L)
+        val safePosition = positionMs.coerceAtLeast(0L)
+        stuckClockRawPositionMs = safePosition
+        stuckClockBasePositionMs = safePosition
+        stuckClockBaseElapsedMs = SystemClock.elapsedRealtime()
+        _currentPosition.value = safePosition
     }
 
     fun syncCurrentPositionFromPlayer(mediaId: String?, reportedPositionMs: Long) {
@@ -570,6 +574,31 @@ class PlaybackStateHolder @Inject constructor(
     /* -------------------------------------------------------------------------- */
     
     private var progressJob: kotlinx.coroutines.Job? = null
+    private var stuckClockMediaId: String? = null
+    private var stuckClockRawPositionMs = 0L
+    private var stuckClockBasePositionMs = 0L
+    private var stuckClockBaseElapsedMs = 0L
+
+    private fun positionForProgressUi(mediaId: String?, rawPositionMs: Long, isPlaying: Boolean): Long {
+        val raw = rawPositionMs.coerceAtLeast(0L)
+        val now = SystemClock.elapsedRealtime()
+        if (mediaId != stuckClockMediaId) {
+            stuckClockMediaId = mediaId
+            stuckClockRawPositionMs = raw
+            stuckClockBasePositionMs = raw
+            stuckClockBaseElapsedMs = now
+            return raw
+        }
+        if (!isPlaying || raw != stuckClockRawPositionMs) {
+            stuckClockRawPositionMs = raw
+            stuckClockBasePositionMs = raw
+            stuckClockBaseElapsedMs = now
+            return raw
+        }
+        val hintedDuration = _stablePlayerState.value.currentSong?.duration ?: 0L
+        val estimated = stuckClockBasePositionMs + (now - stuckClockBaseElapsedMs)
+        return if (hintedDuration > 0L) estimated.coerceAtMost(hintedDuration) else estimated
+    }
 
     /**
      * Reconciles duration reported by the player with the current song metadata duration.
@@ -705,7 +734,11 @@ class PlaybackStateHolder @Inject constructor(
                             continue
                         }
 
-                          val currentPosition = controller.currentPosition.coerceAtLeast(0L)
+                          val currentPosition = positionForProgressUi(
+                              mediaId = currentMediaId,
+                              rawPositionMs = controller.currentPosition,
+                              isPlaying = controller.isPlaying,
+                          )
                           val songDurationHint = visibleSong?.duration ?: 0L
                           val duration = resolveEffectiveDuration(
                               reportedDurationMs = controller.duration,

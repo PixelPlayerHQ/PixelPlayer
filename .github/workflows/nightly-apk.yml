@@ -1,9 +1,7 @@
 name: Build Nightly APK
 
+# Manual only — continuous Release APK on master replaces scheduled nightlies.
 on:
-  schedule:
-    # Runs at 02:17 America/Buenos_Aires.
-    - cron: '17 5 * * *'
   workflow_dispatch:
 
 permissions:

@@ -2175,7 +2175,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun CompactLibraryPagerIndicator(
+internal fun CompactLibraryPagerIndicator(
     currentIndex: Int,
     pageCount: Int,
     modifier: Modifier = Modifier
@@ -2820,10 +2820,10 @@ internal fun resolveFolderNavigationDirection(initialPath: String?, targetPath: 
     }
 
 private fun isDescendantFolderPath(ancestorPath: String, candidatePath: String): Boolean {
-    val normalizedAncestor = ancestorPath.trimEnd(File.separatorChar)
-    val normalizedCandidate = candidatePath.trimEnd(File.separatorChar)
-    if (normalizedAncestor == normalizedCandidate) return false
-    return normalizedCandidate.startsWith("$normalizedAncestor${File.separatorChar}")
+    val ancestor = ancestorPath.trimEnd('/', '\\')
+    val candidate = candidatePath.trimEnd('/', '\\')
+    if (ancestor == candidate) return false
+    return candidate.startsWith("$ancestor/") || candidate.startsWith("$ancestor\\")
 }
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3ExpressiveApi::class)

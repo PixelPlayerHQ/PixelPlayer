@@ -166,7 +166,7 @@ class AiHandler @Inject constructor(
         val effectiveTemperature = if (params.temperature == 0.7f) {
             if (temperature == 0.7f) {
                 when (type) {
-                    AiSystemPromptType.METADATA -> 0.1f
+                    AiSystemPromptType.METADATA, AiSystemPromptType.STATS_CREDITS -> 0.1f
                     AiSystemPromptType.MOOD_ANALYSIS -> 0.2f
                     AiSystemPromptType.TAGGING -> 0.4f
                     AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f

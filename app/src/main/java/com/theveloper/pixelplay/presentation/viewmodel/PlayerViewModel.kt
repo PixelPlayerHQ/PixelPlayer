@@ -216,7 +216,9 @@ class PlayerViewModel @Inject constructor(
     private val playbackDispatchStateHolder: PlaybackDispatchStateHolder,
     private val mediaControllerSyncStateHolder: MediaControllerSyncStateHolder,
     private val sessionToken: SessionToken,
-    private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
+    private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory,
+    private val youtubeMusicStore: com.theveloper.pixelplay.youtube.YoutubeMusicStore,
+    private val youtubeClient: com.theveloper.pixelplay.youtube.YoutubeClient,
 ) : ViewModel() {
 
     private val _playerUiState = MutableStateFlow(PlayerUiState())
@@ -486,7 +488,7 @@ class PlayerViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = CarouselStyle.NO_PEEK
+            initialValue = CarouselStyle.ONE_PEEK
         )
 
     val hasActiveAiProviderApiKey: StateFlow<Boolean> = combine(
@@ -1213,9 +1215,15 @@ class PlayerViewModel @Inject constructor(
                     emit(resolveFavoriteSongId(song))
                 }
             },
-        favoriteSongIds
-    ) { favoriteSongId, ids ->
-        favoriteSongId?.let { ids.contains(it) } ?: false
+        favoriteSongIds,
+        youtubeMusicStore.likedSongIds,
+        stablePlayerState.map { it.currentSong?.id }.distinctUntilChanged(),
+    ) { favoriteSongId, ids, youtubeLikedIds, currentSongId ->
+        if (currentSongId?.startsWith("yt_") == true) {
+            currentSongId in youtubeLikedIds
+        } else {
+            favoriteSongId?.let { ids.contains(it) } ?: false
+        }
     }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -1320,7 +1328,7 @@ class PlayerViewModel @Inject constructor(
     data class PlayerConfigSlice(
         val navBarCornerRadius: Int = 32,
         val navBarStyle: String = NavBarStyle.DEFAULT,
-        val carouselStyle: String = CarouselStyle.NO_PEEK,
+        val carouselStyle: String = CarouselStyle.ONE_PEEK,
         val fullPlayerLoadingTweaks: FullPlayerLoadingTweaks = FullPlayerLoadingTweaks(),
         val tapBackgroundClosesPlayer: Boolean = false,
         val useSmoothCorners: Boolean = true,
@@ -1719,8 +1727,9 @@ class PlayerViewModel @Inject constructor(
         }, ContextCompat.getMainExecutor(context))
 
 
-        // Start Cast discovery
-        castStateHolder.startDiscovery()
+        // Start Cast discovery. Missing nearby/Bluetooth perms must not kill launch.
+        runCatching { castStateHolder.startDiscovery() }
+            .onFailure { Log.w("PlayerViewModel", "Cast discovery skipped", it) }
 
         // Observe selection for HTTP server management
         viewModelScope.launch {
@@ -1740,7 +1749,8 @@ class PlayerViewModel @Inject constructor(
         }
 
         // Initialize connectivity monitoring (WiFi/Bluetooth)
-        connectivityStateHolder.initialize()
+        runCatching { connectivityStateHolder.initialize() }
+            .onFailure { Log.w("PlayerViewModel", "Connectivity monitoring skipped", it) }
 
         // Initialize sleep timer state holder
         sleepTimerStateHolder.initialize(
@@ -2204,8 +2214,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     // rebuildPlayerQueue functionality moved to PlaybackStateHolder (simplified)
-    fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) =
-        playbackDispatchStateHolder.playSongs(songsToPlay, startSong, queueName, playlistId)
+    fun playSongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        keepPlayedSongs: Boolean = false,
+    ) = playbackDispatchStateHolder.playSongs(
+        songsToPlay,
+        startSong,
+        queueName,
+        playlistId,
+        keepPlayedSongs,
+    )
 
     fun playSongsShuffled(
         songsToPlay: List<Song>,
@@ -2215,6 +2236,19 @@ class PlayerViewModel @Inject constructor(
     ) = playbackDispatchStateHolder.playSongsShuffled(songsToPlay, queueName, playlistId, startAtZero)
 
     fun playExternalUri(uri: Uri) = playbackDispatchStateHolder.playExternalUri(uri)
+
+    fun showPreparingSong(song: Song) {
+        _isSheetVisible.value = true
+        _sheetState.value = PlayerSheetState.COLLAPSED
+        playbackStateHolder.updateStablePlayerState {
+            it.copy(
+                currentSong = song,
+                isPlaying = false,
+                playWhenReady = true,
+                totalDuration = song.duration.coerceAtLeast(0L),
+            )
+        }
+    }
 
     fun showPlayer() {
         if (stablePlayerState.value.currentSong != null) {
@@ -2261,6 +2295,19 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleFavorite() {
         val currentSong = playbackStateHolder.stablePlayerState.value.currentSong ?: return
+        if (currentSong.id.startsWith("yt_")) {
+            youtubeMusicStore.toggleLike(currentSong)
+            val videoId = com.theveloper.pixelplay.youtube.YoutubeClient.watchUrlForSongId(currentSong.id)
+                ?.let(com.theveloper.pixelplay.youtube.YoutubeClient::videoIdFromUrl)
+                .orEmpty()
+            if (videoId.length == 11) {
+                viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    val liked = currentSong.id in youtubeMusicStore.likedSongIds.value
+                    runCatching { youtubeClient.likeVideo(videoId, liked) }
+                }
+            }
+            return
+        }
         viewModelScope.launch {
             val favoriteSongId = resolveFavoriteSongId(currentSong) ?: return@launch
             val currentlyFavorite = favoriteSongIds.value.contains(favoriteSongId)

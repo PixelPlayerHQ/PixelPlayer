@@ -11,6 +11,7 @@ enum class AiSystemPromptType {
     MOOD_ANALYSIS,
     PERSONA,
     DAILY_MIX,
+    STATS_CREDITS,
     GENERAL
 }
 
@@ -180,6 +181,21 @@ class AiSystemPromptEngine @Inject constructor() {
                 - Be concise but evocative — 4-6 sentences that feel hand-crafted.
                 </strategy>
                 $dailyMixPersonaPrompt
+            """.trimIndent()
+
+            AiSystemPromptType.STATS_CREDITS -> """
+                <role>Music credits editor. You name the artist and album for songs that are missing them.</role>
+                <strategy>
+                - Each song gives an id, title, and any artist or album already known.
+                - Fill only the blank side. Keep a name that is already present.
+                - Use the well-known recording when the title identifies it.
+                - When the recording is not clear, use an empty string.
+                - Never answer Unknown Artist, Unknown Album, or YouTube Music.
+                </strategy>
+                <output_schema>
+                Return ONLY a raw JSON array. One object per song, in the same order:
+                [{"id":"...","artist":"...","album":"..."}]
+                </output_schema>
             """.trimIndent()
 
             AiSystemPromptType.GENERAL -> """

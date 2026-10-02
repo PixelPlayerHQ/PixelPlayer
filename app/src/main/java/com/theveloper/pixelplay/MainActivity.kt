@@ -10,6 +10,9 @@ import android.content.Context
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
+import android.widget.Toast
+import java.io.File
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader as AndroidShader
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -65,10 +68,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -92,6 +99,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.media3.common.util.UnstableApi
@@ -105,6 +113,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.theveloper.pixelplay.data.github.GitHubAnnouncementPropertiesService
+import com.theveloper.pixelplay.data.github.GitHubReleaseUpdateService
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
@@ -114,7 +123,7 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.MusicService
 import com.theveloper.pixelplay.data.worker.SyncManager
 import com.theveloper.pixelplay.data.worker.SyncProgress
-import com.theveloper.pixelplay.presentation.components.AllFilesAccessDialog
+import com.theveloper.pixelplay.presentation.components.LocalRequestAppUpdateCheck
 import com.theveloper.pixelplay.presentation.components.AppSidebarDrawer
 import com.theveloper.pixelplay.presentation.components.CrashReportDialog
 import com.theveloper.pixelplay.presentation.components.DismissUndoBar
@@ -140,9 +149,12 @@ import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.AppLocaleManager
 import com.theveloper.pixelplay.utils.LogUtils
+import com.theveloper.pixelplay.utils.PackageInstallAccess
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -256,14 +268,14 @@ class MainActivity : ComponentActivity() {
             
             // Permissions Logic
             val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                listOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
+                listOf(Manifest.permission.POST_NOTIFICATIONS)
             } else {
-                listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                emptyList()
             }
             @OptIn(ExperimentalPermissionsApi::class)
             val permissionState = rememberMultiplePermissionsState(permissions = permissions)
             // Determine if we need to show Setup based on completion OR missing permissions
-            val permissionsValid = permissionState.allPermissionsGranted
+            val permissionsValid = permissions.isEmpty() || permissionState.allPermissionsGranted
             val showSetupScreen = remember(isSetupComplete, permissionsValid, isBenchmarkMode) {
                 when {
                     isBenchmarkMode -> false
@@ -275,8 +287,7 @@ class MainActivity : ComponentActivity() {
             // Sync Trigger: When we are NOT showing setup (meaning permissions are good and setup is done)
             LaunchedEffect(showSetupScreen) {
                 if (showSetupScreen == false) {
-                     LogUtils.i(this, "Setup complete/skipped and permissions valid. Starting sync.")
-                     mainViewModel.startSync()
+                     LogUtils.i(this, "Setup complete. Local library sync is disabled.")
                 }
             }
 
@@ -478,6 +489,56 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openReleasePage(url: String) {
+        if (!GitHubReleaseUpdateService.isAllowedReleasePage(url)) {
+            LogUtils.w(this, "Refusing to open release URL: $url")
+            return
+        }
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+        } catch (_: ActivityNotFoundException) {
+            LogUtils.w(this, "No activity available to open URL: $url")
+        }
+    }
+
+    private fun canRequestPackageInstallsSafely(): Boolean {
+        return PackageInstallAccess.canRequestInstalls {
+            packageManager.canRequestPackageInstalls()
+        }
+    }
+
+    private fun openUnknownSourcesSettings(): Boolean {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+            "package:$packageName".toUri(),
+        )
+        return runCatching {
+            startActivity(intent)
+            true
+        }.getOrDefault(false)
+    }
+
+    private fun installDownloadedApk(file: File) {
+        val uri = FileProvider.getUriForFile(this, "$packageName.provider", file)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            LogUtils.w(this, "No activity available to install update")
+        }
+    }
+
+    private fun rememberDismissedUpdate(version: String) {
+        getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+            .edit()
+            .putString(UPDATE_DISMISSED_VERSION, version)
+            .apply()
+    }
+
     private fun PlayStoreAnnouncementRemoteConfig.toUiModel(context: Context): PlayStoreAnnouncementUiModel {
         val fallback = PlayStoreAnnouncementDefaults.localizedTemplate(context)
         return fallback.copy(
@@ -610,9 +671,11 @@ class MainActivity : ComponentActivity() {
 
         val commonNavItems = remember {
             persistentListOf(
-                BottomNavItem("Home", R.string.nav_bar_home, R.drawable.rounded_home_24, R.drawable.home_24_rounded_filled, Screen.Home),
+                BottomNavItem("Feed", R.string.nav_bar_feed, R.drawable.rounded_home_24, R.drawable.home_24_rounded_filled, Screen.Home),
+                BottomNavItem("Radio", R.string.nav_bar_radio, R.drawable.rounded_instant_mix_24, null, Screen.Radio),
                 BottomNavItem("Search", R.string.nav_bar_search, R.drawable.rounded_search_24, R.drawable.rounded_search_24, Screen.Search),
-                BottomNavItem("Library", R.string.nav_bar_library, R.drawable.rounded_library_music_24, R.drawable.round_library_music_24, Screen.Library)
+                BottomNavItem("Playlists", R.string.nav_bar_playlists, R.drawable.rounded_playlist_play_24, null, Screen.Playlists),
+                BottomNavItem("Liked", R.string.nav_bar_liked, R.drawable.rounded_favorite_24, R.drawable.round_favorite_24, Screen.Liked),
             )
         }
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -636,6 +699,8 @@ class MainActivity : ComponentActivity() {
                 Screen.Stats.route,
                 Screen.EditTransition.route,
                 Screen.Experimental.route,
+                Screen.SoundCloudSettings.route,
+                Screen.YoutubeSettings.route,
                 Screen.ArtistSettings.route,
                 Screen.Equalizer.route,
                 Screen.SettingsCategory.route,
@@ -742,11 +807,19 @@ class MainActivity : ComponentActivity() {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
         val announcementService = remember { GitHubAnnouncementPropertiesService() }
+        val releaseUpdateService = remember { GitHubReleaseUpdateService() }
         val context = LocalContext.current
         var playStoreAnnouncement by remember {
             mutableStateOf(PlayStoreAnnouncementDefaults.localizedTemplate(context))
         }
         var showPlayStoreAnnouncement by remember { mutableStateOf(false) }
+        var pendingUpdateVersion by remember { mutableStateOf<String?>(null) }
+        var updateAnnouncement by remember {
+            mutableStateOf(PlayStoreAnnouncementDefaults.localizedTemplate(context))
+        }
+        var showUpdateAnnouncement by remember { mutableStateOf(false) }
+        var updateDownloadBusy by remember { mutableStateOf(false) }
+        var updateDownloadJob by remember { mutableStateOf<Job?>(null) }
 
         LaunchedEffect(Unit) {
             if (PlayStoreAnnouncementDefaults.LOCAL_PREVIEW_ENABLED) {
@@ -767,6 +840,65 @@ class MainActivity : ComponentActivity() {
                         "Remote announcement unavailable. Keeping popup disabled. ${throwable.message ?: ""}",
                     )
                 }
+        }
+
+        var lastUpdateCheckElapsed by remember { mutableLongStateOf(0L) }
+        val lifecycleOwner = LocalLifecycleOwner.current
+
+        suspend fun refreshAvailableUpdate(force: Boolean = false) {
+            val installed = BuildConfig.VERSION_NAME.trim().removePrefix("v")
+            if (!force && (installed.isEmpty() || installed == "1.0.0")) return
+            if (showUpdateAnnouncement || updateDownloadBusy) return
+            val now = SystemClock.elapsedRealtime()
+            if (!force &&
+                lastUpdateCheckElapsed != 0L &&
+                now - lastUpdateCheckElapsed < UPDATE_CHECK_INTERVAL_MS
+            ) {
+                return
+            }
+            releaseUpdateService.fetchLatestRelease()
+                .onSuccess { latest ->
+                    lastUpdateCheckElapsed = SystemClock.elapsedRealtime()
+                    if (latest.version == installed) {
+                        if (force) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.changelog_up_to_date),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                        return@onSuccess
+                    }
+                    val dismissed = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+                        .getString(UPDATE_DISMISSED_VERSION, null)
+                    if (!force && dismissed == latest.version) return@onSuccess
+                    pendingUpdateVersion = latest.version
+                    updateAnnouncement = PlayStoreAnnouncementUiModel(
+                        enabled = true,
+                        title = getString(R.string.update_dialog_title),
+                        body = getString(R.string.update_dialog_body, latest.version),
+                        playStoreUrl = latest.apkUrl.ifBlank { latest.pageUrl },
+                        primaryActionLabel = getString(R.string.update_dialog_action),
+                        dismissActionLabel = getString(R.string.update_dialog_later),
+                        linkPendingMessage = "",
+                    )
+                    showUpdateAnnouncement = true
+                }
+                .onFailure { throwable ->
+                    LogUtils.w(
+                        this@MainActivity,
+                        "Release check unavailable. ${throwable.message ?: ""}",
+                    )
+                }
+        }
+
+        LaunchedEffect(lifecycleOwner) {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    refreshAvailableUpdate()
+                    delay(UPDATE_CHECK_INTERVAL_MS)
+                }
+            }
         }
 
         LaunchedEffect(userPreferencesRepository) {
@@ -965,6 +1097,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                         ) {
+                            CompositionLocalProvider(
+                                LocalRequestAppUpdateCheck provides {
+                                    scope.launch { refreshAvailableUpdate(force = true) }
+                                },
+                            ) {
                             AppNavigation(
                                 playerViewModel = playerViewModel,
                                 navController = navController,
@@ -973,6 +1110,7 @@ class MainActivity : ComponentActivity() {
                                 onSearchBarActiveChange = { isSearchBarActive = it },
                                 onOpenSidebar = { scope.launch { drawerState.open() } }
                             )
+                            }
                         }
 
                         val isExpandedOrExpanding by remember {
@@ -1057,6 +1195,50 @@ class MainActivity : ComponentActivity() {
                                     showPlayStoreAnnouncement = false
                                     openExternalUrl(url)
                                 }
+                            )
+                        }
+                        if (showUpdateAnnouncement) {
+                            PlayStoreAnnouncementDialog(
+                                announcement = updateAnnouncement,
+                                primaryBusy = updateDownloadBusy,
+                                onDismiss = {
+                                    updateDownloadJob?.cancel()
+                                    updateDownloadBusy = false
+                                    pendingUpdateVersion?.let(::rememberDismissedUpdate)
+                                    showUpdateAnnouncement = false
+                                },
+                                onOpenPlayStore = { url ->
+                                    if (GitHubReleaseUpdateService.isAllowedApkDownload(url)) {
+                                        if (!canRequestPackageInstallsSafely()) {
+                                            updateAnnouncement = updateAnnouncement.copy(
+                                                body = getString(R.string.update_dialog_install_permission),
+                                            )
+                                            if (!openUnknownSourcesSettings()) {
+                                                openReleasePage(url)
+                                            }
+                                            return@PlayStoreAnnouncementDialog
+                                        }
+                                        if (updateDownloadBusy) return@PlayStoreAnnouncementDialog
+                                        updateDownloadBusy = true
+                                        updateDownloadJob = scope.launch {
+                                            val file = File(cacheDir, "updates/PixelPlayer-update.apk")
+                                            releaseUpdateService.downloadApk(url, file)
+                                                .onSuccess { apk ->
+                                                    updateDownloadBusy = false
+                                                    showUpdateAnnouncement = false
+                                                    installDownloadedApk(apk)
+                                                }
+                                                .onFailure {
+                                                    updateDownloadBusy = false
+                                                    updateAnnouncement = updateAnnouncement.copy(
+                                                        body = getString(R.string.update_dialog_failed),
+                                                    )
+                                                }
+                                        }
+                                    } else {
+                                        openReleasePage(url)
+                                    }
+                                },
                             )
                         }
                     }
@@ -1145,7 +1327,11 @@ class MainActivity : ComponentActivity() {
         super.onResume()
     }
 
-
+    private companion object {
+        const val UPDATE_PREFS = "pixelplay_updates"
+        const val UPDATE_DISMISSED_VERSION = "dismissed_release_version"
+        const val UPDATE_CHECK_INTERVAL_MS = 48L * 24 * 60 * 60 * 1000
+    }
 }
 
 /**

@@ -32,6 +32,7 @@ data class PlayerUiState(
     val filteredSongs: ImmutableList<Song> = persistentListOf(), // For search filtering within lists
     val isFiltering: Boolean = false,
     val showDismissUndoBar: Boolean = false,
+    val keepPlayedSongsInQueue: Boolean = false,
     val dismissedSong: Song? = null,
     val dismissedQueue: ImmutableList<Song> = persistentListOf(),
     val dismissedQueueName: String = "",

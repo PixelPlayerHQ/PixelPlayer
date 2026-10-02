@@ -19,6 +19,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -85,6 +86,7 @@ val genHeight = 42.dp
 @Composable
 fun LibraryActionRow(
     onMainActionClick: () -> Unit,
+    mainActionEnabled: Boolean = true,
     iconRotation: Float,
     onSortClick: () -> Unit,
     onLocateClick: () -> Unit = {},
@@ -102,6 +104,7 @@ fun LibraryActionRow(
     onFolderClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     isShuffleEnabled: Boolean = false,
+    trailingContent: @Composable RowScope.() -> Unit = {},
     // Storage Filter
     showStorageFilterButton: Boolean = false,
     currentStorageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL,
@@ -158,6 +161,7 @@ fun LibraryActionRow(
                     
                     FilledTonalButton(
                         onClick = onMainActionClick,
+                        enabled = mainActionEnabled,
                         shape = RoundedCornerShape(
                             topStart = 26.dp, bottomStart = 26.dp,
                             topEnd =  newButtonEndCorner, bottomEnd = newButtonEndCorner
@@ -270,6 +274,8 @@ fun LibraryActionRow(
 
 
         Spacer(modifier = Modifier.width(8.dp))
+
+        trailingContent()
 
         if (showSortButton) {
             val outerCorner = 26.dp

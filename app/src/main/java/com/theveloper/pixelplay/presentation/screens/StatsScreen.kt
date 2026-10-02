@@ -93,6 +93,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -2039,13 +2040,12 @@ private fun TopAlbumsCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                SmartImage(
+                                StatsArtwork(
                                     model = albumSummary.albumArtUri,
                                     contentDescription = albumSummary.album,
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(RoundedCornerShape(16.dp)),
-                                    shape = RoundedCornerShape(16.dp)
+                                    size = 56.dp,
+                                    corner = 16.dp,
+                                    origin = albumSummary.origin,
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -2179,13 +2179,12 @@ private fun SongStatsCard(
                                         accentOnColor = accentOnColor,
                                         highlighted = position == 0
                                     )
-                                    SmartImage(
+                                    StatsArtwork(
                                         model = songSummary.albumArtUri,
                                         contentDescription = songSummary.title,
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(RoundedCornerShape(14.dp)),
-                                        shape = RoundedCornerShape(14.dp)
+                                        size = 52.dp,
+                                        corner = 14.dp,
+                                        origin = songSummary.origin,
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
@@ -2258,6 +2257,67 @@ private fun SongStatsCard(
         }
     }
 }
+
+@Composable
+private fun StatsArtwork(
+    model: String?,
+    contentDescription: String,
+    size: androidx.compose.ui.unit.Dp,
+    corner: androidx.compose.ui.unit.Dp,
+    origin: PlaybackStatsRepository.PlaybackOrigin?,
+) {
+    val shape = RoundedCornerShape(corner)
+    Box(modifier = Modifier.size(size)) {
+        SmartImage(
+            model = model,
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .matchParentSize()
+                .clip(shape),
+            shape = shape,
+        )
+        if (origin != null) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(2.dp)
+                    .size(16.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 1.dp,
+            ) {
+                Icon(
+                    painter = painterResource(origin.iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.padding(2.dp),
+                    tint = origin.logoTint,
+                )
+            }
+        }
+    }
+}
+
+private val PlaybackStatsRepository.PlaybackOrigin.iconRes: Int
+    get() = when (this) {
+        PlaybackStatsRepository.PlaybackOrigin.SOUNDCLOUD -> R.drawable.ic_soundcloud_24
+        PlaybackStatsRepository.PlaybackOrigin.TELEGRAM -> R.drawable.telegram
+        PlaybackStatsRepository.PlaybackOrigin.NETEASE -> R.drawable.netease_cloud_music_logo_icon_206716__1_
+        PlaybackStatsRepository.PlaybackOrigin.QQ_MUSIC -> R.drawable.qq_music
+        PlaybackStatsRepository.PlaybackOrigin.NAVIDROME -> R.drawable.ic_navidrome_md3
+        PlaybackStatsRepository.PlaybackOrigin.JELLYFIN -> R.drawable.ic_jellyfin
+        PlaybackStatsRepository.PlaybackOrigin.GOOGLE_DRIVE -> R.drawable.rounded_drive_export_24
+    }
+
+private val PlaybackStatsRepository.PlaybackOrigin.logoTint: Color
+    get() = when (this) {
+        PlaybackStatsRepository.PlaybackOrigin.SOUNDCLOUD -> Color(0xFFFF5500)
+        PlaybackStatsRepository.PlaybackOrigin.TELEGRAM -> Color(0xFF2AABEE)
+        PlaybackStatsRepository.PlaybackOrigin.NETEASE -> Color(0xFFE85959)
+        PlaybackStatsRepository.PlaybackOrigin.QQ_MUSIC -> Color(0xFF31C27C)
+        PlaybackStatsRepository.PlaybackOrigin.NAVIDROME -> Color.Unspecified
+        PlaybackStatsRepository.PlaybackOrigin.JELLYFIN -> Color.Unspecified
+        PlaybackStatsRepository.PlaybackOrigin.GOOGLE_DRIVE -> Color(0xFF4285F4)
+    }
 
 @Composable
 private fun TrackConcentrationCard(

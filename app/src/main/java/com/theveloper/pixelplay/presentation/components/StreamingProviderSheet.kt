@@ -49,6 +49,9 @@ fun StreamingProviderSheet(
     onNavigateToNavidromeDashboard: () -> Unit = {},
     isJellyfinLoggedIn: Boolean = false,
     onNavigateToJellyfinDashboard: () -> Unit = {},
+    isSoundCloudSignedIn: Boolean = false,
+    isSoundCloudConfigured: Boolean = false,
+    onOpenSoundCloudSettings: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
@@ -190,6 +193,23 @@ fun StreamingProviderSheet(
                             } else {
                                 context.startActivity(Intent(context, QqMusicLoginActivity::class.java))
                             }
+                            onDismissRequest()
+                        }
+                    )
+
+                    ProviderRow(
+                        iconPainter = painterResource(R.drawable.ic_soundcloud_24),
+                        iconTint = Color(0xFFFF5500),
+                        title = stringResource(R.string.soundcloud_section),
+                        subtitle = when {
+                            isSoundCloudSignedIn -> stringResource(R.string.soundcloud_provider_subtitle_signed_in)
+                            isSoundCloudConfigured -> stringResource(R.string.soundcloud_provider_subtitle_ready)
+                            else -> stringResource(R.string.soundcloud_provider_subtitle_setup)
+                        },
+                        shape = providerSegmentItemShape,
+                        isConnected = isSoundCloudSignedIn || isSoundCloudConfigured,
+                        onClick = {
+                            onOpenSoundCloudSettings()
                             onDismissRequest()
                         }
                     )

@@ -99,6 +99,8 @@ class PlayerViewModelTest {
     private val mockThemeStateHolder: ThemeStateHolder = mockk(relaxed = true)
     private val mockMultiSelectionStateHolder: MultiSelectionStateHolder = mockk(relaxed = true)
     private val mockPlaylistSelectionStateHolder: PlaylistSelectionStateHolder = mockk(relaxed = true)
+    private val mockYoutubeMusicStore: com.theveloper.pixelplay.youtube.YoutubeMusicStore = mockk(relaxed = true)
+    private val mockYoutubeClient: com.theveloper.pixelplay.youtube.YoutubeClient = mockk(relaxed = true)
     private val mockMediaMapper: com.theveloper.pixelplay.data.media.MediaMapper = mockk(relaxed = true)
     private lateinit var mockMediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
 
@@ -167,6 +169,7 @@ class PlayerViewModelTest {
         every { mockLibraryStateHolder.currentFolderSortOption } returns MutableStateFlow<SortOption>(SortOption.FolderNameAZ)
         every { mockLibraryStateHolder.currentFavoriteSortOption } returns MutableStateFlow<SortOption>(SortOption.LikedSongTitleAZ)
         every { mockLibraryStateHolder.currentStorageFilter } returns MutableStateFlow(StorageFilter.ALL)
+        every { mockYoutubeMusicStore.likedSongIds } returns MutableStateFlow(emptySet())
 
         every { mockSearchStateHolder.searchHistory } returns _searchHistoryFlow
         every { mockSearchStateHolder.searchResults } returns _searchResultsFlow
@@ -316,7 +319,9 @@ class PlayerViewModelTest {
             playbackDispatchStateHolder,
             mediaControllerSyncStateHolder,
             sessionToken,
-            mockMediaControllerFactory
+            mockMediaControllerFactory,
+            mockYoutubeMusicStore,
+            mockYoutubeClient
         )
     }
 

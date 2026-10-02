@@ -115,6 +115,11 @@ android {
             ?: "b18441a1ff607e10a989891a5462e627"
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
+
+        val soundCloudClientId = localProperties.getProperty("soundcloud.clientId").orEmpty()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+        buildConfigField("String", "SOUNDCLOUD_CLIENT_ID", "\"$soundCloudClientId\"")
     }
 
     signingConfigs {
@@ -248,6 +253,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.lifecycleprocess)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.window)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -287,6 +293,7 @@ dependencies {
 
     // Media & Files
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer.ffmpeg)
@@ -322,6 +329,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.google.play.services.cast.framework)
     implementation(libs.tdlib)
+    implementation(libs.newpipe.extractor)
 
     // UI Utilities & Extra
     implementation(libs.timber)

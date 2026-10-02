@@ -68,6 +68,15 @@ class LocalArtworkUriTest {
     }
 
     @Test
+    fun parseSongIdFromVolatileArtworkUri_readsSharedArtworkPath() {
+        val songId = LocalArtworkUri.parseSongIdFromVolatileArtworkUri(
+            "content://com.theveloper.pixelplay.artwork/song/99?t=1234"
+        )
+
+        assertThat(songId).isEqualTo(99L)
+    }
+
+    @Test
     fun extractCacheBustToken_readsTimestampQuery() {
         val cacheBustToken = LocalArtworkUri.extractCacheBustToken(
             "pixelplay_local_art://song/99?t=456"

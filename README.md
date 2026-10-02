@@ -1,215 +1,98 @@
-# PixelPlayer 🎵
+# PixelPlayer
 
 <p align="center">
-  <img src="assets/PixelPlayer.svg" alt="App Icon" height="250"/>
-</p>
-<p align="center">
-<a href="https://trendshift.io/repositories/15551" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15551" alt="PixelPlayerHQ%2FPixelPlayer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-<p align="center">
-  <strong>A beautiful, feature-rich music player for Android</strong><br>
-  Built with Jetpack Compose and Material Design 3
+  <img src="assets/PixelPlayer.svg" alt="App Icon" height="200"/>
 </p>
 
 <p align="center">
-  <img src="assets/screenshot1.jpg" alt="Screenshot 1" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot2.jpg" alt="Screenshot 2" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot3.jpg" alt="Screenshot 3" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot4.jpg" alt="Screenshot 4" width="200" style="border-radius:26px;"/>
+  <strong>A YouTube Music player for Android</strong><br>
+  Feed, radio, playlists, and likes — with background playback
 </p>
 
 <p align="center">
-    <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-        <img src="https://img.shields.io/github/v/release/theovilardo/PixelPlayer?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
-    </a>
-    <a href="https://github.com/theovilardo/PixelPlayer/releases">
-        <img src="https://img.shields.io/github/downloads/theovilardo/PixelPlayer/total?logo=github&style=for-the-badge" alt="Total Downloads">
-    </a>
-    <img src="https://img.shields.io/badge/Android-11%2B-green?style=for-the-badge&logo=android" alt="Android 11+">
-    <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
+  <img src="assets/screenshot1.jpg" alt="Home" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot2.jpg" alt="Player" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot3.jpg" alt="Library" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot4.jpg" alt="Search" width="200" style="border-radius:26px;"/>
 </p>
 
----
-
-## ‼️ DISCLAIMER
-- No fork of this project will recieve support, if you use a fork, ask the forker to support you.
-
----
-
-## ✨ Features
-
-### 🎨 Modern UI/UX
-- **Material You** - Dynamic color theming that adapts to your wallpaper
-- **Smooth Animations** - Fluid transitions and micro-interactions
-- **Customizable UI** - Adjustable corner radius and navigation bar settings
-- **Dark/Light Theme** - Automatic or manual theme switching
-- **Album Art Colors** - Dynamic color extraction from album artwork
-
-### 🎵 Powerful Playback
-- **Media3 ExoPlayer** - Industry-leading audio engine with FFmpeg support
-- **Background Playback** - Full media session integration
-- **Queue Management** - Drag-and-drop reordering
-- **Shuffle & Repeat** - All playback modes supported
-- **Gapless Playback** - Seamless transitions between tracks
-- **Custom Transitions** - Configure crossfades between songs
-
-### 📚 Library Management
-- **Multi-format Support** - MP3, FLAC, AAC, OGG, WAV, and more
-- **Browse By** - Songs, Albums, Artists, Genres, Folders
-- **Smart Artist Parsing** - Configurable delimiters for multi-artist tracks
-- **Album Artist Grouping** - Proper album organization
-- **Folder Filtering** - Choose which directories to scan
-
-### 🔍 Discovery & Organization
-- **Full-text Search** - Search across your entire library
-- **Daily Mix** - AI-powered personalized playlist based on listening habits
-- **Playlists** - Create and manage custom playlists
-- **Statistics** - Track your listening history and habits
-
-### 🎤 Lyrics
-- **Synchronized Lyrics** - LRC format via LRCLIB API
-- **Lyrics Editing** - Modify or add lyrics to your tracks
-- **Scrolling Display** - Follow along as you listen
-
-### 🖼️ Artist Artwork
-- **Deezer Integration** - Automatic artist images from Deezer API
-- **Smart Caching** - Memory (LRU) + database caching for offline access
-- **Fallback Icons** - Beautiful placeholders when images unavailable
-
-### 📲 Connectivity
-- **Chromecast** - Stream to your TV or smart speakers
-- **Android Auto** - Full Android Auto support for in-car playback (Soon)
-- **Widgets** - Home screen control with Glance widgets
-
-### ⚙️ Advanced Features
-- **Tag Editor** - Edit metadata with TagLib (MP3, FLAC, M4A support)
-- **AI Playlists** - Generate playlists with AI (Supports Gemini, Deepseek, OpenAI, etc.)
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| **Language** | [Kotlin](https://kotlinlang.org/) 100% |
-| **UI Framework** | [Jetpack Compose](https://developer.android.com/jetpack/compose) |
-| **Design System** | [Material Design 3](https://m3.material.io/) |
-| **Audio Engine** | [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/media3) + FFmpeg |
-| **Architecture** | MVVM with StateFlow/SharedFlow |
-| **DI** | [Hilt](https://dagger.dev/hilt/) |
-| **Database** | [Room](https://developer.android.com/training/data-storage/room) |
-| **Networking** | [Retrofit](https://square.github.io/retrofit/) + OkHttp |
-| **Image Loading** | [Coil](https://coil-kt.github.io/coil/) |
-| **Async** | Kotlin Coroutines & Flow |
-| **Background Tasks** | WorkManager |
-| **Metadata** | [TagLib](https://github.com/nicholaus/taglib-android) |
-| **Widgets** | [Glance](https://developer.android.com/jetpack/compose/glance) |
-
----
-
-## 📱 Requirements
-
-- **Android 11** (API 30) or higher
-- **6GB RAM** recommended for smooth performance
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Android Studio Ladybug | 2024.2.1 or newer
-- Android SDK 29+
-- JDK 11+
-
-### Installation
-
-1. **Clone the repository**
-   ```sh
-   git clone https://github.com/theovilardo/PixelPlayer.git
-   ```
-
-2. **Open in Android Studio**
-   - Open Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned directory
-
-3. **Sync and Build**
-   - Wait for Gradle to sync dependencies
-   - Build the project (Build → Make Project)
-
-4. **Run**
-   - Connect a device or start an emulator
-   - Click Run (▶️)
-
----
-
-## ⬇️ Download
-
 <p align="center">
-  <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-    <img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60">
+  <a href="https://github.com/kibetmasi/PixelPlayer/releases/latest">
+    <img src="https://img.shields.io/github/v/release/kibetmasi/PixelPlayer?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
   </a>
-</p>
-
-<p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.theveloper.pixelplay%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Ftheovilardo%2FPixelPlayer%22%2C%22author%22%3A%22theovilardo%22%2C%22name%22%3A%22PixelPlayer%22%2C%22supportFixedAPKURL%22%3Afalse%7D">
-    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="50">
-  </a>
+  <img src="https://img.shields.io/badge/Android-11%2B-green?style=for-the-badge&logo=android" alt="Android 11+">
 </p>
 
 ---
 
-## 📂 Project Structure
+## Download & install
 
-```
-app/src/main/java/com/theveloper/pixelplay/
-├── data/
-│   ├── database/       # Room entities, DAOs, migrations
-│   ├── model/          # Domain models (Song, Album, Artist, etc.)
-│   ├── network/        # API services (LRCLIB, Deezer)
-│   ├── preferences/    # DataStore preferences
-│   ├── repository/     # Data repositories
-│   ├── service/        # MusicService, HTTP server
-│   └── worker/         # WorkManager sync workers
-├── di/                 # Hilt dependency injection modules
-├── presentation/
-│   ├── components/     # Reusable Compose components
-│   ├── navigation/     # Navigation graph
-│   ├── screens/        # Screen composables
-│   └── viewmodel/      # ViewModels
-├── ui/
-│   ├── glancewidget/   # Home screen widgets
-│   └── theme/          # Colors, typography, theming
-└── utils/              # Extensions and utilities
-```
+1. Open **[Latest Release](https://github.com/kibetmasi/PixelPlayer/releases/latest)**.
+2. Under **Assets**, download the APK that matches your phone:
+   - **`…-arm64-v8a.apk`** — most phones from ~2017 onward (**recommended**)
+   - **`…-armeabi-v7a.apk`** — older 32-bit devices
+3. On your phone, open the downloaded file and install.
+   - If Android blocks it, allow **Install unknown apps** for your browser / Files app.
+4. Open PixelPlayer. Playback continues in the background with the notification controls.
+
+> Tip: each new release can update the app **in place** (same signing key). You usually don’t need to uninstall first — that keeps login and settings.
 
 ---
 
-## 🤝 Contributing
+## YouTube Music
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+PixelPlayer plays YouTube audio through the existing player. It does not scan a local music library.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+| Tab | What it does |
+|-----|----------------|
+| **Feed** | Your Mix, artwork collage, trending songs, radio starters, and playlists |
+| **Radio** | Starts a song, then keeps queuing similar tracks |
+| **Search** | Songs, albums, and playlists |
+| **Playlists** | Today's hits, workout, focus, and party |
+| **Liked** | Songs you like on device, plus liked videos from your Google account after sign-in |
+
+### Sign in with Google
+
+Liked videos and the “channels you follow” shelf need the Google account you use on YouTube.
+
+1. On **Feed**, tap the **account** icon.
+2. Tap **Sign in with Google** and sign in on the page that opens.
+3. Tap **Done** when YouTube finishes signing you in.
+4. Open **Liked** to load that account’s liked videos.
+
+**Sign out** is on the same Account screen. The heart on a song still saves a like on the device if you are signed out.
+
+The header also opens the **changelog** and app **settings**.
 
 ---
 
-## 📄 License
+## SoundCloud
 
-This project is licensed under a Proprietary License - see the [LICENSE](LICENSE) file for details.
-
-Portions contributed before 2026-05-12 remain available under the MIT License; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+SoundCloud is not a bottom-bar tab in this build. The previous web `client_id` and sign-in flow is described in [docs/soundcloud-implementation.md](docs/soundcloud-implementation.md).
 
 ---
 
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/theovilardo">theovilardo</a>
-</p>
-<p align="center">
-  Logo designed by <a href="https://github.com/NPSummers">Aureal</a>.
-</p>
+## Everyday use (quick)
 
+- **Feed** shuffle plays Your Mix and keeps playing in the background.
+- **Radio** is a continuous mix based on the song you start, not a live broadcast.
+- **Liked** and the heart icon keep songs you like. Sign in to also load YouTube liked videos.
+- **Playlists** opens a collection; tap a track to play it.
+
+---
+
+## Requirements
+
+- Android **11** or newer
+- Internet for YouTube Music
+- Notification permission so background playback can show controls
+
+---
+
+## Support & credits
+
+This build is maintained at **[kibetmasi/PixelPlayer](https://github.com/kibetmasi/PixelPlayer)**. A push to `master` publishes a signed release APK on the Releases page.
+
+Upstream project by [theovilardo](https://github.com/theovilardo/PixelPlayer). Logo by [Aureal](https://github.com/NPSummers).
+
+See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

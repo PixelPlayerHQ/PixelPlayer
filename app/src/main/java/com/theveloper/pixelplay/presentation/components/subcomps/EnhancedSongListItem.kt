@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,6 +78,7 @@ private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float {
  * @param customShape Optional custom shape for the surface
  * @param isSelected Whether this item is selected in multi-selection mode
  * @param isSelectionMode Whether multi-selection mode is active
+ * @param handleGestures When false, the caller owns click / long-press on [modifier]
  * @param onLongPress Callback for long press gesture (activates selection)
  * @param onMoreOptionsClick Callback for more options button
  * @param onClick Callback for tap gesture
@@ -97,11 +99,14 @@ fun EnhancedSongListItem(
     selectionIndex: Int? = null,
     isSelectionMode: Boolean = false,
     showMoreOptionsButton: Boolean = true,
+    handleGestures: Boolean = true,
     onLongPress: () -> Unit = {},
     onMoreOptionsClick: (Song) -> Unit,
     onClick: () -> Unit
 ) {
     val albumArtTargetSizePx = with(LocalDensity.current) { albumArtSize.roundToPx() }
+    val currentOnClick = rememberUpdatedState(onClick)
+    val currentOnLongPress = rememberUpdatedState(onLongPress)
     val isHighlighted = isCurrentSong && !isLoading
     val transition = updateTransition(
         targetState = EnhancedSongAnimationTarget(
@@ -254,22 +259,24 @@ fun EnhancedSongListItem(
                         Modifier
                     }
                 )
-                .pointerInput(isSelectionMode) {
-                    detectTapGestures(
-                        onTap = { 
-                            if (isSelectionMode) {
-                                // In selection mode, tap toggles selection
-                                onLongPress()
-                            } else {
-                                onClick() 
-                            }
-                        },
-                        onLongPress = {
-                            // Long press always activates/toggles selection
-                            onLongPress()
+                .then(
+                    if (handleGestures) {
+                        Modifier.pointerInput(isSelectionMode) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (isSelectionMode) {
+                                        currentOnLongPress.value()
+                                    } else {
+                                        currentOnClick.value()
+                                    }
+                                },
+                                onLongPress = { currentOnLongPress.value() },
+                            )
                         }
-                    )
-                },
+                    } else {
+                        Modifier
+                    }
+                ),
             shape = surfaceShape,
             color = containerColor,
         ) {

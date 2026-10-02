@@ -63,6 +63,7 @@ import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
 import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
 import androidx.core.net.toUri
 import com.theveloper.pixelplay.data.diagnostics.AdvancedPerformanceDiagnostics
+import com.theveloper.pixelplay.youtube.YoutubeDownloader
 
 data class ActiveDecoderInfo(
     val name: String,
@@ -248,6 +249,9 @@ class DualPlayerEngine @Inject constructor(
 
     private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     var hiFiModeEnabled: Boolean = false
+        private set
+    /** Trims silent passages inside a track (ExoPlayer's SilenceSkippingAudioProcessor). */
+    var skipSilenceEnabled: Boolean = false
         private set
     private var audioOffloadEnabled = !shouldDisableAudioOffloadByDefault()
     private var transitionJob: Job? = null
@@ -987,16 +991,16 @@ class DualPlayerEngine @Inject constructor(
     }
 
     /**
-     * Returns a [DefaultLoadControl] tuned to the device's RAM tier.
+     * Returns a [DefaultLoadControl] tuned to the device's RAM tier, using the single
+     * source of truth in [loadControlBufferProfileFor].
      *
      * Low-RAM devices ([ActivityManager.isLowRamDevice]) receive halved buffer ceilings
      * to prevent memory pressure when both players co-exist during a crossfade.
-     * [bufferForPlaybackMs] is set to ExoPlayer's documented default of 2 500 ms on both
-     * tiers — the previous value of 5 000 ms doubled first-audio latency with no benefit.
      */
     private fun buildAdaptiveLoadControl(): DefaultLoadControl {
         val isLowRam = (context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager)
             .isLowRamDevice
+        val profile = loadControlBufferProfileFor(isLowRam)
         // setPrioritizeTimeOverSizeThresholds(true): instructs ExoPlayer to use buffered
         // *duration* (not buffered *bytes*) as the criterion for deciding when to start
         // playback and when to stop buffering. This is required for correct behaviour with
@@ -1005,27 +1009,15 @@ class DualPlayerEngine @Inject constructor(
         // Without this flag ExoPlayer falls back to a default byte threshold that was
         // designed for typical compressed audio (~128–320 kbps) and will underperform on
         // files with bitrates above ~1 Mbps.
-        return if (isLowRam) {
-            DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                    /* minBufferMs                      */ 15_000,
-                    /* maxBufferMs                      */ 30_000,
-                    /* bufferForPlaybackMs              */  2_500,
-                    /* bufferForPlaybackAfterRebufferMs */  5_000
-                )
-                .setPrioritizeTimeOverSizeThresholds(true)
-                .build()
-        } else {
-            DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                    /* minBufferMs                      */ 30_000,
-                    /* maxBufferMs                      */ 60_000,
-                    /* bufferForPlaybackMs              */  2_500,
-                    /* bufferForPlaybackAfterRebufferMs */  5_000
-                )
-                .setPrioritizeTimeOverSizeThresholds(true)
-                .build()
-        }
+        return DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                profile.minBufferMs,
+                profile.maxBufferMs,
+                profile.bufferForPlaybackMs,
+                profile.bufferForPlaybackAfterRebufferMs
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
     }
 
     private fun buildPlayer(): ExoPlayer {
@@ -1100,15 +1092,16 @@ class DualPlayerEngine @Inject constructor(
             override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
                 val uri = dataSpec.uri
                 val scheme = uri.scheme
+                val withAgent = youtubePlaybackSpec(dataSpec)
                 if (scheme in CLOUD_PROXY_SCHEMES) {
                     val originalUri = uri.toString()
                     val resolved = resolvedUriCache.get(originalUri)
                     if (resolved != null) {
-                        return dataSpec.buildUpon().setUri(resolved).build()
+                        return withAgent.buildUpon().setUri(resolved).build()
                     }
                     Timber.tag("DualPlayerEngine").d("resolveDataSpec: Cache MISS for %s — using original URI", scheme)
                 }
-                return dataSpec
+                return withAgent
             }
         }
         
@@ -1145,6 +1138,7 @@ class DualPlayerEngine @Inject constructor(
                 .build()
             setHandleAudioBecomingNoisy(true)
             setWakeMode(C.WAKE_MODE_LOCAL)
+            skipSilenceEnabled = this@DualPlayerEngine.skipSilenceEnabled
             playWhenReady = false
         }
     }
@@ -1191,6 +1185,14 @@ class DualPlayerEngine @Inject constructor(
         }
         hiFiModeEnabled = enabled
         rebuildPlayersPreservingMasterState("Hi-Fi mode set to $enabled")
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        if (skipSilenceEnabled == enabled) return
+        skipSilenceEnabled = enabled
+        if (::playerA.isInitialized) playerA.skipSilenceEnabled = enabled
+        playerB?.skipSilenceEnabled = enabled
+        Timber.tag("DualPlayerEngine").d("Skip silence set to %b", enabled)
     }
 
     suspend fun resolveCloudUri(uri: Uri): Uri = withContext(Dispatchers.IO) {
@@ -1267,6 +1269,15 @@ class DualPlayerEngine @Inject constructor(
         }
         if (!gdriveStreamProxy.ensureReady(5_000L)) return@withContext null
         gdriveStreamProxy.resolveGDriveUri(uriString)?.toUri()
+    }
+
+    private fun youtubePlaybackSpec(dataSpec: DataSpec): DataSpec {
+        val host = dataSpec.uri.host.orEmpty()
+        val youtube = host.contains("googlevideo.com") || host.endsWith("youtube.com")
+        if (!youtube) return dataSpec
+        val headers = HashMap(dataSpec.httpRequestHeaders)
+        headers["User-Agent"] = YoutubeDownloader.USER_AGENT
+        return dataSpec.buildUpon().setHttpRequestHeaders(headers).build()
     }
 
     suspend fun resolveMediaItem(mediaItem: MediaItem): MediaItem {

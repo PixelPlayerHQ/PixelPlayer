@@ -63,7 +63,7 @@ data class SettingsUiState(
     val navBarCornerRadius: Int = 32,
     val navBarStyle: String = NavBarStyle.DEFAULT,
     val navBarCompactMode: Boolean = false,
-    val carouselStyle: String = CarouselStyle.NO_PEEK,
+    val carouselStyle: String = CarouselStyle.ONE_PEEK,
     val libraryNavigationMode: String = LibraryNavigationMode.TAB_ROW,
     val launchTab: String = LaunchTab.HOME,
     val keepPlayingInBackground: Boolean = true,
@@ -74,6 +74,7 @@ data class SettingsUiState(
     val isCrossfadeEnabled: Boolean = false,
     val hiFiModeEnabled: Boolean = false,
     val hiFiModeDeviceSupported: Boolean = true,
+    val skipSilenceEnabled: Boolean = false,
     val crossfadeDuration: Int = 2000,
     val persistentShuffleEnabled: Boolean = false,
     val folderBackGestureNavigation: Boolean = true,
@@ -160,6 +161,7 @@ private sealed interface SettingsUiUpdate {
         val showQueueHistory: Boolean,
         val isCrossfadeEnabled: Boolean,
         val hiFiModeEnabled: Boolean,
+        val skipSilenceEnabled: Boolean,
         val crossfadeDuration: Int,
         val persistentShuffleEnabled: Boolean,
         val folderBackGestureNavigation: Boolean,
@@ -653,6 +655,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.showQueueHistoryFlow,
                 userPreferencesRepository.isCrossfadeEnabledFlow,
                 userPreferencesRepository.hiFiModeEnabledFlow,
+                userPreferencesRepository.skipSilenceEnabledFlow,
                 userPreferencesRepository.crossfadeDurationFlow,
                 userPreferencesRepository.persistentShuffleEnabledFlow,
                 userPreferencesRepository.folderBackGestureNavigationFlow,
@@ -675,19 +678,20 @@ class SettingsViewModel @Inject constructor(
                     showQueueHistory = values[4] as Boolean,
                     isCrossfadeEnabled = values[5] as Boolean,
                     hiFiModeEnabled = values[6] as Boolean,
-                    crossfadeDuration = values[7] as Int,
-                    persistentShuffleEnabled = values[8] as Boolean,
-                    folderBackGestureNavigation = values[9] as Boolean,
-                    lyricsSourcePreference = values[10] as LyricsSourcePreference,
-                    autoScanLrcFiles = values[11] as Boolean,
-                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[12] as Set<String>),
-                    hapticsEnabled = values[13] as Boolean,
-                    immersiveLyricsEnabled = values[14] as Boolean,
-                    immersiveLyricsTimeout = values[15] as Long,
-                    animatedLyricsBlurEnabled = values[16] as Boolean,
-                    animatedLyricsBlurStrength = values[17] as Float,
-                    disableBlurAllOver = values[18] as Boolean,
-                    showScrollbar = values[19] as Boolean
+                    skipSilenceEnabled = values[7] as Boolean,
+                    crossfadeDuration = values[8] as Int,
+                    persistentShuffleEnabled = values[9] as Boolean,
+                    folderBackGestureNavigation = values[10] as Boolean,
+                    lyricsSourcePreference = values[11] as LyricsSourcePreference,
+                    autoScanLrcFiles = values[12] as Boolean,
+                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[13] as Set<String>),
+                    hapticsEnabled = values[14] as Boolean,
+                    immersiveLyricsEnabled = values[15] as Boolean,
+                    immersiveLyricsTimeout = values[16] as Long,
+                    animatedLyricsBlurEnabled = values[17] as Boolean,
+                    animatedLyricsBlurStrength = values[18] as Float,
+                    disableBlurAllOver = values[19] as Boolean,
+                    showScrollbar = values[20] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -699,6 +703,7 @@ class SettingsViewModel @Inject constructor(
                         showQueueHistory = update.showQueueHistory,
                         isCrossfadeEnabled = update.isCrossfadeEnabled,
                         hiFiModeEnabled = update.hiFiModeEnabled,
+                        skipSilenceEnabled = update.skipSilenceEnabled,
                         crossfadeDuration = update.crossfadeDuration,
                         persistentShuffleEnabled = update.persistentShuffleEnabled,
                         folderBackGestureNavigation = update.folderBackGestureNavigation,
@@ -985,6 +990,12 @@ class SettingsViewModel @Inject constructor(
     fun setHiFiModeEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setHiFiModeEnabled(enabled)
+        }
+    }
+
+    fun setSkipSilenceEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setSkipSilenceEnabled(enabled)
         }
     }
 

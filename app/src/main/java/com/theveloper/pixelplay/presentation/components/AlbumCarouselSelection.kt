@@ -47,7 +47,7 @@ fun AlbumCarouselSection(
     onSongSelected: (Song, Int) -> Unit,
     onAlbumClick: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
-    carouselStyle: String = CarouselStyle.NO_PEEK,
+    carouselStyle: String = CarouselStyle.ONE_PEEK,
     itemSpacing: Dp = 8.dp,
     albumArtQuality: AlbumArtQuality = AlbumArtQuality.MEDIUM
 ) {

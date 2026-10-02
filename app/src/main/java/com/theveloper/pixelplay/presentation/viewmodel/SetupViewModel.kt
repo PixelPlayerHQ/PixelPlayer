@@ -51,7 +51,7 @@ data class SetupUiState(
 ) {
     val allPermissionsGranted: Boolean
         get() {
-            val mediaOk = mediaPermissionGranted
+            val mediaOk = true
             val notificationsOk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) notificationsPermissionGranted else true
             return mediaOk && notificationsOk
         }

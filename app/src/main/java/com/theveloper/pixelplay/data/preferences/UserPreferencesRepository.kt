@@ -140,6 +140,7 @@ class UserPreferencesRepository @Inject constructor(
         val KEEP_PLAYING_IN_BACKGROUND = booleanPreferencesKey("keep_playing_in_background")
         val IS_CROSSFADE_ENABLED = booleanPreferencesKey("is_crossfade_enabled")
         val HI_FI_MODE_ENABLED = booleanPreferencesKey("hi_fi_mode_enabled")
+        val SKIP_SILENCE_ENABLED = booleanPreferencesKey("skip_silence_enabled")
         val CROSSFADE_DURATION = intPreferencesKey("crossfade_duration")
         val CUSTOM_GENRES = stringSetPreferencesKey("custom_genres")
         val CUSTOM_GENRE_ICONS = stringPreferencesKey("custom_genre_icons")
@@ -347,6 +348,13 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setHiFiModeEnabled(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.HI_FI_MODE_ENABLED] = enabled }
+    }
+
+    val skipSilenceEnabledFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.SKIP_SILENCE_ENABLED] ?: false }
+
+    suspend fun setSkipSilenceEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SKIP_SILENCE_ENABLED] = enabled }
     }
 
     val keepPlayingInBackgroundFlow: Flow<Boolean> =
@@ -986,7 +994,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     }
 
     val carouselStyleFlow: Flow<String> =
-        pref { it[PreferencesKeys.CAROUSEL_STYLE] ?: CarouselStyle.NO_PEEK }
+        pref { it[PreferencesKeys.CAROUSEL_STYLE] ?: CarouselStyle.ONE_PEEK }
 
     suspend fun setCarouselStyle(style: String) {
         dataStore.edit { it[PreferencesKeys.CAROUSEL_STYLE] = style }

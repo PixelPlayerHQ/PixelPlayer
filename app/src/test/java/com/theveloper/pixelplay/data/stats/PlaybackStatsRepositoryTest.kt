@@ -223,6 +223,49 @@ class PlaybackStatsRepositoryTest {
         assertThat(summary.topGenres.single().uniqueArtists).isEqualTo(2)
     }
 
+    @Test
+    fun `streamed songs supply artist album and title when missing from the library`() = runTest {
+        val repository = createRepository()
+        val zoneId = ZoneId.systemDefault()
+        val start = LocalDate.of(2026, 4, 10)
+            .atTime(16, 0)
+            .atZone(zoneId)
+            .toInstant()
+            .toEpochMilli()
+        val durationMs = 90_000L
+        val event = PlaybackStatsRepository.PlaybackEvent(
+            songId = "yt_super_shy",
+            timestamp = start + durationMs,
+            durationMs = durationMs,
+            startTimestamp = start,
+            endTimestamp = start + durationMs
+        )
+        val streamed = song(
+            songId = "yt_super_shy",
+            artist = "NewJeans",
+            album = "NewJeans"
+        ).copy(title = "Super Shy")
+
+        val summary = repository.buildSummaryFromEvents(
+            range = StatsTimeRange.DAY,
+            songs = mergeStatsSongs(emptyList(), listOf(streamed)),
+            allEvents = listOf(event),
+            nowMillis = start + durationMs + 1_000L
+        )
+
+        assertThat(summary.topArtists.map { it.artist }).containsExactly("NewJeans")
+        assertThat(summary.topAlbums.map { it.album }).containsExactly("NewJeans")
+        assertThat(summary.songs.map { it.title }).containsExactly("Super Shy")
+    }
+
+    @Test
+    fun `mergeStatsSongs keeps the library copy when ids collide`() {
+        val library = song(songId = "yt_1", artist = "Library Artist")
+        val streamed = song(songId = "yt_1", artist = "Stream Artist")
+        val merged = mergeStatsSongs(listOf(library), listOf(streamed))
+        assertThat(merged).containsExactly(library)
+    }
+
     private fun createRepository(): PlaybackStatsRepository {
         val uniqueDir = createTempDirectory(
             "playback-stats-test-${Instant.now().toEpochMilli()}-"
@@ -237,14 +280,15 @@ class PlaybackStatsRepositoryTest {
         durationMs: Long = 5 * 60 * 1000L,
         artist: String = "Artist",
         artists: List<ArtistRef> = emptyList(),
-        genre: String? = null
+        genre: String? = null,
+        album: String = "Album",
     ): Song = Song(
         id = songId,
         title = "Song $songId",
         artist = artist,
         artistId = 1L,
         artists = artists,
-        album = "Album",
+        album = album,
         albumId = 1L,
         path = "/music/$songId.mp3",
         contentUriString = "content://media/external/audio/media/$songId",

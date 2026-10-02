@@ -70,7 +70,8 @@ class PlaybackStatsRepository @Inject constructor(
         val artist: String,
         val albumArtUri: String?,
         val totalDurationMs: Long,
-        val playCount: Int
+        val playCount: Int,
+        val origin: PlaybackOrigin? = null,
     )
 
     data class ArtistPlaybackSummary(
@@ -92,8 +93,40 @@ class PlaybackStatsRepository @Inject constructor(
         val albumArtUri: String?,
         val totalDurationMs: Long,
         val playCount: Int,
-        val uniqueSongs: Int
+        val uniqueSongs: Int,
+        val origin: PlaybackOrigin? = null,
     )
+
+    enum class PlaybackOrigin {
+        SOUNDCLOUD,
+        TELEGRAM,
+        NETEASE,
+        QQ_MUSIC,
+        NAVIDROME,
+        JELLYFIN,
+        GOOGLE_DRIVE,
+    }
+
+    private fun Song.statsOrigin(): PlaybackOrigin? {
+        val uri = contentUriString.lowercase()
+        val pathLower = path.lowercase()
+        val art = albumArtUriString.orEmpty().lowercase()
+        return when {
+            telegramChatId != null || telegramFileId != null || uri.startsWith("telegram://") ->
+                PlaybackOrigin.TELEGRAM
+            neteaseId != null || uri.startsWith("netease://") -> PlaybackOrigin.NETEASE
+            !qqMusicMid.isNullOrBlank() || uri.startsWith("qqmusic://") -> PlaybackOrigin.QQ_MUSIC
+            !navidromeId.isNullOrBlank() || uri.startsWith("navidrome://") -> PlaybackOrigin.NAVIDROME
+            !jellyfinId.isNullOrBlank() || uri.startsWith("jellyfin://") -> PlaybackOrigin.JELLYFIN
+            !gdriveFileId.isNullOrBlank() || uri.startsWith("gdrive://") -> PlaybackOrigin.GOOGLE_DRIVE
+            id.startsWith("sc_") ||
+                genre.equals("SoundCloud", ignoreCase = true) ||
+                pathLower.contains("pixelplayer/soundcloud") ||
+                uri.contains("soundcloud") ||
+                art.contains("sndcdn") -> PlaybackOrigin.SOUNDCLOUD
+            else -> null
+        }
+    }
 
     data class TimelineEntry(
         val label: String,
@@ -270,7 +303,8 @@ class PlaybackStatsRepository @Inject constructor(
                     artist = artist,
                     albumArtUri = song.albumArtUriString,
                     totalDurationMs = segmentsForSong.sumOf { it.durationMs },
-                    playCount = segmentsForSong.size
+                    playCount = segmentsForSong.size,
+                    origin = song.statsOrigin(),
                 )
             }
             .sortedWith(
@@ -395,12 +429,17 @@ class PlaybackStatsRepository @Inject constructor(
                     .asSequence()
                     .mapNotNull { songMap[it.key] }
                     .firstOrNull()
+                val origin = groupedSongs
+                    .map { songMap[it.key]?.statsOrigin() }
+                    .distinct()
+                    .singleOrNull()
                 AlbumPlaybackSummary(
                     album = album,
                     albumArtUri = firstSong?.albumArtUriString,
                     totalDurationMs = flattened.sumOf { it.durationMs },
                     playCount = flattened.size,
-                    uniqueSongs = uniqueSongCount
+                    uniqueSongs = uniqueSongCount,
+                    origin = origin,
                 )
             }
             .sortedWith(
@@ -1109,4 +1148,12 @@ enum class StatsTimeRange(val displayName: String) {
     MONTH("Month to Date"),
     YEAR("Year to Date"),
     ALL("All Time")
+}
+
+/** Library songs win when an id exists in both lists. */
+internal fun mergeStatsSongs(library: List<Song>, streamed: List<Song>): List<Song> {
+    if (streamed.isEmpty()) return library
+    val known = HashSet<String>(library.size)
+    library.forEach { known += it.id }
+    return library + streamed.filter { it.id !in known && it.title.isNotBlank() }
 }

@@ -119,6 +119,7 @@ import com.theveloper.pixelplay.presentation.components.subcomps.LyricsMoreBotto
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -482,8 +483,15 @@ fun LyricsSheet(
                 }
             }
         }
-        context.registerReceiver(receiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
-        onDispose { context.unregisterReceiver(receiver) }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_EXPORTED,
+        )
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+        }
     }
 
     // Auto-hide controls logic

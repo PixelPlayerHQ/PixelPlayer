@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
@@ -40,11 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.size.Size
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -69,6 +73,8 @@ internal fun MiniPlayerContentInternal(
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    soundCloudLiked: Boolean = false,
+    onSoundCloudLike: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     canScroll: Boolean = true
 ) {
@@ -148,6 +154,43 @@ internal fun MiniPlayerContentInternal(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
+
+        if (onSoundCloudLike != null) {
+            val likeInteraction = remember(song.id) { MutableInteractionSource() }
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .clickable(
+                        interactionSource = likeInteraction,
+                        indication = miniPlayerIndication,
+                        enabled = controlsEnabled,
+                    ) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSoundCloudLike()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (soundCloudLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = stringResource(
+                        when {
+                            song.id.startsWith("yt_") && soundCloudLiked -> R.string.youtube_unlike
+                            song.id.startsWith("yt_") -> R.string.youtube_like
+                            soundCloudLiked -> R.string.soundcloud_unlike
+                            else -> R.string.soundcloud_like
+                        },
+                    ),
+                    tint = if (soundCloudLiked) {
+                        LocalMaterialTheme.current.error
+                    } else {
+                        LocalMaterialTheme.current.onPrimaryContainer
+                    },
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+        }
 
         Box(
             modifier = Modifier

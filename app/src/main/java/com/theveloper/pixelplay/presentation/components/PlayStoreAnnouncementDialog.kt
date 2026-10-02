@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -67,6 +68,7 @@ fun PlayStoreAnnouncementDialog(
     announcement: PlayStoreAnnouncementUiModel,
     onDismiss: () -> Unit,
     onOpenPlayStore: (String) -> Unit,
+    primaryBusy: Boolean = false,
 ) {
     val cardShape = AbsoluteSmoothCornerShape(
         cornerRadiusTL = 30.dp,
@@ -180,27 +182,36 @@ fun PlayStoreAnnouncementDialog(
 
                     Button(
                         onClick = {
-                            announcement.playStoreUrl?.let(onOpenPlayStore)
+                            if (!primaryBusy) {
+                                announcement.playStoreUrl?.let(onOpenPlayStore)
+                            }
                         },
-                        enabled = hasPlayStoreLink,
+                        enabled = hasPlayStoreLink && !primaryBusy,
                         shape = actionShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
-                        //modifier = Modifier.weight(1f),
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.rounded_arrow_forward_24),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        if (primaryBusy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.rounded_arrow_forward_24),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (hasPlayStoreLink) {
-                                announcement.primaryActionLabel
-                            } else {
-                                stringResource(R.string.playstore_dialog_coming_soon)
+                            text = when {
+                                primaryBusy -> stringResource(R.string.update_dialog_downloading)
+                                hasPlayStoreLink -> announcement.primaryActionLabel
+                                else -> stringResource(R.string.playstore_dialog_coming_soon)
                             },
                             textAlign = TextAlign.Center,
                         )

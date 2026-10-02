@@ -1,10 +1,7 @@
 name: "CodeQL Advanced"
 
+# Weekly + manual only — avoid a full Gradle rebuild on every master push.
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
   workflow_dispatch:
   schedule:
     - cron: '25 15 * * 0'
@@ -49,7 +46,7 @@ jobs:
           build-mode: manual
   
       - name: Build with Gradle
-        run: ${{ github.workspace }}/gradlew :app:assembleDebug :wear:assembleDebug --no-daemon
+        run: ${{ github.workspace }}/gradlew :app:assembleDebug --no-daemon
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

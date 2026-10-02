@@ -1,8 +1,7 @@
 name: Build Phone APK (Release)
 
+# PR / manual only — master publishes via Release APK instead.
 on:
-  push:
-    branches: [ master ]
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [ master ]

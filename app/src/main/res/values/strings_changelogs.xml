@@ -2,6 +2,9 @@
 <resources>
     <string name="changelog_title">Changelog</string>
     <string name="changelog_view_github">View on GitHub</string>
+    <string name="changelog_check_updates">Check for updates</string>
+    <string name="changelog_up_to_date">You are on the latest release.</string>
+    <string name="changelog_unavailable">Couldn\'t load the changelog. View it on GitHub.</string>
     <string name="changelog_sec_improvements">Improvements</string>
     <string name="changelog_sec_fixes">Fixes</string>
     <string name="changelog_sec_whats_new">What\'s New</string>

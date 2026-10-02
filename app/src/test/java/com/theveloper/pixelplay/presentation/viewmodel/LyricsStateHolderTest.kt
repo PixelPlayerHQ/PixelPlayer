@@ -9,14 +9,15 @@ import com.theveloper.pixelplay.data.repository.MusicRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.delay
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class LyricsStateHolderTest {
 
     @Test
@@ -55,7 +56,8 @@ class LyricsStateHolderTest {
             userPreferencesRepository = userPreferencesRepository,
             songMetadataEditor = songMetadataEditor
         )
-        val scope = TestScope(StandardTestDispatcher())
+        val job = SupervisorJob()
+        val scope = CoroutineScope(job + Dispatchers.Unconfined)
         val callback = RecordingLyricsLoadCallback()
         val state = MutableStateFlow(StablePlayerState())
         val song = testSong(albumArtUriString = "content://art/song_art_1.jpg").copy(
@@ -63,20 +65,31 @@ class LyricsStateHolderTest {
         )
         val storedLyrics = Lyrics(plain = listOf("Stored lyrics"), areFromRemote = false)
 
-        holder.initialize(scope, callback, state)
-        coEvery { musicRepository.getStoredLyrics(song) } returns (storedLyrics to "Stored lyrics")
+        try {
+            coEvery { userPreferencesRepository.getLyricsSyncOffset(any()) } returns 0
+            coEvery { musicRepository.getStoredLyrics(song) } returns (storedLyrics to "Stored lyrics")
+            holder.initialize(scope, callback, state)
 
-        holder.fetchLyricsForSong(
-            song = song,
-            forcePickResults = false,
-            sourcePreference = com.theveloper.pixelplay.data.model.LyricsSourcePreference.API_FIRST
-        ) { "Lyrics already available" }
-        scope.advanceUntilIdle()
+            holder.fetchLyricsForSong(
+                song = song,
+                forcePickResults = false,
+                sourcePreference = com.theveloper.pixelplay.data.model.LyricsSourcePreference.API_FIRST
+            ) { "Lyrics already available" }
+            runBlocking {
+                withTimeout(5_000) {
+                    while (holder.searchUiState.value !is LyricsSearchUiState.Success) {
+                        delay(10)
+                    }
+                }
+            }
 
-        assertThat(holder.searchUiState.value).isEqualTo(LyricsSearchUiState.Success(storedLyrics))
-        coVerify(exactly = 1) { musicRepository.getStoredLyrics(song) }
-        coVerify(exactly = 0) { musicRepository.getLyricsFromRemote(any()) }
-        coVerify(exactly = 0) { musicRepository.searchRemoteLyrics(any()) }
+            assertThat(holder.searchUiState.value).isEqualTo(LyricsSearchUiState.Success(storedLyrics))
+            coVerify(exactly = 1) { musicRepository.getStoredLyrics(song) }
+            coVerify(exactly = 0) { musicRepository.getLyricsFromRemote(any()) }
+            coVerify(exactly = 0) { musicRepository.searchRemoteLyrics(any()) }
+        } finally {
+            job.cancel()
+        }
     }
 
     private fun testSong(albumArtUriString: String?): Song {

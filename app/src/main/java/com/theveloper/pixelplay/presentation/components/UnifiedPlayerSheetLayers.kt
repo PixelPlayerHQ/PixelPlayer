@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.Song
@@ -39,6 +41,10 @@ import com.theveloper.pixelplay.presentation.components.scoped.rememberFullPlaye
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
+import com.theveloper.pixelplay.soundcloud.SoundCloudPrefsViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -118,6 +124,13 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     val isMiniPlayerVisible by remember {
                         derivedStateOf { playerContentExpansionFraction.value < 0.01f }
                     }
+                    val soundCloudPrefs = hiltViewModel<SoundCloudPrefsViewModel>()
+                    val likedPermalinks by soundCloudPrefs.likedPermalinks.collectAsStateWithLifecycle()
+                    val soundCloudPermalink = soundCloudPrefs.permalinkFor(currentSongNonNull.id)
+                    val youtubeLiked by playerViewModel.isCurrentSongFavorite.collectAsStateWithLifecycle()
+                    val isYoutubeSong = currentSongNonNull.id.startsWith("yt_")
+                    val context = LocalContext.current
+                    val likeScope = rememberCoroutineScope()
                     MiniPlayerContentInternal(
                         song = currentSongNonNull,
                         isPlaying = infrequentPlayerState.isPlaying,
@@ -126,6 +139,25 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         onPlayPause = { playerViewModel.playPause() },
                         onPrevious = { playerViewModel.previousSong() },
                         onNext = { playerViewModel.nextSong() },
+                        soundCloudLiked = if (isYoutubeSong) {
+                            youtubeLiked
+                        } else {
+                            soundCloudPermalink != null && soundCloudPermalink in likedPermalinks
+                        },
+                        onSoundCloudLike = when {
+                            isYoutubeSong -> ({ playerViewModel.toggleFavorite() })
+                            soundCloudPermalink == null -> null
+                            else -> {
+                                {
+                                    likeScope.launch {
+                                        val error = soundCloudPrefs.toggleSoundCloudLike(currentSongNonNull.id)
+                                        if (!error.isNullOrBlank()) {
+                                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         canScroll = isMiniPlayerVisible && infrequentPlayerState.isPlaying,
                         modifier = Modifier.fillMaxSize()
                     )

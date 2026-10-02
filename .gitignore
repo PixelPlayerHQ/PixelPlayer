@@ -39,6 +39,7 @@ misc.xml
 CLAUDE.md
 markdown.xml
 .vscode/
+.cursor/
 .agents/
 
 # Node/tooling dependencies and local env files

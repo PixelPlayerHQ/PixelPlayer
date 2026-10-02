@@ -52,11 +52,15 @@ import com.theveloper.pixelplay.data.preferences.EqualizerPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.soundcloud.SoundCloudClient
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import com.theveloper.pixelplay.data.service.player.TransitionController
 import com.theveloper.pixelplay.ui.glancewidget.PlayerActions
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -168,6 +172,12 @@ class MusicService : MediaLibraryService() {
     @Inject
     lateinit var listeningStatsTracker: ListeningStatsTracker
     @Inject
+    lateinit var soundCloudClient: SoundCloudClient
+    @Inject
+    lateinit var youtubeClient: com.theveloper.pixelplay.youtube.YoutubeClient
+    @Inject
+    lateinit var youtubeMusicStore: com.theveloper.pixelplay.youtube.YoutubeMusicStore
+    @Inject
     @AppScope
     lateinit var appScope: CoroutineScope
 
@@ -198,6 +208,10 @@ class MusicService : MediaLibraryService() {
     private var countedPlayCount = 0
     private var countedOriginalId: String? = null
     private var countedPlayListener: Player.Listener? = null
+    private var consecutivePlaybackErrorSkips = 0
+    private val soundCloudRefreshAttempted = mutableSetOf<String>()
+    private val youtubeRefreshAttempts = mutableMapOf<String, Int>()
+    private val youtubePrepareStarted = mutableSetOf<String>()
     private val alarmManager by lazy {
         getSystemService(Context.ALARM_SERVICE) as AlarmManager
     }
@@ -267,6 +281,8 @@ class MusicService : MediaLibraryService() {
         private const val PLAYBACK_SNAPSHOT_DEBOUNCE_MS = 1500L
         private const val MEDIA_SESSION_BUTTON_DEBOUNCE_MS = 250L
         private const val DEFERRED_SERVICE_STARTUP_WORK_DELAY_MS = 1_000L
+        private const val MAX_PLAYBACK_ERROR_SKIPS = 8
+        private const val MAX_YOUTUBE_REFRESH_ATTEMPTS = 2
         private const val PAUSED_RESTORE_PREPARE_QUEUE_LIMIT = 50
         private val pendingMediaButtonForegroundStarts = AtomicInteger(0)
 
@@ -370,6 +386,7 @@ class MusicService : MediaLibraryService() {
             return
         }
 
+        rememberYoutubePlayback(mediaItem)
         val positionMs = player.currentPosition.coerceAtLeast(0L)
         val durationMs = player.duration
         val fallbackDurationMs = mediaItem.mediaMetadata.extras
@@ -395,6 +412,50 @@ class MusicService : MediaLibraryService() {
         }
     }
 
+    private fun rememberYoutubePlayback(mediaItem: MediaItem?) {
+        val item = mediaItem ?: return
+        val songId = item.mediaId ?: return
+        if (!songId.startsWith("yt_")) return
+        val metadata = item.mediaMetadata
+        val title = metadata.title?.toString()?.trim().orEmpty()
+        if (title.isBlank()) return
+        val artist = metadata.artist?.toString().orEmpty()
+        val album = metadata.albumTitle?.toString().orEmpty()
+        val artworkUrl = metadata.artworkUri?.toString()
+        val videoId = metadata.extras
+            ?.getString(com.theveloper.pixelplay.youtube.YoutubeClient.EXTRA_WATCH_URL)
+            ?.let(com.theveloper.pixelplay.youtube.YoutubeClient::videoIdFromUrl)
+            .orEmpty()
+        youtubeMusicStore.rememberPlayback(
+            songId = songId,
+            title = title,
+            artist = artist,
+            album = album,
+            artworkUrl = artworkUrl,
+            videoId = videoId,
+        )
+        val missingCredit = artist.isBlank() || album.isBlank() ||
+            artist.equals("YouTube Music", ignoreCase = true) ||
+            album.equals("YouTube Music", ignoreCase = true)
+        if (missingCredit && videoId.length == 11 && youtubeMusicStore.claimCreditLookup(videoId)) {
+            appScope.launch(Dispatchers.IO) {
+                val credits = runCatching { youtubeClient.creditsFor(videoId) }.getOrNull()
+                if (credits == null) {
+                    youtubeMusicStore.releaseCreditLookup(videoId)
+                    return@launch
+                }
+                youtubeMusicStore.rememberPlayback(
+                    songId = songId,
+                    title = title,
+                    artist = credits.artist.ifBlank { artist },
+                    album = credits.album.ifBlank { album },
+                    artworkUrl = artworkUrl,
+                    videoId = videoId,
+                )
+            }
+        }
+    }
+
     override fun onCreate() {
         // Media3's Cast SDK callback path (MediaSessionImpl$$ExternalSyntheticLambda →
         // Util.postOrRun → MediaNotificationManager.updateNotificationInternal) calls
@@ -405,9 +466,10 @@ class MusicService : MediaLibraryService() {
         val existingHandler = Thread.currentThread().uncaughtExceptionHandler
         previousMainThreadExceptionHandler = existingHandler
         Thread.currentThread().setUncaughtExceptionHandler { thread, throwable ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                throwable is ForegroundServiceStartNotAllowedException
-            ) {
+            val isFgsDenied = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                generateSequence(throwable) { it.cause }
+                    .any { it is ForegroundServiceStartNotAllowedException }
+            if (isFgsDenied) {
                 Timber.tag(TAG).w(throwable, "Suppressed ForegroundServiceStartNotAllowedException from Media3/Cast internal path")
             } else {
                 existingHandler?.uncaughtException(thread, throwable)
@@ -504,6 +566,12 @@ class MusicService : MediaLibraryService() {
         serviceScope.launch {
             userPreferencesRepository.hiFiModeEnabledFlow.collect { enabled ->
                 engine.setHiFiMode(enabled)
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.skipSilenceEnabledFlow.collect { enabled ->
+                engine.setSkipSilence(enabled)
             }
         }
 
@@ -1055,6 +1123,7 @@ class MusicService : MediaLibraryService() {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
             )
         } catch (e: Exception) {
+            // Includes ForegroundServiceStartNotAllowedException on API 31+.
             Timber.tag(TAG).w(e, "Failed to promote service to foreground for external command")
         }
     }
@@ -1175,10 +1244,31 @@ class MusicService : MediaLibraryService() {
                 }
             }
         }
-        val startCommandResult = super.onStartCommand(intent, flags, startId)
+        val startCommandResult = try {
+            super.onStartCommand(intent, flags, startId)
+        } catch (e: Exception) {
+            // Android 12+: Media3 may call startForeground() from onStartCommand while the app
+            // is cached/backgrounded (widget/media-button/system restart). That throws
+            // ForegroundServiceStartNotAllowedException and kills the process if uncaught.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                e is ForegroundServiceStartNotAllowedException
+            ) {
+                Timber.tag(TAG).w(
+                    e,
+                    "super.onStartCommand startForeground denied; continuing without FGS promote"
+                )
+                START_STICKY
+            } else {
+                throw e
+            }
+        }
         if (needsTemporaryForeground || startedTemporaryForegroundInOnCreate) {
             if (mediaSession?.player?.hasForegroundPlaybackIntent() != true) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                try {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } catch (e: Exception) {
+                    Timber.tag(TAG).w(e, "stopForeground after temporary FGS failed")
+                }
                 if (needsTemporaryForeground) {
                     stopSelfResult(startId)
                 }
@@ -1313,6 +1403,14 @@ class MusicService : MediaLibraryService() {
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             Timber.tag(TAG).d("Playback state changed: $playbackState")
+            if (playbackState == Player.STATE_READY) {
+                consecutivePlaybackErrorSkips = 0
+                (mediaSession?.player ?: engine.masterPlayer).currentMediaItem?.mediaId
+                    ?.let {
+                        soundCloudRefreshAttempted.remove(it)
+                        youtubeRefreshAttempts.remove(it)
+                    }
+            }
             if (playbackState == Player.STATE_ENDED) {
                 listeningStatsTracker.finalizeCurrentSession()
                 val mediaItem = (mediaSession?.player ?: engine.masterPlayer).currentMediaItem
@@ -1341,6 +1439,7 @@ class MusicService : MediaLibraryService() {
             if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
                 runCatching { replayGainProcessor.prefetch(player.getMediaItemAt(nextIndex)) }
             }
+            prepareUpcomingYoutubeItem(player)
         }
 
         override fun onPositionDiscontinuity(
@@ -1422,6 +1521,7 @@ class MusicService : MediaLibraryService() {
             if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
                 runCatching { replayGainProcessor.prefetch(player.getMediaItemAt(nextIndex)) }
             }
+            prepareUpcomingYoutubeItem(player)
             // Optimization: Don't force-update widgets on every rapid skip.
             // Let the debounced updater handle it to prevent UI freezes.
             widgetUpdateManager.requestFullUpdate(false)
@@ -1455,16 +1555,50 @@ class MusicService : MediaLibraryService() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            Timber.tag(TAG).e(error, "Error en el reproductor: ")
-            serviceScope.launch {
-                val currentMediaItem = mediaSession?.player?.currentMediaItem
-                val trackTitle = currentMediaItem?.mediaMetadata?.title?.toString()
-                    ?: currentMediaItem?.mediaId
-                    ?: getString(R.string.common_unknown_track)
-                val errorMessage = error.localizedMessage ?: error.message ?: "Unknown error"
-                val toastMessage = getString(R.string.player_playback_error, "$trackTitle ($errorMessage)")
-                android.widget.Toast.makeText(this@MusicService, toastMessage, android.widget.Toast.LENGTH_LONG).show()
+            val player = mediaSession?.player ?: engine.masterPlayer
+            val currentItem = player.currentMediaItem
+            val permalink = soundCloudPermalink(currentItem)
+            val mediaId = currentItem?.mediaId.orEmpty()
+            if (currentItem != null && !permalink.isNullOrBlank() && soundCloudRefreshAttempted.add(mediaId)) {
+                serviceScope.launch {
+                    val refreshed = refreshSoundCloudItem(currentItem, permalink)
+                    withContext(Dispatchers.Main.immediate) {
+                        val sameTrack = player.currentMediaItem?.mediaId == mediaId
+                        val oldUri = currentItem.localConfiguration?.uri
+                        val newUri = refreshed.localConfiguration?.uri
+                        if (sameTrack && newUri != null && newUri != oldUri) {
+                            player.replaceMediaItem(player.currentMediaItemIndex, refreshed)
+                            player.prepare()
+                            player.play()
+                        } else {
+                            skipUnplayableItem(player, error)
+                        }
+                    }
+                }
+                return
             }
+            val watchUrl = youtubeWatchUrl(currentItem)
+            val attempts = youtubeRefreshAttempts[mediaId] ?: 0
+            if (currentItem != null && !watchUrl.isNullOrBlank() && attempts < MAX_YOUTUBE_REFRESH_ATTEMPTS) {
+                youtubeRefreshAttempts[mediaId] = attempts + 1
+                serviceScope.launch {
+                    val refreshed = refreshYoutubeItem(currentItem, watchUrl)
+                    withContext(Dispatchers.Main.immediate) {
+                        val sameTrack = player.currentMediaItem?.mediaId == mediaId
+                        val oldUri = currentItem.localConfiguration?.uri
+                        val newUri = refreshed.localConfiguration?.uri
+                        if (sameTrack && newUri != null && newUri != oldUri) {
+                            player.replaceMediaItem(player.currentMediaItemIndex, refreshed)
+                            player.prepare()
+                            player.play()
+                        } else {
+                            skipUnplayableItem(player, error)
+                        }
+                    }
+                }
+                return
+            }
+            skipUnplayableItem(player, error)
         }
     }
 
@@ -1689,6 +1823,10 @@ class MusicService : MediaLibraryService() {
                     albumTitle = metadata.albumTitle?.toString(),
                     artworkUri = resolveStoredArtworkUriString(metadata),
                     durationMs = durationMs,
+                    soundCloudPermalink = metadata.extras?.getString(SoundCloudClient.EXTRA_PERMALINK)
+                        ?: SoundCloudClient.permalinkForSongId(mediaItem.mediaId),
+                    youtubeWatchUrl = metadata.extras?.getString(com.theveloper.pixelplay.youtube.YoutubeClient.EXTRA_WATCH_URL)
+                        ?: com.theveloper.pixelplay.youtube.YoutubeClient.watchUrlForSongId(mediaItem.mediaId),
                 )
             )
         }
@@ -1760,7 +1898,7 @@ class MusicService : MediaLibraryService() {
             else -> 0
         }
 
-        val preparedItems = restoredItems.toMutableList()
+        val preparedItems = refreshYoutubeQueue(refreshSoundCloudQueue(restoredItems)).toMutableList()
         preparedItems.getOrNull(resolvedIndex)?.let { currentItem ->
             val resolvedCurrentItem = runCatching { engine.resolveMediaItem(currentItem) }.getOrNull()
             if (resolvedCurrentItem != null && resolvedCurrentItem != currentItem) {
@@ -1840,6 +1978,14 @@ class MusicService : MediaLibraryService() {
             snapshotItem.durationMs?.takeIf { it > 0L }?.let {
                 putLong(MediaItemBuilder.EXTERNAL_EXTRA_DURATION, it)
             }
+            snapshotItem.soundCloudPermalink?.takeIf { it.isNotBlank() }?.let { permalink ->
+                putString(SoundCloudClient.EXTRA_PERMALINK, permalink)
+                SoundCloudClient.rememberPermalink(snapshotItem.mediaId, permalink)
+            }
+            snapshotItem.youtubeWatchUrl?.takeIf { it.isNotBlank() }?.let { watchUrl ->
+                putString(com.theveloper.pixelplay.youtube.YoutubeClient.EXTRA_WATCH_URL, watchUrl)
+                com.theveloper.pixelplay.youtube.YoutubeClient.rememberWatchUrl(snapshotItem.mediaId, watchUrl)
+            }
         }
         metadataBuilder.setExtras(extras)
 
@@ -1848,6 +1994,115 @@ class MusicService : MediaLibraryService() {
             .setUri(MediaItemBuilder.playbackUri(snapshotItem.uri))
             .setMediaMetadata(metadataBuilder.build())
             .build()
+            .let(MediaItemBuilder::withSoundCloudPermalink)
+            .let(MediaItemBuilder::withYoutubeWatchUrl)
+    }
+
+    private fun soundCloudPermalink(item: MediaItem?): String? {
+        if (item == null) return null
+        if (item.mediaId.startsWith("sc_dl_")) return null
+        return item.mediaMetadata.extras?.getString(SoundCloudClient.EXTRA_PERMALINK)
+            ?: SoundCloudClient.permalinkForSongId(item.mediaId)
+    }
+
+    private fun youtubeWatchUrl(item: MediaItem?): String? {
+        if (item == null) return null
+        return item.mediaMetadata.extras?.getString(com.theveloper.pixelplay.youtube.YoutubeClient.EXTRA_WATCH_URL)
+            ?: com.theveloper.pixelplay.youtube.YoutubeClient.watchUrlForSongId(item.mediaId)
+    }
+
+    private suspend fun refreshYoutubeQueue(items: List<MediaItem>): List<MediaItem> = coroutineScope {
+        items.map { item ->
+            async(Dispatchers.IO) {
+                val watchUrl = youtubeWatchUrl(item) ?: return@async item
+                refreshYoutubeItem(item, watchUrl)
+            }
+        }.awaitAll()
+    }
+
+    private fun prepareUpcomingYoutubeItem(player: Player) {
+        val nextIndex = player.nextMediaItemIndex
+        if (nextIndex == C.INDEX_UNSET || nextIndex == player.currentMediaItemIndex) return
+        val next = runCatching { player.getMediaItemAt(nextIndex) }.getOrNull() ?: return
+        val watchUrl = youtubeWatchUrl(next) ?: return
+        val currentUri = next.localConfiguration?.uri?.toString().orEmpty()
+        if (isYoutubeStreamUrl(currentUri)) return
+        val mediaId = next.mediaId
+        if (!youtubePrepareStarted.add(mediaId)) return
+        serviceScope.launch {
+            val refreshed = refreshYoutubeItem(next, watchUrl)
+            withContext(Dispatchers.Main.immediate) {
+                val index = (0 until player.mediaItemCount).firstOrNull { itemIndex ->
+                    runCatching { player.getMediaItemAt(itemIndex).mediaId }.getOrNull() == mediaId
+                } ?: return@withContext
+                if (index == player.currentMediaItemIndex) return@withContext
+                val existing = player.getMediaItemAt(index).localConfiguration?.uri
+                val updated = refreshed.localConfiguration?.uri
+                if (updated != null && updated != existing) {
+                    player.replaceMediaItem(index, refreshed)
+                }
+            }
+        }
+    }
+
+    private fun isYoutubeStreamUrl(uri: String): Boolean {
+        return uri.contains("googlevideo.com") || uri.contains("videoplayback")
+    }
+
+    private suspend fun refreshYoutubeItem(item: MediaItem, watchUrl: String): MediaItem =
+        withContext(Dispatchers.IO) {
+            val currentUri = item.localConfiguration?.uri?.toString()
+            val streamUrl = runCatching {
+                youtubeClient.resolveTrack(watchUrl, avoidStreamUrl = currentUri).streamUrl
+            }.getOrNull()
+            if (streamUrl.isNullOrBlank() || streamUrl == currentUri) return@withContext item
+            val refreshed = item.buildUpon().setUri(streamUrl).build()
+            MediaItemBuilder.withYoutubeWatchUrl(refreshed)
+        }
+
+    private suspend fun refreshSoundCloudQueue(items: List<MediaItem>): List<MediaItem> = coroutineScope {
+        items.map { item ->
+            async(Dispatchers.IO) {
+                val permalink = soundCloudPermalink(item) ?: return@async item
+                refreshSoundCloudItem(item, permalink)
+            }
+        }.awaitAll()
+    }
+
+    private suspend fun refreshSoundCloudItem(item: MediaItem, permalink: String): MediaItem =
+        withContext(Dispatchers.IO) {
+            val streamUrl = runCatching { soundCloudClient.resolveTrack(permalink).streamUrl }.getOrNull()
+            if (streamUrl.isNullOrBlank()) return@withContext item
+            val refreshed = item.buildUpon().setUri(streamUrl).build()
+            MediaItemBuilder.withSoundCloudPermalink(refreshed)
+        }
+
+    private fun skipUnplayableItem(player: Player, error: PlaybackException) {
+        val nextIndex = player.nextMediaItemIndex
+        val canSkipToAnother = nextIndex != C.INDEX_UNSET && nextIndex != player.currentMediaItemIndex
+        if (canSkipToAnother && consecutivePlaybackErrorSkips < MAX_PLAYBACK_ERROR_SKIPS) {
+            consecutivePlaybackErrorSkips++
+            Timber.tag(TAG).w(
+                error,
+                "Skipping unplayable item (%d)",
+                consecutivePlaybackErrorSkips,
+            )
+            player.seekToNextMediaItem()
+            player.prepare()
+            player.play()
+            return
+        }
+        consecutivePlaybackErrorSkips = 0
+        Timber.tag(TAG).e(error, "Error en el reproductor: ")
+        serviceScope.launch {
+            val currentMediaItem = mediaSession?.player?.currentMediaItem
+            val trackTitle = currentMediaItem?.mediaMetadata?.title?.toString()
+                ?: currentMediaItem?.mediaId
+                ?: getString(R.string.common_unknown_track)
+            val errorMessage = error.localizedMessage ?: error.message ?: "Unknown error"
+            val toastMessage = getString(R.string.player_playback_error, "$trackTitle ($errorMessage)")
+            android.widget.Toast.makeText(this@MusicService, toastMessage, android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun getOpenAppPendingIntent(): PendingIntent {

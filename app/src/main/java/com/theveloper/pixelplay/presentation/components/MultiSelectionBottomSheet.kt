@@ -106,7 +106,9 @@ fun MultiSelectionBottomSheet(
     onToggleLikeAll: (shouldLike: Boolean) -> Unit,
     onShareAll: () -> Unit,
     onDeleteAll: (activity: Activity, onResult: (Boolean) -> Unit) -> Unit,
-    onBatchEdit: () -> Unit
+    onBatchEdit: () -> Unit,
+    showBatchEdit: Boolean = true,
+    showDelete: Boolean = true,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -216,23 +218,24 @@ fun MultiSelectionBottomSheet(
 
                     Spacer(Modifier.width(10.dp))
 
-                    //Batch edit button
-                    FilledTonalIconButton(
-                        modifier = Modifier
-                            .height(74.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceBright,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        onClick = {
-                            onBatchEdit()
-                        },
-                    ) {
-                        Icon(
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = stringResource(R.string.song_info_cd_edit_metadata)
-                        )
+                    if (showBatchEdit) {
+                        FilledTonalIconButton(
+                            modifier = Modifier
+                                .height(74.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceBright,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            onClick = {
+                                onBatchEdit()
+                            },
+                        ) {
+                            Icon(
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = stringResource(R.string.song_info_cd_edit_metadata)
+                            )
+                        }
                     }
                 }
                 
@@ -274,7 +277,13 @@ fun MultiSelectionBottomSheet(
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 TightWrapText(
-                                    text = stringResource(R.string.song_info_action_play_all),
+                                    text = stringResource(
+                                        if (selectedSongs.size <= 1) {
+                                            R.string.song_info_action_play
+                                        } else {
+                                            R.string.song_info_action_play_all
+                                        }
+                                    ),
                                     modifier = Modifier.padding(end = 4.dp),
                                     overflow = TextOverflow.Ellipsis,
                                     maxLines = 2,
@@ -414,7 +423,7 @@ fun MultiSelectionBottomSheet(
                         ) {
                             FilledTonalButton(
                                 modifier = Modifier
-                                    .weight(0.5f)
+                                    .weight(if (showDelete) 0.5f else 1f)
                                     .heightIn(min = 66.dp),
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -440,38 +449,40 @@ fun MultiSelectionBottomSheet(
                                     lineHeight = 20.sp
                                 )
                             }
-                            
-                            FilledTonalButton(
-                                modifier = Modifier
-                                    .weight(0.5f)
-                                    .heightIn(min = 66.dp),
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                ),
-                                contentPadding = PaddingValues(horizontal = 10.dp),
-                                shape = CircleShape,
-                                onClick = {
-                                    val activity = (context as? Activity)
-                                    if (activity != null) {
-                                        onDeleteAll(activity) { success ->
-                                            if (success) onDismiss()
+
+                            if (showDelete) {
+                                FilledTonalButton(
+                                    modifier = Modifier
+                                        .weight(0.5f)
+                                        .heightIn(min = 66.dp),
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 10.dp),
+                                    shape = CircleShape,
+                                    onClick = {
+                                        val activity = (context as? Activity)
+                                        if (activity != null) {
+                                            onDeleteAll(activity) { success ->
+                                                if (success) onDismiss()
+                                            }
                                         }
                                     }
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Delete,
+                                        contentDescription = stringResource(R.string.song_info_action_delete_all)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    TightWrapText(
+                                        text = stringResource(R.string.song_info_action_delete_all),
+                                        modifier = Modifier.padding(end = 4.dp),
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 2,
+                                        lineHeight = 20.sp
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Delete,
-                                    contentDescription = stringResource(R.string.song_info_action_delete_all)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                TightWrapText(
-                                    text = stringResource(R.string.song_info_action_delete_all),
-                                    modifier = Modifier.padding(end = 4.dp),
-                                    overflow = TextOverflow.Ellipsis,
-                                    maxLines = 2,
-                                    lineHeight = 20.sp
-                                )
                             }
                         }
                     }

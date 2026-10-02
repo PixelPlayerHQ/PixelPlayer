@@ -182,7 +182,7 @@ class CastStateHolder @Inject constructor(
     }
     
     // MediaRouter State
-    private val mediaRouter: MediaRouter = MediaRouter.getInstance(context)
+    private val mediaRouter: MediaRouter by lazy { MediaRouter.getInstance(context) }
     private val mediaRouterCallback = object : MediaRouter.Callback() {
         override fun onRouteAdded(router: MediaRouter, route: MediaRouter.RouteInfo) {
             updateRoutes()
@@ -234,45 +234,60 @@ class CastStateHolder @Inject constructor(
         refreshRoutesJob?.cancel()
         refreshRoutesJob = scope.launch {
             _isRefreshingRoutes.value = true
-            mediaRouter.removeCallback(mediaRouterCallback)
-            val mediaRouteSelector = buildCastRouteSelector()
-            mediaRouter.addCallback(
-                mediaRouteSelector,
-                mediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN
-            )
-            updateRoutes()
-            syncSelectedRouteFromRouter(mediaRouter)
+            runCatching {
+                mediaRouter.removeCallback(mediaRouterCallback)
+                val mediaRouteSelector = buildCastRouteSelector()
+                mediaRouter.addCallback(
+                    mediaRouteSelector,
+                    mediaRouterCallback,
+                    MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN
+                )
+                updateRoutes()
+                syncSelectedRouteFromRouter(mediaRouter)
 
-            kotlinx.coroutines.delay(1800)
+                kotlinx.coroutines.delay(1800)
 
-            mediaRouter.removeCallback(mediaRouterCallback)
-            mediaRouter.addCallback(mediaRouteSelector, mediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
-            updateRoutes()
-            syncSelectedRouteFromRouter(mediaRouter)
+                mediaRouter.removeCallback(mediaRouterCallback)
+                mediaRouter.addCallback(mediaRouteSelector, mediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
+                updateRoutes()
+                syncSelectedRouteFromRouter(mediaRouter)
+            }.onFailure { error ->
+                Timber.tag(CAST_STATE_TAG).w(error, "Cast route refresh unavailable")
+            }
             _isRefreshingRoutes.value = false
         }
     }
 
     fun startDiscovery() {
-        val mediaRouteSelector = buildCastRouteSelector()
-        mediaRouter.addCallback(mediaRouteSelector, mediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
-        updateRoutes()
-        syncSelectedRouteFromRouter(mediaRouter)
+        runCatching {
+            val mediaRouteSelector = buildCastRouteSelector()
+            mediaRouter.addCallback(mediaRouteSelector, mediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY)
+            updateRoutes()
+            syncSelectedRouteFromRouter(mediaRouter)
+        }.onFailure { error ->
+            Timber.tag(CAST_STATE_TAG).w(error, "Cast discovery unavailable")
+        }
     }
 
     private fun updateRoutes() {
-        _castRoutes.value = mediaRouter.routes.filter { it.isCastRoute() }.distinctBy { it.id }
+        _castRoutes.value = runCatching {
+            mediaRouter.routes.filter { it.isCastRoute() }.distinctBy { it.id }
+        }.getOrDefault(emptyList())
     }
 
     private fun syncSelectedRouteFromRouter(router: MediaRouter) {
-        val selected = router.selectedRoute
-        _selectedRoute.value = selected
-        _routeVolume.value = selected.volume
+        runCatching {
+            val selected = router.selectedRoute
+            _selectedRoute.value = selected
+            _routeVolume.value = selected.volume
+        }
     }
 
     fun selectRoute(route: MediaRouter.RouteInfo) {
-        mediaRouter.selectRoute(route)
+        runCatching { mediaRouter.selectRoute(route) }
+            .onFailure { error ->
+                Timber.tag(CAST_STATE_TAG).w(error, "Cast route select unavailable")
+            }
     }
 
     fun setRouteVolume(volume: Int) {
@@ -281,14 +296,18 @@ class CastStateHolder @Inject constructor(
     }
     
     fun disconnect() {
-        mediaRouter.selectRoute(mediaRouter.defaultRoute)
-        syncSelectedRouteFromRouter(mediaRouter)
-        updateRoutes()
+        runCatching {
+            mediaRouter.selectRoute(mediaRouter.defaultRoute)
+            syncSelectedRouteFromRouter(mediaRouter)
+            updateRoutes()
+        }.onFailure { error ->
+            Timber.tag(CAST_STATE_TAG).w(error, "Cast disconnect unavailable")
+        }
     }
     
     fun onCleared() {
         refreshRoutesJob?.cancel()
-        mediaRouter.removeCallback(mediaRouterCallback)
+        runCatching { mediaRouter.removeCallback(mediaRouterCallback) }
     }
 
     init {

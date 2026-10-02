@@ -117,6 +117,14 @@ data class MimeTypeCountRow(
     val count: Int
 )
 
+/** Minimal song fingerprint used to detect the same track coming from different sources. */
+data class SongDuplicateKeyRow(
+    val id: Long,
+    val title: String,
+    val artistName: String,
+    val duration: Long
+)
+
 @Dao
 interface MusicDao {
 
@@ -237,6 +245,16 @@ interface MusicDao {
 
     @Query("DELETE FROM lyrics WHERE songId IN (:songIds)")
     suspend fun deleteLyricsBySongIds(songIds: List<Long>)
+
+    @Query("SELECT id AS id, title AS title, artist_name AS artistName, duration AS duration FROM songs WHERE source_type IN (:sourceTypes)")
+    suspend fun getSongDuplicateKeysBySourceTypes(sourceTypes: List<Int>): List<SongDuplicateKeyRow>
+
+    @Query("""
+        INSERT OR IGNORE INTO favorites (songId, isFavorite, timestamp)
+        SELECT :toSongId, isFavorite, timestamp FROM favorites
+        WHERE songId = :fromSongId AND isFavorite = 1
+    """)
+    suspend fun copyFavorite(fromSongId: Long, toSongId: Long)
 
     @Query("SELECT id FROM songs WHERE source_type = 1")
     suspend fun getAllTelegramSongIds(): List<Long>

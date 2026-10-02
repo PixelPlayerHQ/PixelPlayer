@@ -16,6 +16,7 @@ import com.theveloper.pixelplay.data.database.SongEntity
 import com.theveloper.pixelplay.data.database.SourceType
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.repository.CloudDuplicateFilter
 import com.theveloper.pixelplay.data.stream.CloudMusicUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class GDriveRepository @Inject constructor(
     private val api: GDriveApiService,
     private val dao: GDriveDao,
     private val musicDao: MusicDao,
+    private val cloudDuplicateFilter: CloudDuplicateFilter,
     @ApplicationContext private val context: Context
 ) {
     data class BulkSyncResult(
@@ -378,14 +380,28 @@ class GDriveRepository @Inject constructor(
     // --- Unified Library Sync ---
 
     private suspend fun syncUnifiedLibrarySongsFromGDrive() {
-        val gdriveSongs = dao.getAllGDriveSongsList()
+        val allGdriveSongs = dao.getAllGDriveSongsList()
         val existingUnifiedGDriveIds = musicDao.getAllGDriveSongIds()
 
-        if (gdriveSongs.isEmpty()) {
+        if (allGdriveSongs.isEmpty()) {
             if (existingUnifiedGDriveIds.isNotEmpty()) {
                 musicDao.clearAllGDriveSongs()
             }
             return
+        }
+
+        val duplicateSession = cloudDuplicateFilter.startSession(SourceType.GDRIVE)
+        val gdriveSongs = if (duplicateSession != null) {
+            allGdriveSongs.sortedBy { it.driveFileId }.filter { song ->
+                duplicateSession.keep(
+                    toUnifiedSongId(song.driveFileId),
+                    song.title,
+                    song.artist,
+                    song.duration
+                )
+            }
+        } else {
+            allGdriveSongs
         }
 
         val songs = ArrayList<SongEntity>(gdriveSongs.size)
@@ -473,6 +489,7 @@ class GDriveRepository @Inject constructor(
         val currentUnifiedSongIds = songs.map { it.id }.toSet()
         val deletedUnifiedSongIds = existingUnifiedGDriveIds.filter { it !in currentUnifiedSongIds }
 
+        duplicateSession?.let { cloudDuplicateFilter.transferUserData(it) }
         musicDao.incrementalSyncMusicData(
             songs = songs,
             albums = finalAlbums,

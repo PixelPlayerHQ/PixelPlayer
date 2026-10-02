@@ -197,6 +197,23 @@ class PlaylistPreferencesRepository @Inject constructor(
         userPreferencesRepository.clearLegacyUserPlaylists()
     }
 
+    /**
+     * Rewrites playlist entries according to [replacements] (old song id -> new song id).
+     * An entry is dropped instead when its new id is already in that playlist.
+     */
+    suspend fun replaceSongIdsInAllPlaylists(replacements: Map<String, String>) {
+        if (replacements.isEmpty()) return
+        editMutex.withLock {
+            ensureMigratedIfNeeded()
+            userPlaylistsFlow.first().forEach { playlist ->
+                if (playlist.songIds.none { it in replacements }) return@forEach
+                updatePlaylistLocked(
+                    playlist.copy(songIds = replaceSongIds(playlist.songIds, replacements))
+                )
+            }
+        }
+    }
+
     suspend fun removeSongFromAllPlaylists(songId: String) {
         editMutex.withLock {
             ensureMigratedIfNeeded()
@@ -234,6 +251,21 @@ class PlaylistPreferencesRepository @Inject constructor(
                 }
             }
             migrationChecked = true
+        }
+    }
+
+    internal companion object {
+        fun replaceSongIds(songIds: List<String>, replacements: Map<String, String>): List<String> {
+            val present = songIds.filterTo(HashSet()) { it !in replacements }
+            val result = ArrayList<String>(songIds.size)
+            songIds.forEach { id ->
+                val replacement = replacements[id]
+                when {
+                    replacement == null -> result.add(id)
+                    present.add(replacement) -> result.add(replacement)
+                }
+            }
+            return result
         }
     }
 }

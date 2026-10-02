@@ -437,6 +437,13 @@ fun SettingsCategoryScreen(
                             }
 
                             SettingsSubsection(title = stringResource(R.string.settings_filtering_section)) {
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_skip_duplicate_songs_title),
+                                    subtitle = stringResource(R.string.settings_skip_duplicate_songs_subtitle),
+                                    checked = uiState.skipDuplicateSongs,
+                                    onCheckedChange = { settingsViewModel.setSkipDuplicateSongs(it) },
+                                    leadingIcon = { Icon(Icons.Outlined.ClearAll, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
                                 SliderSettingsItem(
                                     label = stringResource(R.string.settings_min_song_duration),
                                     value = minSongDurationDraft,

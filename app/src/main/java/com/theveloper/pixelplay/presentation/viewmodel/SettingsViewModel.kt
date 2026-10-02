@@ -79,6 +79,7 @@ data class SettingsUiState(
     val folderBackGestureNavigation: Boolean = true,
     val lyricsSourcePreference: LyricsSourcePreference = LyricsSourcePreference.EMBEDDED_FIRST,
     val autoScanLrcFiles: Boolean = false,
+    val skipDuplicateSongs: Boolean = false,
     val blockedDirectories: Set<String> = emptySet(),
     val availableModels: List<GeminiModel> = emptyList(),
     val isLoadingModels: Boolean = false,
@@ -165,6 +166,7 @@ private sealed interface SettingsUiUpdate {
         val folderBackGestureNavigation: Boolean,
         val lyricsSourcePreference: LyricsSourcePreference,
         val autoScanLrcFiles: Boolean,
+        val skipDuplicateSongs: Boolean,
         val blockedDirectories: Set<String>,
         val hapticsEnabled: Boolean,
         val immersiveLyricsEnabled: Boolean,
@@ -665,7 +667,8 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.animatedLyricsBlurEnabledFlow,
                 userPreferencesRepository.animatedLyricsBlurStrengthFlow,
                 userPreferencesRepository.disableBlurAllOverFlow,
-                userPreferencesRepository.showScrollbarFlow
+                userPreferencesRepository.showScrollbarFlow,
+                userPreferencesRepository.skipDuplicateSongsFlow
             ) { values ->
                 SettingsUiUpdate.Group2(
                     keepPlayingInBackground = values[0] as Boolean,
@@ -687,7 +690,8 @@ class SettingsViewModel @Inject constructor(
                     animatedLyricsBlurEnabled = values[16] as Boolean,
                     animatedLyricsBlurStrength = values[17] as Float,
                     disableBlurAllOver = values[18] as Boolean,
-                    showScrollbar = values[19] as Boolean
+                    showScrollbar = values[19] as Boolean,
+                    skipDuplicateSongs = values[20] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -704,6 +708,7 @@ class SettingsViewModel @Inject constructor(
                         folderBackGestureNavigation = update.folderBackGestureNavigation,
                         lyricsSourcePreference = update.lyricsSourcePreference,
                         autoScanLrcFiles = update.autoScanLrcFiles,
+                        skipDuplicateSongs = update.skipDuplicateSongs,
                         blockedDirectories = update.blockedDirectories,
                         hapticsEnabled = update.hapticsEnabled,
                         immersiveLyricsEnabled = update.immersiveLyricsEnabled,
@@ -1027,6 +1032,15 @@ class SettingsViewModel @Inject constructor(
     fun setAutoScanLrcFiles(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setAutoScanLrcFiles(enabled)
+        }
+    }
+
+    fun setSkipDuplicateSongs(enabled: Boolean) {
+        viewModelScope.launch {
+            if (enabled == _uiState.value.skipDuplicateSongs) return@launch
+            userPreferencesRepository.setSkipDuplicateSongs(enabled)
+            // Cloud songs are merged into the library during a full sync, so rescan to apply.
+            syncManager.fullSync()
         }
     }
 

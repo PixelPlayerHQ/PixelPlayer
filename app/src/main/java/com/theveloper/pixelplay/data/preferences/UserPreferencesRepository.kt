@@ -207,6 +207,7 @@ class UserPreferencesRepository @Inject constructor(
         val LYRICS_SYNC_OFFSETS = stringPreferencesKey("lyrics_sync_offsets_json")
         val LYRICS_SOURCE_PREFERENCE = stringPreferencesKey("lyrics_source_preference")
         val AUTO_SCAN_LRC_FILES = booleanPreferencesKey("auto_scan_lrc_files")
+        val SKIP_DUPLICATE_SONGS = booleanPreferencesKey("skip_duplicate_songs")
 
         // Developer options
         val ALBUM_ART_QUALITY = stringPreferencesKey("album_art_quality")
@@ -1097,6 +1098,13 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     suspend fun setAutoScanLrcFiles(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.AUTO_SCAN_LRC_FILES] = enabled }
+    }
+
+    val skipDuplicateSongsFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.SKIP_DUPLICATE_SONGS] ?: false }
+
+    suspend fun setSkipDuplicateSongs(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SKIP_DUPLICATE_SONGS] = enabled }
     }
 
     val immersiveLyricsEnabledFlow: Flow<Boolean> =

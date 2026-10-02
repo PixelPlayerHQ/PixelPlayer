@@ -18,6 +18,7 @@ import com.theveloper.pixelplay.data.database.SourceType
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.network.qqmusic.QqMusicApiService
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
+import com.theveloper.pixelplay.data.repository.CloudDuplicateFilter
 import com.theveloper.pixelplay.data.stream.BulkSyncResult
 import com.theveloper.pixelplay.data.stream.CloudMusicUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,6 +47,7 @@ class QqMusicRepository @Inject constructor(
     private val dao: QqMusicDao,
     private val musicDao: MusicDao,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
+    private val cloudDuplicateFilter: CloudDuplicateFilter,
     @ApplicationContext private val context: Context
 ) {
 
@@ -624,14 +626,28 @@ class QqMusicRepository @Inject constructor(
     // ─── Unified Library Sync ──────────────────────────────────────────
 
     private suspend fun syncUnifiedLibrarySongsFromQqMusic() {
-        val qqMusicSongs = dao.getAllQqMusicSongsList()
+        val allQqMusicSongs = dao.getAllQqMusicSongsList()
         val existingUnifiedIds = musicDao.getAllQqMusicSongIds()
 
-        if (qqMusicSongs.isEmpty()) {
+        if (allQqMusicSongs.isEmpty()) {
             if (existingUnifiedIds.isNotEmpty()) {
                 musicDao.clearAllQqMusicSongs()
             }
             return
+        }
+
+        val duplicateSession = cloudDuplicateFilter.startSession(SourceType.QQMUSIC)
+        val qqMusicSongs = if (duplicateSession != null) {
+            allQqMusicSongs.sortedBy { it.songMid }.filter { song ->
+                duplicateSession.keep(
+                    toUnifiedSongId(song.songMid),
+                    song.title,
+                    song.artist,
+                    song.duration
+                )
+            }
+        } else {
+            allQqMusicSongs
         }
 
         val songs = ArrayList<SongEntity>(qqMusicSongs.size)
@@ -719,6 +735,7 @@ class QqMusicRepository @Inject constructor(
         val currentUnifiedIds = songs.map { it.id }.toSet()
         val deletedUnifiedIds = existingUnifiedIds.filter { it !in currentUnifiedIds }
 
+        duplicateSession?.let { cloudDuplicateFilter.transferUserData(it) }
         musicDao.incrementalSyncMusicData(
             songs = songs,
             albums = finalAlbums,

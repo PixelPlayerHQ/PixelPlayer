@@ -20,6 +20,7 @@ import com.theveloper.pixelplay.data.model.ArtistRef
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.network.netease.NeteaseApiService
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
+import com.theveloper.pixelplay.data.repository.CloudDuplicateFilter
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.stream.BulkSyncResult
 import com.theveloper.pixelplay.data.stream.CloudMusicUtils
@@ -49,6 +50,7 @@ class NeteaseRepository @Inject constructor(
     private val dao: NeteaseDao,
     private val musicDao: MusicDao,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
+    private val cloudDuplicateFilter: CloudDuplicateFilter,
     @ApplicationContext private val context: Context
 ) {
     private companion object {
@@ -649,14 +651,28 @@ class NeteaseRepository @Inject constructor(
     }
 
     private suspend fun syncUnifiedLibrarySongsFromNetease() {
-        val neteaseSongs = dao.getAllNeteaseSongsList()
+        val allNeteaseSongs = dao.getAllNeteaseSongsList()
         val existingUnifiedNeteaseIds = musicDao.getAllNeteaseSongIds()
 
-        if (neteaseSongs.isEmpty()) {
+        if (allNeteaseSongs.isEmpty()) {
             if (existingUnifiedNeteaseIds.isNotEmpty()) {
                 musicDao.clearAllNeteaseSongs()
             }
             return
+        }
+
+        val duplicateSession = cloudDuplicateFilter.startSession(SourceType.NETEASE)
+        val neteaseSongs = if (duplicateSession != null) {
+            allNeteaseSongs.sortedBy { it.neteaseId }.filter { song ->
+                duplicateSession.keep(
+                    toUnifiedSongId(song.neteaseId),
+                    song.title,
+                    song.artist,
+                    song.duration
+                )
+            }
+        } else {
+            allNeteaseSongs
         }
 
         val songs = ArrayList<SongEntity>(neteaseSongs.size)
@@ -753,6 +769,7 @@ class NeteaseRepository @Inject constructor(
         val currentUnifiedSongIds = songs.map { it.id }.toSet()
         val deletedUnifiedSongIds = existingUnifiedNeteaseIds.filter { it !in currentUnifiedSongIds }
 
+        duplicateSession?.let { cloudDuplicateFilter.transferUserData(it) }
         musicDao.incrementalSyncMusicData(
             songs = songs,
             albums = finalAlbums,

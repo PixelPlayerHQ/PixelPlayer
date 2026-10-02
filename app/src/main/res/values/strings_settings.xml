@@ -41,6 +41,8 @@
     <string name="settings_artists_title">Artists</string>
     <string name="settings_artists_subtitle">Multi-artist parsing and organization options.</string>
     <string name="settings_filtering_section">Filtering</string>
+    <string name="settings_skip_duplicate_songs_title">Hide duplicate songs</string>
+    <string name="settings_skip_duplicate_songs_subtitle">Don\'t show a cloud song when the same track already exists on your device or was already added from another source.</string>
     <string name="settings_min_song_duration">Minimum Song Duration</string>
     <string name="settings_min_tracks_per_album">Minimum Tracks per Album</string>
     <string name="settings_album_art_cache_limit">Album Art Cache Limit</string>

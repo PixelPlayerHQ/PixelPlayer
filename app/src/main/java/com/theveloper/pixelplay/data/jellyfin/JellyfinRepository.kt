@@ -22,6 +22,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.network.jellyfin.JellyfinApiService
 import com.theveloper.pixelplay.data.network.jellyfin.JellyfinResponseParser
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
+import com.theveloper.pixelplay.data.repository.CloudDuplicateFilter
 import com.theveloper.pixelplay.data.stream.BulkSyncResult
 import com.theveloper.pixelplay.data.stream.CloudMusicUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -45,6 +46,7 @@ class JellyfinRepository @Inject constructor(
     private val dao: JellyfinDao,
     private val musicDao: MusicDao,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
+    private val cloudDuplicateFilter: CloudDuplicateFilter,
     @ApplicationContext private val context: Context
 ) {
     private companion object {
@@ -470,14 +472,28 @@ class JellyfinRepository @Inject constructor(
     // ─── Unified Library Sync ──────────────────────────────────────────────
 
     suspend fun syncUnifiedLibrarySongsFromJellyfin() {
-        val jellyfinSongs = dao.getAllJellyfinSongsList()
+        val allJellyfinSongs = dao.getAllJellyfinSongsList()
         val existingUnifiedIds = musicDao.getAllJellyfinSongIds()
 
-        if (jellyfinSongs.isEmpty()) {
+        if (allJellyfinSongs.isEmpty()) {
             if (existingUnifiedIds.isNotEmpty()) {
                 musicDao.clearAllJellyfinSongs()
             }
             return
+        }
+
+        val duplicateSession = cloudDuplicateFilter.startSession(SourceType.JELLYFIN)
+        val jellyfinSongs = if (duplicateSession != null) {
+            allJellyfinSongs.sortedBy { it.jellyfinId }.filter { song ->
+                duplicateSession.keep(
+                    toUnifiedSongId(song.jellyfinId),
+                    song.title,
+                    song.artist,
+                    song.duration
+                )
+            }
+        } else {
+            allJellyfinSongs
         }
 
         val songs = ArrayList<SongEntity>(jellyfinSongs.size)
@@ -566,6 +582,7 @@ class JellyfinRepository @Inject constructor(
         val currentUnifiedIds = songs.map { it.id }.toSet()
         val deletedUnifiedIds = existingUnifiedIds.filter { it !in currentUnifiedIds }
 
+        duplicateSession?.let { cloudDuplicateFilter.transferUserData(it) }
         musicDao.incrementalSyncMusicData(
             songs = songs,
             albums = finalAlbums,

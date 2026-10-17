@@ -128,7 +128,6 @@ import com.theveloper.pixelplay.presentation.components.subcomps.FetchLyricsDial
 import com.theveloper.pixelplay.presentation.viewmodel.LyricsSearchUiState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
-import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.AudioMetaUtils.mimeTypeToFormat
 import com.theveloper.pixelplay.utils.LyricsImportFailureReason
 import com.theveloper.pixelplay.utils.LyricsImportSecurity
@@ -956,10 +955,7 @@ fun FullPlayerContent(
             onDismissLyricsSearch = { playerViewModel.resetLyricsSearchState() },
             lyricsSyncOffset = lyricsSyncOffset,
             onLyricsSyncOffsetChange = { currentSong?.id?.let { songId -> playerViewModel.setLyricsSyncOffset(songId, it) } },
-            // Use the platform default font (fontFamily = null) for lyrics so extended
-            // Unicode glyphs (e.g. Icelandic æ ð þ) render instead of tofu. The bundled
-            // Google Sans Rounded variable font drops these codepoints at runtime. (#2427)
-            lyricsTextStyle = MaterialTheme.typography.titleLarge.copy(fontFamily = null),
+            lyricsTextStyle = MaterialTheme.typography.titleLarge,
             colorScheme = LocalMaterialTheme.current,
             onBackClick = { showLyricsSheet = false },
             onSaveLyricsToFile = playerViewModel::saveLyricsToFile,
@@ -2151,7 +2147,6 @@ private fun PlayerSongInfo(
     }
     val titleStyle = MaterialTheme.typography.headlineSmall.copy(
         fontWeight = FontWeight.Bold,
-        fontFamily = GoogleSansRounded,
         color = textColor
     )
 

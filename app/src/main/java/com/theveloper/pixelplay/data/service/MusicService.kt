@@ -1109,11 +1109,23 @@ class MusicService : MediaLibraryService() {
                     widgetUpdateManager.requestFullUpdate(true)
                 }
                 PlayerActions.NEXT -> {
+                    val shouldResumePlayback =
+                        !player.playWhenReady && !player.isPlaying && player.hasNextMediaItem()
                     player.seekToNext()
+                    if (shouldResumePlayback) player.play()
                     widgetUpdateManager.requestFullUpdate(true)
                 }
                 PlayerActions.PREVIOUS -> {
-                    player.seekToPrevious()
+                    val shouldRestartCurrent = player.currentPosition > 10_000L
+                    val shouldResumePlayback =
+                        !player.playWhenReady && !player.isPlaying &&
+                            !shouldRestartCurrent && player.hasPreviousMediaItem()
+                    if (shouldRestartCurrent) {
+                        player.seekTo(0)
+                    } else {
+                        player.seekToPrevious()
+                    }
+                    if (shouldResumePlayback) player.play()
                     widgetUpdateManager.requestFullUpdate(true)
                 }
                 PlayerActions.FAVORITE -> {

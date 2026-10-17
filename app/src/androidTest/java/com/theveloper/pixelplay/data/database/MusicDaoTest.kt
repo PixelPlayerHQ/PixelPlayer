@@ -74,6 +74,159 @@ class MusicDaoTest {
         return ArtistEntity(id = id, name = name, trackCount = 10, imageUrl = null)
     }
 
+    // --- Artist de-duplication (case / whitespace variants) ---
+
+    @Test
+    @Throws(Exception::class)
+    fun mergeDuplicateArtistsCollapsesCaseVariantsAndKeepsSongs() = runTest {
+        // Three rows for one human, which is exactly what the old raw-name
+        // lookup in SyncWorker produced over successive scans.
+        musicDao.insertArtists(
+            listOf(
+                createArtistEntity(1L, "Beyoncé"),
+                createArtistEntity(2L, "beyonce"),
+                createArtistEntity(3L, "  BEYONCE  ")
+            )
+        )
+        musicDao.insertSongs(
+            listOf(
+                createSongEntity(11L, "Halo", "Beyoncé", "I Am", "/music/a/halo.mp3"),
+                createSongEntity(12L, "Irreplaceable", "beyonce", "I Am", "/music/a/irreplaceable.mp3")
+            )
+        )
+        musicDao.insertSongArtistCrossRefs(
+            listOf(
+                SongArtistCrossRef(11L, 1L, isPrimary = true),
+                SongArtistCrossRef(12L, 2L, isPrimary = true)
+            )
+        )
+
+        db.mergeDuplicateArtists()
+
+        val artists = db.musicDao().getAllArtistsListRaw()
+        assertEquals(1, artists.size)
+        // Lowest id survives.
+        assertEquals(1L, artists.first().id)
+
+        // Both songs survive and now point at the surviving artist.
+        val songs = musicDao.getSongsForArtistList(1L)
+        assertEquals(setOf(11L, 12L), songs.map { it.id }.toSet())
+        assertEquals(1L, songs.first().artistId)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun mergeDuplicateArtistsPreservesArtworkFromTheDuplicate() = runTest {
+        // The survivor has no image but a duplicate does; the merge must not cost
+        // the user their artist artwork.
+        musicDao.insertArtists(
+            listOf(
+                createArtistEntity(1L, "Radiohead"),
+                ArtistEntity(id = 2L, name = "radiohead", trackCount = 4, imageUrl = "https://img/radiohead.jpg")
+            )
+        )
+
+        db.mergeDuplicateArtists()
+
+        val survivor = musicDao.getArtistsByIds(listOf(1L)).single()
+        assertEquals("https://img/radiohead.jpg", survivor.imageUrl)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun mergeDuplicateArtistsIsIdempotent() = runTest {
+        musicDao.insertArtists(
+            listOf(
+                createArtistEntity(1L, "Aphex Twin"),
+                createArtistEntity(2L, "aphex twin")
+            )
+        )
+        musicDao.insertSongs(
+            listOf(createSongEntity(21L, "Xtal", "Aphex Twin", "SAW", "/music/a/xtal.mp3"))
+        )
+        musicDao.insertSongArtistCrossRefs(listOf(SongArtistCrossRef(21L, 2L, isPrimary = true)))
+
+        db.mergeDuplicateArtists()
+        val afterFirst = musicDao.getAllArtistsListRaw()
+        val refsAfterFirst = musicDao.getCrossRefsForSong(21L)
+
+        db.mergeDuplicateArtists()
+        val afterSecond = musicDao.getAllArtistsListRaw()
+        val refsAfterSecond = musicDao.getCrossRefsForSong(21L)
+
+        assertEquals(afterFirst.map { it.id }, afterSecond.map { it.id })
+        assertEquals(refsAfterFirst, refsAfterSecond)
+        assertEquals(1, afterSecond.size)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun mergeDuplicateArtistsLeavesDistinctNamesAlone() = runTest {
+        // "The Beatles" and "Beatles" are different artists and must not merge.
+        musicDao.insertArtists(
+            listOf(
+                createArtistEntity(1L, "The Beatles"),
+                createArtistEntity(2L, "Beatles")
+            )
+        )
+
+        db.mergeDuplicateArtists()
+
+        assertEquals(2, musicDao.getAllArtistsListRaw().size)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun mergeDuplicateArtistsDropsRedundantCrossRefWhenSongIsCreditedToBothDuplicates() = runTest {
+        // (song_id, artist_id) is a composite primary key, so re-pointing the
+        // loser's ref must not create a duplicate for the survivor.
+        musicDao.insertArtists(
+            listOf(
+                createArtistEntity(1L, "Portishead"),
+                createArtistEntity(2L, "PORTISHEAD")
+            )
+        )
+        musicDao.insertSongs(
+            listOf(createSongEntity(31L, "Roads", "Portishead", "Dummy", "/music/a/roads.mp3"))
+        )
+        musicDao.insertSongArtistCrossRefs(
+            listOf(
+                SongArtistCrossRef(31L, 1L, isPrimary = true),
+                SongArtistCrossRef(31L, 2L, isPrimary = false)
+            )
+        )
+
+        db.mergeDuplicateArtists()
+
+        val refs = musicDao.getCrossRefsForSong(31L)
+        assertEquals(1, refs.size)
+        assertEquals(1L, refs.first().artistId)
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun recomputeAllArtistTrackCountsReflectsCrossRefs() = runTest {
+        musicDao.insertArtists(listOf(createArtistEntity(1L, "Massive Attack")))
+        musicDao.insertSongs(
+            listOf(
+                createSongEntity(41L, "Teardrop", "Massive Attack", "Mezzanine", "/music/a/teardrop.mp3"),
+                createSongEntity(42L, "Angel", "Massive Attack", "Mezzanine", "/music/a/angel.mp3")
+            )
+        )
+        musicDao.insertSongArtistCrossRefs(
+            listOf(
+                SongArtistCrossRef(41L, 1L, isPrimary = true),
+                SongArtistCrossRef(42L, 1L, isPrimary = true)
+            )
+        )
+        // The helper seeds a deliberately wrong count.
+        musicDao.insertArtists(listOf(createArtistEntity(1L, "Massive Attack").copy(trackCount = 99)))
+
+        musicDao.recomputeAllArtistTrackCounts()
+
+        assertEquals(2, musicDao.getArtistsByIds(listOf(1L)).single().trackCount)
+    }
+
     @Test
     @Throws(Exception::class)
     fun insertAndGetSongs() = runTest {

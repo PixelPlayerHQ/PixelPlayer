@@ -24,6 +24,7 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.worker.collectArtistNames
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.LocalArtworkUri
+import com.theveloper.pixelplay.utils.artistNameKey
 import com.theveloper.pixelplay.utils.MediaStorePermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first // Added
@@ -158,8 +159,19 @@ class SongMetadataEditor(
         discNumber: Int?
     ) {
         val existingArtists = musicDao.getAllArtistsListRaw()
+        // Keyed by artistNameKey(), the same canonical key SyncWorker uses. This
+        // method used to normalise inline (trim().lowercase()) while SyncWorker
+        // used the raw name, so the two disagreed and a resync would create a
+        // second row for an artist a tag edit had just merged.
         val existingByNormalizedName =
-            existingArtists.associateBy { it.name.trim().lowercase(Locale.ROOT) }.toMutableMap()
+            LinkedHashMap<String, ArtistEntity>(existingArtists.size)
+        val displayNameByKey = HashMap<String, String>(existingArtists.size)
+        existingArtists.sortedBy { it.id }.forEach { artist ->
+            val key = artistNameKey(artist.name)
+            if (key.isEmpty()) return@forEach
+            existingByNormalizedName.putIfAbsent(key, artist)
+            displayNameByKey.putIfAbsent(key, artist.name)
+        }
         var nextArtistId = (musicDao.getMaxArtistId() ?: 0L) + 1L
 
         val artistDelimiters = userPreferencesRepository.artistDelimitersFlow.first()
@@ -179,9 +191,9 @@ class SongMetadataEditor(
 
         val artistsToEnsure = mutableListOf<ArtistEntity>()
         val artistRefs = artistNames.mapIndexed { index, rawName ->
-            val normalizedName = rawName.trim()
-            val normalizedKey = normalizedName.lowercase(Locale.ROOT)
-            val existingArtist = existingByNormalizedName[normalizedKey]
+            val incomingName = rawName.trim()
+            val key = artistNameKey(incomingName)
+            val existingArtist = existingByNormalizedName[key]
             val artistId =
                 if (existingArtist != null) {
                     existingArtist.id
@@ -189,19 +201,22 @@ class SongMetadataEditor(
                     val newId = nextArtistId++
                     val newArtist = ArtistEntity(
                         id = newId,
-                        name = normalizedName,
+                        name = incomingName,
                         trackCount = 0,
                         imageUrl = null,
                         customImageUri = null
                     )
-                    existingByNormalizedName[normalizedKey] = newArtist
+                    existingByNormalizedName[key] = newArtist
+                    displayNameByKey.putIfAbsent(key, incomingName)
                     artistsToEnsure += newArtist
                     newId
                 }
 
             ArtistRef(
                 id = artistId,
-                name = normalizedName,
+                // Preserve the artist's existing display casing rather than
+                // rewriting it from this tag.
+                name = displayNameByKey[key] ?: incomingName,
                 isPrimary = index == 0
             )
         }.filter { it.name.isNotEmpty() }

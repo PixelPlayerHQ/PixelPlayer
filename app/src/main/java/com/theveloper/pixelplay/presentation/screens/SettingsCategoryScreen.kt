@@ -771,6 +771,22 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
+                            SettingsSubsection(title = stringResource(R.string.settings_miniplayer_swipe_section)) {
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_miniplayer_swipe_dismiss_title),
+                                    subtitle = stringResource(R.string.settings_miniplayer_swipe_dismiss_subtitle),
+                                    checked = uiState.dismissMiniPlayerOnSwipe,
+                                    onCheckedChange = settingsViewModel::setDismissMiniPlayerOnSwipe,
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_touch_app_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                )
+                            }
+
                             SettingsSubsection(title = stringResource(R.string.settings_replaygain_section)) {
                                 SwitchSettingItem(
                                     title = stringResource(R.string.settings_replaygain_enable_title),

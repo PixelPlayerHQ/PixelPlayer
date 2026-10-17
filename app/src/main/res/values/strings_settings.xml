@@ -261,6 +261,9 @@
 
     <!-- Playback category -->
     <string name="settings_background_playback_section">Background Playback</string>
+    <string name="settings_miniplayer_swipe_section">Mini-player gestures</string>
+    <string name="settings_miniplayer_swipe_dismiss_title">Swipe to dismiss mini-player</string>
+    <string name="settings_miniplayer_swipe_dismiss_subtitle">When off, swipe left or right to change tracks. When on, swipe the mini-player away to dismiss the current queue.</string>
     <string name="settings_keep_playing_title">Keep playing after closing</string>
     <string name="settings_keep_playing_subtitle">If off, removing the app from recents will stop playback.</string>
     <string name="settings_battery_optimization_title">Battery Optimization</string>

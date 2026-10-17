@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -219,44 +220,50 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     val onRepeatToggle = remember(playerViewModel) { playerViewModel::cycleRepeatMode }
                     val onFavoriteToggle = remember(playerViewModel) { playerViewModel::toggleFavorite }
 
-                    FullPlayerContent(
-                        currentSong = currentSongNonNull,
-                        currentPlaybackQueue = currentPlaybackQueue,
-                        currentQueueSourceName = currentQueueSourceName,
-                        currentMediaItemIndex = infrequentPlayerState.currentMediaItemIndex,
-                        isShuffleEnabled = infrequentPlayerState.isShuffleEnabled,
-                        shuffleTransitionInProgress = infrequentPlayerState.isShuffleTransitionInProgress,
-                        repeatMode = infrequentPlayerState.repeatMode,
-                        allowRealtimeUpdates = fullPlayerRuntimePolicy.allowRealtimeUpdates,
-                        expansionFractionProvider = expansionFractionProvider,
-                        currentSheetState = currentSheetContentState,
-                        carouselStyle = carouselStyle,
-                        loadingTweaks = fullPlayerLoadingTweaks,
-                        isSheetDragGestureActive = isSheetDragGestureActive,
-                        playerViewModel = playerViewModel,
-                        currentPositionProvider = currentPositionProvider,
-                        isPlayingProvider = isPlayingProvider,
-                        playWhenReadyProvider = playWhenReadyProvider,
-                        repeatModeProvider = repeatModeProvider,
-                        isShuffleEnabledProvider = isShuffleEnabledProvider,
-                        totalDurationProvider = totalDurationProvider,
-                        lyricsProvider = lyricsProvider,
-                        isCastConnecting = isCastConnecting,
-                        isFavoriteProvider = isFavoriteProvider,
-                        onPlayPause = onPlayPause,
-                        onSeek = onSeek,
-                        onNext = onNext,
-                        onPrevious = onPrevious,
-                        onCollapse = onCollapse,
-                        onShowQueueClicked = onShowQueueClicked,
-                        onQueueDragStart = onQueueDragStart,
-                        onQueueDrag = onQueueDrag,
-                        onQueueRelease = onQueueRelease,
-                        onShowCastClicked = onShowCastClicked,
-                        onShuffleToggle = onShuffleToggle,
-                        onRepeatToggle = onRepeatToggle,
-                        onFavoriteToggle = onFavoriteToggle
-                    )
+                    MaterialTheme(
+                        colorScheme = MaterialTheme.colorScheme,
+                        typography = MaterialTheme.typography,
+                        shapes = MaterialTheme.shapes
+                    ) {
+                        FullPlayerContent(
+                            currentSong = currentSongNonNull,
+                            currentPlaybackQueue = currentPlaybackQueue,
+                            currentQueueSourceName = currentQueueSourceName,
+                            currentMediaItemIndex = infrequentPlayerState.currentMediaItemIndex,
+                            isShuffleEnabled = infrequentPlayerState.isShuffleEnabled,
+                            shuffleTransitionInProgress = infrequentPlayerState.isShuffleTransitionInProgress,
+                            repeatMode = infrequentPlayerState.repeatMode,
+                            allowRealtimeUpdates = fullPlayerRuntimePolicy.allowRealtimeUpdates,
+                            expansionFractionProvider = expansionFractionProvider,
+                            currentSheetState = currentSheetContentState,
+                            carouselStyle = carouselStyle,
+                            loadingTweaks = fullPlayerLoadingTweaks,
+                            isSheetDragGestureActive = isSheetDragGestureActive,
+                            playerViewModel = playerViewModel,
+                            currentPositionProvider = currentPositionProvider,
+                            isPlayingProvider = isPlayingProvider,
+                            playWhenReadyProvider = playWhenReadyProvider,
+                            repeatModeProvider = repeatModeProvider,
+                            isShuffleEnabledProvider = isShuffleEnabledProvider,
+                            totalDurationProvider = totalDurationProvider,
+                            lyricsProvider = lyricsProvider,
+                            isCastConnecting = isCastConnecting,
+                            isFavoriteProvider = isFavoriteProvider,
+                            onPlayPause = onPlayPause,
+                            onSeek = onSeek,
+                            onNext = onNext,
+                            onPrevious = onPrevious,
+                            onCollapse = onCollapse,
+                            onShowQueueClicked = onShowQueueClicked,
+                            onQueueDragStart = onQueueDragStart,
+                            onQueueDrag = onQueueDrag,
+                            onQueueRelease = onQueueRelease,
+                            onShowCastClicked = onShowCastClicked,
+                            onShuffleToggle = onShuffleToggle,
+                            onRepeatToggle = onRepeatToggle,
+                            onFavoriteToggle = onFavoriteToggle
+                        )
+                    }
                 }
             }
         }
@@ -317,43 +324,49 @@ internal fun UnifiedPlayerPrewarmLayer(
                 val onRepeatToggle = remember(playerViewModel) { playerViewModel::cycleRepeatMode }
                 val onFavoriteToggle = remember(playerViewModel) { playerViewModel::toggleFavorite }
 
-                FullPlayerContent(
-                    currentSong = currentSong,
-                    currentPlaybackQueue = currentPlaybackQueue,
-                    currentQueueSourceName = currentQueueSourceName,
-                    currentMediaItemIndex = infrequentPlayerState.currentMediaItemIndex,
-                    isShuffleEnabled = infrequentPlayerState.isShuffleEnabled,
-                    shuffleTransitionInProgress = infrequentPlayerState.isShuffleTransitionInProgress,
-                    repeatMode = infrequentPlayerState.repeatMode,
-                    allowRealtimeUpdates = false,
-                    expansionFractionProvider = { 1f },
-                    currentSheetState = PlayerSheetState.EXPANDED,
-                    carouselStyle = carouselStyle,
-                    loadingTweaks = fullPlayerLoadingTweaks,
-                    playerViewModel = playerViewModel,
-                    currentPositionProvider = currentPositionProvider,
-                    isPlayingProvider = isPlayingProvider,
-                    playWhenReadyProvider = playWhenReadyProvider,
-                    repeatModeProvider = repeatModeProvider,
-                    isShuffleEnabledProvider = isShuffleEnabledProvider,
-                    totalDurationProvider = totalDurationProvider,
-                    lyricsProvider = lyricsProvider,
-                    isCastConnecting = isCastConnecting,
-                    isFavoriteProvider = isFavoriteProvider,
-                    onShowQueueClicked = onShowQueueClicked,
-                    onQueueDragStart = onQueueDragStart,
-                    onQueueDrag = onQueueDrag,
-                    onQueueRelease = onQueueRelease,
-                    onPlayPause = onPlayPause,
-                    onSeek = onSeek,
-                    onNext = onNext,
-                    onPrevious = onPrevious,
-                    onCollapse = {},
-                    onShowCastClicked = {},
-                    onShuffleToggle = onShuffleToggle,
-                    onRepeatToggle = onRepeatToggle,
-                    onFavoriteToggle = onFavoriteToggle
-                )
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme,
+                    typography = MaterialTheme.typography,
+                    shapes = MaterialTheme.shapes
+                ) {
+                    FullPlayerContent(
+                        currentSong = currentSong,
+                        currentPlaybackQueue = currentPlaybackQueue,
+                        currentQueueSourceName = currentQueueSourceName,
+                        currentMediaItemIndex = infrequentPlayerState.currentMediaItemIndex,
+                        isShuffleEnabled = infrequentPlayerState.isShuffleEnabled,
+                        shuffleTransitionInProgress = infrequentPlayerState.isShuffleTransitionInProgress,
+                        repeatMode = infrequentPlayerState.repeatMode,
+                        allowRealtimeUpdates = false,
+                        expansionFractionProvider = { 1f },
+                        currentSheetState = PlayerSheetState.EXPANDED,
+                        carouselStyle = carouselStyle,
+                        loadingTweaks = fullPlayerLoadingTweaks,
+                        playerViewModel = playerViewModel,
+                        currentPositionProvider = currentPositionProvider,
+                        isPlayingProvider = isPlayingProvider,
+                        playWhenReadyProvider = playWhenReadyProvider,
+                        repeatModeProvider = repeatModeProvider,
+                        isShuffleEnabledProvider = isShuffleEnabledProvider,
+                        totalDurationProvider = totalDurationProvider,
+                        lyricsProvider = lyricsProvider,
+                        isCastConnecting = isCastConnecting,
+                        isFavoriteProvider = isFavoriteProvider,
+                        onShowQueueClicked = onShowQueueClicked,
+                        onQueueDragStart = onQueueDragStart,
+                        onQueueDrag = onQueueDrag,
+                        onQueueRelease = onQueueRelease,
+                        onPlayPause = onPlayPause,
+                        onSeek = onSeek,
+                        onNext = onNext,
+                        onPrevious = onPrevious,
+                        onCollapse = {},
+                        onShowCastClicked = {},
+                        onShuffleToggle = onShuffleToggle,
+                        onRepeatToggle = onRepeatToggle,
+                        onFavoriteToggle = onFavoriteToggle
+                    )
+                }
             }
         }
     }

@@ -10,7 +10,10 @@ import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import io.mockk.every
 import io.mockk.coEvery
 import io.mockk.mockk
+import io.mockk.verify
+import io.mockk.verifyOrder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -100,6 +103,79 @@ class PlaybackStateHolderTest {
         holder.clearMediaController(externalController)
 
         assertSame(mainController, holder.mediaController)
+    }
+
+    @Test
+    fun `next song resumes playback when paused and another item is available`() {
+        val holder = createHolder()
+        val controller = mockk<MediaController>(relaxed = true)
+        every { castStateHolder.castSession } returns MutableStateFlow(null)
+        every { controller.isConnected } returns true
+        every { controller.playWhenReady } returns false
+        every { controller.isPlaying } returns false
+        every { controller.hasNextMediaItem() } returns true
+        holder.setMediaController(controller)
+
+        holder.nextSong()
+
+        verifyOrder {
+            controller.seekToNext()
+            controller.play()
+        }
+    }
+
+    @Test
+    fun `next song keeps paused playback when there is no next item`() {
+        val holder = createHolder()
+        val controller = mockk<MediaController>(relaxed = true)
+        every { castStateHolder.castSession } returns MutableStateFlow(null)
+        every { controller.isConnected } returns true
+        every { controller.playWhenReady } returns false
+        every { controller.isPlaying } returns false
+        every { controller.hasNextMediaItem() } returns false
+        holder.setMediaController(controller)
+
+        holder.nextSong()
+
+        verify(exactly = 0) { controller.play() }
+    }
+
+    @Test
+    fun `previous song resumes playback when paused and another item is available`() {
+        val holder = createHolder()
+        val controller = mockk<MediaController>(relaxed = true)
+        every { castStateHolder.castSession } returns MutableStateFlow(null)
+        every { controller.isConnected } returns true
+        every { controller.currentPosition } returns 0L
+        every { controller.playWhenReady } returns false
+        every { controller.isPlaying } returns false
+        every { controller.hasPreviousMediaItem() } returns true
+        holder.setMediaController(controller)
+
+        holder.previousSong()
+
+        verifyOrder {
+            controller.seekToPrevious()
+            controller.play()
+        }
+    }
+
+    @Test
+    fun `previous song keeps paused playback when restarting current item`() {
+        val holder = createHolder()
+        val controller = mockk<MediaController>(relaxed = true)
+        every { castStateHolder.castSession } returns MutableStateFlow(null)
+        every { controller.isConnected } returns true
+        every { controller.currentPosition } returns 11_000L
+        every { controller.playWhenReady } returns false
+        every { controller.isPlaying } returns false
+        every { controller.hasPreviousMediaItem() } returns true
+        holder.setMediaController(controller)
+
+        holder.previousSong()
+
+        verify(exactly = 1) { controller.seekTo(0) }
+        verify(exactly = 0) { controller.play() }
     }
 
     @Test

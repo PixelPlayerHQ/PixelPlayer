@@ -71,6 +71,7 @@ data class SettingsUiState(
     val pauseOnVolumeZero: Boolean = false,
     val resumeOnHeadsetReconnect: Boolean = false,
     val showQueueHistory: Boolean = true,
+    val dismissMiniPlayerOnSwipe: Boolean = false,
     val isCrossfadeEnabled: Boolean = false,
     val hiFiModeEnabled: Boolean = false,
     val hiFiModeDeviceSupported: Boolean = true,
@@ -158,6 +159,7 @@ private sealed interface SettingsUiUpdate {
         val pauseOnVolumeZero: Boolean,
         val resumeOnHeadsetReconnect: Boolean,
         val showQueueHistory: Boolean,
+        val dismissMiniPlayerOnSwipe: Boolean,
         val isCrossfadeEnabled: Boolean,
         val hiFiModeEnabled: Boolean,
         val crossfadeDuration: Int,
@@ -651,6 +653,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.pauseOnVolumeZeroFlow,
                 userPreferencesRepository.resumeOnHeadsetReconnectFlow,
                 userPreferencesRepository.showQueueHistoryFlow,
+                userPreferencesRepository.dismissMiniPlayerOnSwipeFlow,
                 userPreferencesRepository.isCrossfadeEnabledFlow,
                 userPreferencesRepository.hiFiModeEnabledFlow,
                 userPreferencesRepository.crossfadeDurationFlow,
@@ -673,21 +676,22 @@ class SettingsViewModel @Inject constructor(
                     pauseOnVolumeZero = values[2] as Boolean,
                     resumeOnHeadsetReconnect = values[3] as Boolean,
                     showQueueHistory = values[4] as Boolean,
-                    isCrossfadeEnabled = values[5] as Boolean,
-                    hiFiModeEnabled = values[6] as Boolean,
-                    crossfadeDuration = values[7] as Int,
-                    persistentShuffleEnabled = values[8] as Boolean,
-                    folderBackGestureNavigation = values[9] as Boolean,
-                    lyricsSourcePreference = values[10] as LyricsSourcePreference,
-                    autoScanLrcFiles = values[11] as Boolean,
-                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[12] as Set<String>),
-                    hapticsEnabled = values[13] as Boolean,
-                    immersiveLyricsEnabled = values[14] as Boolean,
-                    immersiveLyricsTimeout = values[15] as Long,
-                    animatedLyricsBlurEnabled = values[16] as Boolean,
-                    animatedLyricsBlurStrength = values[17] as Float,
-                    disableBlurAllOver = values[18] as Boolean,
-                    showScrollbar = values[19] as Boolean
+                    dismissMiniPlayerOnSwipe = values[5] as Boolean,
+                    isCrossfadeEnabled = values[6] as Boolean,
+                    hiFiModeEnabled = values[7] as Boolean,
+                    crossfadeDuration = values[8] as Int,
+                    persistentShuffleEnabled = values[9] as Boolean,
+                    folderBackGestureNavigation = values[10] as Boolean,
+                    lyricsSourcePreference = values[11] as LyricsSourcePreference,
+                    autoScanLrcFiles = values[12] as Boolean,
+                    blockedDirectories = @Suppress("UNCHECKED_CAST") (values[13] as Set<String>),
+                    hapticsEnabled = values[14] as Boolean,
+                    immersiveLyricsEnabled = values[15] as Boolean,
+                    immersiveLyricsTimeout = values[16] as Long,
+                    animatedLyricsBlurEnabled = values[17] as Boolean,
+                    animatedLyricsBlurStrength = values[18] as Float,
+                    disableBlurAllOver = values[19] as Boolean,
+                    showScrollbar = values[20] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -697,6 +701,7 @@ class SettingsViewModel @Inject constructor(
                         pauseOnVolumeZero = update.pauseOnVolumeZero,
                         resumeOnHeadsetReconnect = update.resumeOnHeadsetReconnect,
                         showQueueHistory = update.showQueueHistory,
+                        dismissMiniPlayerOnSwipe = update.dismissMiniPlayerOnSwipe,
                         isCrossfadeEnabled = update.isCrossfadeEnabled,
                         hiFiModeEnabled = update.hiFiModeEnabled,
                         crossfadeDuration = update.crossfadeDuration,
@@ -991,6 +996,12 @@ class SettingsViewModel @Inject constructor(
     fun setShowQueueHistory(show: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setShowQueueHistory(show)
+        }
+    }
+
+    fun setDismissMiniPlayerOnSwipe(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDismissMiniPlayerOnSwipe(enabled)
         }
     }
 

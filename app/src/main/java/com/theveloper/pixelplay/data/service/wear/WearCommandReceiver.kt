@@ -124,8 +124,28 @@ class WearCommandReceiver : WearableListenerService() {
                         WearPlaybackCommand.TOGGLE_PLAY_PAUSE -> {
                             if (controller.isPlaying) controller.pause() else controller.play()
                         }
-                        WearPlaybackCommand.NEXT -> controller.seekToNext()
-                        WearPlaybackCommand.PREVIOUS -> controller.seekToPrevious()
+                        WearPlaybackCommand.NEXT -> {
+                            val shouldResumePlayback =
+                                !controller.playWhenReady &&
+                                    !controller.isPlaying &&
+                                    controller.hasNextMediaItem()
+                            controller.seekToNext()
+                            if (shouldResumePlayback) controller.play()
+                        }
+                        WearPlaybackCommand.PREVIOUS -> {
+                            val shouldRestartCurrent = controller.currentPosition > 10_000L
+                            val shouldResumePlayback =
+                                !controller.playWhenReady &&
+                                    !controller.isPlaying &&
+                                    !shouldRestartCurrent &&
+                                    controller.hasPreviousMediaItem()
+                            if (shouldRestartCurrent) {
+                                controller.seekTo(0)
+                            } else {
+                                controller.seekToPrevious()
+                            }
+                            if (shouldResumePlayback) controller.play()
+                        }
                         WearPlaybackCommand.PLAY_QUEUE_INDEX -> {
                             val queueIndex = command.queueIndex
                             if (queueIndex == null) {

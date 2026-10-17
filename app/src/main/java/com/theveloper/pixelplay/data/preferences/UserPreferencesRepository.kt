@@ -149,6 +149,7 @@ class UserPreferencesRepository @Inject constructor(
         val DISABLE_CAST_AUTOPLAY = booleanPreferencesKey("disable_cast_autoplay")
         val RESUME_ON_HEADSET_RECONNECT = booleanPreferencesKey("resume_on_headset_reconnect")
         val SHOW_QUEUE_HISTORY = booleanPreferencesKey("show_queue_history")
+        val DISMISS_MINI_PLAYER_ON_SWIPE = booleanPreferencesKey("dismiss_mini_player_on_swipe")
         val PLAYBACK_QUEUE_SNAPSHOT = stringPreferencesKey("playback_queue_snapshot_v1")
         val FULL_PLAYER_SHOW_FILE_INFO = booleanPreferencesKey("full_player_show_file_info")
         val FULL_PLAYER_DELAY_ALBUM = booleanPreferencesKey("full_player_delay_album")
@@ -375,6 +376,13 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setShowQueueHistory(show: Boolean) {
         dataStore.edit { it[PreferencesKeys.SHOW_QUEUE_HISTORY] = show }
+    }
+
+    val dismissMiniPlayerOnSwipeFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.DISMISS_MINI_PLAYER_ON_SWIPE] ?: false }
+
+    suspend fun setDismissMiniPlayerOnSwipe(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.DISMISS_MINI_PLAYER_ON_SWIPE] = enabled }
     }
 
     val playbackQueueSnapshotFlow: Flow<PlaybackQueueSnapshot?> =

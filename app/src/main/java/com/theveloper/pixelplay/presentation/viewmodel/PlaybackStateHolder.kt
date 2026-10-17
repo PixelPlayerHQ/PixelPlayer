@@ -489,13 +489,32 @@ class PlaybackStateHolder @Inject constructor(
     fun previousSong() {
         val castSession = castStateHolder.castSession.value
         if (castSession != null && castSession.remoteMediaClient != null) {
+            val shouldResumePlayback =
+                !_stablePlayerState.value.playWhenReady && !_stablePlayerState.value.isPlaying &&
+                    castSession.remoteMediaClient?.mediaStatus?.let { status ->
+                        val queueItems = status.queueItems ?: emptyList()
+                        val currentIndex = queueItems.indexOfFirst {
+                            it.itemId == status.currentItemId
+                        }
+                        currentIndex > 0
+                    } == true
             castStateHolder.castPlayer?.previous()
+            if (shouldResumePlayback) {
+                castStateHolder.castPlayer?.play()
+            }
         } else {
             val controller = activeLocalPlayer()
-             if (controller.currentPosition > 10000) { // 10 seconds
-                 controller.seekTo(0)
+            val shouldRestartCurrent = controller.currentPosition > 10_000L
+            val shouldResumePlayback =
+                !controller.playWhenReady && !controller.isPlaying &&
+                    !shouldRestartCurrent && controller.hasPreviousMediaItem()
+            if (shouldRestartCurrent) {
+                controller.seekTo(0)
             } else {
-                 controller.seekToPrevious()
+                controller.seekToPrevious()
+            }
+            if (shouldResumePlayback) {
+                controller.play()
             }
         }
     }
@@ -503,9 +522,20 @@ class PlaybackStateHolder @Inject constructor(
     fun nextSong() {
         val castSession = castStateHolder.castSession.value
         if (castSession != null && castSession.remoteMediaClient != null) {
+            val shouldResumePlayback =
+                !_stablePlayerState.value.playWhenReady && !_stablePlayerState.value.isPlaying
             castStateHolder.castPlayer?.next()
+            if (shouldResumePlayback) {
+                castStateHolder.castPlayer?.play()
+            }
         } else {
-             activeLocalPlayer().seekToNext()
+            val player = activeLocalPlayer()
+            val shouldResumePlayback =
+                !player.playWhenReady && !player.isPlaying && player.hasNextMediaItem()
+            player.seekToNext()
+            if (shouldResumePlayback) {
+                player.play()
+            }
         }
     }
 

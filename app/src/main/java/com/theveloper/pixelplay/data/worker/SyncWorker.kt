@@ -40,6 +40,7 @@ import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.AudioMetaUtils.getAudioMetadata
 import com.theveloper.pixelplay.utils.DirectoryRuleResolver
 import com.theveloper.pixelplay.utils.buildLocalAudioSelection
+import com.theveloper.pixelplay.utils.artistNameKey
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
 import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
 import dagger.assisted.Assisted
@@ -259,8 +260,24 @@ constructor(
                         val existingArtistMetadata =
                                 allExistingArtists.associate { it.id to (it.imageUrl to it.customImageUri) }
                         
-                        // Load all existing artist IDs to ensure stability across incremental syncs
-                        val existingArtistIdMap = allExistingArtists.associate { it.name to it.id }.toMutableMap()
+                        // Load all existing artist IDs to ensure stability across incremental syncs.
+                        // Keyed by artistNameKey() (case/whitespace-insensitive) so a tag
+                        // written as "beyonce" resolves to the row stored as "Beyoncé"
+                        // instead of creating a second one.
+                        //
+                        // associateBy keeps the FIRST row for a given key, and the input is
+                        // ordered by id so the lowest id wins deterministically. (The old
+                        // `associate { it.name to it.id }` kept the LAST and silently dropped
+                        // every earlier duplicate, leaving orphaned cross-refs behind.)
+                        val orderedExistingArtists = allExistingArtists.sortedBy { it.id }
+                        val existingArtistIdMap = LinkedHashMap<String, Long>(orderedExistingArtists.size)
+                        val existingArtistDisplayNames = HashMap<String, String>(orderedExistingArtists.size)
+                        orderedExistingArtists.forEach { artist ->
+                            val key = artistNameKey(artist.name)
+                            if (key.isEmpty()) return@forEach
+                            existingArtistIdMap.putIfAbsent(key, artist.id)
+                            existingArtistDisplayNames.putIfAbsent(key, artist.name)
+                        }
                         val maxArtistId = musicDao.getMaxArtistId() ?: 0L
 
                         Timber.tag(TAG)
@@ -276,6 +293,7 @@ constructor(
                                         existingArtistMetadata = existingArtistMetadata,
                                         existingAlbums = allExistingAlbums,
                                         existingArtistIdMap = existingArtistIdMap,
+                                        existingArtistDisplayNames = existingArtistDisplayNames,
                                         initialMaxArtistId = maxArtistId
                                 )
 
@@ -514,11 +532,21 @@ constructor(
             existingArtistMetadata: Map<Long, Pair<String?, String?>>,
             existingAlbums: List<AlbumEntity>,
             existingArtistIdMap: MutableMap<String, Long>,
+            existingArtistDisplayNames: Map<String, String>,
             initialMaxArtistId: Long
     ): MultiArtistProcessResult {
         
         val nextArtistId = AtomicLong(initialMaxArtistId + 1)
+        // Keyed by artistNameKey(), NOT by the raw name. See ArtistNameKey.kt: keying
+        // on the raw name minted a brand new artist row for every case/whitespace
+        // variant of an artist that already existed, inflating the artist list on
+        // every scan.
         val artistNameToId = existingArtistIdMap // Re-use the map passed in
+
+        // The name already stored in the DB wins over the incoming file tag, so a
+        // song tagged "beyonce" cannot degrade the display name of an artist stored
+        // as "Beyoncé" (which would also break the Deezer image lookup).
+        val artistDisplayName = HashMap(existingArtistDisplayNames)
         
         val allCrossRefs = mutableListOf<SongArtistCrossRef>()
         val artistTrackCounts = mutableMapOf<Long, Int>()
@@ -551,21 +579,23 @@ constructor(
                     }
 
             allArtistsForSong.forEach { artistName ->
-                val normalizedName = artistName.trim()
-                if (normalizedName.isNotEmpty() && !artistNameToId.containsKey(normalizedName)) {
+                val displayName = artistName.trim()
+                val key = artistNameKey(displayName)
+                if (key.isNotEmpty() && !artistNameToId.containsKey(key)) {
                      val id = nextArtistId.getAndIncrement()
-                     artistNameToId[normalizedName] = id
+                     artistNameToId[key] = id
+                     artistDisplayName.putIfAbsent(key, displayName)
                 }
             }
 
-            val primaryArtistName =
-                    allArtistsForSong.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
-                            ?: songArtistNameTrimmed
-            val primaryArtistId = artistNameToId[primaryArtistName] ?: song.artistId
+            val primaryArtistKey =
+                    allArtistsForSong.firstOrNull()?.let { artistNameKey(it) }?.takeIf { it.isNotEmpty() }
+                            ?: artistNameKey(songArtistNameTrimmed)
+            val primaryArtistId = artistNameToId[primaryArtistKey] ?: song.artistId
 
             allArtistsForSong.forEachIndexed { index, artistName ->
-                val normalizedName = artistName.trim()
-                val artistId = artistNameToId[normalizedName]
+                val key = artistNameKey(artistName)
+                val artistId = artistNameToId[key]
                 if (artistId != null) {
                     val isPrimary = (index == 0) // First artist is primary
                     allCrossRefs.add(
@@ -585,9 +615,10 @@ constructor(
 
             // Build serialized artists JSON for efficient loading without JOINs
             val artistRefsForJson = allArtistsForSong.mapIndexed { index, name ->
-                val normalizedName = name.trim()
-                val artistId = artistNameToId[normalizedName] ?: 0L
-                ArtistRef(id = artistId, name = normalizedName, isPrimary = index == 0)
+                val key = artistNameKey(name)
+                val artistId = artistNameToId[key] ?: 0L
+                val displayName = artistDisplayName[key] ?: name.trim()
+                ArtistRef(id = artistId, name = displayName, isPrimary = index == 0)
             }.filter { it.name.isNotEmpty() }
 
             correctedSongs.add(
@@ -601,12 +632,12 @@ constructor(
         }
 
         // Build Entities
-        val artistEntities = artistNameToId.map { (name, id) ->
+        val artistEntities = artistNameToId.map { (key, id) ->
             val count = artistTrackCounts[id] ?: 0
             val metadata = existingArtistMetadata[id]
             ArtistEntity(
                 id = id,
-                name = name,
+                name = artistDisplayName[key] ?: key,
                 trackCount = count,
                 imageUrl = metadata?.first,
                 customImageUri = metadata?.second

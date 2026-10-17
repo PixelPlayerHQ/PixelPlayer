@@ -107,7 +107,6 @@ import com.theveloper.pixelplay.presentation.components.subcomps.FetchLyricsDial
 import com.theveloper.pixelplay.presentation.components.subcomps.PlayerSeekBar
 import com.theveloper.pixelplay.presentation.viewmodel.LyricsSearchUiState
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
-import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.BubblesLine
 import com.theveloper.pixelplay.utils.ProviderText
 import com.theveloper.pixelplay.presentation.components.snapping.ExperimentalSnapperApi
@@ -686,7 +685,7 @@ fun LyricsSheet(
                     resetImmersiveTimer()
                 }
         ) {
-            val initialSyncedLineIndex = remember(lyrics, playbackPositionFlow, lyricsSyncOffset) {
+            val initialSyncedLineIndex = remember(currentSong?.id, lyrics, playbackPositionFlow, lyricsSyncOffset) {
                 resolveCurrentLineIndex(
                     lines = lyrics?.synced.orEmpty(),
                     position = (playbackPositionFlow.value + lyricsSyncOffset).coerceAtLeast(0L)
@@ -696,6 +695,10 @@ fun LyricsSheet(
                 initialFirstVisibleItemIndex = initialSyncedLineIndex
             )
             val staticListState = rememberLazyListState()
+            LaunchedEffect(currentSong?.id, stablePlayerState.currentMediaItemIndex) {
+                syncedListState.scrollToItem(0)
+                staticListState.scrollToItem(0)
+            }
 
             // Lyrics Content (Weight 1)
             Box(
@@ -776,6 +779,7 @@ fun LyricsSheet(
                                     .padding(horizontal = 24.dp),
                                 contentPadding = PaddingValues(top = 130.dp, bottom = 100.dp),
                                 lines = synced,
+                                currentTrackKey = currentSong?.id to stablePlayerState.currentMediaItemIndex,
                                 listState = syncedListState,
                                 playbackPositionFlow = playbackPositionFlow,
                                 lyricsSyncOffset = lyricsSyncOffset,
@@ -1191,6 +1195,7 @@ private fun LyricsPlaybackSeekBar(
 @Composable
 fun SyncedLyricsList(
     lines: List<SyncedLine>,
+    currentTrackKey: Pair<String?, Int>,
     listState: LazyListState,
     playbackPositionFlow: StateFlow<Long>,
     lyricsSyncOffset: Int,
@@ -1225,6 +1230,18 @@ fun SyncedLyricsList(
     }
     var hasAlignedInitialLine by remember(lines) { mutableStateOf(false) }
     var lastAutoScrolledLineIndex by remember(lines) { mutableIntStateOf(-1) }
+    var activeTrackKey by remember { mutableStateOf(currentTrackKey) }
+    var skipAutoScrollAfterTrackChange by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentTrackKey) {
+        if (activeTrackKey != currentTrackKey) {
+            activeTrackKey = currentTrackKey
+            hasAlignedInitialLine = true
+            lastAutoScrolledLineIndex = 0
+            skipAutoScrollAfterTrackChange = true
+            listState.scrollToItem(0)
+        }
+    }
 
     BoxWithConstraints(modifier = modifier) {
         val metrics = remember(maxHeight, highlightZoneFraction, highlightOffsetDp) {
@@ -1241,10 +1258,14 @@ fun SyncedLyricsList(
         )
         val flingBehavior = rememberSnapperFlingBehavior(layoutInfo = snapperLayoutInfo)
 
-        LaunchedEffect(currentLineIndex, lines.size, metrics, isPreviewSeeking) {
+        LaunchedEffect(currentTrackKey, currentLineIndex, lines.size, metrics, isPreviewSeeking) {
             if (lines.isEmpty()) return@LaunchedEffect
             if (currentLineIndex !in lines.indices) return@LaunchedEffect
             if (listState.layoutInfo.totalItemsCount == 0) return@LaunchedEffect
+            if (skipAutoScrollAfterTrackChange) {
+                skipAutoScrollAfterTrackChange = false
+                return@LaunchedEffect
+            }
 
             if (!hasAlignedInitialLine) {
                 listState.scrollToItem(currentLineIndex)

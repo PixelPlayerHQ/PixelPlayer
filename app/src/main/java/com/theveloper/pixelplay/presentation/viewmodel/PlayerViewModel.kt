@@ -432,6 +432,8 @@ class PlayerViewModel @Inject constructor(
 
     private val _isMiniPlayerDismissing = MutableStateFlow(false)
     val isMiniPlayerDismissing: StateFlow<Boolean> = _isMiniPlayerDismissing.asStateFlow()
+    val dismissMiniPlayerOnSwipe: StateFlow<Boolean> = userPreferencesRepository.dismissMiniPlayerOnSwipeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setMiniPlayerDismissing(dismissing: Boolean) {
         _isMiniPlayerDismissing.value = dismissing

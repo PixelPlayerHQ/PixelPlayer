@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.jellyfin.auth
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -75,11 +76,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
+import com.theveloper.pixelplay.utils.AppLocaleManager
 import dagger.hilt.android.AndroidEntryPoint
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @AndroidEntryPoint
 class JellyfinLoginActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocaleManager.wrapContext(newBase))
+    }
+
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)

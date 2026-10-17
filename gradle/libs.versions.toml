@@ -56,6 +56,7 @@ roomRuntime = "2.8.4"
 accompanist = "0.37.3"
 checkerframework = "4.2.0" # O la versión más reciente que encuentres
 taglib = "1.0.6"
+ffmpegKit = "2.2.1"
 jaudiotagger = "3.0.1"
 vorbisjava = "0.8"
 datastore = "1.2.1"
@@ -211,6 +212,7 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 wavy-slider = { module = "ir.mahozad.multiplatform:wavy-slider", version.ref = "wavySlider" }
 checker-qual = { group = "org.checkerframework", name = "checker-qual", version.ref = "checkerframework" }
 taglib = { group = "io.github.kyant0", name = "taglib", version.ref = "taglib" }
+ffmpeg-kit-min = { group = "com.antonkarpenko", name = "ffmpeg-kit-min", version.ref = "ffmpegKit" }
 jaudiotagger = { group = "net.jthink", name = "jaudiotagger", version.ref = "jaudiotagger" }
 vorbisjava-core = { group = "org.gagravarr", name = "vorbis-java-core", version.ref = "vorbisjava" }
 reorderables = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderables" }

@@ -235,6 +235,9 @@ fun AppNavigation(
                         },
                         onOpenJellyfinDashboard = {
                             navController.navigateSafely(Screen.JellyfinDashboard.route)
+                        },
+                        onOpenS3Dashboard = {
+                            navController.navigateSafely(Screen.S3Dashboard.route)
                         }
                     )
                 }
@@ -501,6 +504,34 @@ fun AppNavigation(
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
                     com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardScreen(
                         onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(
+                Screen.S3Dashboard.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.s3.dashboard.S3DashboardScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(
+                Screen.Download.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.download.DownloadScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onOpenExtensions = { navController.navigateSafely(Screen.Extensions.route) }
+                    )
+                }
+            }
+            composable(
+                Screen.Extensions.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.download.ExtensionsScreen(
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
             }

@@ -13,6 +13,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.theveloper.pixelplay.data.download.DownloadWorker
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.diagnostics.AdvancedPerformanceDiagnosticsController
 import com.theveloper.pixelplay.data.repository.ArtistImageRepository
@@ -116,6 +117,7 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
             )
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            DownloadWorker.ensureNotificationChannel(this)
         }
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)

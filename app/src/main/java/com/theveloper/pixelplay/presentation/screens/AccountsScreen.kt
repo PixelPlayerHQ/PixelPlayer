@@ -98,6 +98,7 @@ fun AccountsScreen(
     onOpenQqMusicDashboard: () -> Unit = {},
     onOpenNavidromeDashboard: () -> Unit = {},
     onOpenJellyfinDashboard: () -> Unit = {},
+    onOpenS3Dashboard: () -> Unit = {},
     viewModel: AccountsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -213,6 +214,7 @@ fun AccountsScreen(
                                 onOpenQqMusicDashboard = onOpenQqMusicDashboard,
                                 onOpenNavidromeDashboard = onOpenNavidromeDashboard,
                                 onOpenJellyfinDashboard = onOpenJellyfinDashboard,
+                                onOpenS3Dashboard = onOpenS3Dashboard,
                                 preferNeteaseDashboard = true
                             )
                         },
@@ -242,6 +244,7 @@ fun AccountsScreen(
                                 onOpenQqMusicDashboard = onOpenQqMusicDashboard,
                                 onOpenNavidromeDashboard = onOpenNavidromeDashboard,
                                 onOpenJellyfinDashboard = onOpenJellyfinDashboard,
+                                onOpenS3Dashboard = onOpenS3Dashboard,
                                 preferNeteaseDashboard = false
                             )
                         }
@@ -563,6 +566,7 @@ private fun EmptyAccountsCard(
                     ExternalServiceAccount.GOOGLE_DRIVE -> painterResource(R.drawable.rounded_drive_export_24)
                     ExternalServiceAccount.JELLYFIN -> painterResource(R.drawable.ic_jellyfin)
                     ExternalServiceAccount.NAVIDROME -> painterResource(R.drawable.ic_navidrome_md3)
+                    ExternalServiceAccount.S3 -> painterResource(R.drawable.rounded_storage_24)
                 }
                 FilledTonalButton(
                     onClick = { if (!isComingSoon) onConnect(service) },
@@ -655,6 +659,14 @@ private fun servicePalette(service: ExternalServiceAccount): ServicePalette {
             primaryActionContainer = Color(0xFFE3F2FD),
             primaryActionTint = Color(0xFF1565C0)
         )
+        ExternalServiceAccount.S3 -> ServicePalette(
+            iconContainer = MaterialTheme.colorScheme.tertiaryContainer,
+            iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+            statusContainer = Color(0xFFE8F5E9),
+            statusTint = Color(0xFF2E7D32),
+            primaryActionContainer = MaterialTheme.colorScheme.tertiaryContainer,
+            primaryActionTint = MaterialTheme.colorScheme.onTertiaryContainer
+        )
     }
 }
 
@@ -666,6 +678,7 @@ private fun accountIcon(service: ExternalServiceAccount): ImageVector {
         ExternalServiceAccount.QQ_MUSIC -> Icons.Rounded.MusicNote
         ExternalServiceAccount.NAVIDROME -> Icons.Rounded.CloudQueue
         ExternalServiceAccount.JELLYFIN -> Icons.Rounded.CloudQueue
+        ExternalServiceAccount.S3 -> Icons.Rounded.CloudQueue
     }
 }
 
@@ -721,6 +734,7 @@ private fun serviceDisplayName(service: ExternalServiceAccount): String {
         ExternalServiceAccount.QQ_MUSIC -> stringResource(R.string.auth_qq_title)
         ExternalServiceAccount.NAVIDROME -> stringResource(R.string.auth_subsonic_title)
         ExternalServiceAccount.JELLYFIN -> stringResource(R.string.auth_jellyfin_title)
+        ExternalServiceAccount.S3 -> stringResource(R.string.auth_s3_title)
     }
 }
 
@@ -731,6 +745,7 @@ private fun openService(
     onOpenQqMusicDashboard: () -> Unit,
     onOpenNavidromeDashboard: () -> Unit,
     onOpenJellyfinDashboard: () -> Unit,
+    onOpenS3Dashboard: () -> Unit,
     preferNeteaseDashboard: Boolean
 ) {
     when (service) {
@@ -780,6 +795,16 @@ private fun openService(
                 safeStartActivity(
                     context = context,
                     intent = Intent(context, JellyfinLoginActivity::class.java)
+                )
+            }
+        }
+        ExternalServiceAccount.S3 -> {
+            if (preferNeteaseDashboard) {
+                onOpenS3Dashboard()
+            } else {
+                safeStartActivity(
+                    context = context,
+                    intent = Intent(context, com.theveloper.pixelplay.presentation.s3.auth.S3LoginActivity::class.java)
                 )
             }
         }

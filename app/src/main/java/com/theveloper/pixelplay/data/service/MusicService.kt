@@ -1669,7 +1669,10 @@ class MusicService : MediaLibraryService() {
         for (index in 0 until mediaItemCount) {
             val mediaItem = player.getMediaItemAt(index)
             val metadata = mediaItem.mediaMetadata
-            val uri = mediaItem.localConfiguration?.uri?.toString()
+            // Prefer the original cloud URI (stored at resolve time) — the live
+            // localConfiguration URI may be a loopback proxy URL whose port dies with the process.
+            val uri = metadata.extras?.getString(MediaItemBuilder.ORIGINAL_CONTENT_URI)
+                ?: mediaItem.localConfiguration?.uri?.toString()
                 ?: metadata.extras?.getString(MediaItemBuilder.EXTERNAL_EXTRA_CONTENT_URI)
 
             if (mediaItem.mediaId.isBlank() || uri.isNullOrBlank()) {
@@ -1815,6 +1818,11 @@ class MusicService : MediaLibraryService() {
 
     private fun buildMediaItemFromSnapshot(snapshotItem: PlaybackQueueItemSnapshot): MediaItem? {
         if (snapshotItem.mediaId.isBlank() || snapshotItem.uri.isBlank()) {
+            return null
+        }
+        // Stale loopback proxy URL from an older snapshot — the proxy port died with the
+        // old process. Drop the item instead of queueing a guaranteed-connect-fail URI.
+        if (Uri.parse(snapshotItem.uri).host == "127.0.0.1") {
             return null
         }
 

@@ -78,6 +78,23 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- Browser redirect after a download extension's verification (callback URL is set by the extension). -->
+        <activity
+            android:name=".presentation.download.ExtensionCallbackActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="spotiflac" android:host="session-grant" />
+                <data android:scheme="spotiflac" android:host="callback" />
+                <data android:scheme="spotiflac" android:host="spotify-callback" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".presentation.telegram.auth.TelegramLoginActivity"
             android:exported="false"
@@ -117,6 +134,13 @@
             android:name=".presentation.jellyfin.auth.JellyfinLoginActivity"
             android:exported="false"
             android:label="Jellyfin Login"
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".presentation.s3.auth.S3LoginActivity"
+            android:exported="false"
+            android:label="S3 Storage"
             android:theme="@style/Theme.PixelPlay"
             android:windowSoftInputMode="adjustResize" />
 
@@ -246,6 +270,13 @@
             android:name=".data.service.wear.WatchTransferForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+
+        <!-- WorkManager runs DownloadWorker via setForeground(dataSync); the library
+             manifest declares no type, which crashes on API 34+. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

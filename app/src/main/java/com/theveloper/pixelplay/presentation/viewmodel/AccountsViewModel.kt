@@ -28,7 +28,8 @@ enum class ExternalServiceAccount {
     NETEASE,
     QQ_MUSIC,
     NAVIDROME,
-    JELLYFIN
+    JELLYFIN,
+    S3
 }
 
 data class ExternalAccountUiModel(
@@ -52,7 +53,8 @@ class AccountsViewModel @Inject constructor(
     private val neteaseRepository: NeteaseRepository,
     private val qqMusicRepository: QqMusicRepository,
     private val navidromeRepository: NavidromeRepository,
-    private val jellyfinRepository: JellyfinRepository
+    private val jellyfinRepository: JellyfinRepository,
+    private val s3Repository: com.theveloper.pixelplay.data.s3.S3Repository
 ) : ViewModel() {
 
     private val loggingOutServices = MutableStateFlow<Set<ExternalServiceAccount>>(emptySet())
@@ -101,6 +103,13 @@ class AccountsViewModel @Inject constructor(
         connected to playlistCount
     }
 
+    private val s3StateFlow = combine(
+        s3Repository.isLoggedInFlow,
+        s3Repository.getFolders().map { it.size }
+    ) { connected, folderCount ->
+        connected to folderCount
+    }
+
     val uiState: StateFlow<AccountsUiState> = combine(
         combine(
             listOf(
@@ -109,7 +118,8 @@ class AccountsViewModel @Inject constructor(
                 neteaseStateFlow,
                 qqMusicStateFlow,
                 navidromeStateFlow,
-                jellyfinStateFlow
+                jellyfinStateFlow,
+                s3StateFlow
             )
         ) { it.toList() },
         loggingOutServices
@@ -120,6 +130,7 @@ class AccountsViewModel @Inject constructor(
         val (qqConnected, qqPlaylistCount) = states[3] as Pair<Boolean, Int>
         val (navidromeConnected, navidromePlaylistCount) = states[4] as Pair<Boolean, Int>
         val (jellyfinConnected, jellyfinPlaylistCount) = states[5] as Pair<Boolean, Int>
+        val (s3Connected, s3FolderCount) = states[6] as Pair<Boolean, Int>
 
         val connectedAccounts = buildList {
             if (telegramConnected) {
@@ -224,6 +235,23 @@ class AccountsViewModel @Inject constructor(
                     )
                 )
             }
+            if (s3Connected) {
+                add(
+                    ExternalAccountUiModel(
+                        service = ExternalServiceAccount.S3,
+                        title = "S3 Storage",
+                        accountLabel = s3Repository.userBucketLabel()
+                            ?.takeIf { it.isNotBlank() }
+                            ?: "S3 bucket connected",
+                        syncedContentLabel = formatCount(
+                            count = s3FolderCount,
+                            singular = "synced folder",
+                            plural = "synced folders"
+                        ),
+                        isLoggingOut = ExternalServiceAccount.S3 in activeLogouts
+                    )
+                )
+            }
         }
 
         val disconnectedServices = buildList {
@@ -233,6 +261,7 @@ class AccountsViewModel @Inject constructor(
             if (!qqConnected) add(ExternalServiceAccount.QQ_MUSIC)
             if (!navidromeConnected) add(ExternalServiceAccount.NAVIDROME)
             if (!jellyfinConnected) add(ExternalServiceAccount.JELLYFIN)
+            if (!s3Connected) add(ExternalServiceAccount.S3)
         }
 
         AccountsUiState(
@@ -259,6 +288,7 @@ class AccountsViewModel @Inject constructor(
                         ExternalServiceAccount.QQ_MUSIC -> qqMusicRepository.logout()
                         ExternalServiceAccount.NAVIDROME -> navidromeRepository.logout()
                         ExternalServiceAccount.JELLYFIN -> jellyfinRepository.logout()
+                        ExternalServiceAccount.S3 -> s3Repository.logout()
                     }
                 }
             } finally {

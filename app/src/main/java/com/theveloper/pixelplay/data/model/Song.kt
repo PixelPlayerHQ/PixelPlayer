@@ -42,6 +42,7 @@ data class Song(
     val qqMusicMid: String? = null, // QQ Music song MID
     val navidromeId: String? = null, // Navidrome song ID
     val jellyfinId: String? = null, // Jellyfin item ID
+    val s3ObjectKey: String? = null // S3-compatible object key
 ) : Parcelable {
     /**
      * Returns the display string for artists.

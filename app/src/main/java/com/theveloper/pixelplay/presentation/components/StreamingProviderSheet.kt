@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ import com.theveloper.pixelplay.presentation.jellyfin.auth.JellyfinLoginActivity
 import com.theveloper.pixelplay.presentation.navidrome.auth.NavidromeLoginActivity
 import com.theveloper.pixelplay.presentation.netease.auth.NeteaseLoginActivity
 import com.theveloper.pixelplay.presentation.qqmusic.auth.QqMusicLoginActivity
+import com.theveloper.pixelplay.presentation.s3.auth.S3LoginActivity
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -49,6 +52,9 @@ fun StreamingProviderSheet(
     onNavigateToNavidromeDashboard: () -> Unit = {},
     isJellyfinLoggedIn: Boolean = false,
     onNavigateToJellyfinDashboard: () -> Unit = {},
+    isS3LoggedIn: Boolean = false,
+    onNavigateToS3Dashboard: () -> Unit = {},
+    onOpenDownload: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
@@ -105,6 +111,18 @@ fun StreamingProviderSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     ProviderRow(
+                        iconPainter = rememberVectorPainter(Icons.Rounded.Download),
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = stringResource(R.string.download_title),
+                        subtitle = stringResource(R.string.download_entry_subtitle),
+                        shape = providerSegmentItemShape,
+                        onClick = {
+                            onOpenDownload()
+                            onDismissRequest()
+                        }
+                    )
+
+                    ProviderRow(
                         iconPainter = painterResource(R.drawable.telegram),
                         iconTint = Color(0xFF2AABEE),
                         title = "Telegram",
@@ -155,6 +173,23 @@ fun StreamingProviderSheet(
                                 onNavigateToJellyfinDashboard()
                             } else {
                                 context.startActivity(Intent(context, JellyfinLoginActivity::class.java))
+                            }
+                            onDismissRequest()
+                        }
+                    )
+
+                    ProviderRow(
+                        iconPainter = painterResource(R.drawable.rounded_storage_24),
+                        iconTint = MaterialTheme.colorScheme.tertiary,
+                        title = "S3 Storage",
+                        subtitle = if (isS3LoggedIn) "Connected" else "AWS S3 · R2 · B2 · MinIO · Wasabi",
+                        shape = providerSegmentItemShape,
+                        isConnected = isS3LoggedIn,
+                        onClick = {
+                            if (isS3LoggedIn) {
+                                onNavigateToS3Dashboard()
+                            } else {
+                                context.startActivity(Intent(context, S3LoginActivity::class.java))
                             }
                             onDismissRequest()
                         }

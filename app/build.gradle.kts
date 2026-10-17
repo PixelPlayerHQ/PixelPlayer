@@ -237,6 +237,9 @@ kotlin {
 }
 
 dependencies {
+    // Embedded Go backend (SpotiFLAC-Mobile, MIT) — see scripts/build_gobackend_aar.sh
+    implementation(files("libs/gobackend.aar"))
+
     // Core & Optimization
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.profileinstaller)
@@ -296,6 +299,8 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.coil.compose)
     implementation(libs.taglib)
+    // Decrypts extension downloads (e.g. Amazon "ffmpeg.mov_key") before publishing.
+    implementation(libs.ffmpeg.kit.min)
     implementation(libs.jaudiotagger)
     implementation(libs.vorbisjava.core)
     implementation(libs.wavy.slider)

@@ -22,6 +22,7 @@ object SourceType {
     const val QQMUSIC = 4
     const val NAVIDROME = 5
     const val JELLYFIN = 6
+    const val S3 = 7
 
     /** Derive source type from a content URI string (fallback for migration / conversion). */
     fun fromContentUri(uri: String): Int = when {
@@ -31,6 +32,7 @@ object SourceType {
         uri.startsWith("qqmusic://") -> QQMUSIC
         uri.startsWith("navidrome://") -> NAVIDROME
         uri.startsWith("jellyfin://") -> JELLYFIN
+        uri.startsWith("s3://") -> S3
         else -> LOCAL
     }
 }
@@ -144,6 +146,9 @@ private fun SongEntity.toSongInternal(artists: List<ArtistRef>): Song {
         } else null,
         jellyfinId = if (this.contentUriString.startsWith("jellyfin://")) {
             this.contentUriString.removePrefix("jellyfin://")
+        } else null,
+        s3ObjectKey = if (this.contentUriString.startsWith("s3://")) {
+            this.contentUriString.removePrefix("s3://")
         } else null,
         mimeType = this.mimeType,
         bitrate = this.bitrate,

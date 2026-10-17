@@ -49,3 +49,4 @@ markdown.xml
 **/.env
 **/.env.*
 !**/.env.example
+app/libs/gobackend-sources.jar

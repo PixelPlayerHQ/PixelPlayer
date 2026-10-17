@@ -108,6 +108,7 @@ import com.theveloper.pixelplay.presentation.telegram.channel.TelegramChannelSea
 import com.theveloper.pixelplay.presentation.telegram.dashboard.TelegramDashboardScreen
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
+import com.theveloper.pixelplay.utils.AppLocaleManager
 import dagger.hilt.android.AndroidEntryPoint
 import org.drinkless.tdlib.TdApi
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -117,6 +118,11 @@ import androidx.compose.ui.text.style.TextOverflow
 
 @AndroidEntryPoint
 class TelegramLoginActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocaleManager.wrapContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

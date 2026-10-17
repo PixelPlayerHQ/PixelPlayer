@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
+import com.theveloper.pixelplay.utils.AppLocaleManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import org.json.JSONObject
@@ -86,6 +87,11 @@ import androidx.compose.ui.text.style.TextOverflow
 
 @AndroidEntryPoint
 class NeteaseLoginActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocaleManager.wrapContext(newBase))
+    }
+
 
     companion object {
         const val TARGET_URL = "https://music.163.com/"

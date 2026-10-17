@@ -33,10 +33,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TelegramTopicEntity::class,
         JellyfinSongEntity::class,
         JellyfinPlaylistEntity::class,
+        S3SongEntity::class,
+        S3FolderEntity::class,
         AiCacheEntity::class,
         AiUsageEntity::class
     ],
-    version = 42,
+    version = 45,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -54,6 +56,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun qqmusicDao(): QqMusicDao
     abstract fun navidromeDao(): NavidromeDao
     abstract fun jellyfinDao(): JellyfinDao
+    abstract fun s3Dao(): S3Dao
     abstract fun aiCacheDao(): AiCacheDao
     abstract fun aiUsageDao(): AiUsageDao
 
@@ -744,6 +747,62 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_navidrome_id ON navidrome_songs(navidrome_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id ON navidrome_songs(playlist_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id_date_added ON navidrome_songs(playlist_id, date_added)")
+            }
+        }
+
+        /**
+         * Add S3-compatible storage tables (s3_songs, s3_folders).
+         */
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS s3_songs (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        object_key TEXT NOT NULL,
+                        folder_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        artist TEXT NOT NULL,
+                        album TEXT NOT NULL,
+                        album_id INTEGER NOT NULL,
+                        duration INTEGER NOT NULL,
+                        mime_type TEXT NOT NULL,
+                        bitrate INTEGER,
+                        file_size INTEGER NOT NULL,
+                        date_added INTEGER NOT NULL,
+                        date_modified INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS s3_folders (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        song_count INTEGER NOT NULL DEFAULT 0,
+                        last_sync_time INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_s3_songs_object_key ON s3_songs(object_key)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_s3_songs_folder_id ON s3_songs(folder_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_s3_songs_folder_id_date_added ON s3_songs(folder_id, date_added)")
+            }
+        }
+
+        /**
+         * Add embedded artwork column to s3_songs.
+         */
+        val MIGRATION_43_44 = object : Migration(43, 44) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE s3_songs ADD COLUMN album_art_uri TEXT")
+            }
+        }
+
+        /**
+         * Add tag-probe flag to s3_songs (background metadata queue).
+         */
+        val MIGRATION_44_45 = object : Migration(44, 45) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE s3_songs ADD COLUMN metadata_probed INTEGER NOT NULL DEFAULT 0")
             }
         }
 

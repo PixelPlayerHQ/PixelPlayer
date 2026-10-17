@@ -72,6 +72,9 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
     @Inject
     lateinit var advancedPerformanceDiagnosticsController: dagger.Lazy<AdvancedPerformanceDiagnosticsController>
 
+    @Inject
+    lateinit var s3Repository: dagger.Lazy<com.theveloper.pixelplay.data.s3.S3Repository>
+
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // AÑADE EL COMPANION OBJECT
@@ -120,6 +123,8 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
         advancedPerformanceDiagnosticsController.get().start(startupScope)
+
+        startupScope.launch { s3Repository.get().hideTracksWithLocalCopies() }
 
         startupScope.launch {
             AlbumArtUtils.migrateLegacyCacheLocation(this@PixelPlayApplication)

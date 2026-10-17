@@ -38,9 +38,15 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * @param K The song identifier type (e.g. [String] for QQ Music songMid, [Long] for Netease songId)
  */
-abstract class CloudStreamProxy<K : Any>(
-    private val okHttpClient: OkHttpClient
-) {
+abstract class CloudStreamProxy<K : Any>(okHttpClient: OkHttpClient) {
+
+    /** Upstream fetches need more patience than the shared 8s client — first byte
+     *  from slow clouds (Cloudeka etc.) routinely exceeds it, esp. under load. */
+    private val upstreamClient = okHttpClient.newBuilder()
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+
     // ─── Subclass Configuration ────────────────────────────────────────
 
     protected abstract val allowedHostSuffixes: Set<String>
@@ -212,7 +218,7 @@ abstract class CloudStreamProxy<K : Any>(
                         }
 
                         val response = withContext(Dispatchers.IO) {
-                            okHttpClient.newCall(requestBuilder.build()).execute()
+                            upstreamClient.newCall(requestBuilder.build()).execute()
                         }
 
                         response.use { upstream ->

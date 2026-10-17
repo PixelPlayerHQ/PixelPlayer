@@ -120,6 +120,13 @@
             android:theme="@style/Theme.PixelPlay"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".presentation.s3.auth.S3LoginActivity"
+            android:exported="false"
+            android:label="S3 Storage"
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
+
 
         <activity
             android:name=".ExternalPlayerActivity"

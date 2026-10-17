@@ -225,4 +225,41 @@
     <string name="auth_qq_login_title">Login to QQ Music</string>
     <string name="auth_qq_security_msg">Security note: your password is entered only in QQ Music web pages. PixelPlayer stores session cookies to sync your library.</string>
     <string name="auth_qq_title">QQ Music</string>
+
+    <!-- S3-compatible storage -->
+    <string name="auth_s3_title">S3 Storage</string>
+    <string name="auth_s3_subtitle">Stream music from any S3-compatible bucket: AWS S3, Cloudflare R2, Backblaze B2, MinIO, Wasabi…</string>
+    <string name="auth_s3_info_msg">Music files are streamed directly from the bucket. Your access keys are stored encrypted on this device and never leave it.</string>
+    <string name="auth_s3_endpoint_label">Endpoint</string>
+    <string name="auth_s3_endpoint_placeholder">https://s3.us-east-1.amazonaws.com</string>
+    <string name="auth_s3_endpoint_hint">HTTPS endpoint of the S3-compatible service</string>
+    <string name="auth_s3_region_label">Region</string>
+    <string name="auth_s3_region_placeholder">us-east-1</string>
+    <string name="auth_s3_region_hint">Region of the bucket (e.g. us-east-1, auto for R2)</string>
+    <string name="auth_s3_bucket_label">Bucket</string>
+    <string name="auth_s3_bucket_placeholder">my-music</string>
+    <string name="auth_s3_bucket_hint">Name of the bucket that holds your music</string>
+    <string name="auth_s3_access_key_label">Access Key ID</string>
+    <string name="auth_s3_access_key_placeholder">AKIA…</string>
+    <string name="auth_s3_access_key_hint">Access key from the provider console</string>
+    <string name="auth_s3_secret_key_label">Secret Access Key</string>
+    <string name="auth_s3_secret_key_placeholder">Secret access key</string>
+    <string name="auth_s3_secret_key_hint">Kept encrypted on this device</string>
+    <string name="auth_s3_prefix_label">Folder prefix (optional)</string>
+    <string name="auth_s3_prefix_placeholder">music/</string>
+    <string name="auth_s3_prefix_hint">Restrict browsing to this key prefix</string>
+    <string name="auth_s3_footer_msg">Tip: files named \u0022Artist - Title.ext\u0022 get artist and title parsed automatically. HTTPS is required.</string>
+    <string name="auth_s3_connected_toast">S3 connected!</string>
+    <string name="auth_s3_pick_folder_title">Pick a music folder</string>
+    <string name="auth_s3_pick_folder_empty">No sub-folders here</string>
+    <string name="auth_s3_add_action">Add</string>
+    <string name="auth_s3_add_current_action">Add this folder</string>
+    <string name="s3_dashboard_music_folders">Music folders</string>
+    <string name="s3_dashboard_add_folder_hint">Tap + to add a bucket folder</string>
+    <string name="s3_dashboard_no_folders_yet">No folders added yet</string>
+    <string name="s3_dashboard_folders_synced_count">%1$d folders synced</string>
+    <string name="s3_cd_add_folder">Add folder</string>
+    <string name="s3_cd_edit_connection">Edit connection</string>
+    <string name="s3_probe_queue_running">Reading tags… %1$d songs remaining</string>
+    <string name="s3_probe_queue_finishing">Finishing up…</string>
 </resources>

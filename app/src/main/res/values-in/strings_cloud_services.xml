@@ -225,4 +225,6 @@
     <string name="auth_qq_login_title">Login ke QQ Music</string>
     <string name="auth_qq_security_msg">Catatan keamanan: kata sandi Anda hanya dimasukkan di halaman web QQ Music. PixelPlayer menyimpan cookie sesi untuk menyinkronkan pustaka Anda.</string>
     <string name="auth_qq_title">QQ Music</string>
+    <string name="s3_probe_queue_running">Membaca tag… %1$d lagu tersisa</string>
+    <string name="s3_probe_queue_finishing">Menyelesaikan…</string>
 </resources>

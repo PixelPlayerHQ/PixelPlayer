@@ -29,6 +29,7 @@ import com.theveloper.pixelplay.presentation.jellyfin.auth.JellyfinLoginActivity
 import com.theveloper.pixelplay.presentation.navidrome.auth.NavidromeLoginActivity
 import com.theveloper.pixelplay.presentation.netease.auth.NeteaseLoginActivity
 import com.theveloper.pixelplay.presentation.qqmusic.auth.QqMusicLoginActivity
+import com.theveloper.pixelplay.presentation.s3.auth.S3LoginActivity
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -49,6 +50,8 @@ fun StreamingProviderSheet(
     onNavigateToNavidromeDashboard: () -> Unit = {},
     isJellyfinLoggedIn: Boolean = false,
     onNavigateToJellyfinDashboard: () -> Unit = {},
+    isS3LoggedIn: Boolean = false,
+    onNavigateToS3Dashboard: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
@@ -155,6 +158,23 @@ fun StreamingProviderSheet(
                                 onNavigateToJellyfinDashboard()
                             } else {
                                 context.startActivity(Intent(context, JellyfinLoginActivity::class.java))
+                            }
+                            onDismissRequest()
+                        }
+                    )
+
+                    ProviderRow(
+                        iconPainter = painterResource(R.drawable.rounded_storage_24),
+                        iconTint = MaterialTheme.colorScheme.tertiary,
+                        title = "S3 Storage",
+                        subtitle = if (isS3LoggedIn) "Connected" else "AWS S3 · R2 · B2 · MinIO · Wasabi",
+                        shape = providerSegmentItemShape,
+                        isConnected = isS3LoggedIn,
+                        onClick = {
+                            if (isS3LoggedIn) {
+                                onNavigateToS3Dashboard()
+                            } else {
+                                context.startActivity(Intent(context, S3LoginActivity::class.java))
                             }
                             onDismissRequest()
                         }

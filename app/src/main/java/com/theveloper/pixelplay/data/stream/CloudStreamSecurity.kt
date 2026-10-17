@@ -19,6 +19,7 @@ object CloudStreamSecurity {
     private val QQMUSIC_SONG_MID_REGEX = Regex("^[A-Za-z0-9_-]{6,50}$")
     private val NAVIDROME_SONG_ID_REGEX = Regex("^[A-Za-z0-9_-]{1,100}$")
     private val JELLYFIN_ITEM_ID_REGEX = Regex("^[A-Za-z0-9]{1,100}$")
+    private val S3_OBJECT_KEY_REGEX = Regex("^[A-Za-z0-9][A-Za-z0-9/_. ()&'!,+\\-]{0,1023}$")
     private val FORBIDDEN_HOSTS = setOf("localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]")
 
     // DNS suffixes that only resolve on a local network: mDNS (.local), common
@@ -51,6 +52,12 @@ object CloudStreamSecurity {
     fun validateNavidromeSongId(songId: String): Boolean = NAVIDROME_SONG_ID_REGEX.matches(songId)
 
     fun validateJellyfinItemId(itemId: String): Boolean = JELLYFIN_ITEM_ID_REGEX.matches(itemId)
+
+    /** S3 object keys: printable, no leading '/', no '..' path traversal segments. */
+    fun validateS3ObjectKey(objectKey: String): Boolean {
+        if (!S3_OBJECT_KEY_REGEX.matches(objectKey)) return false
+        return objectKey.split('/').none { it == ".." }
+    }
 
     fun validateRangeHeader(rawHeader: String?): RangeHeaderValidation {
         if (rawHeader.isNullOrBlank()) {
@@ -133,11 +140,13 @@ object CloudStreamSecurity {
         val httpUrl = url.toHttpUrlOrNull() ?: return false
         val host = httpUrl.host.lowercase()
 
-        // Allow private IPs and .local for Subsonic/Navidrome/Jellyfin servers which are often self-hosted
+        // Allow private IPs and .local for Subsonic/Navidrome/Jellyfin servers and
+        // S3-compatible endpoints (MinIO, NAS gateways) which are often self-hosted
         val isNavidromeStream = httpUrl.pathSegments.contains("stream.view")
         val isJellyfinStream = httpUrl.pathSegments.contains("Audio") && httpUrl.pathSegments.contains("universal")
+        val isS3PresignedStream = httpUrl.queryParameter("X-Amz-Signature") != null
         
-        if (!isNavidromeStream && !isJellyfinStream) {
+        if (!isNavidromeStream && !isJellyfinStream && !isS3PresignedStream) {
             if (host in FORBIDDEN_HOSTS) return false
             if (host.endsWith(".local")) return false
             if (isPrivateIpv4Literal(host)) return false

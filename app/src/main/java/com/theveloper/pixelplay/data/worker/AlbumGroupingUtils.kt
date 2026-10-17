@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.worker
 import com.theveloper.pixelplay.data.database.AlbumEntity
 import com.theveloper.pixelplay.data.database.SongEntity
 import com.theveloper.pixelplay.utils.LocalArtworkUri
+import com.theveloper.pixelplay.utils.artistNameKey
 import com.theveloper.pixelplay.utils.normalizeMetadataText
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
 import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
@@ -98,6 +99,15 @@ internal fun chooseAlbumDisplayArtist(
     }
 }
 
+/**
+ * Resolves the artist id for an album's display artist.
+ *
+ * [artistNameToId] is keyed by [artistNameKey], not by the raw name, so every
+ * lookup here goes through the same canonical key the sync used to build it.
+ * Before this, a lookup miss here silently fell through to the first song's
+ * artist, which attributed compilations and collaborations to an arbitrary
+ * artist.
+ */
 internal fun resolveAlbumDisplayArtistId(
     displayArtist: String,
     songs: List<SongEntity>,
@@ -105,14 +115,13 @@ internal fun resolveAlbumDisplayArtistId(
     artistDelimiters: List<String>,
     wordDelimiters: List<String> = emptyList()
 ): Long {
-    artistNameToId[displayArtist.trim()]?.let { return it }
+    artistNameToId[artistNameKey(displayArtist)]?.let { return it }
 
     val primaryArtistName = displayArtist
         .splitArtistsByDelimiters(artistDelimiters, wordDelimiters)
         .firstOrNull()
-        ?.trim()
     if (!primaryArtistName.isNullOrEmpty()) {
-        artistNameToId[primaryArtistName]?.let { return it }
+        artistNameToId[artistNameKey(primaryArtistName)]?.let { return it }
     }
 
     return songs.firstOrNull()?.artistId ?: 0L

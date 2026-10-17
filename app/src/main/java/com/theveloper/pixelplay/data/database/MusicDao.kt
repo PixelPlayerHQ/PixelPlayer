@@ -1630,6 +1630,30 @@ interface MusicDao {
     @Query("DELETE FROM artists WHERE NOT EXISTS (SELECT 1 FROM song_artist_cross_ref WHERE song_artist_cross_ref.artist_id = artists.id)")
     suspend fun deleteOrphanedArtists()
 
+    /**
+     * Recomputes the denormalised `artists.track_count` from the cross-reference
+     * table for every artist.
+     *
+     * `track_count` is a cache of `COUNT(DISTINCT song_id)` per artist. Sync
+     * recomputes it only for artists touched by the current batch, so artists
+     * outside that batch keep whatever value they had — which goes stale after
+     * songs are deleted or after [PixelPlayDatabase.mergeDuplicateArtists]
+     * collapses duplicate rows. The artist list queries compute the count live,
+     * so this column is not load-bearing; it is kept correct so diagnostics and
+     * any future query that reads it directly are not misled.
+     */
+    @Query(
+        """
+        UPDATE artists
+        SET track_count = (
+            SELECT COUNT(DISTINCT song_artist_cross_ref.song_id)
+            FROM song_artist_cross_ref
+            WHERE song_artist_cross_ref.artist_id = artists.id
+        )
+        """
+    )
+    suspend fun recomputeAllArtistTrackCounts()
+
     // --- Favorite Operations ---
     @Query("UPDATE songs SET is_favorite = :isFavorite WHERE id = :songId")
     suspend fun setFavoriteStatus(songId: Long, isFavorite: Boolean)

@@ -146,6 +146,48 @@ class AlbumGroupingUtilsTest {
         assertThat(displayArtist).isEqualTo("The Weeknd & Justice")
     }
 
+    @Test
+    fun `resolveAlbumDisplayArtistId resolves names that differ only by case`() {
+        // The map handed to this function is keyed by artistNameKey(), so a lookup
+        // using the raw display-artist string used to miss and silently attribute
+        // the album to the first song's artist instead.
+        val resolved = resolveAlbumDisplayArtistId(
+            displayArtist = "Beyoncé",
+            songs = listOf(testSong(artistName = "Some Other Artist", albumArtist = null)),
+            artistNameToId = mapOf("beyoncé" to 7L),
+            artistDelimiters = listOf(";"),
+            wordDelimiters = listOf("feat.")
+        )
+
+        assertThat(resolved).isEqualTo(7L)
+    }
+
+    @Test
+    fun `resolveAlbumDisplayArtistId resolves names with differing whitespace`() {
+        val resolved = resolveAlbumDisplayArtistId(
+            displayArtist = "  Radiohead  ",
+            songs = listOf(testSong(artistName = "Some Other Artist", albumArtist = null)),
+            artistNameToId = mapOf("radiohead" to 11L),
+            artistDelimiters = listOf(";"),
+            wordDelimiters = listOf("feat.")
+        )
+
+        assertThat(resolved).isEqualTo(11L)
+    }
+
+    @Test
+    fun `resolveAlbumDisplayArtistId falls back to the first split artist`() {
+        val resolved = resolveAlbumDisplayArtistId(
+            displayArtist = "Justice feat. Dua Lipa",
+            songs = listOf(testSong(artistName = "Some Other Artist", albumArtist = null)),
+            artistNameToId = mapOf("justice" to 5L, "dua lipa" to 6L),
+            artistDelimiters = listOf(";"),
+            wordDelimiters = listOf("feat.")
+        )
+
+        assertThat(resolved).isEqualTo(5L)
+    }
+
     private fun testSong(
         artistName: String,
         albumArtist: String?,

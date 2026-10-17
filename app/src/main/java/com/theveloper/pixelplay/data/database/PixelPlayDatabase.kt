@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
@@ -36,7 +37,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AiCacheEntity::class,
         AiUsageEntity::class
     ],
-    version = 42,
+    version = 43,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -56,6 +57,26 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun jellyfinDao(): JellyfinDao
     abstract fun aiCacheDao(): AiCacheDao
     abstract fun aiUsageDao(): AiUsageDao
+
+    /**
+     * Collapses artist rows that differ only by letter case or whitespace, and
+     * repairs the denormalised track counts.
+     *
+     * This is the re-runnable counterpart to [MIGRATION_42_43]: the migration
+     * runs it once on upgrade, and this exposes the exact same SQL for a
+     * database that is already at the current version (for example after
+     * restoring a backup, or once further artist-normalisation work lands).
+     * Idempotent — a second call finds no duplicate groups and returns.
+     *
+     * Exposed on the database rather than on [MusicDao] because it needs the
+     * raw [SupportSQLiteDatabase] to run multi-statement DDL/DML.
+     */
+    suspend fun mergeDuplicateArtists() {
+        withTransaction {
+            mergeDuplicateArtistsIn(openHelper.writableDatabase)
+            musicDao().recomputeAllArtistTrackCounts()
+        }
+    }
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -745,6 +766,188 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id ON navidrome_songs(playlist_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id_date_added ON navidrome_songs(playlist_id, date_added)")
             }
+        }
+
+        /**
+         * Collapses artist rows that differ only by letter case / surrounding or
+         * internal whitespace into a single row per canonical name.
+         *
+         * Why this is needed: [com.theveloper.pixelplay.data.worker.SyncWorker]
+         * keyed its existing-artist map on the raw `name`, so a song tagged
+         * "beyonce" never matched a row stored as "Beyoncé" and minted a second
+         * row on every scan. Real libraries ended up with several rows per human.
+         *
+         * Merge rules:
+         *  - The surviving row is the LOWEST id (matches the deterministic
+         *    "first row wins" that the sync now uses when rebuilding its map).
+         *  - A surviving row that has no artwork adopts the artwork of the
+         *    duplicate with the largest track count, so merging never costs a
+         *    user their artist image or custom photo.
+         *  - Cross-references are re-pointed to the survivor. When a song was
+         *    credited to two duplicates at once (possible: one via
+         *    `songs.artist_id`, another via a cross-ref), the duplicate row is
+         *    dropped rather than violating the (song_id, artist_id) primary key.
+         *  - Track counts are recomputed from the cross-refs afterwards, since
+         *    the stored `track_count` is denormalised and would otherwise be
+         *    left half-merged.
+         *
+         * `LOWER(TRIM(name))` is the SQL counterpart of
+         * [com.theveloper.pixelplay.utils.artistNameKey]. It does not collapse
+         * internal whitespace runs (SQLite has no regexp by default), which is
+         * why the sync resolves names in memory instead of via SQL.
+         */
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                mergeDuplicateArtistsIn(db)
+            }
+        }
+
+        /**
+         * Collapses case/whitespace-variant artist rows in place.
+         *
+         * The single implementation behind both [MIGRATION_42_43] and
+         * [mergeDuplicateArtists], so the upgrade path and the re-runnable path
+         * cannot drift apart. Idempotent: a second run finds no duplicate groups
+         * and returns without writing anything.
+         */
+        fun mergeDuplicateArtistsIn(db: SupportSQLiteDatabase) {
+            if (!tableExists(db, "artists")) return
+
+            // loser_id -> survivor_id, materialised once so every statement below
+            // agrees on the mapping and no statement has to re-derive it.
+            db.execSQL("DROP TABLE IF EXISTS temp.artist_merge_map")
+            db.execSQL(
+                """
+                CREATE TEMP TABLE artist_merge_map (
+                    loser_id INTEGER PRIMARY KEY,
+                    survivor_id INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                INSERT INTO artist_merge_map (loser_id, survivor_id)
+                SELECT a.id, (
+                    SELECT MIN(b.id)
+                    FROM artists b
+                    WHERE LOWER(TRIM(b.name)) = LOWER(TRIM(a.name))
+                )
+                FROM artists a
+                WHERE TRIM(a.name) != ''
+                    AND EXISTS (
+                        SELECT 1 FROM artists b
+                        WHERE LOWER(TRIM(b.name)) = LOWER(TRIM(a.name))
+                    )
+                    AND a.id != (
+                        SELECT MIN(b.id)
+                        FROM artists b
+                        WHERE LOWER(TRIM(b.name)) = LOWER(TRIM(a.name))
+                    )
+                """.trimIndent()
+            )
+
+            val loserCount = db.query("SELECT COUNT(*) FROM artist_merge_map")
+                .use { if (it.moveToFirst()) it.getInt(0) else 0 }
+            if (loserCount == 0) {
+                db.execSQL("DROP TABLE IF EXISTS temp.artist_merge_map")
+                return
+            }
+
+            // Adopt artwork from a duplicate when the survivor has none. Ordered by
+            // track count so the most-established duplicate wins, which keeps
+            // Deezer art and user-uploaded photos from being lost by a merge.
+            db.execSQL(
+                """
+                UPDATE artists
+                SET image_url = COALESCE(
+                    artists.image_url,
+                    (
+                        SELECT src.image_url
+                        FROM artists src
+                        INNER JOIN artist_merge_map m ON src.id = m.loser_id
+                        WHERE m.survivor_id = artists.id
+                            AND src.image_url IS NOT NULL
+                            AND TRIM(src.image_url) != ''
+                        ORDER BY src.track_count DESC, src.id ASC
+                        LIMIT 1
+                    )
+                )
+                WHERE id IN (SELECT DISTINCT survivor_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                UPDATE artists
+                SET custom_image_uri = COALESCE(
+                    artists.custom_image_uri,
+                    (
+                        SELECT src.custom_image_uri
+                        FROM artists src
+                        INNER JOIN artist_merge_map m ON src.id = m.loser_id
+                        WHERE m.survivor_id = artists.id
+                            AND src.custom_image_uri IS NOT NULL
+                            AND TRIM(src.custom_image_uri) != ''
+                        ORDER BY src.track_count DESC, src.id ASC
+                        LIMIT 1
+                    )
+                )
+                WHERE id IN (SELECT DISTINCT survivor_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+
+            // Re-point cross-refs to the survivor. OR IGNORE because
+            // (song_id, artist_id) is the composite primary key: a song already
+            // credited to the survivor would otherwise raise a constraint
+            // violation, and the loser's ref for that song is redundant anyway.
+            db.execSQL(
+                """
+                UPDATE OR IGNORE song_artist_cross_ref
+                SET artist_id = (
+                    SELECT m.survivor_id FROM artist_merge_map m
+                    WHERE m.loser_id = song_artist_cross_ref.artist_id
+                )
+                WHERE artist_id IN (SELECT loser_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+
+            // Sweep up refs that still point at a doomed row: those IGNORE skipped
+            // because the song already had a ref to the survivor.
+            db.execSQL(
+                """
+                DELETE FROM song_artist_cross_ref
+                WHERE artist_id IN (SELECT loser_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                UPDATE songs
+                SET artist_id = (
+                    SELECT m.survivor_id FROM artist_merge_map m
+                    WHERE m.loser_id = songs.artist_id
+                )
+                WHERE artist_id IN (SELECT loser_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+
+            // Cross-refs carry ON DELETE CASCADE, so this is also a safety net.
+            db.execSQL("DELETE FROM artists WHERE id IN (SELECT loser_id FROM artist_merge_map)")
+
+            // Recompute the denormalised track counts from the surviving cross-refs.
+            db.execSQL(
+                """
+                UPDATE artists
+                SET track_count = (
+                    SELECT COUNT(DISTINCT r.song_id)
+                    FROM song_artist_cross_ref r
+                    WHERE r.artist_id = artists.id
+                )
+                WHERE id IN (SELECT DISTINCT survivor_id FROM artist_merge_map)
+                """.trimIndent()
+            )
+
+            db.execSQL("DROP TABLE IF EXISTS temp.artist_merge_map")
         }
 
         private fun ensureSongsTableHasDateAdded(db: SupportSQLiteDatabase) {

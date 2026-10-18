@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <!-- Equalizer preset dialogs -->
+    <string name="equalizer_error_name_empty">Ім’я не може бути порожнім</string>
+    <string name="equalizer_action_rename">Перейменувати</string>
+
+    <!-- EqualizerScreen -->
+    <string name="equalizer_change_view_mode_cd">Змінити режим перегляду</string>
+    <string name="equalizer_disable_cd">Вимкнути еквалайзер</string>
+    <string name="equalizer_enable_cd">Увімкнути еквалайзер</string>
+    <string name="equalizer_edit_tab_title">Редагувати</string>
+    <string name="equalizer_edit_presets_cd">Редагувати пресети</string>
+    <string name="equalizer_custom_preset_cd">Власний пресет</string>
+    <string name="equalizer_presets_cd">Пресети</string>
+    <string name="equalizer_action_update">Оновити</string>
+    <string name="equalizer_bass_boost">Підсилення басів</string>
+    <string name="equalizer_virtualizer">Віртуалізатор</string>
+    <string name="equalizer_loudness">Підсилення гучності</string>
+    <string name="equalizer_effect_not_supported">Не підтримується</string>
+    <string name="equalizer_effect_not_supported_device">Не підтримується на цьому пристрої</string>
+    <string name="equalizer_volume">Гучність</string>
+    <string name="equalizer_frequency_response">Амплітудно-частотна характеристика</string>
+    <string name="equalizer_unit_hz">Гц</string>
+    <string name="equalizer_band_bass">Баси</string>
+    <string name="equalizer_band_low_mids">Нижні середні</string>
+    <string name="equalizer_band_high_mids">Верхні середні</string>
+    <string name="equalizer_band_treble">Верхи</string>
+    <string name="equalizer_band_bass_low">Баси / Низи</string>
+    <string name="equalizer_band_mid_high">Середини / Верхи</string>
+    <string name="equalizer_page_n">Сторінка %1$d</string>
+    <string name="equalizer_reset_duration_cd">Скинути тривалість</string>
+    <string name="equalizer_action_save_new">Зберегти новий</string>
+
+    <!-- CustomPresetsSheet -->
+    <string name="equalizer_presets_saved_title">Збережені пресети</string>
+    <string name="equalizer_presets_empty">Власних пресетів ще не збережено.</string>
+    <string name="equalizer_presets_cd_unpin">Відкріпити</string>
+    <string name="equalizer_presets_cd_pin">Закріпити</string>
+    <string name="equalizer_presets_cd_rename">Перейменувати</string>
+    <string name="equalizer_presets_cd_delete">Видалити</string>
+
+    <!-- SavePresetDialog -->
+    <string name="equalizer_presets_save_custom_title">Зберегти власний пресет</string>
+    <string name="equalizer_presets_save_custom_body">Введіть ім’я для вашого власного пресету еквалайзера.</string>
+    <string name="equalizer_preset_name_placeholder">Назва пресету</string>
+    <string name="equalizer_presets_rename_title">Перейменувати пресет</string>
+
+    <!-- ReorderPresetsSheet -->
+    <string name="equalizer_manage_presets_title">Керування пресетами</string>
+    <string name="equalizer_presets_drag_hint">Тягніть, щоб переставити • Торкніться ока, щоб показати або сховати</string>
+    <string name="equalizer_cd_reorder">Переставити</string>
+    <string name="equalizer_reset_presets_title">Скинути пресети</string>
+    <string name="equalizer_reset_presets_message">Це відновить типовий порядок і видимість пресетів. Продовжити?</string>
+    <string name="equalizer_cd_reset_presets_default">Скинути до типового</string>
+    <string name="equalizer_cd_visible">Видимий</string>
+    <string name="equalizer_cd_hidden">Прихований</string>
+</resources>

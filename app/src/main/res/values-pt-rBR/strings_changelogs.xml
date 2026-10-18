@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="changelog_title">Registro de Alterações</string>
+    <string name="changelog_view_github">Ver no GitHub</string>
+    <string name="changelog_sec_improvements">Melhorias</string>
+    <string name="changelog_sec_fixes">Correções</string>
+    <string name="changelog_sec_whats_new">Novidades</string>
+    <string name="changelog_sec_added">Adicionado</string>
+    <string-array name="changelog_020_added">
+        <item>Suporte a Chromecast para transmitir áudio do seu dispositivo.</item>
+        <item>Registro de alterações no aplicativo para manter você atualizado sobre os últimos recursos.</item>
+        <item>Suporte a arquivos .LRC, tanto incorporados quanto externos.</item>
+        <item>Suporte a letras offline.</item>
+        <item>Letras sincronizadas (sincronizadas com a música).</item>
+        <item>Nova tela para visualizar a fila completa.</item>
+        <item>Reordenar e remover músicas da fila.</item>
+        <item>Gestos do mini-reprodutor (deslize para baixo para fechar).</item>
+        <item>Adicionadas mais animações do Material.</item>
+        <item>Novas configurações para personalizar a aparência.</item>
+        <item>Novas configurações para limpar o cache.</item>
+    </string-array>
+    <string-array name="changelog_020_improvements">
+        <item>Redesign completo da interface do usuário.</item>
+        <item>Redesign completo do reprodutor.</item>
+        <item>Melhorias de desempenho na biblioteca.</item>
+        <item>Velocidade de inicialização do aplicativo melhorada.</item>
+        <item>A IA agora oferece melhores resultados.</item>
+    </string-array>
+    <string-array name="changelog_020_fixes">
+        <item>Corrigidos vários bugs no editor de tags.</item>
+        <item>Corrigido um bug em que a notificação de reprodução não era dispensada.</item>
+        <item>Corrigidos vários bugs que faziam o aplicativo travar.</item>
+    </string-array>
+    <string-array name="changelog_030_whats_new">
+        <item>Apresentamos um painel de estatísticas de escuta mais rico, com insights mais profundos sobre suas sessões.</item>
+        <item>Lançamos um reprodutor rápido flutuante para abrir e visualizar instantaneamente arquivos locais.</item>
+        <item>Adicionamos uma aba de pastas com um navegador em árvore e uma visualização pronta para playlists.</item>
+    </string-array>
+    <string-array name="changelog_030_improvements">
+        <item>A UI geral do Material 3 foi refinada para uma experiência mais limpa e coesa.</item>
+        <item>A edição de metadados agora suporta alteração da capa.</item>
+        <item>Animações e transições suavizadas em todo o aplicativo para uma navegação mais fluida.</item>
+        <item>O layout da tela do artista foi aprimorado com mais detalhes e polimento.</item>
+        <item>A geração de DailyMix e YourMix foi atualizada com seleções mais inteligentes e diversas.</item>
+        <item>A geração de playlists por IA foi reforçada.</item>
+        <item>A relevância e a apresentação da pesquisa foram melhoradas para descobrir mais rápido.</item>
+        <item>Suporte expandido para uma gama mais ampla de formatos de arquivo de áudio.</item>
+    </string-array>
+    <string-array name="changelog_030_fixes">
+        <item>Resolvidas peculiaridades de metadados para que os detalhes das músicas permaneçam precisos em todos os lugares.</item>
+        <item>Restaurados os atalhos de notificação para que voltem à reprodução de forma confiável.</item>
+    </string-array>
+    <string-array name="changelog_040_improvements">
+        <item>Redesign principal da navegação</item>
+        <item>Novo explorador de arquivos para escolher diretórios de origem</item>
+        <item>Novas funcionalidades de conectividade e transmissão</item>
+        <item>Continuidade perfeita entre dispositivos remotos</item>
+        <item>Transição sem intervalo entre músicas</item>
+        <item>Controle de crossfade</item>
+        <item>Novo recurso de Transições Personalizadas (apenas para playlists)</item>
+        <item>Continue tocando após fechar o aplicativo</item>
+        <item>Otimizações de UI</item>
+        <item>Recurso de estatísticas melhorado</item>
+        <item>Controle da fila redesenhado com mais recursos</item>
+        <item>Melhor suporte a diferentes tipos de arquivo para reprodução e edição de metadados</item>
+        <item>Controlador de permissões melhorado</item>
+        <item>Correções de bugs menores</item>
+    </string-array>
+    <string-array name="changelog_050_improvements">
+        <item>Atualização de UI Material 3 Expressive</item>
+        <item>Equalizador de 10 bandas &amp; Efeitos</item>
+        <item>Novo Fluxo de Sincronização da Biblioteca</item>
+        <item>Integração de IA (Modelos Gemini)</item>
+        <item>Importação/Exportação de Playlists M3U</item>
+        <item>Integração de Arte de Artistas do Deezer</item>
+        <item>Capas de Playlist Personalizadas</item>
+        <item>Refatoração da Arquitetura de Configurações</item>
+        <item>Animações de Fila &amp; Reprodutor</item>
+        <item>Perfis Base (Baseline) &amp; Desempenho</item>
+        <item>Melhor Sistema de Letras com Deslocamento de Sincronização</item>
+    </string-array>
+    <string-array name="changelog_050_fixes">
+        <item>Melhorias de Estabilidade na Transmissão</item>
+        <item>Estabilidade da Folha do Reprodutor</item>
+        <item>Correções de Bugs Gerais &amp; Limpeza</item>
+    </string-array>
+    <string-array name="changelog_060_whats_new">
+        <item>Suporte a Android Auto agora disponível para reprodução no carro.</item>
+        <item>Suporte a Wear OS disponível, com melhores controles de reprodução entre relógio e celular.</item>
+        <item>Integrações na nuvem expandidas com melhorias no Telegram, NetEase, QQ Music e Google Drive.</item>
+        <item>Tocadas Recentemente e restauração persistente da fila mantêm sua sessão de escuta pronta.</item>
+        <item>Backup &amp; Restauração v3 e ferramentas de gerenciamento de conta agora incluídas.</item>
+        <item>As letras ficaram mais inteligentes com busca manual como alternativa e melhorias de armazenamento.</item>
+    </string-array>
+    <string-array name="changelog_060_improvements">
+        <item>Grande melhoria de desempenho na inicialização, biblioteca, fila e interações do reprodutor.</item>
+        <item>Superfícies de Reprodutor, Cast, Letras, Artista e Gênero foram redesenhadas para uso mais suave.</item>
+        <item>Fluxos de navegação e pesquisa mais confiáveis, com tratamento de rotas mais seguro.</item>
+        <item>Compatibilidade de reprodução de áudio melhorada para mais dispositivos e formatos.</item>
+        <item>Fluxos de multisseleção expandidos para músicas, álbuns e playlists.</item>
+    </string-array>
+    <string-array name="changelog_060_fixes">
+        <item>O comportamento da fila e do modo aleatório agora é mais estável e previsível.</item>
+        <item>Vários casos extremos de reprodução em segundo plano e transmissão foram corrigidos.</item>
+        <item>Temporizador de Dormir, navegação na aba Arquivos e travamentos do artista do álbum foram corrigidos.</item>
+        <item>O carregamento do widget e a estabilidade do serviço foram melhorados para reduzir problemas de superaquecimento/memória.</item>
+        <item>Correções de bugs gerais e polimento de UI em todo o aplicativo.</item>
+    </string-array>
+    <string-array name="changelog_070_whats_new">
+        <item>Wear OS: Transferência de música, reprodução local, sincronização da fila e controle remoto pelo relógio.</item>
+        <item>IA: Integração com Groq AI e OpenRouter (experimental) com otimização de tokens.</item>
+        <item>Nuvem: Suporte a Jellyfin adicionado.</item>
+        <item>Letras: Tradução sincronizada com alternador dedicado, suporte ao formato LRC do Kugou, personalização de alinhamento de texto e carregamento remoto aprimorado.</item>
+        <item>UI/UX: Modo de barra de navegação compacta, temas dinâmicos da paleta da capa do álbum, texto em execução para títulos longos e novas opções de ordenação.</item>
+        <item>Telegram: Suporte nativo a tópicos e modos de exibição aprimorados.</item>
+    </string-array>
+    <string-array name="changelog_070_improvements">
+        <item>Motor de Áudio: Revisão completa com suporte a mais formatos (MIDI, ALAC, M4A) e otimização do decodificador.</item>
+        <item>Eficiência: Redução drástica no consumo de energia, correções de superaquecimento e otimização de tarefas em segundo plano (SyncWorker).</item>
+        <item>Banco de Dados: Otimizações massivas de consultas e cache de capas redesenhado para evitar perda de dados.</item>
+        <item>Inicialização: Tempo de carregamento melhorado via otimização do Baseline Profile.</item>
+    </string-array>
+    <string-array name="changelog_070_fixes">
+        <item>Reprodução: Corrigido engasgamento em Opus/MP3, erros de ReplayGain durante crossfades e problemas de inicialização em decodificadores Samsung.</item>
+        <item>Estabilidade: Eliminados travamentos na inicialização, na navegação de artistas e em dispositivos Android 12+.</item>
+        <item>UI: Corrigido piscar da capa, transbordamento de texto em scripts não latinos e comportamento da barra de navegação/mini-reprodutor.</item>
+        <item>Segurança: Credenciais, permissões de armazenamento e comunicação com o servidor de mídia reforçados.</item>
+    </string-array>
+    <string-array name="changelog_070_added">
+        <item>Localização: Espanhol, Francês, Russo, Chinês Simplificado, Indonésio, Italiano</item>
+    </string-array>
+    <string-array name="changelog_075_whats_new">
+        <item>Integração com Google Drive com gerenciamento do ciclo de vida do reprodutor.</item>
+        <item>Edição em lote de metadados de músicas (tags e capa).</item>
+        <item>Tradução de letras por IA com preferências personalizáveis no Wear OS.</item>
+        <item>Ferramenta de diagnóstico de lentidão e multisseleção na tela de Pesquisa.</item>
+        <item>Suporte a Árabe &amp; Turco, com opções de rede local de URL http localizadas.</item>
+    </string-array>
+    <string-array name="changelog_075_improvements">
+        <item>Economia drástica de bateria (offload de áudio e limites de polling da UI).</item>
+        <item>Gerenciamento de fila otimizado (inserções mais rápidas e indexação explícita).</item>
+        <item>Animações de movimento Material 3 Expressive para telas de transição.</item>
+        <item>Sincronização da biblioteca redesenhada com varredura limitada.</item>
+    </string-array>
+    <string-array name="changelog_075_fixes">
+        <item>Resolvidos atrasos de reprodução com engasgamento/pulos e problemas de buffering.</item>
+        <item>Corrigada a sincronização de exclusão de músicas externas e a consistência de metadados.</item>
+        <item>Corrigidos problemas de memória, travamentos e falhas de layout no Wear OS e no celular.</item>
+    </string-array>
+</resources>

@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation -->
+    <string name="nav_error_genre_id_missing">Помилка: відсутній ідентифікатор жанру</string>
+
+    <!-- SetupScreen -->
+    <string name="setup_lets_go">Погнали!</string>
+    <string name="setup_step_format">Крок %1$d з %2$d</string>
+    <string name="setup_toast_grant_permission_first">Спершу надайте потрібний дозвіл.</string>
+    <string name="setup_toast_grant_all_permissions">Надайте всі потрібні дозволи.</string>
+    <string name="setup_welcome_prefix">Ласкаво просимо до </string>
+    <string name="setup_beta_symbol">β</string>
+    <string name="setup_beta_label">Бета</string>
+    <string name="setup_intro_body">Давайте все налаштуємо для вас.</string>
+    <string name="setup_permission_media_title">Дозвіл на медіа</string>
+    <string name="setup_permission_media_description">PixelPlayer потрібен доступ до ваших аудіофайлів, щоб створити вашу музичну бібліотеку.</string>
+    <string name="setup_permission_granted">Дозвіл надано</string>
+    <string name="setup_grant_media_permission">Надати дозвіл на медіа</string>
+    <string name="setup_permission_notifications_title">Сповіщення</string>
+    <string name="setup_permission_notifications_description">Увімкніть сповіщення, щоб керувати музикою з екрана блокування та панелі сповіщень.</string>
+    <string name="setup_enable_notifications">Увімкнути сповіщення</string>
+    <string name="setup_backup_have_title">У вас є резервна копія?</string>
+    <string name="setup_backup_have_description">Якщо у вас вже є резервна копія PixelPlayer, відновіть її зараз і пропустіть більшість налаштувань на цьому пристрої.</string>
+    <string name="setup_import_backup">Імпортувати резервну копію</string>
+    <string name="setup_inspecting_backup">Перевірка резервної копії</string>
+    <string name="setup_checking_backup">Перевірка пакета резервної копії…</string>
+    <string name="setup_restoring_backup">Відновлення резервної копії</string>
+    <string name="setup_skip_for_now">Пропустити / Не зараз</string>
+    <string name="setup_restore_backup_title">Відновити резервну копію</string>
+    <string name="setup_restore_backup_subtitle">Перегляньте, що ви хочете імпортувати, перш ніж завершити налаштування.</string>
+    <string name="setup_modules_selected_format">Вибрано модулів: %1$d з %2$d</string>
+    <string name="setup_backup_created_format">Створено %1$s</string>
+    <string name="setup_backup_from_version">Резервна копія з %1$s</string>
+    <string name="setup_backup_unknown_version">Невідома версія</string>
+    <string name="setup_restore_selected">Відновити вибране</string>
+    <string name="setup_restoring">Відновлення</string>
+    <string name="setup_excluded_folders_title">Виключені папки</string>
+    <string name="setup_excluded_folders_description">За замовчуванням скануються всі папки. Виберіть місця, які потрібно ігнорувати під час створення бібліотеки.</string>
+    <string name="setup_choose_folders_ignore">Виберіть папки для ігнорування</string>
+    <string name="setup_toast_grant_storage_first">Спершу надайте дозволи на зберігання</string>
+    <string name="setup_theme_title">Тема застосунку</string>
+    <string name="setup_theme_subtitle">Виберіть вигляд, який хочете, перш ніж почати знайомство з бібліотекою.</string>
+    <string name="setup_theme_dark_title">Темна</string>
+    <string name="setup_theme_dark_description">Типовий темний вигляд Material 3 для PixelPlayer.</string>
+    <string name="setup_theme_light_title">Світла</string>
+    <string name="setup_theme_light_description">Світліший вигляд Material 3 у всьому застосунку.</string>
+    <string name="setup_theme_follow_title">Як у системі</string>
+    <string name="setup_theme_follow_description">Відповідати поточним налаштуванням вигляду вашого телефону.</string>
+    <string name="setup_recommended">Рекомендовано</string>
+    <string name="setup_theme_footer">Ви можете змінити це пізніше в «Налаштування &gt; Вигляд &gt; Тема застосунку».</string>
+    <string name="setup_library_layout_title">Макет бібліотеки</string>
+    <string name="setup_library_layout_subtitle">Виберіть бажаний спосіб навігації бібліотекою.</string>
+    <string name="setup_preview_songs_label">Пісні</string>
+    <string name="setup_compact_mode">Компактний режим</string>
+    <string name="setup_compact_mode_pill_hint">Використовується мінімальна навігація-пігулка</string>
+    <string name="setup_compact_mode_tab_hint">Використовується стандартний рядок вкладок</string>
+    <string name="setup_tab_songs">ПІСНІ</string>
+    <string name="setup_tab_albums">АЛЬБОМИ</string>
+    <string name="setup_tab_artists">ВИКОНАВЦІ</string>
+    <string name="setup_library_layout_footer">Ви можете змінити це пізніше в «Налаштування &gt; Вигляд &gt; Навігація бібліотеки».</string>
+    <string name="setup_app_navigation_title">Навігація застосунку</string>
+    <string name="setup_app_navigation_subtitle">Виберіть стиль нижньої панелі навігації.</string>
+    <string name="setup_navbar_default_style">Типовий стиль</string>
+    <string name="setup_nav_floating_pill_description">Плаваюча пігулка із заокругленими кутами</string>
+    <string name="setup_nav_full_width_description">Стандартна панель на всю ширину</string>
+    <string name="setup_customize_corner_radius">Налаштувати радіус кутів</string>
+    <string name="setup_navbar_footer">Ви можете змінити це пізніше в «Налаштування &gt; Вигляд &gt; Стиль панелі навігації».</string>
+    <string name="setup_permission_alarms_title">Будильники та нагадування</string>
+    <string name="setup_permission_alarms_description">Необов’язково, але рекомендовано, якщо ви користуєтеся таймером сну і хочете, щоб PixelPlayer зупиняв відтворення точно вчасно.</string>
+    <string name="setup_grant_permission_generic">Надати дозвіл</string>
+    <string name="setup_battery_optimization_title">Оптимізація батареї</string>
+    <string name="setup_battery_optimization_description">Деякі пристрої Android агресивно завершують фонові застосунки. Вимкніть оптимізацію батареї для PixelPlayer, щоб запобігти несподіваним перериванням відтворення.</string>
+    <string name="setup_disable_battery_optimization">Вимкнути оптимізацію</string>
+    <string name="setup_all_set_title">Усе готово!</string>
+    <string name="setup_all_set_body">Ви готові насолоджуватися музикою.</string>
+
+    <!-- SearchScreen -->
+    <string name="search_placeholder">Пошук…</string>
+    <string name="search_cd_search_icon">Пошук</string>
+    <string name="search_cd_clear_search_query">Очистити пошуковий запит</string>
+    <string name="search_recent_searches">Нещодавні пошуки</string>
+    <string name="search_action_clear_all">Очистити все</string>
+    <string name="search_cd_search_history_icon">Історія</string>
+    <string name="search_cd_delete_search_history_item">Видалити елемент історії пошуку</string>
+    <string name="search_cd_no_results">Немає результатів</string>
+    <string name="search_no_results_for_query">Немає результатів для «%1$s»</string>
+    <string name="search_nothing_found">Нічого не знайдено</string>
+    <string name="search_try_different_or_filters">Спробуйте інший пошуковий запит або перевірте фільтри.</string>
+    <string name="search_no_results_found">Результатів не знайдено.</string>
+    <string name="browse_by_genre">Огляд за жанрами</string>
+    <string name="no_genres_available">Жанри недоступні.</string>
+
+    <!-- ArtistDetailScreen -->
+    <string name="artist_cd_play_title">Відтворити %1$s</string>
+    <string name="artist_cd_collapse_title">Згорнути %1$s</string>
+    <string name="artist_cd_expand_title">Розгорнути %1$s</string>
+    <string name="artist_cd_edit_image">Змінити зображення виконавця</string>
+    <string name="artist_action_change_photo">Змінити фото</string>
+    <string name="artist_action_reset_to_default">Скинути до типового</string>
+    <string name="artist_cd_shuffle_play">Відтворити виконавця випадково</string>
+
+    <!-- AlbumDetailScreen -->
+    <string name="album_disc_number_header">Диск %d</string>
+    <string name="album_cover_for">Обкладинка %1$s</string>
+    <string name="album_detail_meta_line">%1$s · %2$s</string>
+
+    <!-- PlaylistDetailScreen -->
+    <string name="playlist_not_found">Список відтворення не знайдено.</string>
+    <string name="playlist_empty_title">Цей список відтворення порожній.</string>
+    <string name="playlist_empty_add_hint">Торкніться «Додати пісні», щоб почати.</string>
+    <string name="playlist_empty_folder_label">Ця папка не містить пісень.</string>
+    <string name="playlist_sort_songs_title">Сортувати пісні</string>
+    <string name="playlist_more_options_title">Більше параметрів</string>
+    <string name="playlist_options_title">Параметри списку відтворення</string>
+    <string name="playlist_action_edit_playlist">Редагувати список відтворення</string>
+    <string name="playlist_action_delete_playlist">Видалити список відтворення</string>
+    <string name="playlist_dialog_delete_title">Видалити список відтворення?</string>
+    <string name="playlist_dialog_delete_body">Ви впевнені, що хочете видалити цей список відтворення?</string>
+    <string name="playlist_action_set_default_transition">Встановити типовий перехід</string>
+    <string name="playlist_action_export_playlist">Експортувати список відтворення</string>
+    <string name="playlist_song_duration_line">%1$s • %2$s</string>
+    <string name="playlist_action_play_it">Відтворити</string>
+    <string name="playlist_action_add_songs">Додати</string>
+    <string name="playlist_cd_add_songs">Додати пісні</string>
+    <string name="playlist_action_remove_songs">Прибрати</string>
+    <string name="playlist_cd_remove_songs">Прибрати пісні</string>
+    <string name="playlist_action_reorder_songs">Переставити</string>
+    <string name="playlist_cd_reorder_songs">Переставити пісні</string>
+
+    <!-- EditTransitionScreen -->
+    <string name="transition_title_global">Глобальні переходи</string>
+    <string name="transition_title_playlist_rules">Правила списку відтворення</string>
+    <string name="transition_intro_global">Ця конфігурація застосовується до всіх джерел відтворення, якщо не перевизначено.</string>
+    <string name="transition_intro_playlist">Налаштуйте типову поведінку для цього конкретного списку відтворення.</string>
+    <string name="transition_active_status">Активний стан</string>
+    <string name="transition_status_global_default">Глобальне типове</string>
+    <string name="transition_status_playlist_default">Типове для списку</string>
+    <string name="transition_status_following_global">За глобальними</string>
+    <string name="transition_status_custom_override">Власне перевизначення</string>
+    <string name="transition_custom_override_title">Власне перевизначення</string>
+    <string name="transition_custom_override_body">Увімкніть, щоб задати конкретні правила для цього списку відтворення.</string>
+    <string name="transition_snackbar_using_global">Використовуються глобальні типові</string>
+    <string name="transition_snackbar_saved">Зміни успішно збережено</string>
+    <string name="transition_style_title">Стиль переходу</string>
+    <string name="transition_style_subtitle">Як композиції змішуються одна з одною</string>
+    <string name="transition_mode_none">Немає</string>
+    <string name="transition_mode_crossfade">Кроссфейд</string>
+    <string name="transition_duration_title">Тривалість переходу</string>
+    <string name="transition_duration_subtitle_format">Загальне перекриття %1$d с</string>
+    <string name="transition_reset_cd">Скинути перехід</string>
+    <string name="transition_visualizer_current">Поточна композиція</string>
+    <string name="transition_visualizer_next">Наступна композиція</string>
+    <string name="transition_overlap_explanation_format">Композиції перекриватимуться на %1$d с</string>
+    <string name="transition_curves_title">Криві гучності</string>
+    <string name="transition_curves_subtitle">Тонке налаштування звукової кривої</string>
+    <string name="transition_fade_out">Згасання</string>
+    <string name="transition_fade_in">Наростання</string>
+
+    <!-- CreatePlaylistScreen -->
+    <string name="playlist_creation_new_smart">Новий розумний список</string>
+    <string name="playlist_creation_new">Новий список відтворення</string>
+    <string name="playlist_creation_add_songs">Додати пісні</string>
+    <string name="playlist_creation_cd_back_or_cancel">Назад або скасувати</string>
+    <string name="playlist_creation_next">Далі</string>
+    <string name="playlist_creation_create">Створити</string>
+    <string name="playlist_creation_edit">Редагувати список відтворення</string>
+    <string name="playlist_creation_auto_collage">Автоматично створений колаж</string>
+    <string name="playlist_creation_cd_add_photo">Додати фото</string>
+    <string name="playlist_creation_pick_image">Вибрати зображення</string>
+    <string name="playlist_creation_change">Змінити</string>
+    <string name="playlist_creation_remove">Прибрати</string>
+    <string name="playlist_creation_name_label">Назва списку відтворення</string>
+    <string name="playlist_creation_name_placeholder">Мій крутий мікс</string>
+    <string name="playlist_creation_edit_cover">Редагувати обкладинку</string>
+    <string name="playlist_creation_adjust_cover_title">Налаштуйте обкладинку</string>
+    <string name="playlist_creation_adjust_cover_hint">Використовуйте жести масштабування та перетягування, щоб знайти ідеальне кадрування</string>
+    <string name="playlist_creation_mode_manual">Вручну</string>
+    <string name="playlist_creation_mode_smart">Розумний</string>
+    <string name="playlist_creation_generate_with_ai">Згенерувати за допомогою ШІ</string>
+    <string name="playlist_creation_smart_rule">Розумне правило</string>
+    <string name="playlist_creation_tab_default">Типове</string>
+    <string name="playlist_creation_tab_image">Зображення</string>
+    <string name="playlist_creation_tab_icon">Іконка</string>
+    <string name="playlist_creation_bg_color">Колір фону</string>
+    <string name="playlist_creation_icon_symbol">Символ іконки</string>
+    <string name="playlist_creation_shape_style">Стиль фігури</string>
+    <string name="playlist_creation_shape_params">Параметри фігури</string>
+    <string name="playlist_creation_corner_radius">Радіус кутів</string>
+    <string name="playlist_creation_smoothness">Плавність</string>
+    <string name="playlist_creation_sides">Сторони</string>
+    <string name="playlist_creation_curve">Крива</string>
+    <string name="playlist_creation_rotation">Обертання</string>
+    <string name="playlist_creation_scale">Масштаб</string>
+    <string name="playlist_creation_rule_top_played_title">Найчастіше відтворювані</string>
+    <string name="playlist_creation_rule_top_played_sub">Ваші найпопулярніші композиції.</string>
+    <string name="playlist_creation_rule_recently_played_title">Нещодавно відтворені</string>
+    <string name="playlist_creation_rule_recently_played_sub">Пісні, які ви слухали найнедавніше.</string>
+    <string name="playlist_creation_rule_forgotten_title">Забуті улюбленці</string>
+    <string name="playlist_creation_rule_forgotten_sub">Улюблені композиції, які ви давно не відтворювали.</string>
+    <string name="playlist_creation_rule_new_gems_title">Нові перлини</string>
+    <string name="playlist_creation_rule_new_gems_sub">Нещодавно додані композиції з низькою кількістю відтворень.</string>
+
+    <!-- GenreDetailScreen -->
+    <string name="genre_quick_fill">Швидке заповнення жанру</string>
+    <string name="genre_sort_title">Сортувати й відтворити</string>
+    <string name="genre_sort_action_shuffle">Перемішати</string>
+    <string name="genre_sort_by_title">Сортувати за</string>
+    <string name="genre_sort_artist_option">Виконавцем</string>
+    <string name="genre_sort_album_option">Альбомом</string>
+    <string name="genre_sort_title_option">Назвою</string>
+    <string name="genre_cd_generic_artist">Загальний виконавець</string>
+    <string name="genre_shuffle_label">Перемішати %1$s</string>
+
+    <!-- QuickFillScreen -->
+    <string name="quick_fill_select_songs">Виберіть пісні</string>
+    <string name="quick_fill_choose_genre">Виберіть жанр</string>
+    <string name="quick_fill_search_songs_placeholder">Пошук пісень</string>
+    <string name="quick_fill_new_genre">Новий жанр</string>
+    <string name="quick_fill_cd_add_custom_genre">Додати власний</string>
+    <string name="quick_fill_add_custom_genre_title">Додати власний жанр</string>
+    <string name="quick_fill_genre_name_placeholder">Назва жанру</string>
+    <string name="quick_fill_select_icon">Виберіть іконку</string>
+    <string name="quick_fill_select_genre_label_format">Жанр: %1$s</string>
+    <string name="quik_fill_select_a_genre_label">Виберіть жанр</string>
+    <string name="quick_fill_action_title">Швидке заповнення</string>
+
+    <!-- MashupScreen -->
+    <string name="mashup_title">DJ Space</string>
+    <string name="mashup_loading">Завантаження…</string>
+    <string name="mashup_deck_n">Дека %1$d</string>
+    <string name="mashup_load_song_cd">Завантажити пісню</string>
+    <string name="mashup_no_song_loaded">Пісню не завантажено</string>
+    <string name="mashup_artist_placeholder">…</string>
+    <string name="mashup_stem_separation_unavailable">Розділення доріжок поки недоступне.</string>
+    <string name="mashup_volume">Гучність</string>
+    <string name="mashup_speed">Швидкість</string>
+    <string name="mashup_crossfader">Кроссфейдер</string>
+    <string name="mashup_deck_1">Дека 1</string>
+    <string name="mashup_deck_2">Дека 2</string>
+    <string name="mashup_select_song_title">Виберіть пісню</string>
+    <string name="mashup_cd_play_pause">Відтворити/Пауза</string>
+    <string name="mashup_cd_song_cover">Обкладинка пісні</string>
+    <string name="mashup_speed_multiplier">x%1$.2f</string>
+</resources>

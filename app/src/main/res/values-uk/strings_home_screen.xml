@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top Bar -->
+    <string name="topbar_beta_letter">β</string>
+    <string name="topbar_beta_label">Бета</string>
+    <string name="topbar_cd_cloud_streaming">Хмарне передавання</string>
+    <string name="topbar_cd_changelog">Список змін</string>
+    <string name="topbar_cloud_streaming_title">Хмарне передавання</string>
+    <string name="topbar_cloud_streaming_subtitle">Передавайте музику з ваших хмарних облікових записів</string>
+
+    <!-- BetaInfoBottomSheet -->
+    <string name="beta_sheet_version">Бета 0.7.5</string>
+    <string name="beta_sheet_letter">β</string>
+    <string name="beta_sheet_welcome_title">Ласкаво просимо до PixelPlayer 0.7.5-beta</string>
+    <string name="beta_sheet_welcome_body">Ви використовуєте бета-збірку, яка може містити помилки, аварійні збої або експериментальні функції. Допоможіть нам стати кращими — повідомляйте про проблеми.</string>
+    <string name="beta_sheet_expect_title">Чого очікувати</string>
+    <string name="beta_sheet_expect_1">Помилки, аварійні збої або незавершені функції можуть виникати несподівано.</string>
+    <string name="beta_sheet_expect_2">Деякі функції можуть змінюватися або вилучатися без попередження.</string>
+    <string name="beta_sheet_expect_3">Бета-збірки можуть бути менш стабільними, ніж офіційні версії.</string>
+    <string name="beta_sheet_expect_4">Перед повідомленням про відому проблему завжди перевіряйте наявність оновлень.</string>
+    <string name="beta_sheet_expect_summary">Що бета-збірки можуть змінити, зламати чи покращити під час тестування.</string>
+    <string name="beta_sheet_github_title">Ярлик для створення issue на GitHub</string>
+    <string name="beta_sheet_github_body">Спершу пошукайте, а потім відкрийте сфокусований звіт про помилки, аварійні збої, запити чи запитання.</string>
+    <string name="beta_sheet_open_issues">Відкрити наявні issue</string>
+    <string name="beta_sheet_report_bug">Повідомити про проблему або аварійний збій</string>
+    <string name="beta_sheet_report_body">Поділіться кроками відтворення, очікуваним результатом, фактичним результатом і деталями вашого пристрою/ОС.</string>
+    <string name="beta_sheet_report_title">Як повідомити</string>
+    <string name="beta_sheet_report_summary">Короткий чек-лист перед створенням нової issue.</string>
+    <string name="beta_sheet_before_title">Перед створенням issue</string>
+    <string name="beta_sheet_before_1">Пошукайте наявні відкриті та закриті issue, щоб уникнути дублікатів.</string>
+    <string name="beta_sheet_before_2">Оновіть PixelPlayer до останньої версії та переконайтеся, що проблема досі виникає.</string>
+    <string name="beta_sheet_before_3">Перезапустіть застосунок і переконайтеся, що проблема зберігається.</string>
+    <string name="beta_sheet_before_4">Спробуйте відтворити її й запишіть точні кроки.</string>
+    <string name="beta_sheet_issue_type_title">Який тип issue?</string>
+    <string name="beta_sheet_issue_type_bug">Звіт про помилку: щось працює неправильно.</string>
+    <string name="beta_sheet_issue_type_feature">Запит на функцію: додати нову функцію або покращення.</string>
+    <string name="beta_sheet_issue_type_question">Запитання: скористайтеся обговорженнями, якщо їх увімкнено, або створіть issue з міткою запитання.</string>
+    <string name="beta_sheet_bug_title">Звіт про помилку</string>
+    <string name="beta_sheet_bug_summary_text">Скопіюйте ці поля, коли щось працює неправильно або аварійно завершується.</string>
+    <string name="beta_sheet_bug_template_title">Звіт про помилку</string>
+    <string name="beta_sheet_bug_summary">Короткий опис:</string>
+    <string name="beta_sheet_bug_expected">Очікувана поведінка:</string>
+    <string name="beta_sheet_bug_actual">Поточна поведінка:</string>
+    <string name="beta_sheet_bug_steps">Кроки для відтворення: 1. 2. 3.</string>
+    <string name="beta_sheet_bug_frequency">Як часто це трапляється? Завжди / Іноді / Рідко.</string>
+    <string name="beta_sheet_bug_screenshot">Скриншот / відео: за наявності.</string>
+    <string name="beta_sheet_bug_logs">Логи / stack trace: за наявності.</string>
+    <string name="beta_sheet_env_title">Середовище</string>
+    <string name="beta_sheet_env_version">Версія PixelPlayer:</string>
+    <string name="beta_sheet_env_source">Джерело встановлення: реліз GitHub, налагоджувальна збірка, нічна збірка тощо.</string>
+    <string name="beta_sheet_env_android">Версія Android:</string>
+    <string name="beta_sheet_env_device">Модель пристрою:</string>
+    <string name="beta_sheet_env_extra">Додатковий контекст: використання SD-карти, особливі налаштування, дозволи тощо.</string>
+    <string name="beta_sheet_feature_title">Запит на функцію</string>
+    <string name="beta_sheet_feature_summary">Скопіюйте ці поля, якщо хочете нову функцію або покращення.</string>
+    <string name="beta_sheet_feature_problem">Опис проблеми: яку проблему ви намагаєтеся вирішити?</string>
+    <string name="beta_sheet_feature_solution">Запропоноване рішення: як це має працювати?</string>
+    <string name="beta_sheet_feature_alternatives">Розглянуті альтернативи: чи є інші підходи?</string>
+    <string name="beta_sheet_feature_scope">Обсяг: які екрани або сценарії зачіпаються?</string>
+    <string name="beta_sheet_feature_mockup">Макет або зображення-референс, за наявності.</string>
+    <string name="beta_sheet_quality_title">Заголовки, приватність і обсяг</string>
+    <string name="beta_sheet_quality_summary">Зробіть звіт зручним для розподілу проблем і безпечним для поширення.</string>
+    <string name="beta_sheet_title_examples_title">Добрі назви issue</string>
+    <string name="beta_sheet_title_example_1">Еквалайзер: індикатор зміщується під час перемикання вкладок пресетів</string>
+    <string name="beta_sheet_title_example_2">Пошук: список історії не з’являється для порожнього запиту</string>
+    <string name="beta_sheet_title_example_3">Функція: додати параметр сортування «Нещодавно додані»</string>
+    <string name="beta_sheet_avoid_title">Будь ласка, уникайте</string>
+    <string name="beta_sheet_avoid_1">Загальних звітів на кшталт «не працює».</string>
+    <string name="beta_sheet_avoid_2">Кількох не пов’язаних між собою проблем в одній issue.</string>
+    <string name="beta_sheet_avoid_3">Нецензурованих логів або скриншотів із приватними даними.</string>
+    <string name="beta_sheet_privacy_title">Приватність</string>
+    <string name="beta_sheet_privacy_body">Перед публікацією логів, скриншотів або відео вилучіть особисту чи приватну інформацію.</string>
+    <string name="beta_sheet_nightly_title">Нічні збірки</string>
+    <string name="beta_sheet_nightly_summary">Чим нічні збірки відрізняються від релізів і що вказувати, коли вони ламаються.</string>
+    <string name="beta_sheet_nightly_body">Нічні збірки створюються з останнього коміту і можуть містити незавершені зміни, тимчасові помилки чи регресії. Вони експериментальніші за офіційні релізи.</string>
+    <string name="beta_sheet_nightly_access">Отримайте їх із артефактів workflow GitHub Actions репозиторію, якщо вони доступні.</string>
+    <string name="beta_sheet_nightly_report_title">Повідомлення про проблеми з нічних збірок</string>
+    <string name="beta_sheet_nightly_report_body">Повідомляючи про проблему з нічної збірки, завжди вказуйте, що вона виникла в нічній збірці, а не в офіційному релізі. Якщо можливо, додайте дату збірки, назву або номер workflow чи SHA коміту. Також перевірте, чи та сама проблема виникає в останньому офіційному релізі.</string>
+    <string name="beta05_title">Оновлення до бета 0.5.0</string>
+    <string name="beta05_clean_install_title">Рекомендовано чисте встановлення</string>
+    <string name="beta05_clean_install_body">Якщо ви переходите з бета 0.5.0, це оновлення може потребувати свіжих даних бібліотеки замість старого кешованого стану.</string>
+    <string name="beta05_if_wrong_meta_title">Якщо метадані або елементи бібліотеки виглядають неправильно</string>
+    <string name="beta05_if_wrong_meta_body">Неправильні метадані пісень, помилкові виконавці чи альбоми або записи-дублікати зазвичай означають, що рішення — чисте встановлення.</string>
+    <string name="beta05_dont_show">Більше не показувати</string>
+    <string name="beta05_got_it">Зрозуміло</string>
+
+    <!-- Crash report dialog -->
+    <string name="crash_report_title">Ой! Щось пішло не так</string>
+    <string name="crash_report_subtitle">Застосунок аварійно завершився під час вашого останнього сеансу. Допоможіть нам це виправити, поділившись звітом про збій.</string>
+    <string name="crash_report_date_line">Дата: %1$s</string>
+    <string name="crash_report_error_label">Помилка:</string>
+    <string name="crash_report_stack_preview_label">Stack trace (попередній перегляд):</string>
+    <string name="crash_report_clipboard_label">Лог збою</string>
+    <string name="crash_report_toast_log_copied">Лог збою скопійовано в буфер обміну</string>
+    <string name="crash_report_share_subject">Звіт про аварійний збій PixelPlayer</string>
+    <string name="crash_report_share_chooser">Поділитися звітом про збій</string>
+
+    <!-- Home Option -->
+    <string name="home_option_dj_mashup">DJ Mashup</string>
+
+    <!-- Your Mix -->
+    <string name="home_your_mix_title">Ваш\nмікс</string>
+    <string name="home_empty_placeholder_title">Даних ще немає</string>
+    <string name="home_empty_placeholder_subtitle">Ваш мікс з’явиться тут, коли PixelPlayer знайде пісні або синхронізує джерело.</string>
+    <string name="home_empty_placeholder_refresh">Оновити</string>
+
+    <!-- DailyMixSection -->
+    <string name="home_daily_mix_title">ЩОДЕННИЙ МІКС</string>
+    <string name="home_daily_mix_subtitle">На основі історії</string>
+    <string name="home_daily_mix_action_see_all">Переглянути весь щоденний мікс</string>
+    <string name="home_daily_mix_queue_name">Щоденний мікс</string>
+
+    <!-- DailyMixScreen -->
+    <string name="daily_mix_title">Щоденний мікс</string>
+    <plurals name="daily_mix_songs_dot_duration">
+        <item quantity="one">%1$d пісня • %2$s</item>
+        <item quantity="few">%1$d пісні • %2$s</item>
+        <item quantity="many">%1$d пісень • %2$s</item>
+        <item quantity="other">%1$d пісні • %2$s</item>
+    </plurals>
+    <string name="daily_mix_action_play_it">Відтворити</string>
+    <string name="daily_mix_cd_ai_playlist_generator">Генератор списків відтворення на основі ШІ</string>
+
+    <!-- DailyMixMenu -->
+    <string name="daily_mix_how_title">Як складається ваш щоденний мікс</string>
+    <string name="daily_mix_how_body">Ваш щоденний мікс складається з улюблених і найчастіше відтворюваних пісень. Ми також додаємо композиції виконавців і жанрів, які вам подобаються, щоб ви могли відкривати нову музику.</string>
+    <string name="daily_mix_prompt_label">Розкажіть ШІ, що ви хочете послухати сьогодні</string>
+    <string name="daily_mix_cost_hint">Ми використовуємо невелику вибірку, щоб тримати витрати низькими</string>
+    <string name="daily_mix_updating">Оновлення…</string>
+    <string name="daily_mix_update">Оновити щоденний мікс</string>
+
+    <!-- AIPlaylistSheet -->
+    <string name="ai_playlist_headline_perfect">Ідеально підібрано</string>
+    <string name="ai_playlist_headline_daily_mix">Щоденний мікс</string>
+    <string name="ai_playlist_subtitle_journey_ready">Ваша звукова подорож готова</string>
+    <string name="ai_playlist_subtitle_generator">Генератор списків відтворення на основі ШІ</string>
+    <string name="ai_playlist_description">Опишіть атмосферу, настрій або заняття — і нехай ШІ складе ідеальний список відтворення з вашої бібліотеки.</string>
+    <string name="ai_playlist_section_size">Розмір списку відтворення</string>
+    <string name="ai_playlist_min_songs">Мін. пісень</string>
+    <string name="ai_playlist_max_songs">Макс. пісень</string>
+    <string name="ai_playlist_prompt_placeholder">напр. спокійна вечірня атмосфера, бадьора енергія тренування…</string>
+    <string name="ai_playlist_tap_to_retry">Торкніться, щоб спробувати ще раз</string>
+    <string name="ai_playlist_status_default">Звукову подорож синтезовано!</string>
+    <string name="ai_playlist_ready_to_play">Готово до відтворення</string>
+    <string name="ai_playlist_generating">Генерація…</string>
+    <string name="ai_playlist_generate">Згенерувати список</string>
+
+    <!-- RecentlyPlayedSection -->
+    <string name="home_recently_played_title">Нещодавно відтворені</string>
+
+    <!-- RecentlyPlayedScreen -->
+    <string name="recently_played_title">Нещодавно відтворені</string>
+    <string name="recently_played_action_play_latest">Відтворити найновіше</string>
+    <string name="recently_played_empty_title">Немає нещодавніх відтворень у %1$s</string>
+    <string name="recently_played_empty_subtitle">Змініть діапазон або відтворіть більше пісень, щоб заповнити цю стрічку.</string>
+    <string name="recently_played_queue_name">Нещодавно відтворені</string>
+    <string name="recently_played_date_today">Сьогодні</string>
+    <string name="recently_played_date_yesterday">Вчора</string>
+
+    <!-- StatsOverviewCard -->
+    <string name="home_stats_overview_title">Статистика прослуховування</string>
+    <string name="home_stats_overview_total_plays">Загальна кількість відтворень</string>
+    <string name="home_stats_overview_avg_per_day">У середньому на день</string>
+    <string name="home_stats_overview_top_track">Найпопулярніша композиція</string>
+    <string name="home_stats_overview_top_track_line">%1$s • %2$d відтворень</string>
+
+    <!-- StatsScreen -->
+    <string name="stats_title">Статистика прослуховування</string>
+    <string name="stats_cd_refresh">Оновити статистику прослуховування</string>
+    <string name="stats_range_today">Сьогодні</string>
+    <string name="stats_range_week_to_date">Поточний тиждень</string>
+    <string name="stats_range_month_to_date">Поточний місяць</string>
+    <string name="stats_range_year_to_date">Поточний рік</string>
+    <string name="stats_range_all_time">За весь час</string>
+    <string name="stats_hero_listening">Прослуховування</string>
+    <string name="stats_hero_plays">Відтворення</string>
+    <string name="stats_section_listening_timeline">Хронологія прослуховування</string>
+    <string name="stats_timeline_metric_listening_time">Час прослуховування</string>
+    <string name="stats_timeline_metric_listening_time_desc">Загальний час прослуховування за вибраний період.</string>
+    <string name="stats_timeline_metric_play_count">Кількість відтворень</string>
+    <string name="stats_timeline_metric_play_count_desc">Скільки сесій ви завершили в кожному сегменті.</string>
+    <string name="stats_timeline_metric_avg_session">Середня сесія</string>
+    <string name="stats_timeline_metric_avg_session_desc">Середня тривалість прослуховування в кожному сегменті.</string>
+    <string name="stats_timeline_support_day">Розділено на 4-годинні вікна, щоб показати ваш щоденний ритм.</string>
+    <string name="stats_timeline_support_week">Щоденні стовпчики полегшують порівняння звичок між тижнями.</string>
+    <string name="stats_timeline_support_month">Тижневі стовпчики показують тенденцію місяця.</string>
+    <string name="stats_timeline_support_year">Місячні стовпчики показують сезонність протягом року.</string>
+    <string name="stats_timeline_support_all">Річні стовпчики підсумовують усю вашу історію.</string>
+    <string name="stats_empty_no_timeline_title">Даних про прослуховування ще немає</string>
+    <string name="stats_empty_no_timeline_subtitle">Натисніть «Відтворити», щоб почати формувати стрічку прослуховування</string>
+    <string name="stats_rhythm_daily">Щоденний ритм</string>
+    <string name="stats_rhythm_weekly">Тижневий ритм</string>
+    <string name="stats_rhythm_monthly">Місячний ритм</string>
+    <string name="stats_rhythm_year">Рік одним поглядом</string>
+    <string name="stats_rhythm_all_time">Динаміка за весь час</string>
+    <string name="stats_grouped_4h">Згруповано в 4-годинні сегменти</string>
+    <string name="stats_grouped_dow">Згруповано за днями тижня</string>
+    <string name="stats_grouped_week_of_month">Згруповано за тижнями місяця</string>
+    <string name="stats_grouped_by_month">Згруповано за місяцями</string>
+    <string name="stats_grouped_by_year">Згруповано за роками</string>
+    <string name="stats_peak_segment">Піковий сегмент</string>
+    <string name="stats_n_plays">%1$d відтворень</string>
+    <string name="stats_em_dash">—</string>
+    <string name="stats_section_top_categories">Найкращі категорії</string>
+    <string name="stats_top_categories_subtitle">Порівняйте, як ви слухаєте різні жанри, виконавців, альбоми та пісні.</string>
+    <string name="stats_dim_genre">Жанр</string>
+    <string name="stats_dim_artist">Виконавець</string>
+    <string name="stats_dim_album">Альбом</string>
+    <string name="stats_dim_song">Пісня</string>
+    <string name="stats_card_listening_by_genre">Прослуховування за жанрами</string>
+    <string name="stats_card_listening_by_artist">Прослуховування за виконавцями</string>
+    <string name="stats_card_listening_by_album">Прослуховування за альбомами</string>
+    <string name="stats_card_listening_by_song">Прослуховування за піснями</string>
+    <string name="stats_plays_artists">%1$d відтворень • %2$d виконавців</string>
+    <string name="stats_plays_tracks">%1$d відтворень • %2$d композицій</string>
+    <string name="stats_empty_no_category_title">Даних про категорії ще немає</string>
+    <string name="stats_empty_no_category_subtitle">Натисніть «Відтворити», щоб побачити ваші віхи прослуховування</string>
+    <string name="stats_section_listening_habits">Звички прослуховування</string>
+    <string name="stats_empty_no_habits_title">Звичок ще немає</string>
+    <string name="stats_empty_no_habits_subtitle">Ми покажемо ваші звички прослуховування, щоб краще вас пізнати.</string>
+    <string name="stats_habit_total_sessions">Усього сесій</string>
+    <string name="stats_habit_avg_session">Середня сесія</string>
+    <string name="stats_habit_longest_session">Найдовша сесія</string>
+    <string name="stats_habit_sessions_per_day">Сесій/день</string>
+    <string name="stats_habit_most_active_day">Найактивніший день</string>
+    <string name="stats_habit_no_playback_yet">Відтворень ще не було</string>
+    <string name="stats_habit_peak_timeline_slot">Піковий час на стрічці</string>
+    <string name="stats_section_top_artists">Найкращі виконавці</string>
+    <string name="stats_empty_no_artists_title">Немає топ-виконавців</string>
+    <string name="stats_empty_no_artists_subtitle">Продовжуйте слухати — ваші улюблені виконавці з’являться тут.</string>
+    <string name="stats_avatar_placeholder">\?</string>
+    <string name="stats_ranked_artist">%1$d. %2$s</string>
+    <string name="stats_section_top_albums">Найкращі альбоми</string>
+    <string name="stats_empty_no_albums_title">Немає топ-альбомів</string>
+    <string name="stats_empty_no_albums_subtitle">Альбоми, до яких ви часто повертаєтеся, з’являться тут.</string>
+    <string name="stats_ranked_album">%1$d. %2$s</string>
+    <string name="stats_track_concentration_title">Концентрація композицій</string>
+    <string name="stats_track_concentration_subtitle">Як ваш час прослуховування розподіляється між найпопулярнішими композиціями.</string>
+    <string name="stats_empty_no_concentration_title">Даних про концентрацію ще немає</string>
+    <string name="stats_empty_no_concentration_subtitle">Відтворіть більше композицій, щоб побачити, наскільки зосередженим є ваше прослуховування.</string>
+    <string name="stats_slice_top_1">Топ-1</string>
+    <string name="stats_slice_top_2_3">Топ-2-3</string>
+    <string name="stats_slice_others">Інші</string>
+    <string name="stats_percent">%1$d%%</string>
+    <string name="stats_listening_concentration_title">Концентрація прослуховування</string>
+    <string name="stats_top_three_share_line">Топ-3 композиції становлять %1$d%% вашого часу прослуховування.</string>
+    <string name="stats_avg_plays_per_track">Сер. відтворень на композицію</string>
+    <string name="stats_unique_tracks">Унікальних композицій</string>
+    <string name="stats_top_three_share_label">Частка топ-3</string>
+    <string name="stats_tracks_in_range_title">Композиції в цьому періоді</string>
+    <string name="stats_tracks_in_range_subtitle">Найчастіше відтворювані композиції за вибраний період.</string>
+    <string name="stats_empty_no_tracks_title">Немає топ-композицій</string>
+    <string name="stats_empty_no_tracks_subtitle">Слухайте улюблені композиції, щоб побачити їх тут.</string>
+    <string name="stats_collapse_tracks">Згорнути композиції</string>
+    <string name="stats_show_all_tracks">Показати всі композиції</string>
+
+    <!-- Time and Duration Formatting -->
+    <string name="duration_hours_minutes_long">%1$d год %2$02d хв</string>
+    <string name="duration_minutes_long">%1$d хв</string>
+    <string name="duration_hours_minutes_medium">%1$d год %2$02d хв</string>
+    <string name="duration_hours_medium">%1$d год</string>
+    <string name="duration_minutes_medium">%1$d хв</string>
+    <string name="duration_seconds_medium">%1$d с</string>
+    <string name="duration_hours_minutes_short">%1$dгод %2$02dхв</string>
+    <string name="duration_hours_short">%1$dгод</string>
+    <string name="duration_minutes_short">%1$dхв</string>
+    <string name="duration_seconds_short">%1$dс</string>
+    <string name="time_ago_never">Ніколи</string>
+    <string name="time_ago_just_now">Щойно</string>
+    <string name="time_ago_day_singular">1 день тому</string>
+    <string name="time_ago_days_plural">%1$d днів тому</string>
+    <string name="time_ago_hour_singular">1 годину тому</string>
+    <string name="time_ago_hours_plural">%1$d годин тому</string>
+    <string name="time_ago_minute_singular">1 хвилину тому</string>
+    <string name="time_ago_minutes_plural">%1$d хвилин тому</string>
+    <string name="song_count_singular">%1$d пісня</string>
+    <string name="song_count_plural">%1$d пісень</string>
+    <string name="stats_week_label">Тиждень %1$d</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="not_playing">Nada tocando</string>
+    <string name="open_on_phone">Abrir no celular</string>
+    <string name="connecting">Conectando…</string>
+    <string name="no_phone_connected">Nenhum celular conectado</string>
+</resources>

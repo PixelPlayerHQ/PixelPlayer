@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <!-- Player UI & Playback Controls -->
+    <string name="player_cd_collapse">Pleyerni yiğiş</string>
+    <string name="player_now_playing">Hozir çalinmoqda</string>
+    <string name="player_cd_cloud_stream">Bulutli striming</string>
+    <string name="player_cd_cast">Kast qiliş</string>
+    <string name="player_cd_bluetooth">Bluetooth</string>
+    <string name="player_cd_local_playback">Mahalliy ijro</string>
+    <string name="player_connecting">Ulanmoqda…</string>
+    <string name="player_cd_open_queue">Navbatni oçiş</string>    
+
+    <!-- CastBottomSheet -->
+    <string name="cast_perm_title">Ulanişga tayyorlaning</string>
+    <string name="cast_perm_body">PixelPlayer\'ga atrofdagi qurilmalar va joriy Wi-Fi tarmog\'ini ko\'rishga ruxsat bering, shunda kast, Bluetooth audio va karnaylarni sinxron holatda saqlashimiz mumkin.</string>
+    <string name="cast_perm_nearby_title">Yaqin atrofdagi qurilmalar</string>
+    <string name="cast_perm_nearby_desc">Ulangan Bluetooth audio qurilmangizni o\'qish va boshqarish uchun kerak.</string>
+    <string name="cast_perm_location_title">Wi-Fi uchun joylashuv</string>
+    <string name="cast_perm_location_desc">Mos kast qurilmalarini topish uchun Android siz turgan Wi-Fi tarmog\'ini (SSID) ulashish uchun Joylashuv ruxsatini talab qiladi.</string>
+    <string name="cast_allow_access">Ruxsat berish</string>
+    <string name="cast_perm_footer">Biz ushbu ruxsatlardan faqat qurilmalarni o\'zaro bog\'lash — kast qilish, atrofdagi karnaylarni boshqarish va audioni sinxron saqlash uchun foydalanamiz.</string>
+    <string name="cast_title_connect">Qurilmani ulanish</string>
+    <string name="cast_scanning_nearby">Atrof qidirilmoqda</string>
+    <string name="cast_subtitle_session">Kast seansi</string>
+    <string name="cast_connecting">Ulanmoqda</string>
+    <string name="cast_connected">Ulandi</string>
+    <string name="cast_this_phone">Bu telefon</string>
+    <string name="cast_bluetooth_audio">Bluetooth audio</string>
+    <string name="cast_local_playback">Mahalliy ijro</string>
+    <string name="cast_playing">Ijro etilmoqda</string>
+    <string name="cast_paused">To\'xtatildi</string>
+    <string name="cast_volume_device">Qurilma ovoz balandligi</string>
+    <string name="cast_volume_phone">Telefon ovoz balandligi</string>
+    <string name="cast_volume_levels">%1$d/%2$d</string>
+    <string name="cast_cd_battery">Batareya darajasi</string>
+    <string name="cast_cd_volume_level">Ovoz balandligi darajasi</string>
+    <string name="cast_disconnect">Uzish</string>
+    <string name="cast_connectivity">Ulanish</string>
+    <string name="cast_turn_on_wifi_bt">Wi-Fi yoki Bluetooth\'ni yoqing</string>
+    <string name="cast_cd_refresh_connections">Ulanishlarni yangilash</string>
+    <string name="cast_wifi">Wi-Fi</string>
+    <string name="cast_wifi_off">O\'chiq</string>
+    <string name="cast_wifi_on">Yoniq</string>
+    <string name="cast_wifi_connected">Ulandi</string>
+    <string name="cast_bluetooth">Bluetooth</string>
+    <string name="cast_bt_off">O\'chiq</string>
+    <string name="cast_bt_on">Yoniq</string>
+    <string name="cast_bt_connected">Ulandi</string>
+    <string name="cast_nearby_devices">Yaqin atrofdagi qurilmalar</string>
+    <string name="cast_cd_refresh_devices">Qurilmalarni yangilash</string>
+    <string name="cast_status_connected">Ulandi</string>
+    <string name="cast_status_connecting">Ulanmoqda</string>
+    <string name="cast_status_available_connect">Ulanish uchun mavjud</string>
+    <string name="cast_status_available">Mavjud</string>
+    <string name="cast_connecting_ellipsis">Ulanmoqda...</string>
+    <string name="cast_searching">Qurilmalar qidirilmoqda…</string>
+    <string name="cast_searching_hint">Televizoringiz yoki karnayingiz yoniqligiga va bir xil Wi-Fi tarmog\'iga ulanganligiga ishonch hosil qiling.</string>
+    <string name="cast_tab_controls">Boshqaruv</string>
+    <string name="cast_tab_devices">Qurilmalar</string>
+
+    <!-- Casting & Remote Playback -->
+    <string name="cast_server_channel_name">Kast media serveri</string>
+    <string name="cast_server_notification_title">Qurilmaga kast qilinmoqda</string>
+    <string name="cast_server_notification_text">Kast qurilmasiga media uzatilmoqda</string>
+    <string name="cast_server_foreground_error">%1$s: %2$s</string>
+    <string name="cast_seek_unavailable_for_format">Kast seansi vaqtincha uzilishi mumkinligi sababli ushbu audio formati uchun o\'tkazish vaqtincha mavjud emas.</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_timer_title">Uyqu taymeri</string>
+    <string name="sleep_timer_zero_minutes_format">Taymer</string>
+    <string name="sleep_timer_n_minutes_format">%1$d daqiqa</string>
+    <string name="sleep_timer_set_for_minutes_toast">Taymer %1$d daqiqaga o\'rnatildi.</string>
+    <string name="sleep_timer_play_count_one_time">1 marta</string>
+    <plurals name="sleep_timer_play_count_n_times">
+        <item quantity="one">%d marta</item>
+        <item quantity="other">%d marta</item>
+    </plurals>
+    <string name="sleep_timer_play_count_label">Ijro soni: %1$s</string>
+    <string name="sleep_timer_end_of_current_track">Joriy trek oxirida</string>
+    <string name="sleep_timer_eot_toast">Ijro trek oxirida to\'xtaydi.</string>
+    <string name="sleep_timer_cd_switch_on">Yoqish</string>
+    <string name="sleep_timer_custom_time">Maxsus vaqt</string>
+    <string name="sleep_timer_cancel_timer">Taymerni bekor qiliş</string>
+    <string name="sleep_timer_display_eot">Trek oxiri</string>
+    <string name="sleep_timer_cancelled_toast">Taymer bekor qilindi.</string>
+    <string name="sleep_timer_eot_no_song_toast">Trek oxiri yoqilmadi: faol qo\'shiq yo\'q.</string>
+    <string name="sleep_timer_eot_song_changed_toast">Trek oxiri taymeri faolsizlantirildi: qo\'shiq %1$s dan %2$s ga o\'zgardi.</string>
+    <string name="sleep_timer_label_previous_track">Oldingi trek</string>
+    <string name="sleep_timer_label_current_track">Joriy trek</string>
+    <string name="sleep_timer_ui_set_custom_duration">Maxsus davomiylikni o\'rnatish</string>
+
+    <!-- QueueBottomSheet -->
+    <string name="queue_next_up_label">Keyingisi</string>
+    <string name="queue_tracks_empty">Hozirça navbat böş.</string>
+    <plurals name="queue_tracks_lined_up">
+        <item quantity="one">1 trek navbatda.</item>
+        <item quantity="other">%d trek navbatda.</item>
+    </plurals>
+    <string name="queue_source_fallback_label">Navbat</string>
+    <string name="queue_empty_label">Navbat böş.</string>
+    <string name="queue_cd_reorder_song">Qöşiqni qayta tartiblaş</string>
+    <string name="queue_cd_toggle_shuffle_action">Aralaştirishni almashtiriş</string>
+    <string name="queue_cd_toggle_repeat_action">Takrorlaşni almashtiriş</string>
+    <string name="queue_cd_sleep_timer_action">Uyqu taymeri</string>
+    <string name="queue_cd_more_action">Qöşimça amallar</string>
+    <string name="queue_action_locate_current_song">Joriy qöşiqni topiş</string>
+    <string name="queue_action_clear_queue">Navbatni tozalaş</string>
+    <string name="queue_dialog_clear_queue_title">Navbatni tozalaş</string>
+    <string name="queue_dialog_clear_queue_message">Joriy qöşiqdan taşqari barcha qöşiqlarni navbatdan tozalaşga işonçingiz komilmi?</string>
+    <string name="queue_action_save_as_playlist">Pleylist sifatida saqlaş</string>
+    <string name="queue_save_playlist_named">%1$s navbati</string>
+    <string name="queue_save_playlist_current">Joriy navbat</string>
+    <string name="queue_cd_dismiss_song">Qöşiqni yopiş</string>
+    <string name="queue_song_removed">olib taşlandi</string>
+    <string name="queue_save_as_playlist_sheet_title">Pleylist sifatida saqlaş</string>
+    <string name="queue_save_as_playlist_deselect_all">Barcha tanlovni bekor qiliş</string>
+    <string name="queue_save_as_playlist_name_label">Pleylist nomi</string>
+    <string name="queue_save_as_playlist_search_placeholder">Qöşiş uçun qöşiqlarni qidirish…</string>
+    <string name="queue_save_as_playlist_search_no_match">\"%1$s\" ga mos qöşiqlar yöq</string>
+    <plurals name="queue_save_as_playlist_n_songs_selected">
+        <item quantity="one">%d qöşiq tanlandi</item>
+        <item quantity="other">%d qöşiq tanlandi</item>
+    </plurals>
+    <string name="queue_save_as_playlist_format">Sifatida saqlaş: %1$s</string>
+    <string name="queue_save_as_playlist_name_placeholder">Pleylist nomini kiriting</string>
+    <string name="queue_cd_remove_from_playlist">Pleylistdan olib taşlaş</string>
+    <string name="queue_more_options_for_song">%1$s uçun qöşimça tanlovlar</string>
+
+    <!-- LyricsSheet -->
+    <string name="lyrics_title">Qöşiq matni</string>
+    <string name="lyrics_loading">Qöşiq matni yuklanmoqda…</string>
+    <string name="lyrics_mode_synced">Sinxronlaştirilgan</string>
+    <string name="lyrics_mode_static">Statik</string>
+    <string name="lyrics_options">Qöşiq matni tanlovlari</string>
+    <string name="lyrics_offset_minus_half">−.5</string>
+    <string name="lyrics_offset_minus_point_one">−.1</string>
+    <string name="lyrics_offset_plus_point_one">+.1</string>
+    <string name="lyrics_offset_plus_half">+.5</string>
+    <string name="lyrics_offset_zero">0s</string>
+    <string name="lyrics_offset_seconds_fmt">%1$+.1fs</string>
+    
+    <!-- LyricsRepository -->
+    <string name="lyrics_failed_to_search">Qöşiq matnini qidirib topib bölmadi</string>
+    <string name="lyrics_failed_to_fetch_from_remote">Qöşiq matnini tarmoqdan yuklab bölmadi</string>
+    <string name="lyrics_fetch_timeout">Ulaniş vaqti tugadi. Iltimos, internet ulanişingizni tekşiring.</string>
+    <string name="lyrics_network_error">Tarmoq xatosi. Iltimos, internet ulanişingizni tekşiring.</string>
+    <string name="lyrics_server_error">Server xatosi (kod %d). Iltimos, keyinroq qayta urinib köring.</string>
+    
+    <!-- LyricsStateHolder -->
+    <string name="lyrics_already_available">Qöşiq matni allaqaçon mavjud. Onlayn yuklaştirildi o\'tkazib yuborildi.</string>
+    <string name="lyrics_embedded_already_available">Biriktirilgan qöşiq matni topildi. Onlayn yuklaştirildi o\'tkazib yuborildi.</string>
+    <string name="lyrics_local_lrc_already_available">Mahalliy (.lrc) qöşiq matni topildi. Onlayn yuklaştirildi o\'tkazib yuborildi.</string>
+
+    <!-- LyricsMoreBottomSheet -->
+    <string name="lyrics_save_title">Qöşiq matnini saqlaş</string>
+    <string name="lyrics_translate_via_ai">AI orqali tarjima qiliş</string>
+    <string name="lyrics_translate_already_translated">Bu matnlarning tarjimasi allaqachon mavjud</string>
+    <string name="lyrics_translate_already_in_target_language">Bu matnlar allaqachon ushbu tilda</string>
+    <string name="lyrics_translate_api_not_configured">API sozlanmagan</string>
+    <string name="lyrics_translate_success">Matn muvaffaqiyatli tarjima qilindi!</string>
+    <string name="lyrics_translate_progress">Matn tarjima qilinmoqda...</string>
+    <string name="lyrics_reset_imported">Import qilingan matnni asl holiga qaytarish</string>
+    <string name="lyrics_reset_dialog_title">Matnni qayta tiklash kerakmi?</string>
+    <string name="lyrics_reset_dialog_message">Haqiqatan ham ushbu qo\'shiq matnini qayta tiklamoqchimisiz?</string>
+    <string name="lyrics_appearance_section">Tashqi ko\'rinish</string>
+    <string name="lyrics_appearance_alignment">Tekislash</string>
+    <string name="lyrics_appearance_align_left">Matnni chapga tekislash</string>
+    <string name="lyrics_appearance_align_center">Matnni markazga tekislash</string>
+    <string name="lyrics_appearance_align_right">Matnni o\'ngga tekislash</string>
+    <string name="lyrics_controls_section">Boshqaruv elementlari</string>
+    <string name="lyrics_controls_adjust_sync">Sinxronlashni sozlash</string>
+    <string name="lyrics_controls_hide_sync">Sinxronlash boshqaruvlarini yashirish</string>
+    <string name="lyrics_controls_show_romanization">Romanizatsiyani ko\'rsatish</string>
+    <string name="lyrics_controls_show_translations">Tarjimalarni ko\'rsatish</string>
+    <string name="lyrics_controls_disable_immersive_once">Immersivni o\'chirish (bir marta)</string>
+    <string name="lyrics_controls_keep_screen_on">Ekranni yoniq saqlash</string>
+    
+    <!-- LyricsSheet save dialog -->
+    <string name="lyrics_save_dialog_title">Qo\'shiq matnini saqlash</string>
+    <string name="lyrics_save_dialog_message">Qaysi versiyani saqlashni tanlang:</string>
+    <string name="lyrics_save_synced">Sinxronlashtirilgan (vaqt belgilari bilan)</string>
+    <string name="lyrics_save_plain">Oddiy (faqat matn)</string>
+
+    <!-- FetchLyricsDialog -->
+    <string name="lyrics_search_online_prompt">Qo\'shiq matnini onlayn qidirmoqchimisiz?</string>
+    <string name="lyrics_fetch_show_options_title">Matn variantlarini ko\'rsatish</string>
+    <string name="lyrics_fetch_show_options_subtitle">Avtomatik ravishda birinchi moslikni qo\'llash o\'rniga doimo tanlovni ochish</string>
+    <string name="lyrics_searching">Matn qidirilmoqda…</string>
+    <string name="lyrics_not_found">Matn topilmadi</string>
+    <string name="lyrics_custom_search_hint">Biz matnni avtomatik topolmadik. Sarlavha yoki ijrochini tahrirlab, qo\'lda qidirib ko\'rishingiz mumkin.</string>
+    <string name="lyrics_custom_search_field_title">Qo\'shiq sarlavhasi</string>
+    <string name="lyrics_custom_search_field_artist">Ijrochi (ixtiyoriy)</string>
+    <string name="lyrics_found_n_matches_format">%d ta moslik topildi</string>
+    <string name="lyrics_synced_badge">SINXRONLASHTIRILGAN</string>
+    <string name="lyrics_artist_album_line">%1$s • %2$s</string>
+    <string name="lyrics_provided_by">Matn taqdim etuvchi</string>
+    <string name="lyrics_lrclib_uri">https://lrclib.net/</string>
+</resources>

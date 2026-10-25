@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <!-- Library Screen -->
+    <string name="library_screen_title">Kutubxona</string>
+    <string name="library_tabs_sheet_title">Kutubxona varaqlari</string>
+    <string name="library_tabs_sheet_subtitle">Istalgan varaqqa to\'g\'ridan-to\'g\'ri o\'tish yoki ularni qayta tartiblash.</string>
+    <string name="library_reorder_tabs_label">Varaqlarni qayta tartiblash</string>
+
+    <!-- Library Tab Names -->
+    <string name="library_tab_songs">Qöşiqlar</string>
+    <string name="library_tab_albums">Albomlar</string>
+    <string name="library_tab_artists">Ijroçilar</string>
+    <string name="library_tab_playlists">Pleylistlar</string>
+    <string name="library_tab_folders">Papkalar</string>
+    <string name="library_tab_liked">Yoqtirganlar</string>
+
+    <!-- Library Toasts -->
+    <string name="library_toast_playlist_created">Pleylist muvaffaqiyatli yaratildi</string>
+    <string name="library_toast_set_ai_provider_api_key_first">Avval AI provayderi API kalitingizni o\'rnating</string>
+    <string name="library_toast_set_gemini_api_key_first">Avval Gemini API kalitingizni o\'rnating</string>
+    <string name="library_toast_added_to_queue">Navbatga qöşildi</string>
+    <string name="library_toast_playing_next">Keyingi çalinadi</string>
+
+    <!-- Library Toolbar & Navigation -->
+    <string name="library_cd_watch_transfer">Soatga o\'tkazish</string>
+    <string name="library_cd_open_settings">Sozlamalar</string>
+    <string name="library_tab_edit">Tahrirlaş</string>
+    <string name="library_cd_reorder_tabs">Varaqlarni qayta tartiblash</string>
+    <string name="library_cd_expand_tab_menu">Menyuni kengaytiriş</string>
+
+    <!-- Library Multi-Selection & Folders -->
+    <string name="library_toast_max_albums_selection">Siz ko\'pi bilan %1$d ta albom tanlashingiz mumkin</string>
+    <string name="library_folder_name_fallback">Papka</string>
+    <string name="library_cd_folder">Papka</string>
+
+    <!-- Library Sort & View Bottom Sheet -->
+    <string name="library_sort_by_title">Saralaş</string>
+    <string name="library_sort_section_view">Köriniş</string>
+    <string name="library_sort_toggle_playlist_view">Pleylist Körinişi</string>
+    <string name="library_view_mode_grid">Tör</string>
+    <string name="library_view_mode_list">Röyxat</string>
+    <string name="library_storage_internal">İçki Xotira</string>
+    <string name="library_storage_sd_card">SD Karta</string>
+    <string name="library_storage_sd_card_unavailable">SD karta hozirda mavjud emas.</string>
+    <string name="library_sort_section_cloud">Bulut</string>
+    <string name="library_sort_toggle_telegram_channels">Telegram bulut kanallari</string>
+    <string name="library_telegram_topics_display_title">Mavzular ko\'rinishi</string>
+    <string name="library_telegram_topic_mode_channels">Kanallar</string>
+    <string name="library_telegram_topic_mode_topics">Mavzular</string>
+    <string name="library_telegram_topic_mode_both">Ikkalasi</string>
+    <string name="library_cloud_sources_heading">Bulut</string>
+    <string name="library_cloud_only_label">Faqat Bulut</string>
+
+    <!-- Library AI Metadata Processing -->
+    <string name="library_generating_ai_metadata">AI bilan metama\'lumotlar yaratilmoqda…</string>
+
+    <!-- Library list errors -->
+    <string name="library_error_loading_songs">Qöşiqlarni yuklashda xato</string>
+    <string name="library_album_detail_error_loading_albums">Albomlarni yuklashda xato</string>
+    <string name="library_artist_error_loading_artists">Ijrochilarni yuklashda xato</string>
+    <string name="library_action_retry">Qayta urinish</string>
+
+    <!-- Library empty (paginated) -->
+    <string name="library_no_songs_in_library_message">Kutubxonangizda qöşiqlar topilmadi.</string>
+    <string name="library_no_songs_rescan_hint">Agar qurilmangizda musiqa bo\'lsa, sozlamalarda kutubxonangizni qayta skanerlab ko\'ring.</string>
+    <string name="library_cd_no_songs_in_library">Qo\'shiqlar topilmadi</string>
+
+    <!-- Library action row -->
+    <string name="library_action_new">Yangi</string>
+    <string name="library_cd_create_new_playlist">Yangi pleylist yaratiş</string>
+    <string name="library_cd_import_m3u_playlist">M3U pleylistini import qiliş</string>
+    <string name="library_cd_locate_current_song">Joriy qo\'shiqni topish</string>
+    <string name="library_storage_filter_all_songs">Barcha qo\'shiqlar</string>
+    <string name="library_storage_filter_online">BULUT</string>
+    <string name="library_storage_filter_offline">MAHALLIY</string>
+    <string name="library_cd_sort_options">Saralash opsiyalari</string>
+
+    <!-- Library selection action row -->
+    <string name="library_selection_all">Barchasi</string>
+    <string name="library_selection_deselect">Tanlovni bekor qiliş</string>
+    <string name="library_selection_more_options">Ko\'proq opsiyalar</string>
+
+    <!-- Library Syncing -->
+    <string name="library_sync_scanning">Musiqa fayllari skanerlanmoqda…</string>
+    <string name="library_sync_processing">Fayllar ishlanmoqda…</string>
+    <string name="library_sync_files_progress">%2$d dan %1$d fayl</string>
+    <string name="library_sync_in_progress">Kutubxona sinxronlashtirilmoqda…</string>
+    <string name="library_sync_complete">Sinxronlash tugadi</string>
+    <string name="library_sync_pending">Kutilmoqda…</string>
+    <string name="library_syncing">Kutubxona sinxronlashtirilmoqda…</string>
+    <string name="library_sync_cache">Albom muqovasi keshi tozalanmoqda…</string>
+    <string name="library_sync_cloud">Bulutli manbalar sinxronlashtirilmoqda…</string>
+    <string name="library_sync_lyrics">Qo\'shiq matnlari skanerlanmoqda…</string>
+
+    <!-- Library Empty State -->
+    <string name="library_empty_songs_all_title">Hali qo\'shiqlar yo\'q</string>
+    <string name="library_empty_songs_all_subtitle">Tinglashni boshlash uchun qurilmangizga musiqa qo\'shing yoki bulut manbasini sinxronlang.</string>
+    <string name="library_empty_songs_offline_title">Mahalliy qo\'shiqlar topilmadi</string>
+    <string name="library_empty_songs_offline_subtitle">Boshqa manba filtrini sinab ko\'ring yoki qurilma kutubxonasini qayta skanerlang.</string>
+    <string name="library_empty_songs_online_title">Bulutli qo\'shiqlar topilmadi</string>
+    <string name="library_empty_songs_online_subtitle">Telegram yoki NetEase qo\'shiqlarini sinxronlang yoki mahalliy manbaga o\'ting.</string>
+    <string name="library_empty_albums_all_title">Hech qanday albom mavjud emas</string>
+    <string name="library_empty_albums_all_subtitle">Kutubxonangiz treklarni guruhlagach, albomlar shu yerda paydo bo\'ladi.</string>
+    <string name="library_empty_albums_offline_title">Mahalliy albomlar topilmadi</string>
+    <string name="library_empty_albums_offline_subtitle">Mahalliy albom guruhlarini yaratish uchun mahalliy qo\'shiqlar talab qilinadi.</string>
+    <string name="library_empty_albums_online_title">Bulutli albomlar topilmadi</string>
+    <string name="library_empty_albums_online_subtitle">Albom ma\'lumotlariga ega bulutli qo\'shiqlar sinxronlangandan so\'ng shu yerda paydo bo\'ladi.</string>
+    <string name="library_empty_artists_all_title">Hech qanday ijrochi mavjud emas</string>
+    <string name="library_empty_artists_all_subtitle">Ijrochilar har qanday manbadan qo\'shiqlar indekslangandan so\'ng ko\'rsatiladi.</string>
+    <string name="library_empty_artists_offline_title">Mahalliy ijrochilar topilmadi</string>
+    <string name="library_empty_artists_offline_subtitle">Mahalliy qo\'shiqlar uchun hozirda ijrochi metama\'lumotlari mavjud emas.</string>
+    <string name="library_empty_artists_online_title">Bulutli ijrochilar topilmadi</string>
+    <string name="library_empty_artists_online_subtitle">Masofaviy qo\'shiqlar sinxronlashtirilganda bulutli ijrochi yozuvlari paydo bo\'ladi.</string>
+    <string name="library_empty_liked_all_title">Hali yoqtirgan qo\'shiqlar yo\'q</string>
+    <string name="library_empty_liked_all_subtitle">Qo\'shiqni ijro etayotganda uni shu yerda saqlash uchun yurakcha belgisini bosing.</string>
+    <string name="library_empty_liked_offline_title">Yoqtirgan mahalliy qo\'shiqlar yo\'q</string>
+    <string name="library_empty_liked_offline_subtitle">Manba filtrini o\'zgartiring yoki qurilmangizdagi qo\'shiqlarga yoqdi belgisini qo\'ying.</string>
+    <string name="library_empty_liked_online_title">Yoqtirgan bulutli qo\'shiqlar yo\'q</string>
+    <string name="library_empty_liked_online_subtitle">Ularni bu yerda ko\'rish uchun Telegram yoki NetEase treklariga yoqdi belgisini qo\'ying.</string>
+    <string name="library_empty_folders_title">Papkalar topilmadi</string>
+    <string name="library_empty_folders_subtitle">Musiqali ichki xotira papkalari shu yerda paydo bo\'ladi.</string>
+    <string name="library_empty_playlists_title">Hali pleylistlar yo\'q</string>
+    <string name="library_empty_playlists_subtitle">Kutubxonangizni tartibga solish uchun birinchi pleylistingizni yarating.</string>
+
+    <!-- SongInfoBottomSheet, MultiSelectionBottomSheet, PlaylistMultiSelectionBottomSheet -->
+    <string name="song_info_cd_edit_metadata">Qo\'shiq metama\'lumotlarini tahrirlash</string>
+    <string name="song_info_action_play">Ijro etish</string>
+    <string name="song_info_cd_play">Qo\'shiqni ijro etish</string>
+    <string name="song_info_action_play_all">Barchasini ijro etish</string>
+    <string name="song_info_cd_play_all">Barchasini ijro etish</string>
+    <string name="song_info_cd_add_to_favorites">Sevimlilarga qo\'shish</string>
+    <string name="song_info_cd_add_to_favorites_all">Barchasini sevimlilarga qo\'shish</string>
+    <string name="song_info_cd_remove_from_favorites">Sevimlilardan olib tashlash</string>
+    <string name="song_info_cd_remove_from_favorites_all">Barchasini sevimlilardan olib tashlash</string>
+    <string name="song_info_share_chooser_title">Qo\'shiq faylini ulashish orqali</string>
+    <string name="song_info_cd_share_song_file">Qo\'shiq faylini ulashish</string>
+    <string name="song_info_cd_share_all_as_zip">Barchasini ZIP sifatida ulashish</string>
+    <string name="song_info_error_share_song">Qo\'shiqni ulashib bo\'lmadi: %1$s</string>
+    <string name="song_info_action_add_to_queue">Navbatga qo\'shish</string>
+    <string name="song_info_cd_add_to_queue">Navbatga qo\'shish</string>
+    <string name="song_info_action_queue_next">Keyingisi</string>
+    <string name="song_info_cd_queue_next">Navbatda keyingisini ijro etish</string>
+    <string name="song_info_cd_add_to_playlist">Pleylistga qo\'shish</string>
+    <string name="song_info_action_delete">O\'chirish</string>
+    <string name="song_info_action_delete_all">Barchasini o\'chirish</string>
+    <string name="song_info_checking_watch">Soat tekshirilmoqda</string>
+    <string name="song_info_transferring_percent">O\'tkazilmoqda %1$d%%</string>
+    <string name="song_info_transferring_to_watch">Soatga o\'tkazilmoqda</string>
+    <string name="song_info_transfer_in_progress">O\'tkazish davom etmoqda</string>
+    <string name="song_info_send_to_watch">Soatga yuborish</string>
+    <string name="song_info_watch_unavailable">Soat mavjud emas</string>
+    <string name="song_info_cd_send_to_watch">Qo\'shiqni soatga yuborish</string>
+    <string name="song_info_cd_watch_unavailable">Soat mavjud emas</string>
+    <string name="song_info_set_sound_as_short">Sifatida o\'rnatish</string>
+    <string name="song_info_set_sound_as_long">Ovoz sifatida o\'rnatish</string>
+    <string name="song_info_cd_set_sound_as">Ushbu qo\'shiqdan tizim ovozi sifatida qanday foydalanishni tanlang</string>
+    <string name="song_info_tone_picker_title">Ushbu qo\'shiqdan foydalanish</string>
+    <string name="song_info_tone_picker_body">PixelPlayer ushbu ovozni qayerga o\'rnatishini tanlang.</string>
+    <string name="song_info_tone_ringtone_title">Telefon ringtoni</string>
+    <string name="song_info_tone_ringtone_subtitle">Kiruvchi qo\'ng\'iroqlar</string>
+    <string name="song_info_tone_notification_title">Bildirishnoma ovozi</string>
+    <string name="song_info_tone_notification_subtitle">Xabarlar va ilova ogohlantirishlari</string>
+    <string name="song_info_tone_alarm_title">Budilnik ovozi</string>
+    <string name="song_info_tone_alarm_subtitle">Soat budilniklari</string>
+    <string name="song_info_tone_confirm_title">Ovoz o\'zgarishini tasdiqlang</string>
+    <string name="song_info_tone_confirm_body">\"%1$s\" ni %2$s sifatida o\'rnatasizmi?</string>
+    <string name="song_info_tone_confirm_action">Ovozni o\'rnatish</string>
+    <string name="song_info_tone_success">\"%1$s\" %2$s sifatida o\'rnatildi</string>
+    <string name="song_info_tone_ringtone_label">rington</string>
+    <string name="song_info_tone_notification_label">bildirishnoma ovozi</string>
+    <string name="song_info_tone_alarm_label">budilnik ovozi</string>
+    <string name="song_info_ringtone_permission_prompt">Tizim sozlamalarini o\'zgartirishga ruxsat bering, so\'ng avtomatik tugatish uchun PixelPlayer\'ga qayting.</string>
+    <string name="song_info_ringtone_permission_missing">Tizim sozlamalarini o\'zgartirish yoqilmagan.</string>
+    <string name="song_info_ringtone_success">\"%1$s\" rington sifatida o\'rnatildi</string>
+    <string name="song_info_ringtone_local_only">Faqat mahalliy qo\'shiqlar rington sifatida ishlatilishi mumkin.</string>
+    <string name="song_info_ringtone_missing_file">Bu audio faylni rington uchun tayyorlab bo\'lmadi.</string>
+    <string name="song_info_ringtone_failed">Ringtonni o\'rnatib bo\'lmadi: %1$s</string>
+    <string name="song_info_tab_options">Tanlovlar</string>
+    <string name="song_info_tab_options_badge">TANLOVLAR</string>
+    <string name="song_info_tab_info">Ma\'lumot</string>
+    <string name="song_info_tab_info_badge">MA\'LUMOT</string>
+    <string name="song_info_duration_label">Davomiyligi</string>
+    <string name="song_info_genre_label">Janr</string>
+    <string name="song_info_album_label">Albom</string>
+    <string name="song_info_artist_label">Ijrochi</string>
+    <string name="song_info_audio_format_label">Qo\'shiq ma\'lumoti</string>
+    <string name="song_info_cd_provider">Provayder</string>
+    <string name="song_info_cd_file">Fayl</string>
+    <string name="multi_selection_songs_count_upper">%1$d TA QO\'SHIQ</string>
+    <string name="multi_selection_songs_selected">tanlandi</string>
+    <string name="multi_selection_playlists_count_upper">%1$d TA PLEYLIST</string>
+    <string name="multi_selection_albums_count_upper">%1$d TA ALBOM</string>
+    <string name="multi_selection_albums_selected">tanlandi</string>
+    <string name="multi_selection_albums_selected_limit">Limit: Har bir tanlov uchun %1$d ta albom.</string>
+    <string name="multi_selection_albums_queue_hint">Navbat + ijro sizning tanlov tartibingizni hurmat qiladi.</string>
+    <string name="multi_selection_genres_count_upper">%1$d TA JANR</string>
+    <string name="multi_selection_genres_selected">tanlandi</string>
+    <string name="multi_selection_genres_queue_hint">Ushbu janrlardagi barcha qo\'shiqlarda guruh amallarini bajaring.</string>
+
+    <!-- Sort Option Display Names -->
+    <string name="sort_display_default_order">Standart Tartib</string>
+    <string name="sort_display_title_az">Sarlavha (A-Z)</string>
+    <string name="sort_display_title_za">Sarlavha (Z-A)</string>
+    <string name="sort_display_artist">Ijrochi</string>
+    <string name="sort_display_artist_za">Ijrochi (Z-A)</string>
+    <string name="sort_display_album">Albom</string>
+    <string name="sort_display_album_za">Albom (Z-A)</string>
+    <string name="sort_display_date_added">Qo\'shilgan Sana</string>
+    <string name="sort_display_date_added_oldest">Qo\'shilgan Sana (Eng Eskisi Birinchi)</string>
+    <string name="sort_display_duration">Davomiyligi</string>
+    <string name="sort_display_duration_shortest">Davomiyligi (Eng Qisqasi Birinchi)</string>
+    <string name="sort_display_release_year">Chiqarilgan Yil</string>
+    <string name="sort_display_release_year_oldest">Chiqarilgan Yil (Eng Eskisi Birinchi)</string>
+    <string name="sort_display_fewest_songs">Eng Kam Qo\'shiq</string>
+    <string name="sort_display_most_songs">Eng Ko\'p Qo\'shiq</string>
+    <string name="sort_display_name_az">Nom (A-Z)</string>
+    <string name="sort_display_name_za">Nom (Z-A)</string>
+    <string name="sort_display_num_songs_most">Qo\'shiqlar Soni (Eng Ko\'p)</string>
+    <string name="sort_display_num_songs_fewest">Qo\'shiqlar Soni (Eng Kam)</string>
+    <string name="sort_display_date_created">Yaratilgan Sana</string>
+    <string name="sort_display_date_created_oldest">Yaratilgan Sana (Eng Eskisi Birinchi)</string>
+    <string name="sort_display_date_liked">Yoqtirilgan Sana</string>
+    <string name="sort_display_date_liked_oldest">Yoqtirilgan Sana (Eng Eskisi Birinchi)</string>
+    <string name="sort_display_fewest_subfolders">Eng Kam Quyi Papkalar</string>
+    <string name="sort_display_most_subfolders">Eng Ko\'p Quyi Papkalar</string>
+
+    <!-- Sort Option Method Labels -->
+    <string name="sort_method_title">Sarlavha</string>
+    <string name="sort_method_artist">Ijrochi</string>
+    <string name="sort_method_album">Albom</string>
+    <string name="sort_method_date_added">Qo\'shilgan Sana</string>
+    <string name="sort_method_duration">Davomiyligi</string>
+    <string name="sort_method_release_year">Chiqarilgan Yil</string>
+    <string name="sort_method_song_count">Qo\'shiq Soni</string>
+    <string name="sort_method_name">Nom</string>
+    <string name="sort_method_num_songs">Qo\'shiqlar Soni</string>
+    <string name="sort_method_date_created">Yaratilgan Sana</string>
+    <string name="sort_method_date_liked">Yoqtirilgan Sana</string>
+    <string name="sort_method_subfolder_count">Quyi Papkalar Soni</string>
+
+    <!-- LibrarySortBottomSheet-->
+    <string name="library_sort_source">Manba</string>
+    <string name="library_sort_order">Tartib</string>
+    <string name="library_sort_descending">Kamayish</string>
+    <string name="library_sort_ascending">O\'sish</string>
+    <string name="library_sort_original_order">Asl Tartib</string>
+    <string name="library_sort_tap_ascending">O\'sishga o\'tish uchun bosing</string>
+    <string name="library_sort_tap_descending">Kamayishga o\'tish uchun bosing</string>
+    <string name="library_sort_keeps_order">Ushbu saralash o\'zining asl tartibini saqlaydi</string>
+    <string name="library_sort_cd_switch_on">Kalit yoniq</string>
+
+    <!-- ReorderTabsSheet-->
+    <string name="reorder_tabs_sheet_title">Kutubxona varaqlarini qayta tartiblash</string>
+    <string name="reorder_tabs_reset_dialog_title">Tartibni tiklash</string>
+    <string name="reorder_tabs_reset_dialog_body">Varaq tartibini standart holatga qaytarasizmi?</string>
+    <string name="reorder_tabs_reordering">Varaqlar qayta tartiblanmoqda…</string>
+    <string name="reorder_tabs_cd_drag_handle">Tortish dastasi</string>
+
+    <!-- PlayerArtistPickerBottomSheet -->
+    <string name="artist_picker_title">Ijrochini tanlang</string>
+    <string name="artist_picker_count_single">1 ijrochi</string>
+    <string name="artist_picker_count_multiple">%1$d ijrochi</string>
+    <string name="artist_picker_primary_label">Asosiy ijrochi</string>
+    <string name="artist_picker_shortcut_label">Ijrochi sahifasi</string>
+
+    <!-- Watch Transfer Dialog + Foreground Service -->
+    <string name="watch_transfer_action_cancel">O\'tkazishni bekor qilish</string>
+    <string name="watch_transfer_bytes_progress">%1$s / %2$s</string>
+    <string name="watch_transfer_channel_description">Telefondan soatga musiqa o\'tkazish jarayonini jonli ko\'rsatadi</string>
+    <string name="watch_transfer_channel_name">Soatga o\'tkazishlar</string>
+    <string name="watch_transfer_dialog_title">Soatga yuborilmoqda</string>
+    <string name="watch_transfer_status_cancelled">Bekor qilindi</string>
+    <string name="watch_transfer_status_cancelled_service">O\'tkazish bekor qilindi</string>
+    <string name="watch_transfer_status_complete_service">O\'tkazish yakunlandi</string>
+    <string name="watch_transfer_status_completed">Yakunlandi</string>
+    <string name="watch_transfer_status_failed">Muvaffaqiyatsiz</string>
+    <string name="watch_transfer_status_failed_service">O\'tkazish muvaffaqiyatsiz</string>
+    <string name="watch_transfer_status_multiple_active">Bir nechta faol o\'tkazishlar</string>
+    <string name="watch_transfer_bullet_step">%1$s • %2$s</string>
+    <string name="watch_transfer_status_preparing">Tayyorlanmoqda</string>
+    <string name="watch_transfer_status_preparing_service">Soatga o\'tkazish tayyorlanmoqda</string>
+    <string name="watch_transfer_status_preparing_transfer">O\'tkazish tayyorlanmoqda…</string>
+    <string name="watch_transfer_status_sending_n_to_watch">%1$d ta qo\'shiq soatga yuborilmoqda</string>
+    <string name="watch_transfer_status_sending_to_watch">Soatga yuborilmoqda</string>
+    <string name="watch_transfer_status_starting">O\'tkazish boshlanmoqda…</string>
+    <string name="watch_transfer_status_starting_short">Boshlanmoqda</string>
+    <string name="watch_transfer_status_transferring">O\'tkazilmoqda</string>
+    <string name="watch_transfer_summary_n">%1$d marta o\'tkazish</string>
+
+    <!-- EditSongSheet -->
+    <string name="edit_song_toolbar_title">Qo\'shiqni tahrirlash</string>
+    <string name="edit_song_cd_show_metadata_info">Ma\'lumotlarni ko\'rsatish</string>
+    <string name="edit_song_dialog_title">Qo\'shiq metama\'lumotlari tahrirlanmoqda</string>
+    <string name="edit_song_dialog_body">Qo\'shiqning metama\'lumotlarini tahrirlash uning kutubxonangizda qanday ko\'rsatilishi va tashkil etilishiga ta\'sir qilishi mumkin. O\'zgarishlar doimiy va ortga qaytarib bo\'lmasligi mumkin.</string>
+    <string name="edit_song_dialog_got_it">Tushunarli</string>
+    <string name="edit_song_cd_info_icon">Ma\'lumot</string>
+    <string name="edit_song_cover_art_heading">Muqova rasmi</string>
+    <string name="edit_song_cover_art_hint">Kvadrat rasm tanlang va muqova rasmingiz butun ilova bo\'ylab ajoyib ko\'rinishi uchun uni nozik sozlang.</string>
+    <string name="edit_song_action_change_cover">Muqova rasmini o\'zgartirish</string>
+    <string name="edit_song_action_delete_cover">Muqova rasmini o\'chirish</string>
+    <string name="edit_song_field_title">Sarlavha</string>
+    <string name="edit_song_field_artist">Ijrochi</string>
+    <string name="edit_song_field_album">Albom</string>
+    <string name="edit_song_field_album_artist">Albom ijrochisi</string>
+    <string name="edit_song_field_genre">Janr</string>
+    <string name="edit_song_field_composer">Bastakor</string>
+    <string name="edit_song_field_track_number">Trek raqami</string>
+    <string name="edit_song_field_disc_number">Disk raqami</string>
+    <string name="edit_song_field_replaygain_track">Trek ReplayGain (dB)</string>
+    <string name="edit_song_field_replaygain_album">Albom ReplayGain (dB)</string>
+    <string name="edit_song_replaygain_track_placeholder">-6.50</string>
+    <string name="edit_song_replaygain_album_placeholder">-8.20</string>
+    <string name="edit_song_cd_cover_preview">Yangi muqova rasmini oldindan ko\'rish</string>
+    <string name="edit_song_cd_current_cover">Joriy qo\'shiq muqovasi</string>
+    <string name="edit_song_crop_dialog_title">Muqova rasmini sozlang</string>
+    <string name="edit_song_crop_dialog_hint">Mukammal ramka topish uchun chimchilash va tortish harakatlaridan foydalaning.</string>
+    <string name="edit_song_action_apply_cover">Muqova rasmini qo\'llash</string>
+    <string name="edit_song_unable_to_load_image">Tanlangan rasmni yuklab bo\'lmadi</string>
+    <string name="edit_song_cd_search_lyrics_lrclib">lrclib.net orqali matn qidirish</string>
+
+    <!-- EditMultipleSongsSheet -->
+    <string name="batch_edit_toolbar_title">%d ta qo\'shiqni tahrirlash</string>
+    <string name="batch_edit_info_message">Faqat o\'zgartirilgan maydonlar yangilanadi. Mavjud qiymatlarni saqlash uchun maydonlarni bo\'sh qoldiring.</string>
+    <string name="batch_edit_mixed_values">(Aralash qiymatlar)</string>
+    <string name="batch_edit_optional">(Ixtiyoriy - o\'tkazib yuborish uchun bo\'sh qoldiring)</string>
+    <string name="batch_edit_success">%d ta qo\'shiq muvaffaqiyatli yangilandi</string>
+    <string name="batch_edit_partial_success">%2$d ta qo\'shiqdan %1$d tasi yangilandi. Ba\'zi fayllarni tahrirlab bo\'lmadi.</string>
+    <string name="batch_edit_failed">Qo\'shiqlarni yangilab bo\'lmadi</string>
+    <string name="batch_edit_cover_art_heading">Ommaviy muqova rasmi</string>
+    <string name="batch_edit_cover_art_hint">Bu tanlangan barcha %d ta qo\'shiq uchun muqova rasmini almashtiradi</string>
+    <string name="batch_edit_set_cover_art">Barchasi uchun muqova rasmini o\'rnatish</string>
+    <string name="batch_edit_remove_all_art">Barcha muqova rasmlarini olib tashlash</string>
+    <string name="batch_edit_multiple_covers">(Turli xil muqovalar)</string>
+
+    <!-- Playlist dismissed message -->
+    <string name="playlist_dismissed_message">Pleylist yopildi</string>
+
+    <!-- PlaylistCreationDialogs -->
+    <string name="playlist_creation_create_playlist_title">Pleylist yaratiş</string>
+    <string name="playlist_creation_create_playlist_subtitle">Yaratiş oqimini tanlang.</string>
+    <string name="playlist_creation_mode_manual_title">Qo\'lda</string>
+    <string name="playlist_creation_mode_manual_subtitle">San\'at asari, belgi, shaklni loyihalashtiring va qo\'shiqlarni o\'zingiz tanlang.</string>
+    <string name="playlist_creation_mode_ai_title">AI bilan</string>
+    <string name="playlist_creation_mode_ai_subtitle_enabled">Murakkab boshqaruvlar yordamida mukammal pleylist yarating.</string>
+    <string name="playlist_creation_mode_ai_subtitle_disabled">Sozlamalarda sozlangan Gemini API kaliti kerak.</string>
+    <string name="playlist_creation_setup_api_key">API kalitini o\'rnatish</string>
+
+    <!-- AI playlist lab -->
+    <string name="playlist_creation_ai_lab_title">AI Pleylist Laboratoriyasi</string>
+    <string name="playlist_creation_ai_reset">Qayta tiklash</string>
+    <string name="playlist_creation_ai_generating">Yaratilmoqda…</string>
+    <string name="playlist_creation_ai_generate">Yaratiş</string>
+    <string name="playlist_creation_ai_section_intent">Niyat</string>
+    <string name="playlist_creation_ai_name_optional">Pleylist nomi (ixtiyoriy)</string>
+    <string name="playlist_creation_ai_feel_label">Bu pleylist qanday his uyg\'otishi kerak?</string>
+    <string name="playlist_creation_ai_feel_placeholder">Masalan: issiq sintezatorlar bilan quyosh botishi sayohati</string>
+    <string name="playlist_creation_ai_section_direction">Yo\'nalish</string>
+    <string name="playlist_creation_ai_mood_label">Kayfiyat</string>
+    <string name="playlist_creation_ai_activity_label">Faoliyat</string>
+    <string name="playlist_creation_ai_era_label">Davr</string>
+    <string name="playlist_creation_ai_section_curation">Saralash mexanizmi</string>
+    <string name="playlist_creation_ai_energy_label">Energiya</string>
+    <string name="playlist_creation_ai_energy_desc">Qo\'shiqlarning intensivligi va tempini nazorat qiladi. 1 = sokin/sekin, 5 = yuqori energiya/tez.</string>
+    <string name="playlist_creation_ai_discovery_label">Kashfiyot</string>
+    <string name="playlist_creation_ai_discovery_desc">Tanlovlar qanchalik tanish ekanligini nazorat qiladi. 1 = sizning eng ko\'p chalingan sevimlilaringiz, 5 = kamdan-kam chalingan noyob treklar.</string>
+    <string name="playlist_creation_ai_min_songs">Min qöşiqlar</string>
+    <string name="playlist_creation_ai_max_songs">Maks qöşiqlar</string>
+    <string name="playlist_creation_ai_section_filters">Filtrlar</string>
+    <string name="playlist_creation_ai_prioritize_genres">Janrlarga ustuvorlik berish (ixtiyoriy)</string>
+    <string name="playlist_creation_ai_prioritize_genres_placeholder">masalan. synthwave, indie pop</string>
+    <string name="playlist_creation_ai_avoid_genres">Janrlardan qochish (ixtiyoriy)</string>
+    <string name="playlist_creation_ai_avoid_genres_placeholder">masalan. metal, hard trap</string>
+    <string name="playlist_creation_ai_preferred_language">Afzal qilingan til (ixtiyoriy)</string>
+    <string name="playlist_creation_ai_preferred_language_placeholder">masalan. Inglizcha, Ispancha, instrumental</string>
+    <string name="playlist_creation_ai_prioritize_favorites">Sevimlilarga ustuvorlik berish</string>
+    <string name="playlist_creation_ai_avoid_explicit">So\'kinishli matnlardan qochish</string>
+    <string name="playlist_creation_ai_section_prompt_preview">So\'rovni oldindan ko\'rish</string>
+    <string name="playlist_creation_ai_prompt_preview_empty">Xohishlaringizni qo\'shganingizdan so\'ng oxirgi so\'rovingiz shu yerda paydo bo\'ladi.</string>
+    <string name="playlist_creation_ai_hero_title">Aniqlik bilan saralash</string>
+    <string name="playlist_creation_ai_hero_subtitle">Kayfiyat, faoliyat, cheklovlar va chuqurlikni aniqlang.</string>
+    <string name="playlist_creation_ai_hero_library_note">AI faqat mahalliy kutubxonangizdagi qo\'shiqlardan foydalanadi.</string>
+    <string name="playlist_creation_ai_error_add_instruction">AI uchun kamida bitta ko\'rsatma qo\'shing.</string>
+    <string name="playlist_creation_ai_error_song_range">Yaroqli qo\'shiq oralig\'ini o\'rnating.</string>
+    <string name="playlist_creation_ai_level_out_of_five">%1$d/5</string>
+    <string name="playlist_creation_ai_custom_chip">Maxsus…</string>
+    <string name="playlist_creation_ai_enter_custom_title">Maxsus qiymatni kiriting</string>
+    <string name="playlist_creation_ai_enter_custom_label">O\'zingizning maxsus qiymatingizni kiriting</string>
+
+    <!-- AI prompt -->
+    <string name="playlist_creation_ai_era_any">Istalgan davr</string>
+    <string name="playlist_creation_ai_prompt_core_request">Asosiy so\'rov: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_mood">Maqsadli kayfiyat: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_activity">Faoliyat konteksti: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_era">Davr diqqat markazida: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_prioritize_genres">Ushbu janrlarga ustuvorlik bering: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_avoid_genres">Ushbu janrlardan qoching: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_preferred_language">Afzal qilingan til: %1$s.</string>
+    <string name="playlist_creation_ai_prompt_energy">Energiya darajasi maqsadi: 5 dan %1$d.</string>
+    <string name="playlist_creation_ai_prompt_discovery">Kashfiyot maqsadi: 5 dan %1$d (bu yerda 1 tanish va 5 noyob).</string>
+    <string name="playlist_creation_ai_prompt_prioritize_favorites">Iloji boricha tinglovchining sevimlilariga yaqinroq qo\'shiqlarga ustuvorlik bering.</string>
+    <string name="playlist_creation_ai_prompt_avoid_explicit">Alternativalar mavjud bo\'lganda so\'kinishli matnlardan qoching.</string>
+    <string name="playlist_creation_ai_prompt_smooth_transitions">O\'tishlarni silliq saqlang va takroriy ijrochi to\'planishidan qoching.</string>
+    <string-array name="playlist_creation_ai_mood_options">
+        <item>Sokin</item>
+        <item>G\'ayratli</item>
+        <item>Xursand</item>
+        <item>Qorong\'i</item>
+        <item>Romantik</item>
+        <item>G\'amgin</item>
+    </string-array>
+    <string-array name="playlist_creation_ai_activity_options">
+        <item>Mashg\'ulot</item>
+        <item>Diqqat</item>
+        <item>Sayohat</item>
+        <item>Ziyofat</item>
+        <item>O\'qish</item>
+        <item>Kechki payt</item>
+    </string-array>
+    <string-array name="playlist_creation_ai_era_options">
+        <item>@string/playlist_creation_ai_era_any</item>
+        <item>70-yillar</item>
+        <item>80-yillar</item>
+        <item>90-yillar</item>
+        <item>2000-yillar</item>
+        <item>2010-yillar</item>
+        <item>2020-yillar</item>
+    </string-array>
+
+    <!-- PlaylistContainer -->
+    <string name="playlist_container_no_playlist_created">Hech qanday pleylist yaratilmagan.</string>
+    <string name="playlist_container_new_playlist_hint">Boshlash uchun \'Yangi Pleylist\' tugmasini bosing.</string>
+    <string name="playlist_container_create_playlist_title">Yangi pleylist</string>
+    <string name="playlist_container_create_playlist_name_label">Pleylist nomi</string>
+    <string name="playlist_container_create_playlist_name_placeholder">Mening pleylistim</string>
+
+    <!-- PlaylistBottomSheet -->
+    <string name="playlist_sheet_add_songs_title">%1$d ta qo\'shiqni qo\'shish…</string>
+    <string name="playlist_sheet_select_playlists">Pleylistlarni tanlash</string>
+    <string name="playlist_sheet_search_playlists_hint">Pleylistlarni qidirish…</string>
+    <string name="playlist_sheet_song_added_to_playlists">Qo\'shiqlar pleylistlarga qo\'shildi</string>
+    <string name="playlist_sheet_created_and_songs_added">Pleylist yaratildi va qo\'shiqlar qo\'shildi</string>
+    <string name="playlist_sheet_internal_storage">Ichki Xotira</string>
+
+    <!-- SongPickerBottomSheet -->
+    <string name="song_picker_title">Qo\'shiqlarni qo\'shish</string>
+    <string name="song_picker_cd_confirm_add_songs">Tanlangan qo\'shiqlarni qo\'shish</string>
+    <string name="song_picker_action_add">Qöşiş</string>
+    <string name="song_picker_search_label">Qo\'shiqlarni qidirish yoki filtrlash…</string>
+    <string name="song_picker_filter_favorites">Yoqtirilgan</string>
+    <string name="song_picker_error_load_failed">Qo\'shiqlarni yuklab bo\'lmadi</string>
+    <string name="song_picker_load_more">Ko\'proq yuklash</string>
+
+    <!-- Merge Playlists Dialog -->
+    <string name="merge_playlists_dialog_title">Pleylistlarni Birlashtirish</string>
+    <string name="merge_playlists_dialog_prompt">Birlashtirilgan pleylist nomini kiriting:</string>
+    <string name="merge_playlists_dialog_placeholder">Birlashtirilgan Pleylist</string>
+    <string name="merge_playlists_dialog_body">Bu tanlangan %1$d ta pleylistni bittaga birlashtiradi.</string>
+
+    <!-- PlayerViewModel -->
+    <string name="player_view_model_no_valid_songs">Ijro etish uchun yaroqli qo\'shiqlar topilmadi</string>
+    <string name="player_view_model_song_not_found_in_list">Qo\'shiq joriy ro\'yxatdan topilmadi</string>
+    <string name="player_view_model_could_not_locate_song">Qo\'shiqni topib bo\'lmadi</string>
+    <string name="player_view_model_no_songs_in_library_toast">Kutubxonada qo\'shiqlar topilmadi</string>
+    <string name="player_view_model_playback_stopped_eot">Ijro to\'xtatildi: %1$s tugadi (Trek oxiri).</string>
+    <string name="player_view_model_default_track_title">Trek</string>
+    <string name="player_view_model_no_songs_to_shuffle">Aralashtirish uchun qo\'shiqlar yo\'q.</string>
+    <string name="player_view_model_queue_name_selected_albums">Tanlangan Albomlar</string>
+    <string name="player_view_model_no_playable_songs_in_albums">Tanlangan albomlarda ijro etiladigan qo\'shiqlar topilmadi</string>
+    <string name="player_view_model_no_playable_songs_in_genres">Tanlangan janrlarda ijro etiladigan qo\'shiqlar topilmadi</string>
+    <string name="player_view_model_only_first_n_albums_queued">Faqat birinchi %1$d ta albom navbatga qo\'yildi</string>
+    <string name="player_view_model_albums_queued_format">%1$d ta albom navbatga qo\'yildi (%2$d qo\'shiq)</string>
+    <string name="player_view_model_could_not_queue_albums">Tanlangan albomlarni navbatga qo\'yib bo\'lmadi</string>
+    <string name="player_view_model_all_songs_already_in_favorites">Barcha qo\'shiqlar allaqachon sevimlilarda</string>
+    <string name="player_view_model_no_songs_were_in_favorites">Sevimlilarda hech qanday qo\'shiq yo\'q edi</string>
+    <string name="player_view_model_creating_zip">ZIP fayl yaratilmoqda…</string>
+    <string name="player_view_model_share_zip_failed_format">Ulashib bo\'lmadi: %1$s</string>
+    <plurals name="player_view_model_n_songs_added_to_queue">
+        <item quantity="one">%d qo\'shiq navbatga qo\'shildi</item>
+        <item quantity="other">%d qo\'shiq navbatga qo\'shildi</item>
+    </plurals>
+    <plurals name="player_view_model_n_songs_will_play_next">
+        <item quantity="one">Keyingi %d qo\'shiq chalinadi</item>
+        <item quantity="other">Keyingi %d qo\'shiq chalinadi</item>
+    </plurals>
+    <plurals name="player_view_model_n_songs_added_to_favorites">
+        <item quantity="one">%d qo\'shiq sevimlilarga qo\'shildi</item>
+        <item quantity="other">%d qo\'shiq sevimlilarga qo\'shildi</item>
+    </plurals>
+    <plurals name="player_view_model_n_songs_removed_from_favorites">
+        <item quantity="one">%d qo\'shiq sevimlilardan olib tashlandi</item>
+        <item quantity="other">%d qo\'shiq sevimlilardan olib tashlandi</item>
+    </plurals>
+
+    <!-- PlaylistViewModel -->
+    <string name="playlist_view_model_none_to_share">Ulashish uchun pleylistlar yo\'q</string>
+    <string name="playlist_view_model_share_chooser_title">Pleylistlarni ulashish</string>
+    <string name="playlist_view_model_share_failed">Ulashib bo\'lmadi: %1$s</string>
+    <string name="playlist_view_model_none_to_export">Eksport qilish uchun pleylistlar yo\'q</string>
+    <string name="playlist_view_model_export_failed">Eksport qilib bo\'lmadi: %1$s</string>
+    <string name="playlist_view_model_export_folder_display">Musiqa/PixelPlayer Eksportlari</string>
+    <string name="playlist_view_model_ai_gemini_key_required">Iltimos, Sozlamalarda Gemini API kalitingizni sozlang.</string>
+    <string name="playlist_view_model_restored_toast">Pleylist tiklandi</string>
+    <plurals name="playlist_view_model_sharing_message">
+        <item quantity="one">%d pleylist ulashilmoqda</item>
+        <item quantity="other">%d pleylist ulashilmoqda</item>
+    </plurals>
+    <plurals name="playlist_view_model_exported_message">
+        <item quantity="one">%1$d pleylist %2$s ga eksport qilindi</item>
+        <item quantity="other">%1$d pleylist %2$s ga eksport qilindi</item>
+    </plurals>
+
+    <!-- AlbumDetailViewModel -->
+    <string name="album_detail_invalid_id">Yaroqsiz albom ID</string>
+    <string name="album_detail_id_not_found">Albom ID topilmadi</string>
+    <string name="album_detail_error_loading_album">Albom ma\'lumotlarini yuklashda xato: %s</string>
+    <string name="album_detail_not_found">Albom topilmadi</string>
+
+    <!-- ArtistDetailViewModel -->
+    <string name="artist_detail_invalid_id">Yaroqsiz ijrochi ID</string>
+    <string name="artist_detail_id_not_found">Ijrochi ID topilmadi</string>
+    <string name="artist_error_loading_artist">Ijrochi ma\'lumotlarini yuklashda xato: %s</string>
+    <string name="artist_detail_not_found">Ijrochini topib bo\'lmadi</string>
+
+    <!-- SongRemovalStateHolder -->
+    <string name="song_removal_cannot_delete_currently_playing">Hozir chalinayotgan qo\'shiqni o\'chirib bo\'lmadi</string>
+    <string name="song_removal_batch_delete_files_deleted_skipped_format">%1$d fayl o\'chirildi (%2$d o\'tkazib yuborildi - chalinmoqda)</string>
+    <string name="song_removal_batch_delete_partial_format">%2$d dan %1$d fayl o\'chirildi</string>
+    <string name="song_removal_delete_files_failed">Fayllarni o\'chirib bo\'lmadi</string>
+    <string name="song_removal_file_deleted">Fayl o\'chirildi</string>
+    <string name="song_removal_delete_file_not_found">Faylni o\'chirib bo\'lmaydi yoki fayl topilmadi</string>
+    <string name="song_removal_deletion_cancelled">O\'chirish bekor qilindi</string>
+    <string name="song_removal_dialog_delete_song_title">Qo\'shiqni o\'chirish kerakmi?</string>
+    <string name="song_removal_dialog_delete_song_message">\"%1$s\" ijrochi %2$s\n\nUshbu qo\'shiq qurilmangizdan butunlay o\'chiriladi va uni qayta tiklab bo\'lmaydi.</string>
+    <string name="song_removal_delete_songs_permanent_message">Ushbu qo\'shiqlar qurilmangizdan butunlay o\'chiriladi va ularni qayta tiklab bo\'lmaydi.</string>
+    <plurals name="song_removal_n_files_deleted">
+        <item quantity="one">%d fayl o\'chirildi</item>
+        <item quantity="other">%d fayl o\'chirildi</item>
+    </plurals>
+    <plurals name="song_removal_delete_songs_confirmation_title">
+        <item quantity="one">%d qo\'shiqni o\'chirish kerakmi?</item>
+        <item quantity="other">%d qo\'shiqni o\'chirish kerakmi?</item>
+    </plurals>
+
+    <!-- MetadataEditStateHolder -->
+    <string name="metadata_edit_updated_successfully">Metama\'lumotlar muvaffaqiyatli yangilandi</string>
+    <string name="metadata_edit_updating_n_songs">%1$d ta qo\'shiq yangilanmoqda…</string>
+    <string name="metadata_edit_batch_genre_updated_all">%1$d ta qo\'shiq muvaffaqiyatli yangilandi!</string>
+    <string name="metadata_edit_batch_genre_updated_partial">%1$d ta qo\'shiq yangilandi. Xato: %2$d</string>
+    <string name="metadata_edit_lyrics_saved_successfully">Qo\'shiq matni muvaffaqiyatli saqlandi</string>
+    <string name="metadata_edit_lyrics_save_failed">Qo\'shiq matnini saqlab bo\'lmadi</string>
+    <string name="metadata_edit_lyrics_none_to_save">Saqlash uchun qo\'shiq matni yo\'q</string>
+    <string name="metadata_edit_permission_denied_edit_files">Ruxsat rad etildi – fayllarni tahrirlab bo\'lmaydi</string>
+    <string name="metadata_edit_permission_denied_save_lyrics">Ruxsat rad etildi – qo\'shiq matnini saqlab bo\'lmaydi</string>
+    <string name="metadata_edit_permission_denied_edit_this_file">Ruxsat rad etildi – bu faylni tahrirlab bo\'lmaydi</string>
+
+    <!-- AiStateHolder -->
+    <string name="ai_state_error_api_key">Iltimos, Sozlamalarda tanlangan AI provayderi uchun yaroqli API kalitini sozlang.</string>
+    <string name="ai_state_error_generic">AI Xatosi: %s</string>
+    <string name="ai_state_error_quota">Tanlangan AI provayderi so\'rovni rad etdi, chunki hisobda kreditlar yoki mavjud kvota yo\'q.</string>
+    <string name="ai_state_error_model_unavailable">Tanlangan AI modeli endi mavjud emas. PixelPlayer avtomatik ravishda qo\'llab-quvvatlanadigan modelga o\'tishga harakat qildi.</string>
+    <string name="ai_state_no_songs_found">AI sizning so\'rovingiz uchun hech qanday qo\'shiq topolmadi.</string>
+    <string name="ai_state_prompt_empty">Kundalik Miksingiz uchun g\'oya yozing</string>
+    <string name="ai_state_daily_mix_updated">Kundalik Miks AI bilan yangilandi</string>
+    <string name="ai_state_could_not_update">Yangilab bo\'lmadi: %s</string>
+    <string name="ai_state_no_songs_for_mix">AI bu miks uchun qo\'shiqlar topolmadi</string>
+</resources>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top Bar -->
+    <string name="topbar_beta_letter">β</string>
+    <string name="topbar_beta_label">Beta</string>
+    <string name="topbar_cd_cloud_streaming">Bulutli striming</string>
+    <string name="topbar_cd_changelog">Özgarişlar jurnali</string>
+    <string name="topbar_cloud_streaming_title">Bulutli striming</string>
+    <string name="topbar_cloud_streaming_subtitle">Bulutli hisoblaringizdan musiqa striming qiliş</string>
+
+    <!-- BetaInfoBottomSheet -->
+    <string name="beta_sheet_version">Beta 0.7.5</string>
+    <string name="beta_sheet_letter">β</string>
+    <string name="beta_sheet_welcome_title">PixelPlayer 0.7.5-beta versiyasiga xuş kelibsiz</string>
+    <string name="beta_sheet_welcome_body">Siz xatolar, uzilişlar yoki tajribaviy xususiyatlar bölişi mumkin bölgan beta versiyadan foydalanyapsiz. Muammolar haqida xabar berib, uni yaxşilaşga yordam bering.</string>
+    <string name="beta_sheet_expect_title">Nimalar kutilyapti</string>
+    <string name="beta_sheet_expect_1">Xatolar, uzilişlar yoki çala xususiyatlar kutilmaganda yuz berişi mumkin.</string>
+    <string name="beta_sheet_expect_2">Baʼzi xususiyatlar ogohlantirişsiz özgartirilişi yoki olib taşlanişi mumkin.</string>
+    <string name="beta_sheet_expect_3">Beta versiyalar reliz versiyalariga qarağanda beqarorroq bölişi mumkin.</string>
+    <string name="beta_sheet_expect_4">Maʼlum muammo haqida xabar berişdan oldin doim yangilanişlarni tekşiring.</string>
+    <string name="beta_sheet_expect_summary">Test qiliş davomida beta versiyalar nimalarni özgartirişi, buzişi yoki yaxşilaşi mumkin.</string>
+    <string name="beta_sheet_github_title">GitHub muammolariga tezkor ötiş</string>
+    <string name="beta_sheet_github_body">Avval qidiring, söngra xatolar, uzilişlar, sörovlar yoki savollar uçun aniq hisobot oçing.</string>
+    <string name="beta_sheet_open_issues">Mavjud muammolarni oçiş</string>
+    <string name="beta_sheet_report_bug">Muammo yoki uziliş haqida xabar beriş</string>
+    <string name="beta_sheet_report_body">Takrorlaş qadamlari, kutilgan natijalar, amaldagi natijalar va qurilmangiz/OT tafsilotlari bilan ulaşing.</string>
+    <string name="beta_sheet_report_title">Qanday xabar beriladi</string>
+    <string name="beta_sheet_report_summary">Yangi muammo oçişdan oldingi qisqa tekşiruv röyxati.</string>
+    <string name="beta_sheet_before_title">Muammo oçişdan oldin</string>
+    <string name="beta_sheet_before_1">Takrorlanişlarning oldini oliş uçun oçiq va yopiq muammolarni qidiring.</string>
+    <string name="beta_sheet_before_2">Eng sönggi PixelPlayer versiyasiga yangilang va muammo hali ham mavjudligini tasdiqlang.</string>
+    <string name="beta_sheet_before_3">Ilovani qayta işga tuşiring va muammo saqlanib qolayotganini tasdiqlang.</string>
+    <string name="beta_sheet_before_4">Uni takrorlaşga urinib köring va aniq qadamlarni yozib oling.</string>
+    <string name="beta_sheet_issue_type_title">Qaysi muammo turi?</string>
+    <string name="beta_sheet_issue_type_bug">Xato hisoboti: Nimadir notöğri işlayapti.</string>
+    <string name="beta_sheet_issue_type_feature">Xususiyat sörovi: Yangi xususiyat yoki yaxşilaş qöşiş.</string>
+    <string name="beta_sheet_issue_type_question">Savol: Agar yozilgan bölsa, Munozaralardan foydalaning yoki savol yorliği bilan muammo oçing.</string>
+    <string name="beta_sheet_bug_title">Xato hisoboti</string>
+    <string name="beta_sheet_bug_summary_text">Nimadir notöğri işlasa yoki uziliş yuz bersa, uşbu maydonlardan nusxa oling.</string>
+    <string name="beta_sheet_bug_template_title">Xato hisoboti</string>
+    <string name="beta_sheet_bug_summary">Qisqaça xulosa:</string>
+    <string name="beta_sheet_bug_expected">Kutilgan holat:</string>
+    <string name="beta_sheet_bug_actual">Hozirgi holat:</string>
+    <string name="beta_sheet_bug_steps">Takrorlaş qadamlari: 1. 2. 3.</string>
+    <string name="beta_sheet_bug_frequency">Qança tez-tez yuz beradi? Doim / Baʼzan / Kamdan-kam.</string>
+    <string name="beta_sheet_bug_screenshot">Skrinşot / video: agar mavjud bölsa.</string>
+    <string name="beta_sheet_bug_logs">Jurnallar / stek izi: agar mavjud bölsa.</string>
+    <string name="beta_sheet_env_title">Muhit</string>
+    <string name="beta_sheet_env_version">PixelPlayer versiyasi:</string>
+    <string name="beta_sheet_env_source">Örnatiş manbasi: GitHub relizi, disk raskadrovka, tungi yığilma va hk.</string>
+    <string name="beta_sheet_env_android">Android versiyasi:</string>
+    <string name="beta_sheet_env_device">Qurilma modeli:</string>
+    <string name="beta_sheet_env_extra">Qöşimça maʼlumotlar: SD karta, maxsus sozlamalar, ruxsatlar va hk.</string>
+    <string name="beta_sheet_feature_title">Xususiyat sörovi</string>
+    <string name="beta_sheet_feature_summary">Yangi xususiyat yoki yaxşilaşni xohlasangiz, uşbu maydonlardan nusxa oling.</string>
+    <string name="beta_sheet_feature_problem">Muammo bayoni: Qanday muammoni hal qilişga uringyapsiz?</string>
+    <string name="beta_sheet_feature_solution">Taklif qilingan yeçim: U qanday işlaşi kerak?</string>
+    <string name="beta_sheet_feature_alternatives">Körib çiqilgan muqobillar: Başqa yondaşuvlar bormi?</string>
+    <string name="beta_sheet_feature_scope">Qamrov: Qaysi ekranlar yoki oqimlarga taʼsir qiladi?</string>
+    <string name="beta_sheet_feature_mockup">Maket yoki havola rasmi, agar mavjud bölsa.</string>
+    <string name="beta_sheet_quality_title">Sarlavhalar, maxfiylik va qamrov</string>
+    <string name="beta_sheet_quality_summary">Hisobotni saralaş oson va ulaşiş uçun xavfsiz qiling.</string>
+    <string name="beta_sheet_title_examples_title">Yaxşi muammo sarlavhalari</string>
+    <string name="beta_sheet_title_example_1">Ekvalayzer: Oldindan örnatilgan yorliqlarni almashtirişda indikator siljiydi</string>
+    <string name="beta_sheet_title_example_2">Qidiruv: Böş sörov uçun tarix röyxati paydo bölmaydi</string>
+    <string name="beta_sheet_title_example_3">Xususiyat: \"Yaqinda qöşilganlar\" pleylistini saralaş tanlovini qöşiş</string>
+    <string name="beta_sheet_avoid_title">Iltimos, çetlab öting</string>
+    <string name="beta_sheet_avoid_1">\"U işlamayapti\" kabi umumiy hisobotlar.</string>
+    <string name="beta_sheet_avoid_2">Bitta muammoda bir-biriga boğliq bölmagan bir neçta muammolar.</string>
+    <string name="beta_sheet_avoid_3">Tahrirlanmagan jurnallar yoki şaxsiy maʼlumotlarga ega skrinşotlar.</string>
+    <string name="beta_sheet_privacy_title">Maxfiylik eslatmasi</string>
+    <string name="beta_sheet_privacy_body">Jurnallar, skrinşotlar yoki videolarni joylaşdan oldin şaxsiy yoki maxfiy maʼlumotlarni olib taşlang.</string>
+    <string name="beta_sheet_nightly_title">Tungi yığilmalar</string>
+    <string name="beta_sheet_nightly_summary">Tungi versiyalar relizlardan qanday farq qiladi va ular buzulganida nimalarni kiritiş kerak.</string>
+    <string name="beta_sheet_nightly_body">Tungi versiyalar eng sönggi kommitlardan yaratiladi va tugallanmagan özgarişlar, vaqtincahlik xatolar yoki regressiyalarni öz içiga olişi mumkin. Ular rasmiy relizlardan köra tajribaviyroqdir.</string>
+    <string name="beta_sheet_nightly_access">Ularga, agar mavjud bölsa, repozitoriydagi GitHub Actions oqimi artefaktlaridan kiring.</string>
+    <string name="beta_sheet_nightly_report_title">Tungi muammolar haqida xabar beriş</string>
+    <string name="beta_sheet_nightly_report_body">Tungi versiyadagi muammo haqida xabar berayotganda, doimo bu rasmiy relizda emas, tungi versiyada yuz berganini taʼkidlang. Imkon qadar yığilma sanasini, oqimning ijro nomini yoki raqamini yoki SHA kommitini kiriting. Şuningdek, ayni muammo eng sönggi rasmiy relizda yuz beriş-bermasligini tekşiring.</string>
+    <string name="beta05_title">Beta 0.5.0 yangilanişi</string>
+    <string name="beta05_clean_install_title">Toza örnatiş tavsiya etiladi</string>
+    <string name="beta05_clean_install_body">Agar siz beta 0.5.0 dan ötayotgan bölsangiz, uşbu yangilanişga eski keşlangan holat örniga yangi kutubxona maʼlumotlari kerak bölişi mumkin.</string>
+    <string name="beta05_if_wrong_meta_title">Agar metamaʼlumotlar yoki kutubxona yozuvlari notöğri körinsa</string>
+    <string name="beta05_if_wrong_meta_body">Notöğri qöşiq metamaʼlumotlari, mos kelmaydigan ijroçilar yoki albomlar, yoki takrorlanayotgandek körinadigan yozuvlar odatda toza örnatiş muammoni hal qilişini anglatadi.</string>
+    <string name="beta05_dont_show">Boşqa körsatilmasin</string>
+    <string name="beta05_got_it">Tüşunarli</string>
+
+    <!-- Crash report dialog -->
+    <string name="crash_report_title">Obbo! Nimadir notöğri bajarildi</string>
+    <string name="crash_report_subtitle">Sönggi sessiyangiz davomida ilovada uziliş yuz berdi. Uziliş hisobotini ulaşiş orqali buni hal qilişimizga yordam bering.</string>
+    <string name="crash_report_date_line">Sana: %1$s</string>
+    <string name="crash_report_error_label">Xato:</string>
+    <string name="crash_report_stack_preview_label">Stek izi (oldindan köriş):</string>
+    <string name="crash_report_clipboard_label">Uziliş jurnali</string>
+    <string name="crash_report_toast_log_copied">Uziliş jurnali buferga nusxalandi</string>
+    <string name="crash_report_share_subject">PixelPlayer uziliş hisoboti</string>
+    <string name="crash_report_share_chooser">Uziliş hisobotini ulaşiş</string>
+
+    <!-- Home Option -->
+    <string name="home_option_dj_mashup">DJ Meyşap</string>
+
+    <!-- Your Mix -->
+    <string name="home_your_mix_title">Sizning\nMiksingiz</string>
+    <string name="home_empty_placeholder_title">Körsatiş uçun hali maʼlumot yöq</string>
+    <string name="home_empty_placeholder_subtitle">PixelPlayer qöşiqlarni topganda yoki manbani sinxronlaştirganda sizning miksingiz şu yerda paydo böladi.</string>
+    <string name="home_empty_placeholder_refresh">Yangilaş</string>
+
+    <!-- DailyMixSection -->
+    <string name="home_daily_mix_title">KUNDALIK MIKS</string>
+    <string name="home_daily_mix_subtitle">Tarixga asoslangan</string>
+    <string name="home_daily_mix_action_see_all">Barcha Kundalik miksni tekşiriş</string>
+    <string name="home_daily_mix_queue_name">Kundalik Miks</string>
+
+    <!-- DailyMixScreen -->
+    <string name="daily_mix_title">Kundalik Miks</string>
+    <plurals name="daily_mix_songs_dot_duration">
+        <item quantity="one">%1$d qöşiq • %2$s</item>
+        <item quantity="other">%1$d qöşiq • %2$s</item>
+    </plurals>
+    <string name="daily_mix_action_play_it">Uni ijro etiş</string>
+    <string name="daily_mix_cd_ai_playlist_generator">AI pleylist yaratuvçisi</string>
+
+    <!-- DailyMixMenu -->
+    <string name="daily_mix_how_title">Kundalik Miksingiz qanday yaratiladi</string>
+    <string name="daily_mix_how_body">Sizning Kundalik miksingiz sevimli va eng köp çalingan qöşiqlaringizdan yaratiladi. Şuningdek, sizga yangi musiqalarni kaşf etişingiz uçun siz yoqtirgan ijroçilar va janrlardan treklar qöşamiz.</string>
+    <string name="daily_mix_prompt_label">Bugun nima tinglaşni xohlayotganingizni AI ga ayting</string>
+    <string name="daily_mix_cost_hint">Xarajatlarni kamaytiriş uçun kiçik namunadan foydalanamiz</string>
+    <string name="daily_mix_updating">Yangilanmoqda…</string>
+    <string name="daily_mix_update">Kundalik miksni yangilaş</string>
+
+    <!-- AIPlaylistSheet -->
+    <string name="ai_playlist_headline_perfect">Mukammal tanlangan</string>
+    <string name="ai_playlist_headline_daily_mix">Kundalik Miks</string>
+    <string name="ai_playlist_subtitle_journey_ready">Ovozli sayohatingiz tayyor</string>
+    <string name="ai_playlist_subtitle_generator">AI pleylist yaratuvçisi</string>
+    <string name="ai_playlist_description">Muhit, kayfiyat yoki faoliyatni tasvirlang va AI ga kutubxonangizdan mukammal pleylist tanlaşiga ruxsat bering.</string>
+    <string name="ai_playlist_section_size">Pleylist ölçami</string>
+    <string name="ai_playlist_min_songs">Min qöşiqlar</string>
+    <string name="ai_playlist_max_songs">Maks qöşiqlar</string>
+    <string name="ai_playlist_prompt_placeholder">masalan, Sokin oqşom muhiti, tetiklaştiruvçi maşğulot energiyasi…</string>
+    <string name="ai_playlist_tap_to_retry">Qayta uriniş uçun bosing</string>
+    <string name="ai_playlist_status_default">Ovozli sayohat sintezlandi!</string>
+    <string name="ai_playlist_ready_to_play">Ijro etişga tayyor</string>
+    <string name="ai_playlist_generating">Yaratilmoqda…</string>
+    <string name="ai_playlist_generate">Pleylist yaratiş</string>
+
+    <!-- RecentlyPlayedSection -->
+    <string name="home_recently_played_title">Yaqinda çalinganlar</string>
+
+    <!-- RecentlyPlayedScreen -->
+    <string name="recently_played_title">Yaqinda çalinganlar</string>
+    <string name="recently_played_action_play_latest">Eng sönggisini ijro etiş</string>
+    <string name="recently_played_empty_title">%1$s da yaqinda çalinganlar yöq</string>
+    <string name="recently_played_empty_subtitle">Uşbu xronologiyani töldiriş uçun oraliqni özgartiring yoki köproq qöşiq çaling.</string>
+    <string name="recently_played_queue_name">Yaqinda çalinganlar</string>
+    <string name="recently_played_date_today">Bugun</string>
+    <string name="recently_played_date_yesterday">Keça</string>
+
+    <!-- StatsOverviewCard -->
+    <string name="home_stats_overview_title">Tinglaş statistikasi</string>
+    <string name="home_stats_overview_total_plays">Jami ijrolar</string>
+    <string name="home_stats_overview_avg_per_day">Kunlik örtaça</string>
+    <string name="home_stats_overview_top_track">Top trek</string>
+    <string name="home_stats_overview_top_track_line">%1$s • %2$d ijro</string>
+
+    <!-- StatsScreen -->
+    <string name="stats_title">Tinglaş statistikasi</string>
+    <string name="stats_cd_refresh">Tinglaş statistikasini yangilaş</string>
+    <string name="stats_range_today">Bugun</string>
+    <string name="stats_range_week_to_date">Haftadan bugungaça</string>
+    <string name="stats_range_month_to_date">Oydan bugungaça</string>
+    <string name="stats_range_year_to_date">Yildan bugungaça</string>
+    <string name="stats_range_all_time">Barcha vaqt</string>
+    <string name="stats_hero_listening">Tinglaş</string>
+    <string name="stats_hero_plays">Ijrolar</string>
+    <string name="stats_section_listening_timeline">Tinglaş xronologiyasi</string>
+    <string name="stats_timeline_metric_listening_time">Tinglaş vaqti</string>
+    <string name="stats_timeline_metric_listening_time_desc">Tanlangan oraliqda qayd etilgan jami tinglaş.</string>
+    <string name="stats_timeline_metric_play_count">Ijro soni</string>
+    <string name="stats_timeline_metric_play_count_desc">Har bir segment uçun qança sessiya yakunlaganingiz.</string>
+    <string name="stats_timeline_metric_avg_session">Örtaça sessiya</string>
+    <string name="stats_timeline_metric_avg_session_desc">Har bir segment uçun örtaça tinglaş uzunligi.</string>
+    <string name="stats_timeline_support_day">Kundalik ritmingizni oçib beriş uçun 4-soatlik oynalarga bölinadi.</string>
+    <string name="stats_timeline_support_week">Kundalik ustunlar haftalik odatlarni taqqoslaşni osonlaştiradi.</string>
+    <string name="stats_timeline_support_month">Haftalik ustunlar oy tendensiyasini körsatadi.</string>
+    <string name="stats_timeline_support_year">Oylik ustunlar yil davomidagi mavsumiylikni körsatadi.</string>
+    <string name="stats_timeline_support_all">Yillik ustunlar töliq tarixingizni xulosalaydi.</string>
+    <string name="stats_empty_no_timeline_title">Hali tinglaş maʼlumotlari yöq</string>
+    <string name="stats_empty_no_timeline_subtitle">Tinglaş xronologiyangizni yaratişni boşlaş uçun ijro etişni bosing</string>
+    <string name="stats_rhythm_daily">Kundalik ritm</string>
+    <string name="stats_rhythm_weekly">Haftalik ritm</string>
+    <string name="stats_rhythm_monthly">Oylik ritm</string>
+    <string name="stats_rhythm_year">Yilga bir nazar</string>
+    <string name="stats_rhythm_all_time">Barcha vaqtdagi jarayon</string>
+    <string name="stats_grouped_4h">4 soatlik segmentlarga guruhlangan</string>
+    <string name="stats_grouped_dow">Hafta kuni böyiça guruhlangan</string>
+    <string name="stats_grouped_week_of_month">Oy haftasi böyiça guruhlangan</string>
+    <string name="stats_grouped_by_month">Oy böyiça guruhlangan</string>
+    <string name="stats_grouped_by_year">Yil böyiça guruhlangan</string>
+    <string name="stats_peak_segment">Eng yuqori segment</string>
+    <string name="stats_n_plays">%1$d ijro</string>
+    <string name="stats_em_dash">—</string>
+    <string name="stats_section_top_categories">Top kategoriyalar</string>
+    <string name="stats_top_categories_subtitle">Janrlar, ijroçilar, albomlar va qöşiqlarni qanday tinglaşingizni taqqoslang.</string>
+    <string name="stats_dim_genre">Janr</string>
+    <string name="stats_dim_artist">Ijroçi</string>
+    <string name="stats_dim_album">Albom</string>
+    <string name="stats_dim_song">Qöşiq</string>
+    <string name="stats_card_listening_by_genre">Janr böyiça tinglaş</string>
+    <string name="stats_card_listening_by_artist">Ijroçi böyiça tinglaş</string>
+    <string name="stats_card_listening_by_album">Albom böyiça tinglaş</string>
+    <string name="stats_card_listening_by_song">Qöşiq böyiça tinglaş</string>
+    <string name="stats_plays_artists">%1$d ijro • %2$d ijroçi</string>
+    <string name="stats_plays_tracks">%1$d ijro • %2$d trek</string>
+    <string name="stats_empty_no_category_title">Hali kategoriya maʼlumotlari yöq</string>
+    <string name="stats_empty_no_category_subtitle">Tinglaşdagi asosiy lavhalarni körsatiş uçun ijroni bosing</string>
+    <string name="stats_section_listening_habits">Tinglaş odatlari</string>
+    <string name="stats_empty_no_habits_title">Hali odatlar yöq</string>
+    <string name="stats_empty_no_habits_subtitle">Sizni yaxşiroq bilgaç, tinglaş odatlaringizni körsatamiz.</string>
+    <string name="stats_habit_total_sessions">Jami sessiyalar</string>
+    <string name="stats_habit_avg_session">Örtaça sessiya</string>
+    <string name="stats_habit_longest_session">Eng uzun sessiya</string>
+    <string name="stats_habit_sessions_per_day">Sessiyalar/kun</string>
+    <string name="stats_habit_most_active_day">Eng faol kun</string>
+    <string name="stats_habit_no_playback_yet">Hali ijro yöq</string>
+    <string name="stats_habit_peak_timeline_slot">Eng yuqori xronologiya oraliği</string>
+    <string name="stats_section_top_artists">Top ijroçilar</string>
+    <string name="stats_empty_no_artists_title">Top ijroçilar yöq</string>
+    <string name="stats_empty_no_artists_subtitle">Tinglaşda davom eting va sevimli ijroçilaringiz şu yerda körinadi.</string>
+    <string name="stats_avatar_placeholder">\?</string>
+    <string name="stats_ranked_artist">%1$d. %2$s</string>
+    <string name="stats_section_top_albums">Top albomlar</string>
+    <string name="stats_empty_no_albums_title">Top albomlar yöq</string>
+    <string name="stats_empty_no_albums_subtitle">Tez-tez qaytadigan albomlaringiz şu yerda paydo böladi.</string>
+    <string name="stats_ranked_album">%1$d. %2$s</string>
+    <string name="stats_track_concentration_title">Trek konsentratsiyasi</string>
+    <string name="stats_track_concentration_subtitle">Tinglaş vaqtingiz top treklaringiz böylab qanday taqsimlangani.</string>
+    <string name="stats_empty_no_concentration_title">Hali konsentratsiya maʼlumotlari yöq</string>
+    <string name="stats_empty_no_concentration_subtitle">Tinglaşingiz qançalik eʼtiborli ekanini köriş uçun köproq trek çaling.</string>
+    <string name="stats_slice_top_1">Top 1</string>
+    <string name="stats_slice_top_2_3">Top 2-3</string>
+    <string name="stats_slice_others">Başqalar</string>
+    <string name="stats_percent">%1$d%%</string>
+    <string name="stats_listening_concentration_title">Tinglaş konsentratsiyasi</string>
+    <string name="stats_top_three_share_line">Top 3 trek tinglaş vaqtingizning %1$d%% ini taşkil qiladi.</string>
+    <string name="stats_avg_plays_per_track">Örtaça ijrolar/trek</string>
+    <string name="stats_unique_tracks">Yagona treklar</string>
+    <string name="stats_top_three_share_label">Top 3 uluşi</string>
+    <string name="stats_tracks_in_range_title">Uşbu oraliqdagi treklar</string>
+    <string name="stats_tracks_in_range_subtitle">Tanlangan vaqt oraliği uçun eng köp çalingan treklar.</string>
+    <string name="stats_empty_no_tracks_title">Top treklar yöq</string>
+    <string name="stats_empty_no_tracks_subtitle">Ularni şu yerda ajratib körsatilişi uçun sevimlilaringizni tinglang.</string>
+    <string name="stats_collapse_tracks">Treklarni yiğiş</string>
+    <string name="stats_show_all_tracks">Barcha treklarni körsatiş</string>
+
+    <!-- Time and Duration Formatting -->
+    <string name="duration_hours_minutes_long">%1$d s %2$02d daq</string>
+    <string name="duration_minutes_long">%1$d daq</string>
+    <string name="duration_hours_minutes_medium">%1$d s %2$02d d</string>
+    <string name="duration_hours_medium">%1$d s</string>
+    <string name="duration_minutes_medium">%1$d d</string>
+    <string name="duration_seconds_medium">%1$d s</string>
+    <string name="duration_hours_minutes_short">%1$ds %2$02dd</string>
+    <string name="duration_hours_short">%1$ds</string>
+    <string name="duration_minutes_short">%1$dd</string>
+    <string name="duration_seconds_short">%1$ds</string>
+    <string name="time_ago_never">Heç qaçon</string>
+    <string name="time_ago_just_now">Hozirgina</string>
+    <string name="time_ago_day_singular">1 kun oldin</string>
+    <string name="time_ago_days_plural">%1$d kun oldin</string>
+    <string name="time_ago_hour_singular">1 soat oldin</string>
+    <string name="time_ago_hours_plural">%1$d soat oldin</string>
+    <string name="time_ago_minute_singular">1 daqiqa oldin</string>
+    <string name="time_ago_minutes_plural">%1$d daqiqa oldin</string>
+    <string name="song_count_singular">%1$d qöşiq</string>
+    <string name="song_count_plural">%1$d qöşiq</string>
+    <string name="stats_week_label">%1$d-hafta</string>
+</resources>

@@ -44,7 +44,9 @@ class LocalOnlyMediaNotificationProvider(
         }.getOrElse {
             notification.notification
         }
-        return MediaNotification(notification.notificationId, localOnlyNotification)
+        // Same ID as MusicService's temporary foreground notification, so media updates
+        // replace it instead of leaving it behind as an orphaned notification.
+        return MediaNotification(MusicService.NOTIFICATION_ID, localOnlyNotification)
     }
 
     override fun handleCustomCommand(

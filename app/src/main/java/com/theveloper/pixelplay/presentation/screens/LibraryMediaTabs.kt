@@ -31,6 +31,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +93,10 @@ fun LibraryAlbumsTab(
     onAlbumLongPress: (Album) -> Unit = {},
     onAlbumSelectionToggle: (Album) -> Unit = {},
     getSelectionIndex: (Long) -> Int? = { null },
-    storageFilter: StorageFilter = StorageFilter.ALL
+    storageFilter: StorageFilter = StorageFilter.ALL,
+    // Null keeps the previous behaviour (scroll resets on return); LibraryScreen
+    // passes LibraryViewModel.libraryScrollPositions to preserve it (#2814).
+    libraryScrollPositions: com.theveloper.pixelplay.presentation.viewmodel.LibraryScrollPositionStore? = null
 ) {
     val hasCurrentSong by remember(playerViewModel) {
         playerViewModel.stablePlayerState
@@ -104,6 +108,58 @@ fun LibraryAlbumsTab(
     val listState = rememberLazyListState()
     val dummyListState = rememberLazyListState()
     val dummyGridState = rememberLazyGridState()
+
+    // #2814: save both view modes on dispose, and restore the active one once
+    // when the tab next enters composition (e.g. back from an album page).
+    // Paging loads incrementally, so wait until the saved index is loaded or
+    // pagination has ended instead of clamping to the first partial page.
+    // A later sort change is not undone: the sort handler scrolls to item 0
+    // and this flag is already true by then, so the restore does not re-run.
+    DisposableEffect(Unit) {
+        onDispose {
+            libraryScrollPositions?.save(
+                "albums-list",
+                listState.firstVisibleItemIndex,
+                listState.firstVisibleItemScrollOffset,
+            )
+            libraryScrollPositions?.save(
+                "albums-grid",
+                gridState.firstVisibleItemIndex,
+                gridState.firstVisibleItemScrollOffset,
+            )
+        }
+    }
+    var albumsScrollRestored by remember { mutableStateOf(false) }
+    LaunchedEffect(
+        albums.itemCount,
+        albums.loadState.append.endOfPaginationReached,
+        isListView,
+    ) {
+        if (albumsScrollRestored) return@LaunchedEffect
+        val store = libraryScrollPositions ?: run {
+            albumsScrollRestored = true
+            return@LaunchedEffect
+        }
+        val key = if (isListView) "albums-list" else "albums-grid"
+        val saved = store.saved(key) ?: run {
+            albumsScrollRestored = true
+            return@LaunchedEffect
+        }
+        val endReached = albums.loadState.append.endOfPaginationReached
+        if (albums.itemCount <= saved.firstVisibleItemIndex && !endReached) {
+            return@LaunchedEffect
+        }
+        val target = store.restore(key, albums.itemCount) ?: run {
+            albumsScrollRestored = true
+            return@LaunchedEffect
+        }
+        if (isListView) {
+            listState.scrollToItem(target.firstVisibleItemIndex, target.firstVisibleItemScrollOffset)
+        } else {
+            gridState.scrollToItem(target.firstVisibleItemIndex, target.firstVisibleItemScrollOffset)
+        }
+        albumsScrollRestored = true
+    }
     val context = LocalContext.current
     val imageLoader = context.imageLoader
 

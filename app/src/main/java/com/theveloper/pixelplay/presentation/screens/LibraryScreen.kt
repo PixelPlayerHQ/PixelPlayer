@@ -1563,7 +1563,8 @@ fun LibraryScreen(
                                             onAlbumLongPress = onAlbumLongPress,
                                             onAlbumSelectionToggle = onAlbumSelectionToggle,
                                             getSelectionIndex = getAlbumSelectionIndex,
-                                            storageFilter = playerUiState.currentStorageFilter
+                                            storageFilter = playerUiState.currentStorageFilter,
+                                            libraryScrollPositions = libraryViewModel.libraryScrollPositions
                                         )
                                     }
 
@@ -1679,7 +1680,8 @@ fun LibraryScreen(
                                             onRequestCrossFolderLocate = { folderPath ->
                                                 pendingFoldersLocatePath = folderPath
                                                 playerViewModel.navigateToFolder(folderPath)
-                                            }
+                                            },
+                                            libraryScrollPositions = libraryViewModel.libraryScrollPositions
                                         )
                                     }
 
@@ -2852,7 +2854,10 @@ fun LibraryFoldersTab(
     onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
     pendingLocatePath: String? = null,
     onClearPendingLocate: () -> Unit = {},
-    onRequestCrossFolderLocate: (String) -> Unit = {}
+    onRequestCrossFolderLocate: (String) -> Unit = {},
+    // Null keeps the previous behaviour; LibraryScreen passes
+    // LibraryViewModel.libraryScrollPositions to preserve it (#2814).
+    libraryScrollPositions: com.theveloper.pixelplay.presentation.viewmodel.LibraryScrollPositionStore? = null
 ) {
     // List state moved inside AnimatedContent to prevent state sharing issues during transitions
 
@@ -2876,8 +2881,20 @@ fun LibraryFoldersTab(
             slideIn.togetherWith(slideOut)
         }
     ) { (playlistMode, targetPath) ->
-        // Each navigation destination gets its own independant ListState
+        // Each navigation destination gets its own independant ListState.
+        // #2814: that is exactly why returning to a folder reset to the top,
+        // so save this destination's position on dispose, keyed by its path,
+        // and restore it below once its (fully in-memory) items are known.
         val listState = rememberLazyListState()
+        DisposableEffect(playlistMode, targetPath) {
+            onDispose {
+                libraryScrollPositions?.save(
+                    "folders:$playlistMode:$targetPath",
+                    listState.firstVisibleItemIndex,
+                    listState.firstVisibleItemScrollOffset,
+                )
+            }
+        }
         val coroutineScope = rememberCoroutineScope()
         val visibilityCallback by rememberUpdatedState(onLocateCurrentSongVisibilityChanged)
         val registerActionCallback by rememberUpdatedState(onRegisterLocateCurrentSongAction)
@@ -2902,6 +2919,28 @@ fun LibraryFoldersTab(
         val songsToShow = remember(activeFolder, currentSortOption) {
             sortSongsForFolderView(activeFolder?.songs ?: emptyList(), currentSortOption)
         }.toImmutableList()
+
+        // #2814 restore: runs once per folder destination. A later sort change
+        // is not undone, because the sort handler scrolls to item 0 and this
+        // flag is already true by then, so the restore does not re-run.
+        var foldersScrollRestored by remember(playlistMode, targetPath) { mutableStateOf(false) }
+        LaunchedEffect(playlistMode, targetPath, itemsToShow.size, songsToShow.size) {
+            if (foldersScrollRestored) return@LaunchedEffect
+            val store = libraryScrollPositions ?: run {
+                foldersScrollRestored = true
+                return@LaunchedEffect
+            }
+            val target = store.restore(
+                "folders:$playlistMode:$targetPath",
+                itemsToShow.size + songsToShow.size,
+            ) ?: run {
+                foldersScrollRestored = true
+                return@LaunchedEffect
+            }
+            listState.scrollToItem(target.firstVisibleItemIndex, target.firstVisibleItemScrollOffset)
+            foldersScrollRestored = true
+        }
+
         val currentSong by remember(playerViewModel) {
             playerViewModel.stablePlayerState
                 .map { it.currentSong }

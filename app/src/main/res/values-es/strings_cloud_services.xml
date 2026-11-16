@@ -149,6 +149,7 @@
     <string name="auth_username_label">Usuario</string>
     <string name="auth_username_placeholder">admin</string>
     <string name="auth_welcome_toast">¡Bienvenido, %1$s!</string>
+    <string name="auth_local_network_permission_denied">Permite el acceso a «Dispositivos cercanos» para conectar con un servidor de tu red local</string>
 
     <!-- Subsonic / Navidrome Auth -->
     <string name="auth_navidrome_footer_msg">Compatible con Navidrome, Gonic, Airsonic y otros servidores Subsonic</string>

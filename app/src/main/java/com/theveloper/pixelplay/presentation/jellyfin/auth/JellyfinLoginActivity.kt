@@ -54,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,9 +74,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.presentation.components.rememberLocalNetworkPermissionGate
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @AndroidEntryPoint
@@ -102,11 +105,29 @@ fun JellyfinLoginScreen(
     val loginState by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val coroutineScope = rememberCoroutineScope()
+    val localNetworkGate = rememberLocalNetworkPermissionGate()
 
     var serverUrl by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Android 17+ blocks LAN traffic without ACCESS_LOCAL_NETWORK: ask for it before connecting
+    // to a self-hosted server instead of letting the request time out.
+    fun submitLogin() {
+        localNetworkGate.ensureAccess(serverUrl) { granted ->
+            if (granted) {
+                viewModel.login(serverUrl, username, password)
+            } else {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.auth_local_network_permission_denied)
+                    )
+                }
+            }
+        }
+    }
 
     LaunchedEffect(loginState) {
         when (val state = loginState) {
@@ -323,7 +344,7 @@ fun JellyfinLoginScreen(
                             onDone = {
                                 focusManager.clearFocus()
                                 if (serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()) {
-                                    viewModel.login(serverUrl, username, password)
+                                    submitLogin()
                                 }
                             }
                         ),
@@ -370,7 +391,7 @@ fun JellyfinLoginScreen(
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    viewModel.login(serverUrl, username, password)
+                    submitLogin()
                 },
                 enabled = !isLoading && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
                 shape = AbsoluteSmoothCornerShape(18.dp, 60),

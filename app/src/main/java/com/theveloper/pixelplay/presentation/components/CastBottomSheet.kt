@@ -151,6 +151,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
+import com.theveloper.pixelplay.utils.LocalNetworkAccess
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -190,6 +191,10 @@ fun CastBottomSheet(
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+            if (LocalNetworkAccess.isPermissionRequired) {
+                // Android 17+: cast discovery and the local media server need LAN access.
+                add(LocalNetworkAccess.PERMISSION)
             }
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
                 add(Manifest.permission.ACCESS_FINE_LOCATION)

@@ -106,6 +106,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.theveloper.pixelplay.data.github.GitHubAnnouncementPropertiesService
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
+import com.theveloper.pixelplay.data.jellyfin.JellyfinRepository
+import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.sanitizeNavBarCornerRadius
@@ -127,6 +129,7 @@ import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementDia
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementUiModel
 import com.theveloper.pixelplay.presentation.components.UnifiedPlayerSheetV2
 import com.theveloper.pixelplay.presentation.components.calculatePlayerSheetCollapsedTargetY
+import com.theveloper.pixelplay.presentation.components.rememberLocalNetworkPermissionGate
 import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.components.resolveNavBarSurfaceHeight
 import com.theveloper.pixelplay.presentation.components.sanitizeNavigationBarBottomInset
@@ -139,11 +142,14 @@ import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.AppLocaleManager
+import com.theveloper.pixelplay.utils.LocalNetworkAccess
 import com.theveloper.pixelplay.utils.LogUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -185,6 +191,10 @@ class MainActivity : ComponentActivity() {
     lateinit var themePreferencesRepository: ThemePreferencesRepository
     @Inject
     lateinit var syncManager: SyncManager
+    @Inject
+    lateinit var navidromeRepository: dagger.Lazy<NavidromeRepository>
+    @Inject
+    lateinit var jellyfinRepository: dagger.Lazy<JellyfinRepository>
     // For handling shortcut navigation - using StateFlow so composables can observe changes
     private val _pendingPlaylistNavigation = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val _pendingShuffleAll = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -280,6 +290,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            // Android 17+: servers configured before the app requested ACCESS_LOCAL_NETWORK
+            // (or after the user revoked it) silently time out. Ask once the app is usable.
+            val localNetworkGate = rememberLocalNetworkPermissionGate()
+            LaunchedEffect(showSetupScreen) {
+                if (showSetupScreen == false && LocalNetworkAccess.isPermissionRequired) {
+                    val lanServerUrl = withContext(Dispatchers.IO) { savedSelfHostedServerUrls() }
+                        .firstOrNull { LocalNetworkAccess.needsPermissionFor(this@MainActivity, it) }
+                    if (lanServerUrl != null) {
+                        localNetworkGate.ensureAccess(lanServerUrl) { }
+                    }
+                }
+            }
+
             // Check for crash log when app starts
             LaunchedEffect(Unit) {
                 if (!isBenchmarkMode && CrashHandler.hasCrashLog()) {
@@ -358,6 +381,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
+
+    private fun savedSelfHostedServerUrls(): List<String> = listOfNotNull(
+        navidromeRepository.get().let { repo -> repo.serverUrl.takeIf { repo.isLoggedIn } },
+        jellyfinRepository.get().let { repo -> repo.serverUrl.takeIf { repo.isLoggedIn } }
+    )
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return

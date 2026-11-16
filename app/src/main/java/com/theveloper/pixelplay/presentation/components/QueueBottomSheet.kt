@@ -135,6 +135,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player
@@ -1318,51 +1320,68 @@ private fun QueueHeader(
     val view = LocalView.current
     val appHapticsConfig = LocalAppHapticsConfig.current
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+    // Keep the title on a single line: it shrinks to fit instead of breaking mid-word (e.g.
+    // "A continuación"), and the source badge takes the remaining width, ellipsizing if needed.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val titleMaxWidth = maxWidth * 0.6f
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                modifier = Modifier.clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    performAppCompatHapticFeedback(
-                        view,
-                        appHapticsConfig,
-                        HapticFeedbackConstantsCompat.GESTURE_START
-                    )
-                    onLocateCurrentSong()
-                },
-                text = stringResource(R.string.queue_next_up_label),
-                style = MaterialTheme.typography.headlineLarge.copy(
+            Column(
+                modifier = Modifier.widthIn(max = titleMaxWidth),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val titleStyle = MaterialTheme.typography.headlineLarge.copy(
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = when {
-                    queueCount <= 0 -> stringResource(R.string.queue_tracks_empty)
-                    else -> pluralStringResource(
-                        R.plurals.queue_tracks_lined_up,
-                        queueCount,
-                        queueCount
+                )
+                Text(
+                    modifier = Modifier.clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        performAppCompatHapticFeedback(
+                            view,
+                            appHapticsConfig,
+                            HapticFeedbackConstantsCompat.GESTURE_START
+                        )
+                        onLocateCurrentSong()
+                    },
+                    text = stringResource(R.string.queue_next_up_label),
+                    style = titleStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 20.sp,
+                        maxFontSize = titleStyle.fontSize
                     )
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                )
+                Text(
+                    text = when {
+                        queueCount <= 0 -> stringResource(R.string.queue_tracks_empty)
+                        else -> pluralStringResource(
+                            R.plurals.queue_tracks_lined_up,
+                            queueCount,
+                            queueCount
+                        )
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 6.dp),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                QueueSourceBadge(queueSourceName = queueSourceName)
+            }
         }
-        QueueSourceBadge(
-            queueSourceName = queueSourceName,
-            modifier = Modifier.padding(top = 6.dp)
-        )
     }
 }
 

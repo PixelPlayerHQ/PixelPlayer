@@ -1,8 +1,15 @@
 # PixelPlayer 🎵
 
-<p align="center">
-  <img src="assets/PixelPlayer.svg" alt="App Icon" height="250"/>
-</p>
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.**
+>
+> PixelPlayer is now available on the **Google Play Store**, and development continues in two places:
+>
+> - 📱 **Google Play version:** https://play.google.com/apps/testing/com.theveloper.pixelplayer
+> - 🛠️ **PixelPlayer OSS** (free and open-source, available on F-Droid): https://github.com/PixelPlayerHQ/PixelPlayerOSS
+>
+> Please open new issues and pull requests in the [PixelPlayer OSS](https://github.com/PixelPlayerHQ/PixelPlayerOSS) repository.
+
 <p align="center">
 <a href="https://trendshift.io/repositories/15551" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15551" alt="PixelPlayerHQ%2FPixelPlayer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>

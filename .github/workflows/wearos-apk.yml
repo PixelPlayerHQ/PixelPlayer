@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -33,7 +33,7 @@ jobs:
         run: gradle :wear:assembleDebug
 
       - name: Upload Wear OS APK artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: PixelPlay-wear-only-debug
           path: wear/build/outputs/apk/debug/*.apk
